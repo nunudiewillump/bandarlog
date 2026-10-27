@@ -10,21 +10,19 @@ import { seed } from './seed.js';
 import * as s from './schema.js';
 import { validateEnvironment } from './config.js';
 import { preferenceSchema, preferences, reminderEvents } from './preferences.js';
-import { generateCommissionArtwork } from './artwork.js';
+import {
+  artworkCatalog,
+  artworkThemes,
+  inferArtworkTheme,
+  selectArtwork,
+  type ArtworkTheme,
+} from '../shared/scout-catalog.js';
 import { normalizePhoto } from './photos.js';
+import { artworkImage } from './artwork.js';
 import { renderMail } from './mail-template.js';
 const { production: prod, appUrl } = validateEnvironment();
 const { db, close } = await connect();
 await seed(db);
-await db
-  .update(s.commissions)
-  .set({ artworkStatus: process.env.ARTWORK_WORKER_URL ? 'pending' : 'unavailable' })
-  .where(
-    inArray(
-      s.commissions.artworkStatus,
-      process.env.ARTWORK_WORKER_URL ? ['running'] : ['pending', 'running'],
-    ),
-  );
 const app = express();
 app.disable('x-powered-by');
 app.use(helmet({ contentSecurityPolicy: prod ? undefined : false }));
@@ -435,7 +433,74 @@ app.patch('/api/profile', async (q, r) => {
     .where(eq(s.users.id, r.locals.user.id));
   r.json({ ok: true });
 });
+async function extraArtwork() {
+  const rows = await db
+    .select({
+      id: s.artworkEntries.id,
+      name: s.artworkEntries.name,
+      collection: s.artworkEntries.collection,
+      family: s.artworkEntries.family,
+    })
+    .from(s.artworkEntries);
+  return rows.map((entry) => ({
+    ...entry,
+    collection: entry.collection as ArtworkTheme,
+    familyName: artworkCatalog.find((a) => a.family === entry.family)?.familyName || 'Scouts',
+    icon: 'Palette',
+    iconUrl: `/api/artwork/assets/${entry.id}/icon`,
+    mascotUrl: `/api/artwork/assets/${entry.id}/mascot`,
+  }));
+}
+app.get('/api/artwork/catalog', async (_q, r) =>
+  r.json([...artworkCatalog, ...(await extraArtwork())]),
+);
+app.post('/api/artwork/catalog', async (q, r) => {
+  if (!globalManage(r.locals.user)) fail(403, 'Solo coordinación puede ampliar el catálogo.');
+  const input = parse(
+    z.object({
+      name: text,
+      collection: z.enum(['scout', 'christmas']),
+      family: text,
+      icon: z.string().max(200000),
+      mascot: z.string().max(200000),
+    }),
+    q.body,
+  );
+  if (!artworkCatalog.some((a) => a.family === input.family))
+    fail(400, 'Selecciona un tipo de comisión.');
+  let iconData: string, mascotData: string;
+  try {
+    iconData = await artworkImage(input.icon, 'icon');
+    mascotData = await artworkImage(input.mascot, 'mascot');
+  } catch {
+    return fail(400, 'Usa imágenes PNG, JPEG o WebP válidas.');
+  }
+  const entryId = id();
+  await db
+    .insert(s.artworkEntries)
+    .values({
+      id: entryId,
+      name: input.name,
+      collection: input.collection,
+      family: input.family,
+      iconData,
+      mascotData,
+      createdBy: r.locals.user.id,
+      createdAt: now(),
+    });
+  r.status(201).json({ id: entryId });
+});
+app.get('/api/artwork/assets/:id/:kind', async (q, r) => {
+  const kind = parse(z.enum(['icon', 'mascot']), q.params.kind);
+  const [entry] = await db
+    .select({ data: kind === 'icon' ? s.artworkEntries.iconData : s.artworkEntries.mascotData })
+    .from(s.artworkEntries)
+    .where(eq(s.artworkEntries.id, String(q.params.id)));
+  if (!entry) return fail(404, 'Ilustración no encontrada.');
+  r.type('image/webp').send(Buffer.from(entry.data.split(',')[1], 'base64'));
+});
 app.get('/api/data', async (_q, r) => {
+  const catalogueExtra = await extraArtwork();
   const u = r.locals.user;
   const memberships = await db.select().from(s.members);
   const cs = (await db.select().from(s.commissions)).filter(
@@ -469,10 +534,32 @@ app.get('/api/data', async (_q, r) => {
     .filter((x) => globalManage(u) || uids.has(x.id))
     .map(({ preferences, ...x }) => x);
   r.json({
-    artworkEnabled: !!process.env.ARTWORK_WORKER_URL,
+    artworkEnabled: true,
+    artworkThemes,
     projects: visibleProjects,
     projectMembers: visibleProjectMembers,
-    commissions: cs,
+    commissions: cs.map((c) => {
+      const theme = (visibleProjects.find((p) => p.id === c.projectId)?.artworkTheme ||
+        'scout') as ArtworkTheme;
+      const artwork = selectArtwork(
+        {
+          name: c.name,
+          description: c.description,
+          theme,
+          key: c.artworkKey,
+          seed: c.id,
+        },
+        catalogueExtra,
+      );
+      return {
+        ...c,
+        iconUrl: artwork.iconUrl,
+        mascotUrl: artwork.mascotUrl,
+        artworkStatus: 'ready',
+        artworkKey: artwork.id,
+        artworkMode: c.artworkKey === artwork.id ? 'manual' : 'automatic',
+      };
+    }),
     members: visibleMembers,
     users: us,
     tasks: ts,
@@ -503,6 +590,7 @@ app.post('/api/projects', async (q, r) => {
     z.object({
       name: text,
       type: z.enum(['ronda', 'camp']),
+      artworkTheme: z.enum(['scout', 'christmas']).optional(),
       parentId: z.string().optional(),
       starts: z.iso.date(),
       ends: z.iso.date(),
@@ -516,20 +604,36 @@ app.post('/api/projects', async (q, r) => {
       .from(s.projects)
       .where(eq(s.projects.id, input.parentId || ''));
     if (!parent || parent.type !== 'ronda' || parent.archived === 'true')
-      fail(400, 'Selecciona una ronda solar activa.');
+      fail(400, 'Selecciona un proyecto anual activo.');
   }
   const [p] = await db
     .insert(s.projects)
-    .values({ ...input, id: id(), parentId: input.type === 'camp' ? input.parentId : null })
+    .values({
+      ...input,
+      artworkTheme: input.artworkTheme || inferArtworkTheme(input.name),
+      id: id(),
+      parentId: input.type === 'camp' ? input.parentId : null,
+    })
     .returning();
   r.status(201).json(p);
 });
 app.patch('/api/projects/:id', async (q, r) => {
-  if (!globalManage(r.locals.user)) fail(403, 'Solo coordinación puede archivar proyectos.');
-  const { archived } = parse(z.object({ archived: z.boolean() }), q.body);
+  if (!globalManage(r.locals.user)) fail(403, 'Solo coordinación puede modificar proyectos.');
+  const { archived, artworkTheme } = parse(
+    z
+      .object({
+        archived: z.boolean().optional(),
+        artworkTheme: z.enum(['scout', 'christmas']).optional(),
+      })
+      .refine((v) => v.archived !== undefined || v.artworkTheme !== undefined, 'Indica un cambio.'),
+    q.body,
+  );
   await db
     .update(s.projects)
-    .set({ archived: String(archived) })
+    .set({
+      ...(archived !== undefined ? { archived: String(archived) } : {}),
+      ...(artworkTheme ? { artworkTheme } : {}),
+    })
     .where(eq(s.projects.id, String(q.params.id)));
   r.json({ ok: true });
 });
@@ -559,21 +663,22 @@ app.post('/api/commissions', async (q, r) => {
     for (const m of input.members)
       await tx.insert(s.members).values({ id: id(), commissionId: cid, ...m });
   });
-  if (process.env.ARTWORK_WORKER_URL)
-    void artworkJobs().catch(() => console.error('No se pudo preparar la ilustración.'));
-  else
-    void generateCommissionArtwork(db, cid).catch(() =>
-      console.error('No se pudo preparar la ilustración.'),
-    );
   r.status(201).json({ id: cid });
 });
 app.post('/api/commissions/:id/artwork', async (q, r) => {
   const cid = String(q.params.id);
   await authorize(r.locals.user, cid, true);
-  if (!process.env.ARTWORK_WORKER_URL)
-    fail(503, 'El servicio de ilustraciones aún no está conectado.');
-  await db.update(s.commissions).set({ artworkStatus: 'pending' }).where(eq(s.commissions.id, cid));
-  r.status(202).json({ ok: true });
+  const { key } = parse(z.object({ key: z.string().nullable().optional() }), q.body);
+  const [c] = await db.select().from(s.commissions).where(eq(s.commissions.id, cid));
+  const [p] = await db.select().from(s.projects).where(eq(s.projects.id, c.projectId));
+  const available = [...artworkCatalog, ...(await extraArtwork())];
+  if (key && !available.some((a) => a.id === key && a.collection === p.artworkTheme))
+    fail(400, 'Selecciona una ilustración de la colección de este proyecto.');
+  await db
+    .update(s.commissions)
+    .set({ artworkKey: key || null, artworkStatus: 'ready' })
+    .where(eq(s.commissions.id, cid));
+  r.json({ ok: true });
 });
 app.post('/api/projects/:id/members', async (q, r) => {
   if (!globalManage(r.locals.user))
@@ -1036,26 +1141,6 @@ async function reminders() {
     scheduling = false;
   }
 }
-let generating = false;
-async function artworkJobs() {
-  if (!process.env.ARTWORK_WORKER_URL || generating) return;
-  generating = true;
-  try {
-    const [c] = await db
-      .select()
-      .from(s.commissions)
-      .where(eq(s.commissions.artworkStatus, 'pending'))
-      .limit(1);
-    if (c) await generateCommissionArtwork(db, c.id);
-  } finally {
-    generating = false;
-  }
-}
-const artworkTimer = setInterval(
-  () => void artworkJobs().catch(() => console.error('No se pudo procesar la ilustración.')),
-  10000,
-);
-artworkTimer.unref();
 const timer = setInterval(() => {
   void reminders()
     .then(deliver)
@@ -1098,6 +1183,5 @@ const server = app.listen(Number(process.env.PORT || 3001), '0.0.0.0', () =>
 );
 process.on('SIGTERM', () => {
   clearInterval(timer);
-  clearInterval(artworkTimer);
   server.close(() => void close().then(() => process.exit(0)));
 });

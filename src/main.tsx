@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { MascotArt, ArtworkPicker } from './Artwork';
+import { artworkThemes, inferArtworkTheme } from '../shared/scout-catalog';
 import { createRoot } from 'react-dom/client';
 import {
   Home,
@@ -176,15 +178,6 @@ function App() {
   useEffect(() => {
     void bootup();
   }, []);
-  useEffect(() => {
-    if (
-      !me ||
-      !data.commissions.some((c) => ['pending', 'running'].includes(c.artworkStatus || ''))
-    )
-      return;
-    const timer = setInterval(() => void load().catch(() => {}), 5000);
-    return () => clearInterval(timer);
-  }, [me?.id, data.commissions.map((c) => c.artworkStatus).join(',')]);
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(''), 4000);
@@ -999,7 +992,7 @@ function App() {
                   </div>
                   {manage && (
                     <button className="primary" onClick={() => setModal('project')}>
-                      <Plus size={18} /> Nuevo proyecto
+                      <Plus size={18} /> {view === 'camps' ? 'Nuevo campamento' : 'Nuevo proyecto'}
                     </button>
                   )}
                 </div>
@@ -1114,7 +1107,8 @@ function App() {
                   className="back text-link"
                   onClick={() => navigate(activeProject.type === 'camp' ? 'camps' : 'rounds')}
                 >
-                  <ArrowLeft size={16} /> Volver a proyectos
+                  <ArrowLeft size={16} />{' '}
+                  {activeProject.type === 'camp' ? 'Volver a campamentos' : 'Volver a proyectos'}
                 </button>
                 <div className="project-banner">
                   <span className="project-art">
@@ -1132,6 +1126,32 @@ function App() {
                   </div>
                   <img src="/monkey.webp" alt="" />
                 </div>
+                {manage && activeProject.archived !== 'true' && (
+                  <label className="project-artwork-theme">
+                    Colección de ilustraciones
+                    <Select
+                      value={activeProject.artworkTheme || 'scout'}
+                      disabled={busy}
+                      onChange={(event) =>
+                        void run(async () => {
+                          await api(`/projects/${project}`, 'PATCH', {
+                            artworkTheme: event.target.value,
+                          });
+                        }, 'Colección actualizada')
+                      }
+                    >
+                      {artworkThemes.map((theme) => (
+                        <option key={theme.id} value={theme.id}>
+                          {theme.name}
+                        </option>
+                      ))}
+                    </Select>
+                    <span className="hint">
+                      Se aplica a todas las comisiones de este{' '}
+                      {activeProject.type === 'camp' ? 'campamento' : 'proyecto'}.
+                    </span>
+                  </label>
+                )}
                 <div className="page-tabs">
                   {[
                     ['tasks', 'Resumen'],
@@ -1229,29 +1249,15 @@ function App() {
                       </>
                     )}
                   </div>
-                  {canManage(commission) &&
-                    ['pending', 'running'].includes(activeCommission.artworkStatus || '') && (
-                      <span className="artwork-status" role="status">
-                        <BananaLoader compact label="Preparando ilustraciones…" />
-                      </span>
-                    )}
-                  {canManage(commission) &&
-                    data.artworkEnabled &&
-                    ['failed', 'unavailable'].includes(activeCommission.artworkStatus || '') && (
-                      <button
-                        className="text-link artwork-retry"
-                        onClick={() =>
-                          void run(async () => {
-                            await api(`/commissions/${commission}/artwork`, 'POST');
-                          }, 'Ilustraciones en preparación')
-                        }
-                      >
-                        {activeCommission.artworkStatus === 'failed'
-                          ? 'Reintentar ilustraciones'
-                          : 'Generar ilustraciones'}
-                      </button>
-                    )}
-                  <img src={activeCommission.mascotUrl || '/monkey.webp'} alt="" />
+                  {canManage(commission) && activeProject?.archived !== 'true' && (
+                    <button className="text-link artwork-retry" onClick={() => setModal('artwork')}>
+                      Elegir ilustraciones
+                    </button>
+                  )}
+                  <MascotArt
+                    className="commission-mascot"
+                    src={activeCommission.mascotUrl || '/monkey.webp'}
+                  />
                 </section>
                 {canManage(commission) && (
                   <section className="commission-summary" aria-label="Panel de Responsable">
@@ -1744,7 +1750,8 @@ function App() {
                   commission: 'Nueva comisión',
                   members: 'Añadir personas',
                   invite: 'Invitar personas',
-                  project: 'Nuevo proyecto',
+                  project: view === 'camps' ? 'Nuevo campamento' : 'Nuevo proyecto',
+                  artwork: 'Elegir ilustraciones',
                   mail: 'Bandeja de desarrollo',
                 } as any
               )[modal]
@@ -1764,6 +1771,22 @@ function App() {
             {modal === 'members' && <MemberForm />}
             {modal === 'invite' && <InvitationForm />}
             {modal === 'project' && <ProjectForm />}
+            {modal === 'artwork' && activeCommission && (
+              <ArtworkPicker
+                theme={activeProject?.artworkTheme || 'scout'}
+                selected={activeCommission.artworkKey}
+                automatic={activeCommission.artworkMode !== 'manual'}
+                busy={busy}
+                canAdd={manage}
+                onChoose={(key) =>
+                  void run(async () => {
+                    await api(`/commissions/${commission}/artwork`, 'POST', { key });
+                    setModal('');
+                  }, 'Ilustraciones actualizadas')
+                }
+              />
+            )}
+
             {modal === 'mail' && (
               <div className="mail-list">
                 <p className="hint">Consulta el estado de envío de cada mensaje.</p>
@@ -2641,29 +2664,42 @@ function ProjectForm() {
     pOf,
   } = React.useContext(FormState);
   const [kind, setKind] = useState(view === 'rounds' ? 'ronda' : 'camp');
+  const [artworkTheme, setArtworkTheme] = useState('scout');
+  const [themeChosen, setThemeChosen] = useState(false);
   return (
     <form
       onSubmit={async (e) => {
         e.preventDefault();
         const f = new FormData(e.currentTarget);
         if (
-          await run(async () => {
-            const p = await api('/projects', 'POST', {
-              name: f.get('name'),
-              type: kind,
-              parentId: f.get('parentId') || undefined,
-              starts: f.get('starts'),
-              ends: f.get('ends'),
-            });
-            navigate('project', p.id);
-          }, 'Proyecto creado')
+          await run(
+            async () => {
+              const p = await api('/projects', 'POST', {
+                name: f.get('name'),
+                type: kind,
+                artworkTheme,
+                parentId: f.get('parentId') || undefined,
+                starts: f.get('starts'),
+                ends: f.get('ends'),
+              });
+              navigate('project', p.id);
+            },
+            kind === 'camp' ? 'Campamento creado' : 'Proyecto creado',
+          )
         )
           setModal('');
       }}
     >
       <label>
         Nombre
-        <input name="name" required maxLength={200} />
+        <input
+          name="name"
+          required
+          maxLength={200}
+          onChange={(event) => {
+            if (!themeChosen) setArtworkTheme(inferArtworkTheme(event.target.value));
+          }}
+        />
       </label>
       <label>
         Tipo
@@ -2687,6 +2723,22 @@ function ProjectForm() {
           </Select>
         </label>
       )}
+      <label>
+        Colección de ilustraciones
+        <Select
+          value={artworkTheme}
+          onChange={(event) => {
+            setThemeChosen(true);
+            setArtworkTheme(event.target.value);
+          }}
+        >
+          {artworkThemes.map((theme) => (
+            <option key={theme.id} value={theme.id}>
+              {theme.name}
+            </option>
+          ))}
+        </Select>
+      </label>
       <div className="form-grid">
         <label>
           Inicio
@@ -2698,7 +2750,7 @@ function ProjectForm() {
         </label>
       </div>
       <button className="primary" disabled={busy}>
-        Crear proyecto
+        {kind === 'camp' ? 'Crear campamento' : 'Crear proyecto'}
       </button>
     </form>
   );

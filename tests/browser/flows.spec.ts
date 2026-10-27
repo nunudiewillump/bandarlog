@@ -10,6 +10,8 @@ async function login(page: any, email = 'alex@example.test') {
   await expect(page.getByRole('heading', { name: 'Resumen general' })).toBeVisible();
 }
 test('desktop: commission, task, comments and persistent status', async ({ page }) => {
+  // This full workflow includes login, creation, comments, completion and a reload.
+  test.setTimeout(60000);
   await login(page);
   await page.getByRole('navigation').first().getByRole('button', { name: 'Comisiones' }).click();
   await page.getByRole('button', { name: 'Nueva comisión' }).click();
@@ -374,26 +376,94 @@ test('completing a task confirms persistence before showing the vine animation',
   await dialog.getByRole('button', { name: 'Reabrir tarea' }).click();
 });
 
-test('the mobile artwork loader leaves commission actions accessible', async ({ page }) => {
+test('catalogue artwork is immediate and can be selected on mobile', async ({ page }) => {
   await login(page);
   await page.setViewportSize({ width: 390, height: 900 });
-  await page.route('**/api/data', async (route) => {
-    const response = await route.fetch();
-    const data = await response.json();
-    data.artworkEnabled = true;
-    data.commissions = data.commissions.map((c: any) => ({
-      ...c,
-      artworkStatus: c.id === 'cocina' ? 'running' : c.artworkStatus,
-    }));
-    await route.fulfill({ response, json: data });
-  });
   await page.goto('/?view=commission&project=camp&commission=cocina');
-  const loader = page.getByRole('status', { name: 'Preparando ilustraciones…' });
-  await expect(loader).toBeVisible();
-  const loadBox = await loader.boundingBox();
-  const buttonBox = await page
-    .getByRole('button', { name: 'Nueva tarea', exact: true })
-    .boundingBox();
-  expect(loadBox!.y).toBeGreaterThanOrEqual(buttonBox!.y + buttonBox!.height);
-  await page.screenshot({ path: 'artifacts/comision-cargando-movil.png', animations: 'disabled' });
+  await expect(
+    page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole('status', { name: 'Preparando ilustraciones…' })).not.toBeVisible();
+  await page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Buscar ilustración').fill('Desayunos');
+  await dialog.getByRole('button', { name: 'Desayunos', exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }).click();
+  await dialog.getByLabel('Buscar ilustración').fill('Desayunos');
+  await expect(dialog.getByRole('button', { name: 'Desayunos', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await page.screenshot({ path: 'artifacts/catalogo-movil.png', animations: 'disabled' });
+  await dialog.getByRole('button', { name: 'Elegir automáticamente' }).click();
+});
+
+test('camp creation uses camp labels and the project controls its Christmas collection', async ({
+  page,
+}) => {
+  await login(page);
+  await page.getByRole('navigation').first().getByRole('button', { name: 'Campamentos' }).click();
+  await page.getByRole('button', { name: 'Nuevo campamento', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(page.getByRole('dialog', { name: 'Nuevo campamento', exact: true })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Crear campamento', exact: true })).toBeVisible();
+  await dialog.getByLabel('Nombre', { exact: true }).fill('Campamento de invierno');
+  await expect(dialog.getByRole('combobox', { name: 'Colección de ilustraciones' })).toHaveText(
+    'Navidad',
+  );
+  await dialog.getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await page.goto('/?view=project&project=camp');
+  await page.getByRole('combobox', { name: 'Colección de ilustraciones' }).click();
+  await page.getByRole('option', { name: 'Navidad', exact: true }).click();
+  await expect(page.getByRole('combobox', { name: 'Colección de ilustraciones' })).toHaveText(
+    'Navidad',
+  );
+  await page.goto('/?view=commission&project=camp&commission=cocina');
+  await expect(page.getByRole('heading', { name: 'Cocina', exact: true })).toBeVisible();
+  await expect(page.locator('.commission-icon img')).toHaveAttribute('src', /navidad-/);
+  const iconBox = await page.locator('.commission-icon img').boundingBox();
+  const frameBox = await page.locator('.commission-icon').boundingBox();
+  expect(iconBox!.x).toBeGreaterThanOrEqual(frameBox!.x);
+  expect(iconBox!.x + iconBox!.width).toBeLessThanOrEqual(frameBox!.x + frameBox!.width);
+  await page.screenshot({ path: 'artifacts/comision-navidad.png', animations: 'disabled' });
+  await page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }).click();
+  await expect(page.getByRole('dialog').getByText('Colección:')).toContainText('Navidad');
+  await page.screenshot({ path: 'artifacts/catalogo-navidad.png', animations: 'disabled' });
+  await page.getByRole('dialog').getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await page.goto('/?view=project&project=camp');
+  await page.getByRole('combobox', { name: 'Colección de ilustraciones' }).click();
+  await page.getByRole('option', { name: 'Scouts', exact: true }).click();
+  await expect(page.getByRole('combobox', { name: 'Colección de ilustraciones' })).toHaveText(
+    'Scouts',
+  );
+});
+
+test('coordination uploads a new matching pair and can use it after reloading', async ({
+  page,
+}) => {
+  await login(page);
+  await page.goto('/?view=commission&project=camp&commission=cocina');
+  await page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('button', { name: 'Añadir pareja al catálogo' }).click();
+  await dialog.getByLabel('Nombre de la ilustración').fill(`Farol adicional QA ${Date.now()}`);
+  await dialog.getByLabel('Icono', { exact: true }).setInputFiles('public/brand-mark.png');
+  await dialog.getByLabel('Mono', { exact: true }).setInputFiles('public/monkey.webp');
+  await page.screenshot({ path: 'artifacts/ampliar-catalogo.png', animations: 'disabled' });
+  await dialog.getByRole('button', { name: 'Guardar y utilizar' }).click();
+  await expect(dialog).not.toBeVisible();
+  await page.reload();
+  await expect(page.locator('.commission-icon img')).toHaveAttribute(
+    'src',
+    /^\/api\/artwork\/assets\//,
+  );
+  await expect(page.locator('.commission-mascot')).toHaveAttribute(
+    'src',
+    /^\/api\/artwork\/assets\//,
+  );
+  await expect(page.getByRole('heading', { name: 'Cocina', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Elegir automáticamente' }).click();
 });

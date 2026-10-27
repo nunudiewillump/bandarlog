@@ -14,6 +14,7 @@ export type Project = {
   starts: string;
   ends: string;
   archived: string;
+  artworkTheme?: 'scout' | 'christmas';
 };
 export type Commission = {
   id: string;
@@ -24,6 +25,8 @@ export type Commission = {
   iconUrl?: string | null;
   mascotUrl?: string | null;
   artworkStatus?: string;
+  artworkKey?: string;
+  artworkMode?: 'automatic' | 'manual';
 };
 export type Task = {
   id: string;
@@ -39,7 +42,7 @@ export type Task = {
 };
 export type Member = { id: string; commissionId: string; userId: string; role: string };
 export type Data = {
-  artworkEnabled:boolean;
+  artworkEnabled: boolean;
   users: User[];
   projects: Project[];
   commissions: Commission[];

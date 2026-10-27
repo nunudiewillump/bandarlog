@@ -13,6 +13,7 @@ export default defineConfig({
       args: ['--no-sandbox'],
     },
     screenshot: 'only-on-failure',
+    trace: 'retain-on-failure',
   },
   webServer: [
     {

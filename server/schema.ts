@@ -15,6 +15,7 @@ export const projects = pgTable('projects', {
   starts: text(),
   ends: text(),
   archived: text().notNull().default('false'),
+  artworkTheme: text('artwork_theme').notNull().default('scout'),
 });
 export const commissions = pgTable(
   'commissions',
@@ -29,6 +30,7 @@ export const commissions = pgTable(
     iconUrl: text('icon_url'),
     mascotUrl: text('mascot_url'),
     artworkStatus: text('artwork_status').notNull().default('pending'),
+    artworkKey: text('artwork_key'),
   },
   (t) => [uniqueIndex('commission_project_name').on(t.projectId, t.name)],
 );
@@ -136,3 +138,16 @@ export const projectMembers = pgTable(
   },
   (t) => [uniqueIndex('project_membership').on(t.projectId, t.userId)],
 );
+
+export const artworkEntries = pgTable('artwork_entries', {
+  id: text().primaryKey(),
+  name: text().notNull(),
+  collection: text().notNull(),
+  family: text().notNull(),
+  iconData: text('icon_data').notNull(),
+  mascotData: text('mascot_data').notNull(),
+  createdBy: text('created_by')
+    .notNull()
+    .references(() => users.id),
+  createdAt: text('created_at').notNull(),
+});

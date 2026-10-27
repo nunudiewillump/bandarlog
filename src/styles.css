@@ -1215,7 +1215,7 @@ td svg {
   gap: 6px;
   flex-direction: column;
 }
-.commission-banner img {
+.commission-banner > img {
   position: absolute;
   width: 145px;
   right: -5px;
@@ -1915,7 +1915,7 @@ td svg {
   .commission-banner .banner-actions {
     right: 125px;
   }
-  .commission-banner img {
+  .commission-banner > img {
     width: 125px;
   }
   .commission-banner h1 {
@@ -1986,7 +1986,7 @@ td svg {
   .commission-banner {
     padding-right: 0;
   }
-  .commission-banner img {
+  .commission-banner > img {
     display: none;
   }
   .list-controls > select {
@@ -2505,7 +2505,7 @@ td svg {
     min-width: 0;
     flex: 1;
   }
-  .commission-banner img {
+  .commission-banner > img {
     display: none;
   }
   .commission-banner .banner-actions {
@@ -3110,4 +3110,76 @@ input[type='file']::file-selector-button {
   .commission-banner .artwork-retry {
     min-height: 44px;
   }
+}
+
+.commission-banner > .commission-mascot {
+  position: absolute;
+  width: 165px;
+  height: 165px;
+  right: -5px;
+  top: -3px;
+  pointer-events: none;
+}
+.project-artwork-theme {
+  display: grid;
+  gap: 8px;
+  max-width: 420px;
+  margin: 0 0 22px;
+}
+.artwork-picker {
+  display: grid;
+  gap: 18px;
+}
+.artwork-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.artwork-choice {
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: #fffdf6;
+  padding: 8px;
+  min-width: 0;
+}
+.artwork-choice.selected {
+  border-color: #124d38;
+  background: #e8f1e6;
+}
+.artwork-choice > svg {
+  width: 100%;
+  aspect-ratio: 1;
+  display: block;
+}
+.artwork-choice > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  text-align: left;
+}
+.artwork-choice span img {
+  width: 24px;
+  height: 24px;
+}
+@media (max-width: 767px) {
+  .commission-banner > .commission-mascot {
+    display: none;
+  }
+  .artwork-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.artwork-upload {
+  display: grid;
+  gap: 14px;
+}
+.artwork-upload input[type='file'] {
+  max-width: 100%;
+}
+
+.commission-banner .commission-icon .generated-icon {
+  width: 55px;
+  height: 55px;
 }
