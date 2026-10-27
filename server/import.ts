@@ -40,7 +40,15 @@ const bundle = z.object({
     )
     .default([]),
   members: z
-    .array(z.object({ commissionId: key, userId: key, role: z.enum(['member', 'coordinator']) }))
+    .array(
+      z.object({
+        commissionId: key,
+        userId: key,
+        role: z
+          .enum(['scouter', 'responsible', 'member', 'coordinator'])
+          .transform((v) => (v === 'coordinator' ? 'responsible' : v === 'member' ? 'scouter' : v)),
+      }),
+    )
     .default([]),
   tasks: z
     .array(

@@ -43,7 +43,14 @@ export type Data = {
     body: string;
     createdAt: string;
   }[];
-  invitations: { id: string; commissionId: string; email: string; name: string; status: string }[];
+  invitations: {
+    id: string;
+    commissionId: string | null;
+    email: string;
+    name: string;
+    status: string;
+    role: string;
+  }[];
 };
 export const labels: Record<string, string> = {
   pending: 'Pendiente',

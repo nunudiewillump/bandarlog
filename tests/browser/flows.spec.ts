@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
-async function login(page: any) {
+async function login(page: any, email = 'alex@example.test') {
   await page.goto('/');
-  await page.getByLabel('Tu correo electrónico').fill('alex@example.test');
+  await page.getByLabel('Tu correo electrónico').fill(email);
   await page.getByRole('button', { name: 'Recibir enlace de acceso' }).click();
   await page.getByRole('button', { name: 'Bandeja de desarrollo' }).click();
   await page.getByRole('button', { name: 'Abrir enlace de prueba' }).first().click();
@@ -141,4 +141,116 @@ test('built PWA serves an explicit offline screen and never caches API responses
   ).toBeVisible();
   await expect(page.getByText(/No se han guardado cambios sin conexión/)).toBeVisible();
   await page.context().setOffline(false);
+});
+
+test('People sends single and bulk invitations, reports duplicates, and previews a branded email', async ({
+  page,
+}) => {
+  await login(page);
+  await page
+    .getByRole('navigation')
+    .first()
+    .getByRole('button', { name: 'Personas', exact: true })
+    .click();
+  await page.getByRole('button', { name: 'Invitar personas', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('radio', { name: 'Lista de correos' }).check();
+  const stamp = Date.now();
+  const first = `list-${stamp}@example.test`,
+    second = `other-${stamp}@example.test`;
+  await dialog.getByLabel('Correos electrónicos').fill(first + '; invalid');
+  await expect(
+    dialog.getByRole('button', { name: 'Enviar invitaciones', exact: true }),
+  ).toBeDisabled();
+  await dialog
+    .getByLabel('Correos electrónicos')
+    .fill(first + '; ' + second + '\n' + first.toUpperCase());
+  await dialog.getByRole('button', { name: 'Enviar invitaciones', exact: true }).click();
+  await expect(dialog.locator('.invitation-result')).toContainText('2 invitaciones preparadas');
+  await page.screenshot({ path: 'artifacts/invitaciones-personas.png', animations: 'disabled' });
+  await dialog.getByRole('button', { name: 'Enviar invitaciones', exact: true }).click();
+  await expect(dialog.locator('.invitation-result')).toContainText('0 invitaciones preparadas');
+  await expect(dialog.locator('.invitation-result')).toContainText('2 direcciones omitidas');
+  await dialog.getByRole('radio', { name: 'Un correo' }).check();
+  await dialog
+    .getByLabel('Correo electrónico', { exact: true })
+    .fill(`single-${stamp}@example.test`);
+  await dialog.getByRole('button', { name: 'Enviar invitación', exact: true }).click();
+  await expect(dialog.locator('.invitation-result')).toContainText('1 invitaciones preparadas');
+  await dialog.getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await page.getByRole('navigation').first().getByRole('button', { name: 'Ajustes' }).click();
+  await page.getByRole('button', { name: 'Ver correos de prueba' }).click();
+  const frame = page.locator('.email-preview').first();
+  await expect(frame).toBeVisible();
+  await frame.screenshot({ path: 'artifacts/correo-invitacion.png', animations: 'disabled' });
+  const src = await frame.getAttribute('srcdoc');
+  expect(src).toContain('Comisiones que avanzan');
+  expect(src).toContain('#124d38');
+  const preview = await page.context().newPage();
+  await preview.route('**/icon-192.png', (route) =>
+    route.fulfill({ path: 'public/icon-192.png', contentType: 'image/png' }),
+  );
+  await preview.setViewportSize({ width: 660, height: 900 });
+  await preview.setContent(
+    src!.replaceAll('http://127.0.0.1:5174', 'https://bandarlog.example.org'),
+  );
+  await preview.screenshot({
+    path: 'artifacts/correo-invitacion.png',
+    fullPage: true,
+    animations: 'disabled',
+  });
+  const messages = await (await page.request.get('/api/dev/mail')).json();
+  const taskMessage = messages.find(
+    (m: any) => m.subject.includes('Nueva asignación') && m.html?.includes('Completar tarea'),
+  );
+  expect(taskMessage).toBeTruthy();
+  await preview.setContent(
+    taskMessage.html.replaceAll('http://127.0.0.1:5174', 'https://bandarlog.example.org'),
+  );
+  await preview.screenshot({
+    path: 'artifacts/correo-tarea.png',
+    fullPage: true,
+    animations: 'disabled',
+  });
+  await preview.setViewportSize({ width: 390, height: 900 });
+  expect(
+    await preview.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+  ).toBeTruthy();
+  await preview.screenshot({
+    path: 'artifacts/correo-tarea-movil.png',
+    fullPage: true,
+    animations: 'disabled',
+  });
+  await preview.close();
+});
+
+test('Responsible has a scoped panel and can create, reschedule and delete an unassigned task', async ({
+  page,
+}) => {
+  await login(page, 'laura@example.test');
+  await page.goto('/?view=commission&project=camp&commission=cocina');
+  await expect(page.getByRole('heading', { name: 'Panel de Responsable' })).toBeVisible();
+  await page.screenshot({
+    path: 'artifacts/panel-responsable.png',
+    fullPage: true,
+    animations: 'disabled',
+  });
+  await page.getByRole('button', { name: 'Nueva tarea', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  const title = `Tarea Responsable ${Date.now()}`;
+  await dialog.getByLabel('Título', { exact: true }).fill(title);
+  await dialog.getByLabel('Fecha y hora límite').fill('2027-06-12T12:00');
+  await dialog.getByText('Carlos López', { exact: true }).click();
+  await dialog.getByRole('button', { name: 'Crear tarea', exact: true }).click();
+  await expect(dialog.getByRole('heading', { name: title })).toBeVisible();
+  await dialog.getByText('Editar fecha y responsables', { exact: true }).click();
+  await dialog.getByLabel('Fecha límite (hora de este dispositivo)').fill('2027-06-14T12:00');
+  await dialog.getByRole('button', { name: 'Guardar asignación' }).click();
+  await expect(dialog.getByText(/14 jun/).first()).toBeVisible();
+  await dialog.getByRole('button', { name: 'Completar', exact: true }).click();
+  await expect(dialog.getByText('Terminada', { exact: true })).toBeVisible();
+  await dialog.getByText('Eliminar tarea', { exact: true }).click();
+  await dialog.getByRole('button', { name: 'Confirmar eliminación' }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(page.getByRole('button', { name: title, exact: true })).toHaveCount(0);
 });

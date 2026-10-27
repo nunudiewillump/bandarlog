@@ -132,7 +132,7 @@ function App() {
   const canManage = (cid: string) =>
     manage ||
     data.members.some(
-      (m) => m.commissionId === cid && m.userId === me?.id && m.role === 'coordinator',
+      (m) => m.commissionId === cid && m.userId === me?.id && m.role === 'responsible',
     );
   const load = async () => setData(await api('/data'));
   const bootup = async () => {
@@ -283,6 +283,7 @@ function App() {
             className={`metric ${status}`}
             onClick={() => {
               setFilter(status);
+              if (view === 'commission') setTab('tasks');
               if (view === 'home') setView('tasks');
             }}
           >
@@ -966,7 +967,7 @@ function App() {
                     </p>
                   </div>
                   {(manage ||
-                    data.members.some((m) => m.userId === me.id && m.role === 'coordinator')) && (
+                    data.members.some((m) => m.userId === me.id && m.role === 'responsible')) && (
                     <button className="primary" onClick={() => setModal('task')}>
                       <Plus size={18} /> Nueva tarea
                     </button>
@@ -1221,7 +1222,44 @@ function App() {
                   </div>
                   <img src="/monkey.webp" alt="" />
                 </section>
-                {metricCards(scoped)}
+                {canManage(commission) && (
+                  <section className="commission-summary" aria-label="Panel de Responsable">
+                    <div className="section-heading">
+                      <div>
+                        <h2>Panel de Responsable</h2>
+                        <p className="hint">
+                          Progreso, plazos y bloqueos de esta comisión. Pulsa un indicador para
+                          filtrar sus tareas.
+                        </p>
+                      </div>
+                    </div>
+                    {metricCards(scoped)}
+                    <section className="panel general-progress">
+                      <strong>Progreso de la comisión</strong>
+                      {bar(scoped)}
+                    </section>
+                    <div className="responsible-attention">
+                      <button
+                        className="secondary"
+                        onClick={() => {
+                          setTab('tasks');
+                          setFilter('overdue');
+                        }}
+                      >
+                        Revisar tareas vencidas
+                      </button>
+                      <button
+                        className="secondary"
+                        onClick={() => {
+                          setTab('tasks');
+                          setFilter('blocked');
+                        }}
+                      >
+                        Resolver bloqueos
+                      </button>
+                    </div>
+                  </section>
+                )}
                 <section className="panel commission-work">
                   <div className="page-tabs">
                     {[
@@ -1541,6 +1579,24 @@ function App() {
                     </form>
                   </details>
                 )}
+                {canManage(detail.commissionId) && pOf(cOf(detail))?.archived !== 'true' && (
+                  <details className="delete-task">
+                    <summary>Eliminar tarea</summary>
+                    <p>Se quitará de los listados y del progreso. Conservaremos el historial.</p>
+                    <button
+                      className="secondary danger"
+                      disabled={busy}
+                      onClick={() =>
+                        void run(async () => {
+                          await api(`/tasks/${detail.id}`, 'DELETE');
+                          setSelected('');
+                        }, 'Tarea eliminada')
+                      }
+                    >
+                      Confirmar eliminación
+                    </button>
+                  </details>
+                )}
                 <h3>Actividad reciente</h3>
                 <div className="activity-list">
                   {data.activity
@@ -1557,34 +1613,43 @@ function App() {
                       </article>
                     ))}
                 </div>
-                <form
-                  className="comment-form"
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    const form = e.currentTarget;
-                    const f = new FormData(form);
-                    if (
-                      await run(async () => {
-                        await api(`/tasks/${detail.id}/comments`, 'POST', { body: f.get('body') });
-                      }, 'Comentario añadido')
-                    )
-                      form.reset();
-                  }}
-                >
-                  <label className="sr-only" htmlFor="comment">
-                    Añadir comentario
-                  </label>
-                  <input
-                    id="comment"
-                    name="body"
-                    placeholder="Comparte una novedad…"
-                    required
-                    maxLength={3000}
-                  />
-                  <button className="icon-button" aria-label="Enviar comentario" disabled={busy}>
-                    <Send size={19} />
-                  </button>
-                </form>
+                {(canManage(detail.commissionId) || usersOf(detail).some((u) => u.id === me.id)) &&
+                  pOf(cOf(detail))?.archived !== 'true' && (
+                    <form
+                      className="comment-form"
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        const form = e.currentTarget;
+                        const f = new FormData(form);
+                        if (
+                          await run(async () => {
+                            await api(`/tasks/${detail.id}/comments`, 'POST', {
+                              body: f.get('body'),
+                            });
+                          }, 'Comentario añadido')
+                        )
+                          form.reset();
+                      }}
+                    >
+                      <label className="sr-only" htmlFor="comment">
+                        Añadir comentario
+                      </label>
+                      <input
+                        id="comment"
+                        name="body"
+                        placeholder="Comparte una novedad…"
+                        required
+                        maxLength={3000}
+                      />
+                      <button
+                        className="icon-button"
+                        aria-label="Enviar comentario"
+                        disabled={busy}
+                      >
+                        <Send size={19} />
+                      </button>
+                    </form>
+                  )}
                 {(canManage(detail.commissionId) || usersOf(detail).some((u) => u.id === me.id)) &&
                   pOf(cOf(detail))?.archived !== 'true' && (
                     <div className="detail-actions">
@@ -1691,6 +1756,7 @@ function App() {
                   task: 'Nueva tarea',
                   commission: 'Nueva comisión',
                   members: 'Añadir personas',
+                  invite: 'Invitar personas',
                   project: 'Nuevo proyecto',
                   mail: 'Bandeja de desarrollo',
                 } as any
@@ -1709,6 +1775,7 @@ function App() {
             {modal === 'task' && <TaskForm />}
             {modal === 'commission' && <CommissionForm />}
             {modal === 'members' && <MemberForm />}
+            {modal === 'invite' && <InvitationForm />}
             {modal === 'project' && <ProjectForm />}
             {modal === 'mail' && (
               <div className="mail-list">
@@ -1724,7 +1791,17 @@ function App() {
                       <small>
                         {m.email} · {m.status} · intentos {m.attempts}
                       </small>
-                      <pre>{m.body}</pre>
+                      <iframe
+                            loading="lazy"
+                        title={`Correo: ${m.subject}`}
+                        sandbox=""
+                        srcDoc={m.html || ''}
+                        className="email-preview"
+                      />
+                      <details>
+                        <summary>Versión de texto</summary>
+                        <pre>{m.body}</pre>
+                      </details>
                     </article>
                   ))}
               </div>
@@ -1785,11 +1862,23 @@ function People() {
         data.commissions.some((c) => c.projectId === project && c.id === m.commissionId)) &&
       (!commission || m.commissionId === commission),
   );
-  const us = data.users.filter((u) => members.some((m) => m.userId === u.id));
+  const global = me.role === 'admin' || me.role === 'coordination';
+  const canInvite = commission
+    ? canManage(commission)
+    : global ||
+      data.commissions.some((c) => canManage(c.id) && (!project || c.projectId === project));
+  const us = data.users.filter(
+    (u) => (!project && !commission && global) || members.some((m) => m.userId === u.id),
+  );
   return (
     <section className="people panel">
       <div className="section-heading">
         <h2>{us.length} personas en el equipo</h2>
+        {canInvite && (
+          <button className="primary" onClick={() => setModal('invite')}>
+            <Mail size={16} /> Invitar personas
+          </button>
+        )}
         {commission && canManage(commission) && (
           <button className="primary" onClick={() => setModal('members')}>
             <Plus size={16} /> Añadir personas
@@ -1842,8 +1931,8 @@ function People() {
               </select>
             )}
             {commission && (
-              <span className={`badge ${member?.role === 'coordinator' ? 'pending' : 'done'}`}>
-                {member?.role === 'coordinator' ? 'Coordinador' : 'Miembro'}
+              <span className={`badge ${member?.role === 'responsible' ? 'pending' : 'done'}`}>
+                {member?.role === 'responsible' ? 'Responsable' : 'Scouter'}
               </span>
             )}
             {commission && canManage(commission) && (
@@ -1854,14 +1943,12 @@ function People() {
                   onClick={() =>
                     void run(async () => {
                       await api(`/commissions/${commission}/members/${u.id}`, 'PATCH', {
-                        role: member?.role === 'coordinator' ? 'member' : 'coordinator',
+                        role: member?.role === 'responsible' ? 'scouter' : 'responsible',
                       });
                     })
                   }
                 >
-                  {member?.role === 'coordinator'
-                    ? 'Retirar coordinación'
-                    : 'Designar coordinación'}
+                  {member?.role === 'responsible' ? 'Cambiar a Scouter' : 'Designar responsable'}
                 </button>
                 <button
                   className="text-link danger"
@@ -1879,54 +1966,64 @@ function People() {
           </article>
         );
       })}
-      {commission &&
-        data.invitations
-          .filter((i) => i.commissionId === commission)
-          .map((i) => (
-            <article className="invitation" key={i.id}>
-              <Mail size={18} />
-              <div>
-                <strong>{i.name}</strong>
-                <small>
-                  {i.email} ·{' '}
-                  {
-                    (
-                      {
-                        pending: 'Pendiente',
-                        accepted: 'Aceptada',
-                        expired: 'Caducada',
-                        revoked: 'Revocada',
-                      } as any
-                    )[i.status]
+      {data.invitations
+        .filter((i) =>
+          commission
+            ? i.commissionId === commission
+            : !project ||
+              data.commissions.some((c) => c.id === i.commissionId && c.projectId === project),
+        )
+        .map((i) => (
+          <article className="invitation" key={i.id}>
+            <Mail size={18} />
+            <div>
+              <strong>{i.name}</strong>
+              <small>
+                {i.email} ·{' '}
+                {i.commissionId
+                  ? data.commissions.find((c) => c.id === i.commissionId)?.name +
+                    ' · ' +
+                    (i.role === 'responsible' ? 'Responsable' : 'Scouter')
+                  : 'Grupo'}{' '}
+                ·{' '}
+                {
+                  (
+                    {
+                      pending: 'Pendiente',
+                      accepted: 'Aceptada',
+                      expired: 'Caducada',
+                      revoked: 'Revocada',
+                    } as any
+                  )[i.status]
+                }
+              </small>
+            </div>
+            {i.status !== 'accepted' && (i.commissionId ? canManage(i.commissionId) : global) && (
+              <>
+                <button
+                  className="text-link"
+                  onClick={() =>
+                    void run(async () => {
+                      await api(`/invitations/${i.id}`, 'PATCH', { action: 'resend' });
+                    })
                   }
-                </small>
-              </div>
-              {i.status !== 'accepted' && canManage(commission) && (
-                <>
-                  <button
-                    className="text-link"
-                    onClick={() =>
-                      void run(async () => {
-                        await api(`/invitations/${i.id}`, 'PATCH', { action: 'resend' });
-                      })
-                    }
-                  >
-                    Reenviar
-                  </button>
-                  <button
-                    className="text-link danger"
-                    onClick={() =>
-                      void run(async () => {
-                        await api(`/invitations/${i.id}`, 'PATCH', { action: 'revoke' });
-                      })
-                    }
-                  >
-                    Revocar
-                  </button>
-                </>
-              )}
-            </article>
-          ))}
+                >
+                  Reenviar
+                </button>
+                <button
+                  className="text-link danger"
+                  onClick={() =>
+                    void run(async () => {
+                      await api(`/invitations/${i.id}`, 'PATCH', { action: 'revoke' });
+                    })
+                  }
+                >
+                  Revocar
+                </button>
+              </>
+            )}
+          </article>
+        ))}
     </section>
   );
 }
@@ -2059,7 +2156,7 @@ function CommissionForm() {
       project || data.projects.find((p) => p.archived === 'false')?.id || '',
     ),
     [description, setDescription] = useState(''),
-    [members, setMembers] = useState<Record<string, string>>({ [me!.id]: 'coordinator' }),
+    [members, setMembers] = useState<Record<string, string>>({ [me!.id]: 'responsible' }),
     [search, setSearch] = useState('');
   return (
     <form
@@ -2154,7 +2251,7 @@ function CommissionForm() {
                   onChange={(e) =>
                     setMembers((old) => {
                       const next = { ...old };
-                      if (e.target.checked) next[u.id] = 'member';
+                      if (e.target.checked) next[u.id] = 'scouter';
                       else delete next[u.id];
                       return next;
                     })
@@ -2171,8 +2268,8 @@ function CommissionForm() {
                     value={members[u.id]}
                     onChange={(e) => setMembers({ ...members, [u.id]: e.target.value })}
                   >
-                    <option value="member">Miembro</option>
-                    <option value="coordinator">Coordinador</option>
+                    <option value="scouter">Scouter</option>
+                    <option value="responsible">Responsable</option>
                   </select>
                 )}
               </div>
@@ -2307,44 +2404,192 @@ function MemberForm() {
         </button>
       </form>
       <hr />
-      <h3>Invitar a alguien nuevo</h3>
-      <form
-        onSubmit={async (e) => {
-          e.preventDefault();
-          const form = e.currentTarget,
-            f = new FormData(form);
-          if (
-            await run(
-              async () => {
-                await api('/invitations', 'POST', {
-                  commissionId: commission,
-                  email: f.get('email'),
-                  name: f.get('name'),
-                });
-              },
-              development
-                ? 'Invitación registrada en la bandeja de desarrollo'
-                : 'Invitación preparada para envío',
-            )
-          )
-            form.reset();
-        }}
-      >
-        <label>
-          Nombre
-          <input name="name" required />
-        </label>
-        <label>
-          Correo electrónico
-          <input name="email" type="email" required />
-        </label>
-        <button className="secondary" disabled={busy}>
-          <Mail size={16} /> Invitar por correo
-        </button>
-      </form>
+      <h3>Invitar por correo</h3>
+      <InvitationForm />
     </>
   );
 }
+function InvitationForm() {
+  const { data, me, commission, project, canManage, run, busy, development } =
+    React.useContext(FormState);
+  const global = me.role === 'admin' || me.role === 'coordination';
+  const choices = data.commissions.filter(
+    (c) =>
+      canManage(c.id) &&
+      (!project || c.projectId === project) &&
+      data.projects.find((p) => p.id === c.projectId)?.archived !== 'true',
+  );
+  const [cid, setCid] = useState(commission || (!global ? choices[0]?.id || '' : '')),
+    [mode, setMode] = useState('single'),
+    [addresses, setAddresses] = useState(''),
+    [role, setRole] = useState('scouter'),
+    [result, setResult] = useState<{
+      created: string[];
+      skipped: { email: string; reason: string }[];
+    } | null>(null);
+  const values = addresses.trim()
+    ? addresses
+        .trim()
+        .split(/[\s,;]+/)
+        .map((v) => v.toLowerCase())
+    : [];
+  const unique = [...new Set(values)];
+  const invalid = unique.filter((v) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v));
+  return (
+    <form
+      className="invite-form"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setResult(null);
+        await run(
+          async () => {
+            setResult(
+              await api('/invitations', 'POST', {
+                commissionId: cid || null,
+                emails: unique,
+                role: cid ? role : 'scouter',
+              }),
+            );
+          },
+          development
+            ? 'Invitaciones registradas en la bandeja de desarrollo'
+            : 'Invitaciones preparadas para envío',
+        );
+      }}
+    >
+      <p className="hint">
+        Invita a una persona o pega una lista. No se crean cuentas duplicadas ni se cambian roles de
+        personas que ya pertenecen al equipo.
+      </p>
+      <label>
+        Destino de la invitación
+        <select value={cid} required={!global} onChange={(e) => setCid(e.target.value)}>
+          {global && <option value="">Grupo · sin comisión por ahora</option>}
+          {choices.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name} · {data.projects.find((p) => p.id === c.projectId)?.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      {cid && (
+        <label>
+          Rol en la comisión
+          <select value={role} onChange={(e) => setRole(e.target.value)}>
+            <option value="scouter">Scouter</option>
+            <option value="responsible">Responsable</option>
+          </select>
+        </label>
+      )}
+      <div className="invitation-mode">
+        <label>
+          <input
+            type="radio"
+            name="mode"
+            checked={mode === 'single'}
+            onChange={() => {
+              setMode('single');
+              setAddresses('');
+              setResult(null);
+            }}
+          />
+          Un correo
+        </label>
+        <label>
+          <input
+            type="radio"
+            name="mode"
+            checked={mode === 'bulk'}
+            onChange={() => {
+              setMode('bulk');
+              setAddresses('');
+              setResult(null);
+            }}
+          />
+          Lista de correos
+        </label>
+      </div>
+      {mode === 'single' ? (
+        <label>
+          Correo electrónico
+          <input
+            type="email"
+            required
+            value={addresses}
+            onChange={(e) => setAddresses(e.target.value)}
+            placeholder="persona@ejemplo.org"
+          />
+        </label>
+      ) : (
+        <label>
+          Correos electrónicos
+          <textarea
+            required
+            value={addresses}
+            onChange={(e) => setAddresses(e.target.value)}
+            placeholder={'ana@ejemplo.org\ncarlos@ejemplo.org'}
+          />
+          <small>Separados por comas, punto y coma o saltos de línea. Máximo 100 por envío.</small>
+        </label>
+      )}
+      {values.length > 0 && (
+        <p className="hint">
+          {unique.length} direcciones únicas
+          {values.length > unique.length
+            ? ` · ${values.length - unique.length} repetidas omitidas`
+            : ''}
+        </p>
+      )}
+      {invalid.length > 0 && (
+        <p role="alert" className="error">
+          Revisa estas direcciones: {invalid.join(', ')}
+        </p>
+      )}
+      {unique.length > 100 && (
+        <p role="alert" className="error">
+          Divide la lista en grupos de hasta 100 correos.
+        </p>
+      )}
+      <button
+        className="primary"
+        disabled={
+          busy || !unique.length || !!invalid.length || unique.length > 100 || (!global && !cid)
+        }
+      >
+        <Mail size={16} />
+        {mode === 'single' ? 'Enviar invitación' : 'Enviar invitaciones'}
+      </button>
+      {result && (
+        <div className="invitation-result" role="status">
+          <strong>
+            {result.created.length} invitaciones preparadas
+            {development ? ' · previsualización, sin envío real' : ''}
+          </strong>
+          {result.created.length > 0 && (
+            <ul>
+              {result.created.map((address) => (
+                <li key={address}>{address}</li>
+              ))}
+            </ul>
+          )}
+          {result.skipped.length > 0 && (
+            <>
+              <p>{result.skipped.length} direcciones omitidas:</p>
+              <ul>
+                {result.skipped.map((item) => (
+                  <li key={item.email}>
+                    {item.email}: {item.reason}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
+    </form>
+  );
+}
+
 function ProjectForm() {
   const {
     data,

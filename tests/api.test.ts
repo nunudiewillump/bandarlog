@@ -22,7 +22,10 @@ async function request(path: string, method = 'GET', body?: unknown, auth = admi
     cookie: r.headers.get('set-cookie')?.split(';')[0] || '',
   };
 }
+const sessionCache = new Map<string, { cookie: string; csrf: string; token: string }>();
 async function login(email: string) {
+  const cached = sessionCache.get(email);
+  if (cached) return cached;
   await request('/auth/request', 'POST', { email });
   const mails = await request('/dev/mail');
   const mail = mails.body
@@ -32,7 +35,9 @@ async function login(email: string) {
   const session = await request('/auth/verify', 'POST', { token });
   assert.equal(session.status, 200);
   const me = await request('/me', 'GET', undefined, { cookie: session.cookie, csrf: '' });
-  return { cookie: session.cookie, csrf: me.body.csrf, token };
+  const result = { cookie: session.cookie, csrf: me.body.csrf, token };
+  sessionCache.set(email, result);
+  return result;
 }
 before(async () => {
   dir = await mkdtemp(join(tmpdir(), 'bandarlog-test-'));
@@ -265,4 +270,180 @@ test('only administrators change global roles; coordinators can search people fo
   );
   assert.equal(directory.status, 200);
   assert.equal(directory.body[0].email, 'miguel@example.test');
+});
+
+test('Scouter sees commission tasks but only acts on assignments; Responsible manages all tasks and deletes with audit', async () => {
+  const scouter = await login('ana@example.test');
+  const responsible = await login('laura@example.test');
+  const coordination = await login('miguel@example.test');
+  const create = {
+    title: 'Tarea para probar roles',
+    commissionId: 'cocina',
+    description: 'Comprobación de permisos',
+    due: '2027-06-01T12:00:00+02:00',
+    responsibleIds: ['carlos'],
+  };
+  const made = await request('/tasks', 'POST', create, responsible);
+  assert.equal(made.status, 201);
+  const tid = made.body.id;
+  const visible = (await request('/data', 'GET', undefined, scouter)).body;
+  assert.ok(visible.tasks.some((t: any) => t.id === tid));
+  assert.equal(
+    visible.members.find((m: any) => m.userId === 'ana' && m.commissionId === 'cocina').role,
+    'scouter',
+  );
+  assert.equal(
+    visible.members.find((m: any) => m.userId === 'laura' && m.commissionId === 'cocina').role,
+    'responsible',
+  );
+  assert.equal((await request('/tasks', 'POST', create, scouter)).status, 403);
+  assert.equal((await request(`/tasks/${tid}`, 'PATCH', { status: 'done' }, scouter)).status, 403);
+  assert.equal(
+    (await request(`/tasks/${tid}/comments`, 'POST', { body: 'No asignada' }, scouter)).status,
+    403,
+  );
+  assert.equal(
+    (
+      await request(
+        `/tasks/${tid}`,
+        'PATCH',
+        { due: '2027-06-02T12:00:00+02:00' },
+        await login('carlos@example.test'),
+      )
+    ).status,
+    403,
+  );
+  assert.equal((await request(`/tasks/${tid}`, 'DELETE', undefined, scouter)).status, 403);
+  assert.equal(
+    (await request(`/tasks/${tid}`, 'PATCH', { due: '2027-06-02T12:00:00+02:00' }, responsible))
+      .status,
+    200,
+  );
+  assert.equal(
+    (
+      await request(
+        `/tasks/${tid}`,
+        'PATCH',
+        { status: 'blocked', blockedReason: 'Esperando transporte' },
+        responsible,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (await request('/users/miguel/role', 'PATCH', { role: 'coordination' })).status,
+    200,
+  );
+  assert.equal(
+    (await request(`/tasks/${tid}`, 'PATCH', { status: 'done' }, coordination)).status,
+    200,
+  );
+  assert.equal((await request(`/tasks/${tid}`, 'DELETE', undefined, responsible)).status, 200);
+  assert.ok(!(await request('/data')).body.tasks.some((t: any) => t.id === tid));
+  assert.equal(
+    (await request(`/tasks/${tid}`, 'PATCH', { status: 'pending' }, responsible)).status,
+    404,
+  );
+  assert.equal(
+    (await request(`/tasks/${tid}/comments`, 'POST', { body: 'Eliminada' }, responsible)).status,
+    404,
+  );
+});
+
+test('individual and bulk invitations work from People, reject invalid recipients, and preserve commission roles', async () => {
+  const responsible = await login('laura@example.test');
+  const scouter = await login('ana@example.test');
+  assert.equal(
+    (await request('/invitations', 'POST', { emails: ['forbidden@example.test'] }, responsible))
+      .status,
+    403,
+  );
+  assert.equal(
+    (
+      await request(
+        '/invitations',
+        'POST',
+        { commissionId: 'cocina', emails: ['forbidden@example.test'] },
+        scouter,
+      )
+    ).status,
+    403,
+  );
+  const group = await request('/invitations', 'POST', {
+    emails: ['group@example.test', 'GROUP@example.test', 'second@example.test'],
+  });
+  assert.equal(group.status, 201);
+  assert.equal(group.body.created.length, 2);
+  assert.equal(
+    (await request('/invitations', 'POST', { emails: ['ok@example.test', 'invalid-address'] }))
+      .status,
+    400,
+  );
+  assert.ok(
+    !(await request('/data')).body.invitations.some((i: any) => i.email === 'ok@example.test'),
+  );
+  const repeat = await request('/invitations', 'POST', {
+    emails: ['group@example.test', 'alex@example.test'],
+  });
+  assert.equal(repeat.body.created.length, 0);
+  assert.equal(repeat.body.skipped.length, 2);
+  const memberInvite = await request(
+    '/invitations',
+    'POST',
+    { commissionId: 'cocina', emails: ['new-responsible@example.test'], role: 'responsible' },
+    responsible,
+  );
+  assert.equal(memberInvite.status, 201);
+  const newcomer = await login('new-responsible@example.test');
+  const data = (await request('/data', 'GET', undefined, newcomer)).body;
+  const person = data.users.find((u: any) => u.email === 'new-responsible@example.test');
+  assert.equal(person.role, 'member');
+  assert.equal(data.members.find((m: any) => m.userId === person.id).role, 'responsible');
+  assert.equal(
+    (
+      await request(
+        '/tasks',
+        'POST',
+        {
+          title: 'Creada por nuevo Responsable',
+          commissionId: 'cocina',
+          due: '2027-07-01T12:00:00Z',
+          responsibleIds: [person.id],
+        },
+        newcomer,
+      )
+    ).status,
+    201,
+  );
+  const invited = await login('group@example.test');
+  const groupData = (await request('/data', 'GET', undefined, invited)).body;
+  assert.equal(groupData.commissions.length, 0);
+  const all = (await request('/data')).body;
+  assert.ok(all.users.some((u: any) => u.email === 'group@example.test'));
+  const second = all.invitations.find((i: any) => i.email === 'second@example.test');
+  assert.equal(
+    (await request(`/invitations/${second.id}`, 'PATCH', { action: 'revoke' }, responsible)).status,
+    403,
+  );
+  assert.equal(
+    (await request(`/invitations/${second.id}`, 'PATCH', { action: 'revoke' })).status,
+    200,
+  );
+});
+
+test('all queued emails include branded HTML and tasks have safe contextual action buttons', async () => {
+  const messages = (await request('/dev/mail')).body;
+  assert.ok(messages.length > 0);
+  assert.ok(
+    messages.every(
+      (m: any) =>
+        m.html.includes('Comisiones que avanzan') &&
+        m.html.includes('#124d38') &&
+        m.html.includes('#faf8f2'),
+    ),
+  );
+  const taskMail = messages.find((m: any) => m.subject.includes('Nueva asignación'));
+  assert.match(taskMail.html, /Completar tarea/);
+  assert.match(taskMail.html, /action=done/);
+  assert.match(taskMail.html, /confirmar la acción/);
 });

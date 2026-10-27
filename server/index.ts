@@ -9,6 +9,7 @@ import { connect } from './db.js';
 import { seed } from './seed.js';
 import * as s from './schema.js';
 import { validateEnvironment } from './config.js';
+import { renderMail } from './mail-template.js';
 const { production: prod, appUrl } = validateEnvironment();
 const { db, close } = await connect();
 await seed(db);
@@ -22,7 +23,17 @@ app.use('/api', (_q, r, n) => {
 });
 app.use(
   '/api/auth',
-  rateLimit({ windowMs: 15 * 60000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false }),
+  rateLimit({
+    windowMs: 15 * 60000,
+    limit: 30,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    handler: (_q, r) => {
+      r.status(429).json({
+        error: 'Demasiados intentos de acceso. Espera unos minutos antes de volver a intentarlo.',
+      });
+    },
+  }),
 );
 const now = () => new Date().toISOString();
 const id = () => randomUUID();
@@ -42,6 +53,11 @@ const fail = (status: number, msg: string): never => {
 const parse = <T>(schema: z.ZodType<T>, input: unknown) => schema.parse(input);
 const statuses = z.enum(['pending', 'in_progress', 'blocked', 'done']);
 const text = z.string().trim().min(1).max(200);
+const commissionRole = z
+  .enum(['scouter', 'responsible', 'member', 'coordinator'])
+  .transform((value) =>
+    value === 'coordinator' ? 'responsible' : value === 'member' ? 'scouter' : value,
+  );
 const email = z.email().transform((v) => v.toLowerCase());
 const mailTransport = createMailTransport();
 async function queue(
@@ -50,6 +66,7 @@ async function queue(
   body: string,
   dedupe: string = id(),
   tx: any = db,
+  html?: string,
 ) {
   await tx
     .insert(s.notifications)
@@ -59,6 +76,7 @@ async function queue(
       email,
       subject,
       body,
+      html: html || renderMail({ title: subject, body, appUrl }),
       status: mailTransport ? 'pending' : 'preview',
       createdAt: now(),
     })
@@ -87,6 +105,7 @@ async function deliver() {
           to: m.email,
           subject: m.subject,
           text: m.body,
+          html: m.html || renderMail({ title: m.subject, body: m.body, appUrl }),
           headers: { 'Message-ID': `<${m.id}@bandarlog.local>` },
         });
         await db
@@ -173,10 +192,11 @@ app.post('/api/auth/verify', async (q, r) => {
         .returning();
     }
     for (const i of invites) {
-      await tx
-        .insert(s.members)
-        .values({ id: id(), commissionId: i.commissionId, userId: u.id, role: 'member' })
-        .onConflictDoNothing();
+      if (i.commissionId)
+        await tx
+          .insert(s.members)
+          .values({ id: id(), commissionId: i.commissionId, userId: u.id, role: i.role })
+          .onConflictDoNothing();
       await tx.update(s.invitations).set({ status: 'accepted' }).where(eq(s.invitations.id, i.id));
     }
     const raw = secret(),
@@ -246,12 +266,12 @@ async function membership(uid: string, cid: string, tx: any = db) {
 async function authorize(u: any, cid: string, manage = false, tx: any = db) {
   if (globalManage(u)) return;
   const m = await membership(u.id, cid, tx);
-  if (!m || (manage && m.role !== 'coordinator'))
+  if (!m || (manage && m.role !== 'responsible'))
     fail(403, 'No tienes permiso para esta comisión.');
 }
 async function editableTask(u: any, taskId: string, tx: any = db, manage = false) {
   const [task] = await tx.select().from(s.tasks).where(eq(s.tasks.id, taskId));
-  if (!task) fail(404, 'Tarea no encontrada.');
+  if (!task || task.deletedAt) fail(404, 'Tarea no encontrada.');
   await authorize(u, task.commissionId, false, tx);
   if (!globalManage(u)) {
     const m = await membership(u.id, task.commissionId, tx);
@@ -259,7 +279,7 @@ async function editableTask(u: any, taskId: string, tx: any = db, manage = false
       .select()
       .from(s.assignments)
       .where(and(eq(s.assignments.taskId, taskId), eq(s.assignments.userId, u.id)));
-    if (m?.role !== 'coordinator' && (manage || !a))
+    if (m?.role !== 'responsible' && (manage || !a))
       fail(403, 'Solo los responsables o coordinación pueden modificar esta tarea.');
   }
   const [project] = await tx
@@ -292,6 +312,54 @@ async function taskMail(tx: any, t: any, subject: string, key: string) {
       `Bandarlog\n${t.title}\n${c.name} · ${p.name}\nResponsables: ${rows.map((x: any) => x.user.name).join(', ')}\nFecha límite: ${new Date(t.due).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' })}\nEstado: ${t.status}\n${t.description}\n\nAbrir tarea: ${appUrl}/?task=${t.id}\nMarcar en curso: ${appUrl}/?task=${t.id}&action=in_progress\nTerminar: ${appUrl}/?task=${t.id}&action=done\nBloquear: ${appUrl}/?task=${t.id}&action=blocked\nLas acciones requieren iniciar sesión y confirmar.`,
       `${key}-${user.id}`,
       tx,
+      renderMail({
+        title: `${subject}: ${t.title}`,
+        appUrl,
+        body: t.description + (t.blockedReason ? '\nMotivo del bloqueo: ' + t.blockedReason : ''),
+        details: [
+          { label: 'Comisión', value: c.name },
+          { label: 'Proyecto', value: p.name },
+          { label: 'Responsables', value: rows.map((x: any) => x.user.name).join(', ') },
+          {
+            label: 'Fecha límite',
+            value: new Date(t.due).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' }),
+          },
+          {
+            label: 'Estado',
+            value:
+              (
+                {
+                  pending: 'Pendiente',
+                  in_progress: 'En curso',
+                  blocked: 'Bloqueada',
+                  done: 'Terminada',
+                } as Record<string, string>
+              )[t.status] || t.status,
+          },
+        ],
+        actions: [
+          { label: 'Abrir tarea', url: `${appUrl}/?task=${t.id}` },
+          ...(t.status !== 'done'
+            ? [
+                {
+                  label: 'Marcar en curso',
+                  url: `${appUrl}/?task=${t.id}&action=in_progress`,
+                  secondary: true,
+                },
+                {
+                  label: 'Completar tarea',
+                  url: `${appUrl}/?task=${t.id}&action=done`,
+                  secondary: true,
+                },
+                {
+                  label: 'Comunicar bloqueo',
+                  url: `${appUrl}/?task=${t.id}&action=blocked`,
+                  secondary: true,
+                },
+              ]
+            : []),
+        ],
+      }),
     );
   }
 }
@@ -324,7 +392,10 @@ app.get('/api/data', async (_q, r) => {
   );
   const cids = cs.map((c) => c.id);
   const ts = cids.length
-    ? await db.select().from(s.tasks).where(inArray(s.tasks.commissionId, cids))
+    ? await db
+        .select()
+        .from(s.tasks)
+        .where(and(inArray(s.tasks.commissionId, cids), sql`${s.tasks.deletedAt} is null`))
     : [];
   const tids = ts.map((t) => t.id);
   const visibleMembers = memberships.filter((m) => cids.includes(m.commissionId));
@@ -349,12 +420,11 @@ app.get('/api/data', async (_q, r) => {
     invitations: (await db.select().from(s.invitations))
       .filter(
         (i) =>
-          cids.includes(i.commissionId) &&
-          (globalManage(u) ||
-            visibleMembers.some(
-              (m) =>
-                m.commissionId === i.commissionId && m.userId === u.id && m.role === 'coordinator',
-            )),
+          globalManage(u) ||
+          visibleMembers.some(
+            (m) =>
+              m.commissionId === i.commissionId && m.userId === u.id && m.role === 'responsible',
+          ),
       )
       .map((i) => ({
         ...i,
@@ -406,7 +476,7 @@ app.post('/api/commissions', async (q, r) => {
       projectId: text,
       description: z.string().max(3000).default(''),
       icon: z.string().default('tent'),
-      members: z.array(z.object({ userId: text, role: z.enum(['member', 'coordinator']) })).min(1),
+      members: z.array(z.object({ userId: text, role: commissionRole })).min(1),
     }),
     q.body,
   );
@@ -434,7 +504,7 @@ app.post('/api/commissions/:id/members', async (q, r) => {
     for (const userId of new Set(input.userIds))
       await tx
         .insert(s.members)
-        .values({ id: id(), commissionId: cid, userId, role: 'member' })
+        .values({ id: id(), commissionId: cid, userId, role: 'scouter' })
         .onConflictDoNothing();
   });
   r.json({ ok: true });
@@ -443,7 +513,7 @@ app.patch('/api/commissions/:id/members/:uid', async (q, r) => {
   const cid = String(q.params.id),
     uid = String(q.params.uid);
   await authorize(r.locals.user, cid, true);
-  const { role } = parse(z.object({ role: z.enum(['member', 'coordinator']) }), q.body);
+  const { role } = parse(z.object({ role: commissionRole }), q.body);
   await db
     .update(s.members)
     .set({ role })
@@ -460,7 +530,13 @@ app.delete('/api/commissions/:id/members/:uid', async (q, r) => {
       .select({ id: s.tasks.id })
       .from(s.tasks)
       .innerJoin(s.assignments, eq(s.assignments.taskId, s.tasks.id))
-      .where(and(eq(s.tasks.commissionId, cid), eq(s.assignments.userId, uid)));
+      .where(
+        and(
+          eq(s.tasks.commissionId, cid),
+          eq(s.assignments.userId, uid),
+          sql`${s.tasks.deletedAt} is null`,
+        ),
+      );
     if (assigned.length) fail(409, 'Reasigna sus tareas antes de quitar a esta persona.');
     await tx
       .delete(s.members)
@@ -564,53 +640,118 @@ app.patch('/api/tasks/:id', async (q, r) => {
   void deliver();
   r.json({ ok: true });
 });
+app.delete('/api/tasks/:id', async (q, r) => {
+  const tid = String(q.params.id);
+  await db.transaction(async (tx: any) => {
+    await tx.execute(sql`select id from tasks where id=${tid} for update`);
+    await editableTask(r.locals.user, tid, tx, true);
+    await tx
+      .update(s.tasks)
+      .set({ deletedAt: now(), deletedBy: r.locals.user.id, updatedAt: now() })
+      .where(eq(s.tasks.id, tid));
+    await event(
+      tx,
+      tid,
+      r.locals.user.id,
+      'deleted',
+      'Ha eliminado la tarea. Se conserva el historial.',
+    );
+  });
+  r.json({ ok: true });
+});
 app.post('/api/tasks/:id/comments', async (q, r) => {
   const tid = String(q.params.id);
   const { body } = parse(z.object({ body: z.string().trim().min(1).max(3000) }), q.body);
-  const [t] = await db.select().from(s.tasks).where(eq(s.tasks.id, tid));
-  if (!t) fail(404, 'Tarea no encontrada.');
-  await authorize(r.locals.user, t.commissionId);
-  await event(db, tid, r.locals.user.id, 'comment', body);
+  await db.transaction(async (tx: any) => {
+    await editableTask(r.locals.user, tid, tx);
+    await event(tx, tid, r.locals.user.id, 'comment', body);
+  });
   r.status(201).json({ ok: true });
 });
 app.post('/api/invitations', async (q, r) => {
-  const input = parse(z.object({ commissionId: text, email, name: text }), q.body);
-  await authorize(r.locals.user, input.commissionId, true);
-  const iid = id();
+  const input = parse(
+    z
+      .object({
+        commissionId: text.nullable().optional(),
+        email: email.optional(),
+        emails: z.array(email).min(1).max(100).optional(),
+        name: text.optional(),
+        role: commissionRole.default('scouter'),
+      })
+      .refine((v) => !!v.email !== !!v.emails),
+    q.body,
+  );
+  const cid = input.commissionId || null;
+  if (cid) await authorize(r.locals.user, cid, true);
+  else if (!globalManage(r.locals.user)) fail(403, 'Solo coordinación puede invitar al grupo.');
+  if (!cid && input.role !== 'scouter') fail(400, 'El rol Responsable pertenece a una comisión.');
+  const recipients = [...new Set(input.emails || [input.email!])];
+  const created: string[] = [],
+    skipped: { email: string; reason: string }[] = [];
   await db.transaction(async (tx: any) => {
-    await tx.execute(sql`select id from commissions where id=${input.commissionId} for update`);
+    await tx.execute(sql`lock table invitations in share row exclusive mode`);
+    let commissionName = 'el grupo';
+    if (cid) {
+      const [c] = await tx
+        .select({ name: s.commissions.name, archived: s.projects.archived })
+        .from(s.commissions)
+        .innerJoin(s.projects, eq(s.projects.id, s.commissions.projectId))
+        .where(eq(s.commissions.id, cid));
+      if (!c) fail(404, 'Comisión no encontrada.');
+      if (c.archived === 'true') fail(409, 'El proyecto está archivado.');
+      commissionName = c.name;
+    }
     await tx
       .update(s.invitations)
       .set({ status: 'expired' })
       .where(and(eq(s.invitations.status, 'pending'), sql`${s.invitations.expires}<=now()`));
-    const active = await tx
-      .select()
-      .from(s.invitations)
-      .where(
-        and(
-          eq(s.invitations.email, input.email),
-          eq(s.invitations.commissionId, input.commissionId),
-          eq(s.invitations.status, 'pending'),
-          sql`${s.invitations.expires}>now()`,
-        ),
+    for (const recipient of recipients) {
+      const [user] = await tx.select().from(s.users).where(eq(s.users.email, recipient));
+      if (user && (!cid || (await membership(user.id, cid, tx)))) {
+        skipped.push({
+          email: recipient,
+          reason: cid ? 'Ya pertenece a la comisión' : 'Ya tiene acceso al grupo',
+        });
+        continue;
+      }
+      const [pending] = await tx
+        .select()
+        .from(s.invitations)
+        .where(
+          and(
+            eq(s.invitations.email, recipient),
+            cid ? eq(s.invitations.commissionId, cid) : sql`${s.invitations.commissionId} is null`,
+            eq(s.invitations.status, 'pending'),
+          ),
+        );
+      if (pending) {
+        if (input.email) fail(409, 'Ya hay una invitación pendiente.');
+        skipped.push({ email: recipient, reason: 'Ya tiene una invitación pendiente' });
+        continue;
+      }
+      const iid = id(),
+        name = input.name || user?.name || recipient;
+      await tx.insert(s.invitations).values({
+        id: iid,
+        commissionId: cid,
+        email: recipient,
+        name,
+        role: input.role,
+        status: 'pending',
+        expires: new Date(Date.now() + 7 * 86400000).toISOString(),
+      });
+      await queue(
+        recipient,
+        'Te invitan a Bandarlog',
+        `Hola ${name}, te han invitado a ${commissionName}${cid ? ' como ' + (input.role === 'responsible' ? 'Responsable' : 'Scouter') : ''}. Solicita un enlace de acceso con este correo en ${appUrl}. La invitación caduca en 7 días.`,
+        `invite-${iid}`,
+        tx,
       );
-    if (active.length) fail(409, 'Ya hay una invitación pendiente.');
-    await tx.insert(s.invitations).values({
-      ...input,
-      id: iid,
-      status: 'pending',
-      expires: new Date(Date.now() + 7 * 86400000).toISOString(),
-    });
-    await queue(
-      input.email,
-      'Te invitan a Bandarlog',
-      `Hola ${input.name}, te han invitado a una comisión. Solicita un enlace de acceso con este correo en ${appUrl}. La invitación caduca en 7 días.`,
-      `invite-${iid}`,
-      tx,
-    );
+      created.push(recipient);
+    }
   });
   void deliver();
-  r.status(201).json({ ok: true });
+  r.status(201).json({ created, skipped });
 });
 app.patch('/api/invitations/:id', async (q, r) => {
   const { action } = parse(z.object({ action: z.enum(['resend', 'revoke']) }), q.body);
@@ -619,7 +760,9 @@ app.patch('/api/invitations/:id', async (q, r) => {
     .from(s.invitations)
     .where(eq(s.invitations.id, String(q.params.id)));
   if (!i) fail(404, 'Invitación no encontrada.');
-  await authorize(r.locals.user, i.commissionId, true);
+  if (i.commissionId) await authorize(r.locals.user, i.commissionId, true);
+  else if (!globalManage(r.locals.user))
+    fail(403, 'Solo coordinación puede gestionar invitaciones al grupo.');
   if (i.status === 'accepted') fail(409, 'La invitación ya se aceptó.');
   await db
     .update(s.invitations)
@@ -681,7 +824,10 @@ async function reminders() {
   if (scheduling) return;
   scheduling = true;
   try {
-    const allTasks = await db.select().from(s.tasks);
+    const allTasks = await db
+      .select()
+      .from(s.tasks)
+      .where(sql`${s.tasks.deletedAt} is null`);
     const activeCommissions = await db
       .select({ id: s.commissions.id })
       .from(s.commissions)

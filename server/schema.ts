@@ -54,6 +54,8 @@ export const tasks = pgTable('tasks', {
   blockedReason: text('blocked_reason'),
   completedBy: text('completed_by').references(() => users.id),
   completedAt: timestamp('completed_at', { withTimezone: true, mode: 'string' }),
+  deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'string' }),
+  deletedBy: text('deleted_by').references(() => users.id),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull(),
 });
 export const assignments = pgTable(
@@ -96,9 +98,8 @@ export const tokens = pgTable('tokens', {
 });
 export const invitations = pgTable('invitations', {
   id: text().primaryKey(),
-  commissionId: text('commission_id')
-    .notNull()
-    .references(() => commissions.id),
+  commissionId: text('commission_id').references(() => commissions.id),
+  role: text().notNull().default('scouter'),
   email: text().notNull(),
   name: text().notNull(),
   status: text().notNull(),
@@ -110,6 +111,7 @@ export const notifications = pgTable('notifications', {
   email: text().notNull(),
   subject: text().notNull(),
   body: text().notNull(),
+  html: text().notNull().default(''),
   status: text().notNull(),
   attempts: text().notNull().default('0'),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
