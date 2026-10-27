@@ -4,17 +4,15 @@ import { rateLimit } from 'express-rate-limit';
 import { randomBytes, createHash, randomUUID } from 'node:crypto';
 import { eq, and, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import nodemailer from 'nodemailer';
+import { createMailTransport } from './mail.js';
 import { connect } from './db.js';
 import { seed } from './seed.js';
 import * as s from './schema.js';
+import { validateEnvironment } from './config.js';
+const { production: prod, appUrl } = validateEnvironment();
 const { db, close } = await connect();
 await seed(db);
 const app = express();
-const prod = process.env.NODE_ENV === 'production';
-const appUrl = process.env.APP_URL || 'http://localhost:5173';
-if (prod && (!appUrl.startsWith('https://') || !process.env.SMTP_HOST || !process.env.MAIL_FROM))
-  throw new Error('Producción requiere APP_URL HTTPS, SMTP_HOST y MAIL_FROM');
 app.disable('x-powered-by');
 app.use(helmet({ contentSecurityPolicy: prod ? undefined : false }));
 app.use(express.json({ limit: '256kb' }));
@@ -45,17 +43,7 @@ const parse = <T>(schema: z.ZodType<T>, input: unknown) => schema.parse(input);
 const statuses = z.enum(['pending', 'in_progress', 'blocked', 'done']);
 const text = z.string().trim().min(1).max(200);
 const email = z.email().transform((v) => v.toLowerCase());
-const mailTransport = process.env.SMTP_HOST
-  ? nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT || 587),
-      secure: process.env.SMTP_PORT === '465',
-      requireTLS: process.env.SMTP_PORT !== '465',
-      auth: process.env.SMTP_USER
-        ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
-        : undefined,
-    })
-  : null;
+const mailTransport = createMailTransport();
 async function queue(
   email: string,
   subject: string,
@@ -124,7 +112,7 @@ app.get('/api/health', async (_q, r) => {
   await db.execute(sql`select 1`);
   r.json({
     ok: true,
-    mail: mailTransport ? 'smtp' : 'development',
+    mail: mailTransport?.kind || 'development',
     database: process.env.DATABASE_URL ? 'postgresql' : 'pglite',
   });
 });
@@ -681,7 +669,7 @@ app.post('/api/notifications/process', async (_q, r) => {
   if (!globalManage(r.locals.user)) fail(403, 'Solo coordinación.');
   await reminders();
   await deliver();
-  r.json({ ok: true, mode: mailTransport ? 'smtp' : 'preview' });
+  r.json({ ok: true, mode: mailTransport?.kind || 'preview' });
 });
 app.get('/api/notifications', async (_q, r) => {
   if (!globalManage(r.locals.user)) fail(403, 'Solo coordinación.');

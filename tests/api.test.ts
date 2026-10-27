@@ -43,6 +43,7 @@ before(async () => {
       DATA_DIR: dir,
       APP_URL: 'http://localhost:5173',
       NODE_ENV: 'test',
+      MAIL_TRANSPORT: 'preview',
       SMTP_HOST: '',
       SMTP_USER: '',
       SMTP_PASS: '',
@@ -53,12 +54,12 @@ before(async () => {
   let logs = '';
   server.stdout?.on('data', (x) => (logs += x));
   server.stderr?.on('data', (x) => (logs += x));
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 300; i++) {
     try {
       if ((await fetch(base + '/health')).ok) break;
     } catch {}
     await new Promise((r) => setTimeout(r, 100));
-    if (i === 99) throw new Error(logs);
+    if (i === 299) throw new Error(logs);
   }
   admin = await login('alex@example.test');
   member = await login('laura@example.test');

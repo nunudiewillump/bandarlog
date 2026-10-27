@@ -28,6 +28,8 @@ Playwright usa `/usr/bin/chromium` en este entorno; para otro equipo, ajusta `ex
 
 ## Producción: Railway y Neon
 
+Pasos de configuración: [Despliegue en Neon y Railway](docs/despliegue.md). Railway Free, Trial y Hobby no admiten SMTP; para mantener un remitente Gmail utiliza `MAIL_TRANSPORT=gmail_api`.
+
 `railway.toml` contiene build, arranque y healthcheck. `npm start` ejecuta migraciones y sirve la API y `dist` desde un solo proceso. Configura en Railway:
 
 | Variable | Uso |
@@ -36,6 +38,8 @@ Playwright usa `/usr/bin/chromium` en este entorno; para otro equipo, ajusta `ex
 | `APP_URL` | Origen público HTTPS, sin rutas; usado por correos y validación de origen |
 | `DATABASE_URL` | URL PostgreSQL de Neon con verificación TLS (`sslmode=verify-full`) |
 | `BOOTSTRAP_EMAIL` | Primer administrador; solo se usa si no hay usuarios |
+| `MAIL_TRANSPORT` | `gmail_api` para Gmail por HTTPS; `smtp` solo si el alojamiento lo permite |
+| `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` | Credenciales OAuth privadas si se usa Gmail API |
 | `SMTP_HOST`, `SMTP_PORT` | Servidor de correo: 587 con STARTTLS obligatorio, o 465 con TLS |
 | `SMTP_USER`, `SMTP_PASS` | Autenticación del proveedor; contraseña guardada como secreto |
 | `MAIL_FROM` | Nombre y correo de remitente autorizado |
@@ -47,9 +51,9 @@ No se ha desplegado en Railway ni validado una conexión real a Neon o SMTP. Con
 
 Remitente previsto: **Bandarlog <XXXX@correodegrupo.com>**.
 
-Para Gmail: `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_USER=grupo@example.org`, `MAIL_FROM=Bandarlog <grupo@example.org>`. Activa verificación en dos pasos en Google y crea una contraseña de aplicación para `SMTP_PASS`; no uses la contraseña habitual ni la incluyas en Git, chat o capturas. La disponibilidad de contraseñas de aplicación depende de las políticas de la cuenta. Configúrala en los secretos/variables privadas del alojamiento. El alojamiento debe permitir conexiones SMTP salientes; ciertos planes pueden restringirlas. No se ha comprobado el acceso a esa cuenta ni se ha enviado correo desde ella.
+Para Gmail: `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_USER=grupo@example.org`, `MAIL_FROM=Bandarlog <grupo@example.org>`. Activa verificación en dos pasos en Google y crea una contraseña de aplicación para `SMTP_PASS`; no uses la contraseña habitual ni la incluyas en Git, chat o capturas. La disponibilidad de contraseñas de aplicación depende de las políticas de la cuenta. Configúrala en los secretos/variables privadas del alojamiento. Railway solo permite SMTP en el plan Pro o superior. En Free, Trial y Hobby hay que usar `MAIL_TRANSPORT=gmail_api` con OAuth; una contraseña de aplicación no sirve para la API. No se ha comprobado el acceso a esa cuenta ni se ha enviado correo desde ella.
 
-El proceso comprueba vencimientos cada minuto y genera el resumen por proyecto una vez por semana (a partir del lunes, en la primera ejecución disponible). Las fechas se presentan en Europe/Madrid y las fechas límite se guardan como instantes UTC. Los formularios indican cuando usan la zona horaria del dispositivo. Los eventos tienen claves de deduplicación; cada mensaje se reclama antes de enviarse, con un máximo de cinco intentos y Message-ID estable. Una caída durante un envío puede dejar un mensaje en `sending`: requiere revisión del registro antes de reenviarlo, porque SMTP no garantiza exactamente un envío ante respuestas ambiguas. Sin SMTP los mensajes quedan en `preview`, no se consideran enviados ni se mandan automáticamente al configurar después un proveedor.
+El proceso comprueba vencimientos cada minuto y genera el resumen por proyecto una vez por semana (a partir del lunes, en la primera ejecución disponible). La API de Gmail compone mensajes MIME y renueva el token OAuth mediante HTTPS; nunca consulta la bandeja de entrada. Las fechas se presentan en Europe/Madrid y las fechas límite se guardan como instantes UTC. Los formularios indican cuando usan la zona horaria del dispositivo. Los eventos tienen claves de deduplicación; cada mensaje se reclama antes de enviarse, con un máximo de cinco intentos y Message-ID estable. Una caída durante un envío puede dejar un mensaje en `sending`: requiere revisión del registro antes de reenviarlo, porque SMTP no garantiza exactamente un envío ante respuestas ambiguas. Sin SMTP los mensajes quedan en `preview`, no se consideran enviados ni se mandan automáticamente al configurar después un proveedor.
 
 Los correos de tarea incluyen enlaces con contexto. Abrirlos no modifica datos: se requiere sesión, permiso y confirmación por POST/PATCH. La autenticación conserva la tarea y acción solicitadas. Preferencias de avisos y resumen en Perfil.
 
