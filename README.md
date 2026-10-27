@@ -45,7 +45,7 @@ No se ha desplegado en Railway ni validado una conexión real a Neon o SMTP. Con
 
 ## Correo del grupo
 
-Remitente previsto: **Bandarlog <scoutsrosalesdelcanal@gmail.com>**.
+Remitente previsto: **Bandarlog <XXXX@correodegrupo.com>**.
 
 Para Gmail: `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_USER=scoutsrosalesdelcanal@gmail.com`, `MAIL_FROM=Bandarlog <scoutsrosalesdelcanal@gmail.com>`. Activa verificación en dos pasos en Google y crea una contraseña de aplicación para `SMTP_PASS`; no uses la contraseña habitual ni la incluyas en Git, chat o capturas. La disponibilidad de contraseñas de aplicación depende de las políticas de la cuenta. Configúrala en los secretos/variables privadas del alojamiento. El alojamiento debe permitir conexiones SMTP salientes; ciertos planes pueden restringirlas. No se ha comprobado el acceso a esa cuenta ni se ha enviado correo desde ella.
 
