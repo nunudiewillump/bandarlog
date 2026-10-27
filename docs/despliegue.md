@@ -62,3 +62,9 @@ Railway proporciona `PORT`: no lo fijes al puerto local del desarrollo. Deja una
 - Si falla el correo, verifica que Gmail API está habilitada, que el token pertenece al cliente OAuth configurado, que el alcance autorizado incluye `gmail.send` y que no ha caducado el consentimiento de prueba.
 
 Los valores secretos pueden reemplazarse en Railway sin editar ni volver a publicarlos en GitHub. Las pruebas locales de Gmail usan respuestas simuladas y no sustituyen la comprobación con la cuenta real. La ruta node-postgres se ha comprobado contra PostgreSQL 17 local; la conexión concreta a Neon requiere completar estos pasos.
+
+## Invitaciones y fotos
+
+Las personas invitadas entran desde el primer correo, pulsando «Aceptar invitación y entrar». No necesitan cuenta ni acceso al panel de Railway, ni autorizar Google. Tras actualizar una instalación anterior, reenvía las invitaciones pendientes: los correos antiguos conservan el punto erróneo al final del dominio y no se modifican al desplegar.
+
+La subida de fotos usa vistas previas `data:` compatibles con la política de imágenes de producción. El recorte y la compresión suceden antes del envío; no es necesario ampliar la política de seguridad para permitir `blob:`. Consulta la [revisión móvil y del acceso](revision-movil-y-acceso.md).

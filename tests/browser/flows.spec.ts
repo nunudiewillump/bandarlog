@@ -1,6 +1,15 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page, type BrowserContext } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
-async function login(page: any, email = 'alex@example.test') {
+import sharp from 'sharp';
+const loginCookies = new Map<string, Awaited<ReturnType<BrowserContext['cookies']>>>();
+async function login(page: Page, email = 'alex@example.test') {
+  const cached = loginCookies.get(email);
+  if (cached) {
+    await page.context().addCookies(cached);
+    await page.goto('/');
+    await expect(page.getByRole('heading', { name: 'Resumen general' })).toBeVisible();
+    return;
+  }
   await page.goto('/');
   await page.getByLabel('Tu correo electrónico').fill(email);
   await page.getByRole('button', { name: 'Recibir enlace de acceso' }).click();
@@ -8,6 +17,7 @@ async function login(page: any, email = 'alex@example.test') {
   await page.getByRole('button', { name: 'Abrir enlace de prueba' }).first().click();
   await page.getByRole('button', { name: 'Confirmar inicio de sesión' }).click();
   await expect(page.getByRole('heading', { name: 'Resumen general' })).toBeVisible();
+  loginCookies.set(email, await page.context().cookies());
 }
 async function createCommission(page: any, name = `Equipo QA ${Date.now()}`, projectId = 'camp') {
   const session = await (await page.request.get('/api/me')).json();
@@ -23,6 +33,78 @@ async function openUnmatchedCommission(page: any) {
   await page.goto(`/?view=commission&project=camp&commission=${cid}`);
   return cid;
 }
+async function personalInvitation(page: any) {
+  const recipient = `invited-${Date.now()}@example.test`;
+  const session = await (await page.request.get('/api/me')).json();
+  const response = await page.request.post('/api/commissions/cocina/invitations', {
+    headers: { 'X-CSRF-Token': session.csrf, Origin: 'http://127.0.0.1:5174' },
+    data: { email: recipient, name: 'Persona invitada', role: 'scouter' },
+  });
+  expect(response.ok()).toBeTruthy();
+  const mails = await (await page.request.get('/api/dev/mail')).json();
+  const message = mails.find(
+    (m: any) => m.email === recipient && m.subject === 'Te invitan a Bandarlog',
+  );
+  const link = message.body.match(/^https?:\/\/\S+$/m)[0];
+  expect(new URL(link).hostname).toBe('127.0.0.1');
+  expect(message.html).toContain(`href="${link}"`);
+  return { recipient, link };
+}
+
+test('a new person accepts the first invitation email and enters without requesting another email', async ({
+  page,
+  browser,
+}) => {
+  await login(page);
+  const { recipient, link } = await personalInvitation(page);
+  const context = await browser.newContext({ viewport: { width: 390, height: 900 } });
+  try {
+    const invited = await context.newPage();
+    let requestedEmails = 0;
+    invited.on('request', (request) => {
+      if (new URL(request.url()).pathname === '/api/auth/request') requestedEmails++;
+    });
+    await invited.goto(link);
+    await expect(
+      invited.getByRole('button', { name: 'Aceptar invitación y entrar' }),
+    ).toBeVisible();
+    await invited.reload();
+    expect((await invited.request.get('http://127.0.0.1:5174/api/me')).status()).toBe(401);
+    await mkdir('artifacts/invitaciones', { recursive: true });
+    await invited.screenshot({
+      path: 'artifacts/invitaciones/aceptar.png',
+      animations: 'disabled',
+    });
+    await invited.getByRole('button', { name: 'Aceptar invitación y entrar' }).click();
+    await expect(invited.getByRole('heading', { name: 'Hola, Persona' })).toBeVisible();
+    const me = await (await invited.request.get('http://127.0.0.1:5174/api/me')).json();
+    expect(me.user.email).toBe(recipient);
+    expect(me.user.role).toBe('member');
+    const data = await (await invited.request.get('http://127.0.0.1:5174/api/data')).json();
+    expect(data.commissions.map((c: any) => c.id)).toEqual(['cocina']);
+    expect(requestedEmails).toBe(0);
+    expect(new URL(invited.url()).searchParams.has('token')).toBe(false);
+    const mails = await (await page.request.get('/api/dev/mail')).json();
+    expect(mails.filter((m: any) => m.email === recipient)).toHaveLength(1);
+  } finally {
+    await context.close();
+  }
+});
+
+test('accepting an invitation while another account is signed in enters as the invited person', async ({
+  page,
+}) => {
+  await login(page);
+  const { recipient, link } = await personalInvitation(page);
+  await page.goto(link);
+  await expect(page.getByRole('button', { name: 'Aceptar invitación y entrar' })).toBeVisible();
+  expect((await (await page.request.get('/api/me')).json()).user.email).toBe('alex@example.test');
+  await page.getByRole('button', { name: 'Aceptar invitación y entrar' }).click();
+  await expect(page.getByRole('heading', { name: 'Resumen general' })).toBeVisible();
+  expect((await (await page.request.get('/api/me')).json()).user.email).toBe(recipient);
+  const data = await (await page.request.get('/api/data')).json();
+  expect(data.commissions.map((c: any) => c.id)).toEqual(['cocina']);
+});
 test('desktop: commission, task, comments and persistent status', async ({ page }) => {
   // This full workflow includes login, creation, comments, completion and a reload.
   test.setTimeout(60000);
@@ -323,6 +405,8 @@ test('users save a profile photo and custom reminder schedule across reloads', a
   await page.getByRole('button', { name: 'Mi perfil', exact: true }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Álex Perfil');
   await page.getByLabel('Foto de perfil').setInputFiles('public/icon-192.png');
+  await page.getByRole('button', { name: 'Guardar foto', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Ajustar foto' })).not.toBeVisible();
   await page.getByLabel('Días antes del vencimiento').fill('10, 2');
   await page.getByLabel('Al vencer la tarea', { exact: true }).uncheck();
   await page.getByRole('button', { name: 'Guardar perfil y avisos' }).click();
@@ -344,6 +428,97 @@ test('users save a profile photo and custom reminder schedule across reloads', a
   await page.getByRole('button', { name: 'Quitar foto' }).click();
   await page.getByRole('button', { name: 'Guardar perfil y avisos' }).click();
   await expect(page.getByRole('heading', { name: 'Álex Martín', exact: true })).toBeVisible();
+});
+
+test('mobile photo crop accepts a JPEG over 5 MB under the production image policy and saves the selected area', async ({
+  page,
+}) => {
+  await page.route('**/*', async (route) => {
+    if (route.request().isNavigationRequest()) {
+      const response = await route.fetch();
+      return route.fulfill({
+        response,
+        headers: { ...response.headers(), 'content-security-policy': "img-src 'self' data:" },
+      });
+    }
+    return route.continue();
+  });
+  await login(page);
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.goto('/?view=profile');
+  const before = await (await page.request.get('/api/me')).json();
+  const image = await sharp({
+    create: { width: 1200, height: 600, channels: 3, background: '#00cc00' },
+  })
+    .composite([
+      {
+        input: await sharp({
+          create: { width: 400, height: 600, channels: 3, background: '#ff0000' },
+        })
+          .png()
+          .toBuffer(),
+        left: 0,
+        top: 0,
+      },
+      {
+        input: await sharp({
+          create: { width: 400, height: 600, channels: 3, background: '#0000ff' },
+        })
+          .png()
+          .toBuffer(),
+        left: 800,
+        top: 0,
+      },
+    ])
+    .jpeg()
+    .toBuffer();
+  const original = Buffer.concat([image, Buffer.alloc(6 * 1024 * 1024)]);
+  await page
+    .getByLabel('Foto de perfil')
+    .setInputFiles({ name: 'foto-grande.jpeg', mimeType: 'image/jpeg', buffer: original });
+  const editor = page.getByRole('dialog', { name: 'Ajustar foto' });
+  await expect(editor).toBeVisible();
+  for (let i = 0; i < 4; i++) await editor.getByRole('button', { name: 'Acercar foto' }).click();
+  await expect(editor.getByRole('slider', { name: 'Zoom' })).toHaveValue('2');
+  const stage = await editor.locator('.photo-crop-stage').boundingBox();
+  await page.mouse.move(stage!.x + stage!.width - 18, stage!.y + stage!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(stage!.x + 18, stage!.y + stage!.height / 2, { steps: 10 });
+  await page.mouse.up();
+  expect(await editor.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await mkdir('artifacts/revision-movil', { recursive: true });
+  await page.screenshot({
+    path: 'artifacts/revision-movil/editor-foto-320.png',
+    animations: 'disabled',
+  });
+  await editor.getByRole('button', { name: 'Guardar foto', exact: true }).click();
+  await expect(editor).not.toBeVisible();
+  const after = await (await page.request.get('/api/me')).json();
+  expect(after.user.preferences).toBe(before.user.preferences);
+  expect(after.user.avatarUrl.length).toBeLessThan(220000);
+  const saved = Buffer.from(after.user.avatarUrl.split(',')[1], 'base64');
+  const center = await sharp(saved)
+    .extract({ left: 128, top: 128, width: 1, height: 1 })
+    .removeAlpha()
+    .raw()
+    .toBuffer();
+  expect(center[2]).toBeGreaterThan(center[0] + 100);
+  await page.reload();
+  await expect(page.getByAltText('Vista previa de tu foto')).toBeVisible();
+  await page.getByLabel('Foto de perfil').setInputFiles('public/icon-192.png');
+  await page.getByRole('button', { name: 'Cancelar recorte' }).click();
+  const cancelled = await (await page.request.get('/api/me')).json();
+  expect(cancelled.user.avatarUrl).toBe(after.user.avatarUrl);
+  await page.getByLabel('Foto de perfil').setInputFiles({
+    name: 'corrupta.jpeg',
+    mimeType: 'image/jpeg',
+    buffer: Buffer.from('not an image'),
+  });
+  await expect(page.getByRole('alert')).toContainText('No se pudo leer esta foto');
+  expect((await (await page.request.get('/api/me')).json()).user.avatarUrl).toBe(
+    after.user.avatarUrl,
+  );
+  await page.getByRole('button', { name: 'Quitar foto' }).click();
 });
 
 test('a banana fills while waiting for initial data and disappears when ready', async ({
@@ -468,6 +643,7 @@ test('camp creation uses camp labels and the project controls its Christmas coll
   );
   await dialog.getByRole('button', { name: 'Cerrar', exact: true }).click();
   await page.goto('/?view=project&project=camp');
+  await page.locator('.project-appearance > summary').click();
   await page.getByRole('combobox', { name: 'Colección de ilustraciones' }).click();
   await page.getByRole('option', { name: 'Navidad', exact: true }).click();
   await expect(page.getByRole('combobox', { name: 'Colección de ilustraciones' })).toHaveText(
@@ -490,6 +666,7 @@ test('camp creation uses camp labels and the project controls its Christmas coll
   await page.screenshot({ path: 'artifacts/catalogo-navidad.png', animations: 'disabled' });
   await page.getByRole('dialog').getByRole('button', { name: 'Cerrar', exact: true }).click();
   await page.goto('/?view=project&project=camp');
+  await page.locator('.project-appearance > summary').click();
   await page.getByRole('combobox', { name: 'Colección de ilustraciones' }).click();
   await page.getByRole('option', { name: 'Scouts', exact: true }).click();
   await expect(page.getByRole('combobox', { name: 'Colección de ilustraciones' })).toHaveText(
@@ -518,6 +695,7 @@ test('Campamento de Navidad assigns all six Christmas pairs without manual contr
   const project = await response.json();
   expect(project.artworkTheme).toBe('christmas');
   await page.goto(`/?view=project&project=${project.id}`);
+  await page.locator('.project-appearance > summary').click();
   await expect(page.getByRole('combobox', { name: 'Colección de ilustraciones' })).toBeDisabled();
   for (const [name, key] of [
     ['Servicios', 'servicios'],

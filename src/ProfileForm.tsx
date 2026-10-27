@@ -1,53 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useId, useRef } from 'react';
+import { Camera } from 'lucide-react';
 import type { User } from './types';
 import { BananaLoader } from './BananaLoader';
 import { api } from './api';
+import { PhotoEditor, preparePhoto, type PhotoSource } from './PhotoEditor';
 type Props = {
   user: User;
   busy: boolean;
   run: (fn: () => Promise<void>, message?: string) => Promise<boolean>;
   onSaved: (user: User) => void;
 };
-async function readPhoto(file: File) {
-  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024)
-    throw new Error('Elige una foto PNG, JPEG o WebP de hasta 5 MB.');
-  const url = URL.createObjectURL(file);
-  try {
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error('No se pudo leer la foto.'));
-      img.src = url;
-    });
-    const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 256;
-    const context = canvas.getContext('2d')!;
-    const side = Math.min(image.width, image.height);
-    context.drawImage(
-      image,
-      (image.width - side) / 2,
-      (image.height - side) / 2,
-      side,
-      side,
-      0,
-      0,
-      256,
-      256,
-    );
-    return canvas.toDataURL('image/webp', 0.82);
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
 export function ProfileForm({ user, busy, run, onSaved }: Props) {
   const current = JSON.parse(user.preferences || '{}');
-  const [photo, setPhoto] = useState<string | null | undefined>(undefined),
+  const photoId = useId();
+  const photoInput = useRef<HTMLInputElement>(null);
+  const [editingPhoto, setEditingPhoto] = useState<PhotoSource | null>(null),
     [error, setError] = useState(''),
     [readingPhoto, setReadingPhoto] = useState(false);
-  const avatar = photo === undefined ? user.avatarUrl : photo;
+  const avatar = user.avatarUrl;
+  async function savePhoto(avatarUrl: string | null) {
+    setError('');
+    const ok = await run(
+      async () => {
+        await api('/profile', 'PATCH', { avatarUrl });
+        const session = await api('/me');
+        onSaved(session.user);
+      },
+      avatarUrl ? 'Foto guardada' : 'Foto eliminada',
+    );
+    if (ok) setEditingPhoto(null);
+    return ok;
+  }
   return (
     <form
+      className="profile-form"
       onSubmit={async (e) => {
         e.preventDefault();
         const f = new FormData(e.currentTarget);
@@ -61,7 +47,6 @@ export function ProfileForm({ user, busy, run, onSaved }: Props) {
         await run(async () => {
           await api('/profile', 'PATCH', {
             name: f.get('name'),
-            ...(photo !== undefined ? { avatarUrl: photo } : {}),
             notifications: f.get('notifications') === 'on',
             creation: f.get('creation') === 'on',
             updates: f.get('updates') === 'on',
@@ -87,33 +72,64 @@ export function ProfileForm({ user, busy, run, onSaved }: Props) {
         Nombre
         <input required name="name" defaultValue={user.name} maxLength={200} autoComplete="name" />
       </label>
-      <label>
-        Foto de perfil
+      <div className="profile-photo-field">
+        <label htmlFor={photoId}>Foto de perfil</label>
         {avatar && (
           <img className="profile-avatar-preview" src={avatar} alt="Vista previa de tu foto" />
         )}
         <input
           type="file"
-          accept="image/png,image/jpeg,image/webp"
+          id={photoId}
+          ref={photoInput}
+          className="sr-only"
+          tabIndex={-1}
+          accept="image/png,image/jpeg,image/webp,image/avif"
+          disabled={busy || readingPhoto}
           onChange={async (e) => {
             const file = e.currentTarget.files?.[0];
+            e.currentTarget.value = '';
             if (file) {
+              setReadingPhoto(true);
               try {
-                setPhoto(await readPhoto(file));
+                setEditingPhoto(await preparePhoto(file));
                 setError('');
               } catch (error) {
                 setError((error as Error).message);
+              } finally {
+                setReadingPhoto(false);
               }
             }
           }}
         />
-        <small>PNG, JPEG o WebP. Máximo 5 MB.</small>
+        <button
+          type="button"
+          className="secondary photo-picker-button"
+          disabled={busy || readingPhoto}
+          onClick={() => photoInput.current?.click()}
+        >
+          <Camera size={18} />
+          {avatar ? 'Cambiar foto' : 'Elegir foto'}
+        </button>
+        <small>JPG, PNG, WebP o AVIF, hasta 30 MB. Se recorta y comprime al guardar.</small>
         {readingPhoto && <BananaLoader compact label="Preparando foto…" />}
-      </label>
+      </div>
       {avatar && (
-        <button className="text-link" type="button" onClick={() => setPhoto(null)}>
+        <button
+          className="text-link"
+          type="button"
+          disabled={busy}
+          onClick={() => void savePhoto(null)}
+        >
           Quitar foto
         </button>
+      )}
+      {editingPhoto && (
+        <PhotoEditor
+          source={editingPhoto}
+          busy={busy}
+          onCancel={() => setEditingPhoto(null)}
+          onSave={savePhoto}
+        />
       )}
       <fieldset>
         <legend>Avisos de tareas</legend>

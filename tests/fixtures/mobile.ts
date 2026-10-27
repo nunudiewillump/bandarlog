@@ -1,4 +1,5 @@
 import type { Data, Task, User, Project, Commission, CampSummary } from '../../src/types';
+import { selectArtwork, hasArtworkAssociation } from '../../shared/scout-catalog';
 export function mobileFixture(count: 1 | 5 | 10 = 10) {
   const user: User = {
     id: 'mobile-scouter',
@@ -47,6 +48,16 @@ export function mobileFixture(count: 1 | 5 | 10 = 10) {
     icon: 'tent',
     artworkStatus: 'ready',
   }));
+  for (const c of commissions) {
+    const art = selectArtwork({ name: c.name, theme: 'scout', seed: c.id });
+    Object.assign(c, {
+      iconUrl: art.iconUrl,
+      mascotUrl: art.mascotUrl,
+      artworkKey: art.id,
+      artworkLocked: hasArtworkAssociation(c.name, 'scout'),
+      artworkMode: 'automatic',
+    });
+  }
   const hidden: Commission = {
     id: 'camp-other',
     name: 'Otras comisiones del campamento',

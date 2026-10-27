@@ -13,6 +13,15 @@ import {
   type Project,
   type CampSummary,
 } from './types';
+export function MobileEmpty({ title, detail }: { title: string; detail: string }) {
+  return (
+    <div className="mobile-empty-state">
+      <img src="/monkey.webp" alt="" width="110" height="150" />
+      <h2>{title}</h2>
+      <p>{detail}</p>
+    </div>
+  );
+}
 export function ProjectIdentity({
   project,
   commission,
@@ -110,7 +119,10 @@ export function MobileTasks({
           );
         })
       ) : (
-        <p className="mobile-empty">No hay tareas con estos filtros.</p>
+        <MobileEmpty
+          title="Sin tareas por aquí"
+          detail="No hay tareas que coincidan con esta vista."
+        />
       )}
     </div>
   );
@@ -219,7 +231,13 @@ export function MobileHome(props: {
   const { data, me, holding, navigate } = props;
   const focus = smartFocus(data, me);
   const personalClear = focus.personalOpen.length === 0;
+  const hasContext =
+    data.commissions.length > 0 || data.projects.length > 0 || data.tasks.length > 0;
   const scope = holding || focus.level === 'personal' ? focus.personal : focus.commissionTasks;
+  const finished = focus.personal.filter((task) => task.status === 'done');
+  const recent = [...finished]
+    .sort((a, b) => (b.completedAt || b.updatedAt).localeCompare(a.completedAt || a.updatedAt))
+    .slice(0, 2);
   return (
     <section
       className="mobile-focus"
@@ -235,7 +253,7 @@ export function MobileHome(props: {
             : 'Tu situación y el avance del equipo.'}
         </p>
       </header>
-      {personalClear && (
+      {personalClear && (holding || focus.level !== 'clear') && (
         <section className={`personal-clear ${holding ? 'just-finished' : ''}`}>
           <div>
             <h2>¡Tus tareas están al día!</h2>
@@ -296,16 +314,56 @@ export function MobileHome(props: {
             </section>
           )}
           {focus.level === 'clear' && (
-            <section className="all-clear">
-              <Check size={28} />
-              <h2>Todo está al día</h2>
-              <p>No quedan tareas abiertas en tus ámbitos de consulta.</p>
-            </section>
+            <>
+              <section className="all-clear rich-state">
+                <span className="clear-status">
+                  <Check size={16} /> Sin pendientes
+                </span>
+                <img src="/monkey.webp" alt="" width="160" height="195" />
+                <h2>{hasContext ? 'Todo está al día' : 'Sin tareas asignadas'}</h2>
+                {hasContext && (
+                  <div className="personal-clear compact">
+                    <p>¡Tus tareas están al día!</p>
+                  </div>
+                )}
+                <p>
+                  {hasContext
+                    ? 'No quedan tareas abiertas en tus comisiones ni campamentos.'
+                    : 'Aquí verás tus tareas y comisiones cuando te añadan al equipo.'}
+                </p>
+                {(finished.length > 0 || focus.ownCommissions.size > 0) && (
+                  <div className="clear-summary">
+                    {finished.length > 0 && (
+                      <span>
+                        <strong>
+                          <AnimatedCounter value={finished.length} />
+                        </strong>{' '}
+                        tus tareas terminadas
+                      </span>
+                    )}
+                    {focus.ownCommissions.size > 0 && (
+                      <span>
+                        <strong>
+                          <AnimatedCounter value={focus.ownCommissions.size} />
+                        </strong>{' '}
+                        comisiones al día
+                      </span>
+                    )}
+                  </div>
+                )}
+              </section>
+              {recent.length > 0 && (
+                <section className="recent-finished">
+                  <h2>Últimas tareas terminadas</h2>
+                  <MobileTasks {...props} tasks={recent} />
+                </section>
+              )}
+            </>
           )}
         </>
       )}
       <button className="secondary focus-full-list" onClick={() => navigate('tasks')}>
-        Ver todas mis tareas
+        {focus.level === 'clear' ? 'Ver mi historial de tareas' : 'Ver todas mis tareas'}
       </button>
     </section>
   );

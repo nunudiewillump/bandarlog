@@ -27,7 +27,7 @@ export function renderMail({
           label: title.includes('acceso')
             ? 'Entrar en Bandarlog'
             : title.includes('invita')
-              ? 'Abrir invitación'
+              ? 'Aceptar invitación'
               : 'Ver en Bandarlog',
           url: link[0],
         },
