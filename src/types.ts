@@ -27,6 +27,7 @@ export type Commission = {
   artworkStatus?: string;
   artworkKey?: string;
   artworkMode?: 'automatic' | 'manual';
+  artworkLocked?: boolean;
 };
 export type Task = {
   id: string;
@@ -41,7 +42,28 @@ export type Task = {
   updatedAt: string;
 };
 export type Member = { id: string; commissionId: string; userId: string; role: string };
+export type CampSummary = {
+  id: string;
+  name: string;
+  total: number;
+  open: number;
+  done: number;
+  blocked: number;
+  overdue: number;
+  nextDue: string | null;
+  commissions: {
+    id: string;
+    name: string;
+    total: number;
+    open: number;
+    done: number;
+    blocked: number;
+    overdue: number;
+    nextDue: string | null;
+  }[];
+};
 export type Data = {
+  campSummaries?: CampSummary[];
   artworkEnabled: boolean;
   users: User[];
   projects: Project[];

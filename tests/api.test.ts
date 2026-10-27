@@ -574,28 +574,17 @@ test('creation notices respect personal opt-outs', async () => {
   await request('/profile', 'PATCH', { name: 'Ana García', creation: true }, ana);
 });
 
-test('catalogue artwork works without a worker and follows the project theme without renaming commissions', async () => {
+test('named associations are automatic, Christmas follows the camp name and only unmatched commissions allow changes', async () => {
   const project = await request('/projects', 'POST', {
-    name: 'Campamento de invierno QA',
+    name: 'Campamento de Navidad QA',
     type: 'camp',
     parentId: 'ronda',
     starts: '2027-01-02',
     ends: '2027-01-05',
+    artworkTheme: 'scout',
   });
   assert.equal(project.status, 201);
   assert.equal(project.body.artworkTheme, 'christmas');
-  const created = await request('/commissions', 'POST', {
-    name: 'Cocina',
-    projectId: project.body.id,
-    members: [{ userId: 'alex', role: 'responsible' }],
-  });
-  assert.equal(created.status, 201);
-  let data = (await request('/data')).body;
-  let c = data.commissions.find((entry: any) => entry.id === created.body.id);
-  assert.equal(c.name, 'Cocina');
-  assert.equal(c.artworkStatus, 'ready');
-  assert.match(c.iconUrl, /navidad-/);
-  assert.match(c.mascotUrl, /\/artwork\/mascots\//);
   assert.equal(
     (await request(`/projects/${project.body.id}`, 'PATCH', { artworkTheme: 'scout' }, member))
       .status,
@@ -603,25 +592,54 @@ test('catalogue artwork works without a worker and follows the project theme wit
   );
   assert.equal(
     (await request(`/projects/${project.body.id}`, 'PATCH', { artworkTheme: 'scout' })).status,
-    200,
+    409,
   );
-  data = (await request('/data')).body;
-  c = data.commissions.find((entry: any) => entry.id === created.body.id);
-  assert.equal(c.name, 'Cocina');
-  assert.match(c.iconUrl, /cocina-/);
+  for (const [name, key] of [
+    ['Servicios', 'navidad-servicios'],
+    ['Animación', 'navidad-animacion'],
+    ['Material', 'navidad-material'],
+    ['Menú', 'navidad-menu'],
+    ['Logística', 'navidad-logistica'],
+    ['Lugar', 'navidad-lugar'],
+  ]) {
+    const created = await request('/commissions', 'POST', {
+      name,
+      projectId: project.body.id,
+      members: [{ userId: 'alex', role: 'responsible' }],
+    });
+    assert.equal(created.status, 201);
+    const c = (await request('/data')).body.commissions.find(
+      (entry: any) => entry.id === created.body.id,
+    );
+    assert.equal(c.name, name);
+    assert.equal(c.artworkKey, key);
+    assert.equal(c.artworkLocked, true);
+    assert.equal(c.artworkMode, 'automatic');
+    assert.equal(
+      (await request(`/commissions/${c.id}/artwork`, 'POST', { key: 'navidad-01' })).status,
+      409,
+    );
+  }
+  const unmatched = await request('/commissions', 'POST', {
+    name: 'Equipo QA sin coincidencias',
+    projectId: project.body.id,
+    members: [{ userId: 'alex', role: 'responsible' }],
+  });
+  const cid = unmatched.body.id;
   assert.equal(
-    (await request(`/commissions/${c.id}/artwork`, 'POST', { key: 'navidad-01' })).status,
+    (await request(`/commissions/${cid}/artwork`, 'POST', { key: 'cocina-04' })).status,
     400,
   );
   assert.equal(
-    (await request(`/commissions/${c.id}/artwork`, 'POST', { key: 'cocina-04' })).status,
+    (await request(`/commissions/${cid}/artwork`, 'POST', { key: 'navidad-01' })).status,
     200,
   );
-  c = (await request('/data')).body.commissions.find((entry: any) => entry.id === c.id);
-  assert.equal(c.artworkKey, 'cocina-04');
+  let c = (await request('/data')).body.commissions.find((entry: any) => entry.id === cid);
+  assert.equal(c.artworkLocked, false);
+  assert.equal(c.artworkKey, 'navidad-01');
   assert.equal(c.artworkMode, 'manual');
-  assert.equal((await request(`/commissions/${c.id}/artwork`, 'POST', { key: null })).status, 200);
-  c = (await request('/data')).body.commissions.find((entry: any) => entry.id === c.id);
+  assert.equal((await request(`/commissions/${cid}/artwork`, 'POST', { key: null })).status, 200);
+  c = (await request('/data')).body.commissions.find((entry: any) => entry.id === cid);
   assert.equal(c.artworkMode, 'automatic');
 });
 
@@ -666,4 +684,87 @@ test('coordination extends the catalogue with a validated pair stored in the dat
   assert.match(response.headers.get('content-type') || '', /image\/webp/);
   const metadata = await sharp(Buffer.from(await response.arrayBuffer())).metadata();
   assert.equal(metadata.format, 'webp');
+});
+
+test('camp summaries expose aggregates only within authorised camps and grant no task access', async () => {
+  const commission = await request('/commissions', 'POST', {
+    name: 'Comisión ajena para resumen',
+    projectId: 'camp',
+    members: [{ userId: 'carlos', role: 'responsible' }],
+  });
+  const created = await request('/tasks', 'POST', {
+    title: 'DETALLE PRIVADO DE OTRA COMISIÓN',
+    commissionId: commission.body.id,
+    due: '2028-06-01T12:00:00+02:00',
+    responsibleIds: ['carlos'],
+  });
+  assert.equal(created.status, 201);
+  await request(`/tasks/${created.body.id}`, 'PATCH', {
+    status: 'blocked',
+    blockedReason: 'Motivo reservado',
+  });
+  const privateCamp = await request('/projects', 'POST', {
+    name: 'Campamento no autorizado',
+    type: 'camp',
+    parentId: 'ronda',
+    starts: '2028-01-01',
+    ends: '2028-01-03',
+  });
+  const data = (await request('/data', 'GET', undefined, member)).body;
+  const camp = data.campSummaries.find((camp: any) => camp.id === 'camp');
+  const aggregate = camp.commissions.find((c: any) => c.id === commission.body.id);
+  assert.equal(aggregate.open, 1);
+  assert.equal(aggregate.blocked, 1);
+  assert.ok(!data.tasks.some((t: any) => t.id === created.body.id));
+  assert.ok(!data.commissions.some((c: any) => c.id === commission.body.id));
+  assert.ok(!JSON.stringify(data).includes('DETALLE PRIVADO DE OTRA COMISIÓN'));
+  assert.ok(!JSON.stringify(data).includes('Motivo reservado'));
+  assert.ok(!data.campSummaries.some((camp: any) => camp.id === privateCamp.body.id));
+  assert.equal(
+    (await request(`/tasks/${created.body.id}`, 'PATCH', { status: 'done' }, member)).status,
+    403,
+  );
+  assert.equal(
+    (await request(`/tasks/${created.body.id}/comments`, 'POST', { body: 'No permitido' }, member))
+      .status,
+    403,
+  );
+});
+
+test('completion versions allow undo but reject restoring over a concurrent edit', async () => {
+  const created = await request('/tasks', 'POST', {
+    title: 'Control de versión y deshacer',
+    commissionId: 'cocina',
+    due: '2028-06-01T12:00:00+02:00',
+    responsibleIds: ['alex'],
+  });
+  const task = (await request('/data')).body.tasks.find((t: any) => t.id === created.body.id);
+  const blocked = await request(`/tasks/${task.id}`, 'PATCH', {
+    status: 'blocked',
+    blockedReason: 'Esperando material',
+    expectedUpdatedAt: task.updatedAt,
+  });
+  assert.equal(blocked.status, 200);
+  const completed = await request(`/tasks/${task.id}`, 'PATCH', {
+    status: 'done',
+    expectedUpdatedAt: blocked.body.task.updatedAt,
+  });
+  assert.equal(completed.status, 200);
+  const undone = await request(`/tasks/${task.id}`, 'PATCH', {
+    status: 'blocked',
+    blockedReason: 'Esperando material',
+    expectedUpdatedAt: completed.body.task.updatedAt,
+  });
+  assert.equal(undone.status, 200);
+  assert.equal(undone.body.task.blockedReason, 'Esperando material');
+  const latest = await request(`/tasks/${task.id}`, 'PATCH', { due: '2028-06-02T12:00:00+02:00' });
+  assert.equal(latest.status, 200);
+  const conflict = await request(`/tasks/${task.id}`, 'PATCH', {
+    status: 'pending',
+    expectedUpdatedAt: undone.body.task.updatedAt,
+  });
+  assert.equal(conflict.status, 409);
+  const saved = (await request('/data')).body.tasks.find((t: any) => t.id === task.id);
+  assert.equal(saved.status, 'blocked');
+  assert.equal(saved.due, latest.body.task.due);
 });
