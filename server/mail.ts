@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 import type Mail from 'nodemailer/lib/mailer/index.js';
 
-type MailInput = Pick<Mail.Options, 'from' | 'to' | 'subject' | 'text' | 'headers'>;
+type MailInput = Pick<Mail.Options, 'from' | 'to' | 'subject' | 'text' | 'html' | 'headers'>;
 export function mailProvider(env: NodeJS.ProcessEnv = process.env) {
   return env.MAIL_TRANSPORT || (env.SMTP_HOST ? 'smtp' : 'preview');
 }

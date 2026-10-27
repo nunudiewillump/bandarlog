@@ -24,6 +24,7 @@ test('Gmail HTTPS composes MIME, refreshes OAuth once and confirms message IDs',
           to: 'persona@example.test',
           subject: 'Tu comisión · tarea',
           text: 'Mensaje de prueba',
+          html: '<h1>Bandarlog</h1><p>Mensaje de prueba</p>',
           headers: { 'Message-ID': '<stable@example.test>' },
         })
       ).messageId,
@@ -36,6 +37,8 @@ test('Gmail HTTPS composes MIME, refreshes OAuth once and confirms message IDs',
   assert.match(mime, /To: persona@example.test/);
   assert.match(mime, /Message-ID: <stable@example.test>/);
   assert.match(mime, /Mensaje de prueba/);
+  assert.match(mime, /multipart\/alternative/);
+  assert.match(mime, /<h1>Bandarlog<\/h1>/);
 });
 test('Gmail failures propagate without exposing provider responses or credentials', async () => {
   const mock = (async () =>

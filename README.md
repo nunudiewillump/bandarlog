@@ -14,7 +14,7 @@ npm run dev:web   # otra terminal: interfaz Vite en 5173
 
 Sin `DATABASE_URL`, PGlite ejecuta PostgreSQL y guarda los datos en `.data/db`. No hay datos reales ni conexión a Google Sheets. Los proyectos y tareas de demostración se crean solo en bases de desarrollo vacías, en una transacción.
 
-Solicita acceso con `alex@example.test` (administración) o `laura@example.test` (miembro, coordinadora de las comisiones demostrativas). Pulsa **Bandeja de desarrollo**, **Abrir enlace de prueba** y confirma el inicio de sesión. Los enlaces caducan a los 15 minutos, son de un solo uso y no autentican por GET. La bandeja local expone mensajes deliberadamente y nunca existe en producción. No utilices datos personales reales en desarrollo.
+Solicita acceso con `alex@example.test` (administración) o `laura@example.test` (Scouter a nivel de grupo y Responsable de las comisiones demostrativas). Pulsa **Bandeja de desarrollo**, **Abrir enlace de prueba** y confirma el inicio de sesión. Los enlaces caducan a los 15 minutos, son de un solo uso y no autentican por GET. La bandeja local expone mensajes deliberadamente y nunca existe en producción. No utilices datos personales reales en desarrollo.
 
 ## Comprobaciones
 
@@ -45,7 +45,7 @@ Pasos de configuración: [Despliegue en Neon y Railway](docs/despliegue.md). Rai
 | `MAIL_FROM` | Nombre y correo de remitente autorizado |
 | `PORT` | Railway lo proporciona |
 
-No se ha desplegado en Railway ni validado una conexión real a Neon o SMTP. Conserva copias de seguridad de la base. Ejecuta una sola réplica inicialmente; la limitación de intentos de acceso reside en memoria del proceso. Para varias réplicas se necesita un almacén compartido para esa limitación. El administrador inicial puede crear proyectos, gestionar comisiones y designar roles globales desde Personas; no puede retirar su propio rol. Un coordinador de comisión tiene permisos locales, sin acceder a proyectos ajenos.
+No se ha desplegado en Railway ni validado una conexión real a Neon o SMTP. Conserva copias de seguridad de la base. Ejecuta una sola réplica inicialmente; la limitación de intentos de acceso reside en memoria del proceso. Para varias réplicas se necesita un almacén compartido para esa limitación. El administrador inicial puede crear proyectos, gestionar comisiones y designar roles globales desde Personas; no puede retirar su propio rol. Un Responsable de comisión tiene permisos locales, sin acceder a comisiones ajenas.
 
 ## Correo del grupo
 
@@ -75,3 +75,18 @@ Sesión HttpOnly, Secure en producción y SameSite; tokens almacenados como hash
 El service worker cachea recursos estáticos y una página de desconexión; no guarda respuestas privadas de la API ni simula escrituras sin conexión. Manifest e iconos de 192/512 px incluidos. La instalación en dispositivos reales requiere servir mediante HTTPS; no se ha probado en iPhone físico ni se certifica todavía el cumplimiento completo WCAG 2.2 AA. Se han preparado foco visible, formularios etiquetados, teclado, diálogo con foco contenido y movimiento reducido.
 
 Los avatares usan iniciales. Las mascotas son recursos propios; el mockup es la referencia de composición y colores, con adaptaciones al contenido real. No hay inventario, chat, gamificación ni conexión con servicios ajenos al alcance.
+
+## Personas, invitaciones y roles
+
+Desde **Personas → Invitar personas**, Coordinación y Administración pueden enviar invitaciones al grupo o a una comisión, introduciendo un correo o una lista separada por comas, punto y coma o saltos de línea (hasta 100 direcciones únicas por envío). Los Responsables invitan únicamente a las comisiones que gestionan. Se muestran las direcciones preparadas y las omitidas por duplicidad o por tener ya acceso. Una invitación al grupo no da acceso a ninguna comisión hasta que se añada a la persona a ella.
+
+| Rol | Alcance y permisos |
+|---|---|
+| Scouter | Ve todas las tareas de sus comisiones; cambia estados y comenta solo las que tiene asignadas. |
+| Responsable | Dentro de su comisión crea tareas, reasigna personas, ajusta fechas, comenta, cambia cualquier estado y elimina tareas. Tiene un panel con progreso, bloqueos y vencimientos filtrables. |
+| Coordinación | Acceso global por encima de proyectos y comisiones; gestiona proyectos, comisiones, personas e invitaciones. |
+| Administración | Incluye Coordinación y permite gestionar los roles globales. |
+
+La eliminación de una tarea la retira de listados, métricas y recordatorios, pero conserva su historial, autor y fecha de eliminación. La migración convierte las membresías anteriores a Scouter/Responsable sin recrear personas ni perder las invitaciones pendientes. Para compatibilidad, las entradas de importación y la API siguen admitiendo los nombres técnicos anteriores de rol.
+
+Los correos de acceso, invitaciones, tareas, actualizaciones, recordatorios y resúmenes comparten una plantilla HTML de Bandarlog: marca, crema, verde bosque, tarjetas y botones. Conservan una alternativa de texto. Los enlaces contextuales requieren autenticación y confirmación; no cambian una tarea mediante GET. Puedes previsualizarlos desde Ajustes en desarrollo. Las capturas `artifacts/correo-tarea.png` y `artifacts/correo-invitacion.png` documentan el diseño; la compatibilidad visual con clientes reales de correo requiere comprobarla tras configurar el proveedor.

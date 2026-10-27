@@ -15,6 +15,20 @@
       "when": 1793093655731,
       "tag": "0001_integrity",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793100043454,
+      "tag": "0002_concerned_nico_minoru",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793100124302,
+      "tag": "0003_commission_roles_and_invitations",
+      "breakpoints": true
     }
   ]
 }

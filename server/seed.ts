@@ -45,24 +45,20 @@ export async function seed(storage: Database) {
       ['salud', 'Salud', 'camp', 'heart'],
     ];
     for (const [id, name, projectId, icon] of cs) {
-      await db
-        .insert(s.commissions)
-        .values({
-          id,
-          name,
-          projectId,
-          icon,
-          description: `Todo lo necesario para ${name.toLowerCase()}. Nos organizamos para avanzar juntos.`,
-        });
+      await db.insert(s.commissions).values({
+        id,
+        name,
+        projectId,
+        icon,
+        description: `Todo lo necesario para ${name.toLowerCase()}. Nos organizamos para avanzar juntos.`,
+      });
       for (const userId of ['alex', 'laura', 'carlos', 'ana'])
-        await db
-          .insert(s.members)
-          .values({
-            id: `${id}-${userId}`,
-            commissionId: id,
-            userId,
-            role: userId === 'laura' ? 'coordinator' : 'member',
-          });
+        await db.insert(s.members).values({
+          id: `${id}-${userId}`,
+          commissionId: id,
+          userId,
+          role: userId === 'laura' ? 'responsible' : 'scouter',
+        });
     }
     const titles = [
       'Revisar listado de material',
@@ -90,33 +86,29 @@ export async function seed(storage: Database) {
       const due = new Date(Date.now() + ((i % 8) - 2) * 86400000);
       due.setUTCHours(12, 0, 0, 0);
       const id = `task-${i}`;
-      await db
-        .insert(s.tasks)
-        .values({
-          id,
-          commissionId,
-          title: titles[i],
-          description:
-            'Revisar y completar los detalles con el equipo. Compartir las novedades con la comisión para que todos tengamos la información al día.',
-          due: due.toISOString(),
-          status,
-          blockedReason: status === 'blocked' ? 'Pendiente de confirmación del proveedor' : null,
-          completedBy: status === 'done' ? 'laura' : null,
-          completedAt: status === 'done' ? new Date().toISOString() : null,
-          updatedAt: new Date().toISOString(),
-        });
+      await db.insert(s.tasks).values({
+        id,
+        commissionId,
+        title: titles[i],
+        description:
+          'Revisar y completar los detalles con el equipo. Compartir las novedades con la comisión para que todos tengamos la información al día.',
+        due: due.toISOString(),
+        status,
+        blockedReason: status === 'blocked' ? 'Pendiente de confirmación del proveedor' : null,
+        completedBy: status === 'done' ? 'laura' : null,
+        completedAt: status === 'done' ? new Date().toISOString() : null,
+        updatedAt: new Date().toISOString(),
+      });
       for (const userId of ['alex', i % 2 ? 'carlos' : 'laura'])
         await db.insert(s.assignments).values({ id: `${id}-${userId}`, taskId: id, userId });
-      await db
-        .insert(s.activity)
-        .values({
-          id: `activity-${i}`,
-          taskId: id,
-          userId: 'laura',
-          kind: 'created',
-          body: 'Ha creado la tarea y asignado responsables.',
-          createdAt: new Date().toISOString(),
-        });
+      await db.insert(s.activity).values({
+        id: `activity-${i}`,
+        taskId: id,
+        userId: 'laura',
+        kind: 'created',
+        body: 'Ha creado la tarea y asignado responsables.',
+        createdAt: new Date().toISOString(),
+      });
     }
   });
 }
