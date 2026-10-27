@@ -1,0 +1,7 @@
+{
+  "users": [{"id":"persona-1","name":"Persona de ejemplo","email":"persona@example.test","role":"member"}],
+  "projects": [{"id":"ronda-1","name":"Ronda solar de ejemplo","type":"ronda","starts":"2026-09-01","ends":"2027-08-31"}],
+  "commissions": [{"id":"comision-1","projectId":"ronda-1","name":"Material","description":"Ejemplo independiente"}],
+  "members": [{"commissionId":"comision-1","userId":"persona-1","role":"coordinator"}],
+  "tasks": [{"id":"tarea-1","commissionId":"comision-1","title":"Revisar listado","due":"2027-06-10T12:00:00+02:00","status":"pending","responsibleIds":["persona-1"]}]
+}
