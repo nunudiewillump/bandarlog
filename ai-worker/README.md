@@ -35,3 +35,7 @@ Según la [documentación actual de Spaces](https://huggingface.co/docs/hub/spac
 ## Pruebas automáticas gratuitas
 
 El repositorio es público. `.github/workflows/checks.yml` usa ejecutores estándar de GitHub Actions para instalar, compilar y ejecutar pruebas, incluidas las de navegador, sin credenciales de Neon ni Gmail. Las capturas se retienen siete días. La IA pesada no se ejecuta en cada PR: sus pruebas normales validan imágenes y protocolo sin contratar proveedores. No se usan ejecutores grandes de pago.
+
+## Generaciones largas y error 524
+
+La descarga inicial y la inferencia pueden superar la espera máxima del túnel Cloudflare. El trabajador acepta `POST /jobs` autenticado y devuelve un identificador inmediatamente. El cliente consulta `GET /jobs/{id}` con la misma clave hasta recibir las imágenes. Railway espera hasta 20 minutos con peticiones individuales de hasta 30 segundos; la prueba del cuaderno consulta el trabajador local. Los trabajos se guardan temporalmente en memoria, se reutilizan al repetir la misma solicitud y se pierden al reiniciar Colab. Actualiza tanto el servicio web como el trabajador para usar este protocolo.
