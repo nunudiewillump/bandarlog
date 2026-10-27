@@ -596,6 +596,7 @@ test('project invitations stay in their project and do not grant access to its c
 });
 
 test('profile saves name, safe photos and reminder preferences without resetting omitted fields', async () => {
+  assert.equal((await request('/profile', 'PATCH', {})).status, 400);
   const photo = await (
     await import('sharp')
   )

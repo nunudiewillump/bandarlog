@@ -414,17 +414,22 @@ app.post('/api/logout', async (_q, r) => {
 });
 app.patch('/api/profile', async (q, r) => {
   const input = parse(
-    z.object({
-      name: text.optional(),
-      avatarUrl: z.string().nullable().optional(),
-      notifications: z.boolean().optional(),
-      weekly: z.boolean().optional(),
-      creation: z.boolean().optional(),
-      updates: z.boolean().optional(),
-      reminderDays: z.array(z.number().int().min(1).max(90)).max(10).optional(),
-      onDue: z.boolean().optional(),
-      overdueWeekly: z.boolean().optional(),
-    }),
+    z
+      .object({
+        name: text.optional(),
+        avatarUrl: z.string().nullable().optional(),
+        notifications: z.boolean().optional(),
+        weekly: z.boolean().optional(),
+        creation: z.boolean().optional(),
+        updates: z.boolean().optional(),
+        reminderDays: z.array(z.number().int().min(1).max(90)).max(10).optional(),
+        onDue: z.boolean().optional(),
+        overdueWeekly: z.boolean().optional(),
+      })
+      .refine(
+        (value) => Object.values(value).some((field) => field !== undefined),
+        'Indica un cambio en tu perfil.',
+      ),
     q.body,
   );
   const { name, avatarUrl, ...changes } = input;
