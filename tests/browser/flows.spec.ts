@@ -373,3 +373,27 @@ test('completing a task confirms persistence before showing the vine animation',
   await expect(dialog.getByText('Terminada', { exact: true })).toBeVisible();
   await dialog.getByRole('button', { name: 'Reabrir tarea' }).click();
 });
+
+test('the mobile artwork loader leaves commission actions accessible', async ({ page }) => {
+  await login(page);
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.route('**/api/data', async (route) => {
+    const response = await route.fetch();
+    const data = await response.json();
+    data.artworkEnabled = true;
+    data.commissions = data.commissions.map((c: any) => ({
+      ...c,
+      artworkStatus: c.id === 'cocina' ? 'running' : c.artworkStatus,
+    }));
+    await route.fulfill({ response, json: data });
+  });
+  await page.goto('/?view=commission&project=camp&commission=cocina');
+  const loader = page.getByRole('status', { name: 'Preparando ilustraciones…' });
+  await expect(loader).toBeVisible();
+  const loadBox = await loader.boundingBox();
+  const buttonBox = await page
+    .getByRole('button', { name: 'Nueva tarea', exact: true })
+    .boundingBox();
+  expect(loadBox!.y).toBeGreaterThanOrEqual(buttonBox!.y + buttonBox!.height);
+  await page.screenshot({ path: 'artifacts/comision-cargando-movil.png', animations: 'disabled' });
+});

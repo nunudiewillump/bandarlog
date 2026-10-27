@@ -3096,3 +3096,18 @@ input[type='file']::file-selector-button {
   margin-right: 12px;
   cursor: pointer;
 }
+@media (max-width: 767px) {
+  .commission-banner .artwork-status,
+  .commission-banner .artwork-retry {
+    position: static;
+    right: auto;
+    bottom: auto;
+    flex-basis: 100%;
+    order: 3;
+    min-height: 34px;
+    margin-top: 8px;
+  }
+  .commission-banner .artwork-retry {
+    min-height: 44px;
+  }
+}
