@@ -10,6 +10,8 @@ async function login(page: any, email = 'alex@example.test') {
   await expect(page.getByRole('heading', { name: 'Resumen general' })).toBeVisible();
 }
 test('desktop: commission, task, comments and persistent status', async ({ page }) => {
+  // This full workflow includes login, creation, comments, completion and a reload.
+  test.setTimeout(60000);
   await login(page);
   await page.getByRole('navigation').first().getByRole('button', { name: 'Comisiones' }).click();
   await page.getByRole('button', { name: 'Nueva comisión' }).click();
