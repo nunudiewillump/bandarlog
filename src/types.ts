@@ -1,4 +1,11 @@
-export type User = { id: string; name: string; email: string; role: string; preferences?: string };
+export type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  preferences?: string;
+  avatarUrl?: string | null;
+};
 export type Project = {
   id: string;
   name: string;
@@ -14,6 +21,9 @@ export type Commission = {
   projectId: string;
   description: string;
   icon: string;
+  iconUrl?: string | null;
+  mascotUrl?: string | null;
+  artworkStatus?: string;
 };
 export type Task = {
   id: string;
@@ -29,11 +39,13 @@ export type Task = {
 };
 export type Member = { id: string; commissionId: string; userId: string; role: string };
 export type Data = {
+  artworkEnabled:boolean;
   users: User[];
   projects: Project[];
   commissions: Commission[];
   tasks: Task[];
   members: Member[];
+  projectMembers: { id: string; projectId: string; userId: string }[];
   assignments: { id: string; taskId: string; userId: string }[];
   activity: {
     id: string;
@@ -46,6 +58,7 @@ export type Data = {
   invitations: {
     id: string;
     commissionId: string | null;
+    projectId: string | null;
     email: string;
     name: string;
     status: string;

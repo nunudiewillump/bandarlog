@@ -29,6 +29,13 @@
       "when": 1793100124302,
       "tag": "0003_commission_roles_and_invitations",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793102137770,
+      "tag": "0004_tearful_makkari",
+      "breakpoints": true
     }
   ]
 }

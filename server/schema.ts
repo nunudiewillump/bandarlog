@@ -5,6 +5,7 @@ export const users = pgTable('users', {
   email: text().notNull().unique(),
   role: text().notNull(),
   preferences: text().notNull().default('{}'),
+  avatarUrl: text('avatar_url'),
 });
 export const projects = pgTable('projects', {
   id: text().primaryKey(),
@@ -25,6 +26,9 @@ export const commissions = pgTable(
     name: text().notNull(),
     description: text().notNull(),
     icon: text().notNull(),
+    iconUrl: text('icon_url'),
+    mascotUrl: text('mascot_url'),
+    artworkStatus: text('artwork_status').notNull().default('pending'),
   },
   (t) => [uniqueIndex('commission_project_name').on(t.projectId, t.name)],
 );
@@ -99,6 +103,7 @@ export const tokens = pgTable('tokens', {
 export const invitations = pgTable('invitations', {
   id: text().primaryKey(),
   commissionId: text('commission_id').references(() => commissions.id),
+  projectId: text('project_id').references(() => projects.id),
   role: text().notNull().default('scouter'),
   email: text().notNull(),
   name: text().notNull(),
@@ -117,3 +122,17 @@ export const notifications = pgTable('notifications', {
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
   sentAt: timestamp('sent_at', { withTimezone: true, mode: 'string' }),
 });
+
+export const projectMembers = pgTable(
+  'project_members',
+  {
+    id: text().primaryKey(),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id),
+  },
+  (t) => [uniqueIndex('project_membership').on(t.projectId, t.userId)],
+);

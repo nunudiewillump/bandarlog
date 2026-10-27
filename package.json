@@ -12,7 +12,8 @@
     "test:e2e": "npm run build && playwright test",
     "db:generate": "drizzle-kit generate",
     "import": "node --env-file-if-exists=.env --import tsx server/import.ts",
-    "format": "prettier --write src server tests *.ts *.json *.html"
+    "format": "prettier --write src server tests *.ts *.json *.html",
+    "ai:package": "node scripts/export-ai-space.mjs"
   },
   "repository": {
     "type": "git",
@@ -29,6 +30,7 @@
   "private": true,
   "dependencies": {
     "@electric-sql/pglite": "^0.5.12",
+    "@radix-ui/react-select": "^2.4.1",
     "drizzle-orm": "^0.45.4",
     "express": "^5.3.0",
     "express-rate-limit": "^8.7.1",
@@ -38,6 +40,7 @@
     "pg": "^8.23.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "sharp": "^0.35.5",
     "tsx": "^4.23.15",
     "zod": "^4.6.7"
   },
@@ -53,7 +56,6 @@
     "@vitejs/plugin-react": "^6.1.2",
     "drizzle-kit": "^0.31.11",
     "prettier": "^3.9.10",
-    "sharp": "^0.35.5",
     "typescript": "^7.0.2",
     "vite": "^8.3.5"
   },
