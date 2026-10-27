@@ -6,7 +6,7 @@ Se ha probado realmente en CPU: icono y mascota se generaron, la API rechazó pe
 
 ## Equipo virtual gratuito para pruebas
 
-Abre `notebooks/Bandarlog_IA_gratis.ipynb` en [Google Colab](https://colab.research.google.com/). Después de incorporar esta PR a main, el cuaderno clona el repositorio, instala las dependencias en un entorno aislado, solicita una clave privada sin mostrarla y abre un túnel HTTPS temporal. La descarga del túnel comprueba el SHA-256 oficial.
+Abre `notebooks/Bandarlog_IA_gratis.ipynb` en [Google Colab](https://colab.research.google.com/). El cuaderno puede clonar la rama de esta PR para probar sin cambiar producción. Después de incorporarla, puedes elegir `main` en el campo `REF`. El cuaderno instala las dependencias en un entorno aislado, solicita una clave privada sin mostrarla y abre un túnel HTTPS temporal. La descarga del túnel comprueba el SHA-256 oficial.
 
 Colab tiene recursos y duración limitados; no es un alojamiento permanente. No se requiere Colab Pro ni GPU para esta implementación. No dejes claves en el cuaderno ni guardes salidas que las contengan. Al desconectarse Colab, las imágenes ya guardadas en Neon permanecen, pero las nuevas generaciones necesitarán reabrir la sesión. El cuaderno está preparado y sus celdas se han comprobado sintácticamente; esta conversación no ha iniciado una sesión dentro de tu cuenta de Colab.
 

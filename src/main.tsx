@@ -1850,8 +1850,9 @@ function People() {
   const global = me.role === 'admin' || me.role === 'coordination';
   const canInvite = commission
     ? canManage(commission)
-    : global ||
-      data.commissions.some((c) => canManage(c.id) && (!project || c.projectId === project));
+    : project
+      ? global
+      : global || data.commissions.some((c) => canManage(c.id));
   const us = data.users.filter(
     (u) =>
       (!project && !commission && global) ||
