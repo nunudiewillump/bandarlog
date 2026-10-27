@@ -9,10 +9,22 @@ import { connect } from './db.js';
 import { seed } from './seed.js';
 import * as s from './schema.js';
 import { validateEnvironment } from './config.js';
+import { preferenceSchema, preferences, reminderEvents } from './preferences.js';
+import { generateCommissionArtwork } from './artwork.js';
+import { normalizePhoto } from './photos.js';
 import { renderMail } from './mail-template.js';
 const { production: prod, appUrl } = validateEnvironment();
 const { db, close } = await connect();
 await seed(db);
+await db
+  .update(s.commissions)
+  .set({ artworkStatus: process.env.ARTWORK_WORKER_URL ? 'pending' : 'unavailable' })
+  .where(
+    inArray(
+      s.commissions.artworkStatus,
+      process.env.ARTWORK_WORKER_URL ? ['running'] : ['pending', 'running'],
+    ),
+  );
 const app = express();
 app.disable('x-powered-by');
 app.use(helmet({ contentSecurityPolicy: prod ? undefined : false }));
@@ -192,6 +204,11 @@ app.post('/api/auth/verify', async (q, r) => {
         .returning();
     }
     for (const i of invites) {
+      if (i.projectId)
+        await tx
+          .insert(s.projectMembers)
+          .values({ id: id(), projectId: i.projectId, userId: u.id })
+          .onConflictDoNothing();
       if (i.commissionId)
         await tx
           .insert(s.members)
@@ -295,7 +312,13 @@ async function event(tx: any, taskId: string, uid: string, kind: string, body: s
     .insert(s.activity)
     .values({ id: id(), taskId, userId: uid, kind, body, createdAt: now() });
 }
-async function taskMail(tx: any, t: any, subject: string, key: string) {
+async function taskMail(
+  tx: any,
+  t: any,
+  subject: string,
+  key: string,
+  options: { recipientId?: string; event?: 'creation' | 'updates' | 'scheduled' } = {},
+) {
   const rows = await tx
     .select({ user: s.users })
     .from(s.assignments)
@@ -304,8 +327,14 @@ async function taskMail(tx: any, t: any, subject: string, key: string) {
   const [c] = await tx.select().from(s.commissions).where(eq(s.commissions.id, t.commissionId));
   const [p] = await tx.select().from(s.projects).where(eq(s.projects.id, c.projectId));
   for (const { user } of rows) {
-    const pref = JSON.parse(user.preferences);
-    if (pref.notifications === false) continue;
+    const pref = preferences(user.preferences);
+    if (
+      !pref.notifications ||
+      (options.recipientId && user.id !== options.recipientId) ||
+      (options.event === 'creation' && !pref.creation) ||
+      ((options.event || 'updates') === 'updates' && !pref.updates)
+    )
+      continue;
     await queue(
       user.email,
       `${subject}: ${t.title}`,
@@ -372,14 +401,36 @@ app.post('/api/logout', async (_q, r) => {
 });
 app.patch('/api/profile', async (q, r) => {
   const input = parse(
-    z.object({ name: text, notifications: z.boolean(), weekly: z.boolean() }),
+    z.object({
+      name: text,
+      avatarUrl: z.string().nullable().optional(),
+      notifications: z.boolean().optional(),
+      weekly: z.boolean().optional(),
+      creation: z.boolean().optional(),
+      updates: z.boolean().optional(),
+      reminderDays: z.array(z.number().int().min(1).max(90)).max(10).optional(),
+      onDue: z.boolean().optional(),
+      overdueWeekly: z.boolean().optional(),
+    }),
     q.body,
   );
+  const { name, avatarUrl, ...changes } = input;
+  const previous = preferences(r.locals.user.preferences);
+  const merged = preferenceSchema.parse({ ...previous, ...changes });
+  let photo: string | null | undefined;
+  if (avatarUrl !== undefined) {
+    try {
+      photo = await normalizePhoto(avatarUrl);
+    } catch (e) {
+      fail(400, (e as Error).message);
+    }
+  }
   await db
     .update(s.users)
     .set({
-      name: input.name,
-      preferences: JSON.stringify({ notifications: input.notifications, weekly: input.weekly }),
+      name,
+      preferences: JSON.stringify(merged),
+      ...(photo !== undefined ? { avatarUrl: photo } : {}),
     })
     .where(eq(s.users.id, r.locals.user.id));
   r.json({ ok: true });
@@ -399,14 +450,28 @@ app.get('/api/data', async (_q, r) => {
     : [];
   const tids = ts.map((t) => t.id);
   const visibleMembers = memberships.filter((m) => cids.includes(m.commissionId));
-  const uids = new Set([u.id, ...visibleMembers.map((m) => m.userId)]);
+  const projectMemberships = await db.select().from(s.projectMembers);
+  const visibleProjects = (await db.select().from(s.projects)).filter(
+    (p) =>
+      globalManage(u) ||
+      cs.some((c) => c.projectId === p.id) ||
+      projectMemberships.some((m) => m.projectId === p.id && m.userId === u.id),
+  );
+  const visibleProjectMembers = projectMemberships.filter((m) =>
+    visibleProjects.some((p) => p.id === m.projectId),
+  );
+  const uids = new Set([
+    u.id,
+    ...visibleMembers.map((m) => m.userId),
+    ...visibleProjectMembers.map((m) => m.userId),
+  ]);
   const us = (await db.select().from(s.users))
     .filter((x) => globalManage(u) || uids.has(x.id))
     .map(({ preferences, ...x }) => x);
   r.json({
-    projects: (await db.select().from(s.projects)).filter(
-      (p) => globalManage(u) || cs.some((c) => c.projectId === p.id),
-    ),
+    artworkEnabled: !!process.env.ARTWORK_WORKER_URL,
+    projects: visibleProjects,
+    projectMembers: visibleProjectMembers,
     commissions: cs,
     members: visibleMembers,
     users: us,
@@ -494,7 +559,37 @@ app.post('/api/commissions', async (q, r) => {
     for (const m of input.members)
       await tx.insert(s.members).values({ id: id(), commissionId: cid, ...m });
   });
+  if (process.env.ARTWORK_WORKER_URL)
+    void artworkJobs().catch(() => console.error('No se pudo preparar la ilustración.'));
+  else
+    void generateCommissionArtwork(db, cid).catch(() =>
+      console.error('No se pudo preparar la ilustración.'),
+    );
   r.status(201).json({ id: cid });
+});
+app.post('/api/commissions/:id/artwork', async (q, r) => {
+  const cid = String(q.params.id);
+  await authorize(r.locals.user, cid, true);
+  if (!process.env.ARTWORK_WORKER_URL)
+    fail(503, 'El servicio de ilustraciones aún no está conectado.');
+  await db.update(s.commissions).set({ artworkStatus: 'pending' }).where(eq(s.commissions.id, cid));
+  r.status(202).json({ ok: true });
+});
+app.post('/api/projects/:id/members', async (q, r) => {
+  if (!globalManage(r.locals.user))
+    fail(403, 'Solo coordinación puede añadir personas al proyecto.');
+  const pid = String(q.params.id);
+  const { userIds } = parse(z.object({ userIds: z.array(text).min(1).max(100) }), q.body);
+  const [p] = await db.select().from(s.projects).where(eq(s.projects.id, pid));
+  if (!p || p.archived === 'true') fail(409, 'El proyecto no está disponible.');
+  await db.transaction(async (tx: any) => {
+    for (const userId of new Set(userIds))
+      await tx
+        .insert(s.projectMembers)
+        .values({ id: id(), projectId: pid, userId })
+        .onConflictDoNothing();
+  });
+  r.json({ ok: true });
 });
 app.post('/api/commissions/:id/members', async (q, r) => {
   const cid = String(q.params.id);
@@ -574,7 +669,7 @@ app.post('/api/tasks', async (q, r) => {
     for (const userId of new Set(responsibleIds))
       await tx.insert(s.assignments).values({ id: id(), taskId: tid, userId });
     await event(tx, tid, r.locals.user.id, 'created', 'Ha creado la tarea.');
-    await taskMail(tx, t, 'Nueva asignación', `assigned-${tid}`);
+    await taskMail(tx, t, 'Nueva asignación', `assigned-${tid}`, { event: 'creation' });
   });
   void deliver();
   r.status(201).json({ id: tid });
@@ -668,11 +763,12 @@ app.post('/api/tasks/:id/comments', async (q, r) => {
   });
   r.status(201).json({ ok: true });
 });
-app.post('/api/invitations', async (q, r) => {
+async function createInvitations(q: express.Request, r: express.Response) {
   const input = parse(
     z
       .object({
         commissionId: text.nullable().optional(),
+        projectId: text.nullable().optional(),
         email: email.optional(),
         emails: z.array(email).min(1).max(100).optional(),
         name: text.optional(),
@@ -681,16 +777,26 @@ app.post('/api/invitations', async (q, r) => {
       .refine((v) => !!v.email !== !!v.emails),
     q.body,
   );
-  const cid = input.commissionId || null;
+  const cid = input.commissionId || null,
+    pid = input.projectId || null;
+  if (cid && pid) fail(400, 'Elige un único destino para la invitación.');
   if (cid) await authorize(r.locals.user, cid, true);
   else if (!globalManage(r.locals.user)) fail(403, 'Solo coordinación puede invitar al grupo.');
   if (!cid && input.role !== 'scouter') fail(400, 'El rol Responsable pertenece a una comisión.');
+  if (pid && !globalManage(r.locals.user))
+    fail(403, 'Solo coordinación puede invitar a un proyecto.');
   const recipients = [...new Set(input.emails || [input.email!])];
   const created: string[] = [],
     skipped: { email: string; reason: string }[] = [];
   await db.transaction(async (tx: any) => {
     await tx.execute(sql`lock table invitations in share row exclusive mode`);
     let commissionName = 'el grupo';
+    if (pid) {
+      const [p] = await tx.select().from(s.projects).where(eq(s.projects.id, pid));
+      if (!p) fail(404, 'Proyecto no encontrado.');
+      if (p.archived === 'true') fail(409, 'El proyecto está archivado.');
+      commissionName = p.name;
+    }
     if (cid) {
       const [c] = await tx
         .select({ name: s.commissions.name, archived: s.projects.archived })
@@ -707,10 +813,28 @@ app.post('/api/invitations', async (q, r) => {
       .where(and(eq(s.invitations.status, 'pending'), sql`${s.invitations.expires}<=now()`));
     for (const recipient of recipients) {
       const [user] = await tx.select().from(s.users).where(eq(s.users.email, recipient));
-      if (user && (!cid || (await membership(user.id, cid, tx)))) {
+      if (
+        user &&
+        (cid
+          ? await membership(user.id, cid, tx)
+          : pid
+            ? (
+                await tx
+                  .select()
+                  .from(s.projectMembers)
+                  .where(
+                    and(eq(s.projectMembers.userId, user.id), eq(s.projectMembers.projectId, pid)),
+                  )
+              ).length > 0
+            : true)
+      ) {
         skipped.push({
           email: recipient,
-          reason: cid ? 'Ya pertenece a la comisión' : 'Ya tiene acceso al grupo',
+          reason: cid
+            ? 'Ya pertenece a la comisión'
+            : pid
+              ? 'Ya pertenece al proyecto'
+              : 'Ya tiene acceso al grupo',
         });
         continue;
       }
@@ -720,7 +844,14 @@ app.post('/api/invitations', async (q, r) => {
         .where(
           and(
             eq(s.invitations.email, recipient),
-            cid ? eq(s.invitations.commissionId, cid) : sql`${s.invitations.commissionId} is null`,
+            cid
+              ? eq(s.invitations.commissionId, cid)
+              : pid
+                ? eq(s.invitations.projectId, pid)
+                : and(
+                    sql`${s.invitations.commissionId} is null`,
+                    sql`${s.invitations.projectId} is null`,
+                  ),
             eq(s.invitations.status, 'pending'),
           ),
         );
@@ -734,6 +865,7 @@ app.post('/api/invitations', async (q, r) => {
       await tx.insert(s.invitations).values({
         id: iid,
         commissionId: cid,
+        projectId: pid,
         email: recipient,
         name,
         role: input.role,
@@ -752,7 +884,31 @@ app.post('/api/invitations', async (q, r) => {
   });
   void deliver();
   r.status(201).json({ created, skipped });
-});
+}
+
+app.post('/api/invitations', createInvitations);
+app.post(
+  '/api/commissions/:id/invitations',
+  (q, r, n) => {
+    const cid = String(q.params.id);
+    if ((q.body.commissionId && q.body.commissionId !== cid) || q.body.projectId)
+      fail(400, 'La invitación debe dirigirse a esta comisión.');
+    q.body = { ...q.body, commissionId: cid, projectId: null };
+    n();
+  },
+  createInvitations,
+);
+app.post(
+  '/api/projects/:id/invitations',
+  (q, r, n) => {
+    const pid = String(q.params.id);
+    if ((q.body.projectId && q.body.projectId !== pid) || q.body.commissionId)
+      fail(400, 'La invitación debe dirigirse a este proyecto.');
+    q.body = { ...q.body, projectId: pid, commissionId: null };
+    n();
+  },
+  createInvitations,
+);
 app.patch('/api/invitations/:id', async (q, r) => {
   const { action } = parse(z.object({ action: z.enum(['resend', 'revoke']) }), q.body);
   const [i] = await db
@@ -834,12 +990,18 @@ async function reminders() {
       .innerJoin(s.projects, eq(s.projects.id, s.commissions.projectId))
       .where(eq(s.projects.archived, 'false'));
     const ts = allTasks.filter((t) => activeCommissions.some((c) => c.id === t.commissionId));
+    const assigned = await db.select().from(s.assignments),
+      recipients = await db.select().from(s.users);
     for (const t of ts) {
       if (t.status === 'done') continue;
-      const diff = new Date(t.due).getTime() - Date.now();
-      if (diff < 24 * 3600000) {
-        const kind = diff < 0 ? 'Vencimiento' : 'Recordatorio';
-        await taskMail(db, t, kind, `${kind}-${t.id}-${t.due}`);
+      for (const assignment of assigned.filter((a) => a.taskId === t.id)) {
+        const u = recipients.find((u) => u.id === assignment.userId);
+        if (!u) continue;
+        for (const event of reminderEvents(t.due, t.status, preferences(u.preferences)))
+          await taskMail(db, t, event.label, `scheduled-${event.key}-${t.id}-${t.due}`, {
+            recipientId: u.id,
+            event: 'scheduled',
+          });
       }
     }
     const localDate = new Intl.DateTimeFormat('en-CA', {
@@ -855,7 +1017,7 @@ async function reminders() {
     const ps = await db.select().from(s.projects);
     const cs = await db.select().from(s.commissions);
     for (const u of us) {
-      if (!globalManage(u) || JSON.parse(u.preferences).weekly === false) continue;
+      if (!globalManage(u) || !preferences(u.preferences).weekly) continue;
       for (const p of ps.filter((p) => p.archived === 'false')) {
         const pts = ts.filter((t) =>
           cs.some((c) => c.id === t.commissionId && c.projectId === p.id),
@@ -874,6 +1036,26 @@ async function reminders() {
     scheduling = false;
   }
 }
+let generating = false;
+async function artworkJobs() {
+  if (!process.env.ARTWORK_WORKER_URL || generating) return;
+  generating = true;
+  try {
+    const [c] = await db
+      .select()
+      .from(s.commissions)
+      .where(eq(s.commissions.artworkStatus, 'pending'))
+      .limit(1);
+    if (c) await generateCommissionArtwork(db, c.id);
+  } finally {
+    generating = false;
+  }
+}
+const artworkTimer = setInterval(
+  () => void artworkJobs().catch(() => console.error('No se pudo procesar la ilustración.')),
+  10000,
+);
+artworkTimer.unref();
 const timer = setInterval(() => {
   void reminders()
     .then(deliver)
@@ -916,5 +1098,6 @@ const server = app.listen(Number(process.env.PORT || 3001), '0.0.0.0', () =>
 );
 process.on('SIGTERM', () => {
   clearInterval(timer);
+  clearInterval(artworkTimer);
   server.close(() => void close().then(() => process.exit(0)));
 });

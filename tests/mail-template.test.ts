@@ -18,5 +18,5 @@ test('Bandarlog email HTML escapes untrusted values, preserves text and renders 
   assert.ok(html.includes('Cocina &amp; logística'));
   assert.ok(html.includes('?task=1&amp;action=done'));
   assert.ok(html.includes('Abrir tarea'));
-  assert.ok(html.includes('Comisiones que avanzan'));
+  assert.ok(html.includes('Bandarlog'));
 });

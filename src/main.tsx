@@ -55,12 +55,17 @@ import '@fontsource/nunito-sans/latin-700.css';
 import '@fontsource/nunito-sans/latin-800.css';
 import '@fontsource/nunito-sans/latin-900.css';
 import './styles.css';
+import { ProfileForm } from './ProfileForm';
+import { BananaLoader } from './BananaLoader';
+import { Select } from './Select';
 const initial: Data = {
+  artworkEnabled: false,
   users: [],
   projects: [],
   commissions: [],
   tasks: [],
   members: [],
+  projectMembers: [],
   assignments: [],
   activity: [],
   invitations: [],
@@ -77,7 +82,7 @@ function CIcon({ c }: { c: Commission }) {
   const Icon = icons[c.icon] || Tent;
   return (
     <span className={`commission-icon ${c.icon}`}>
-      <Icon size={28} />
+      {c.iconUrl ? <img className="generated-icon" src={c.iconUrl} alt="" /> : <Icon size={28} />}
     </span>
   );
 }
@@ -92,11 +97,15 @@ function Avatar({ user, small = false }: { user?: User; small?: boolean }) {
         ],
       }}
     >
-      {user?.name
-        .split(' ')
-        .map((x) => x[0])
-        .slice(0, 2)
-        .join('') || '?'}
+      {user?.avatarUrl ? (
+        <img src={user.avatarUrl} alt={user.name} />
+      ) : (
+        user?.name
+          .split(' ')
+          .map((x) => x[0])
+          .slice(0, 2)
+          .join('') || '?'
+      )}
     </span>
   );
 }
@@ -123,6 +132,7 @@ function App() {
     [development, setDevelopment] = useState(false),
     [sidebar, setSidebar] = useState(false),
     [pendingAction, setPendingAction] = useState(''),
+    [celebrating, setCelebrating] = useState(false),
     [emailInput, setEmailInput] = useState(''),
     [sent, setSent] = useState(false),
     [outbox, setOutbox] = useState<any[]>([]);
@@ -166,6 +176,15 @@ function App() {
   useEffect(() => {
     void bootup();
   }, []);
+  useEffect(() => {
+    if (
+      !me ||
+      !data.commissions.some((c) => ['pending', 'running'].includes(c.artworkStatus || ''))
+    )
+      return;
+    const timer = setInterval(() => void load().catch(() => {}), 5000);
+    return () => clearInterval(timer);
+  }, [me?.id, data.commissions.map((c) => c.artworkStatus).join(',')]);
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(''), 4000);
@@ -266,10 +285,15 @@ function App() {
         async () => {
           await api(`/tasks/${t.id}`, 'PATCH', { status, blockedReason });
         },
-        status === 'done' ? '¡Una tarea menos! Gracias por sumar.' : 'Estado actualizado',
+        status === 'done' ? '' : 'Estado actualizado',
       )
-    )
+    ) {
       setPendingAction('');
+      if (status === 'done') {
+        setCelebrating(true);
+        setTimeout(() => setCelebrating(false), 2500);
+      }
+    }
   };
   const metric = (ts: Task[], status: string) =>
     status === 'overdue' ? ts.filter(overdue).length : ts.filter((t) => t.status === status).length;
@@ -280,7 +304,7 @@ function App() {
         return (
           <button
             key={status}
-            className={`metric ${status}`}
+            className={`metric ${status} ${metric(ts, status) === 0 ? 'zero' : ''}`}
             onClick={() => {
               setFilter(status);
               if (view === 'commission') setTab('tasks');
@@ -334,7 +358,7 @@ function App() {
           </button>
         ))
       ) : (
-        <Empty text="Todo está al día" sub="No hay tareas con estos filtros." />
+        <Empty text="Sin tareas para este filtro" sub="No hay tareas con estos filtros." />
       )}
     </div>
   );
@@ -367,7 +391,7 @@ function App() {
           onChange={(e) => setQuery(e.target.value)}
         />
       </label>
-      <select
+      <Select
         aria-label="Filtrar por responsable"
         value={assignee}
         onChange={(e) => setAssignee(e.target.value)}
@@ -378,8 +402,8 @@ function App() {
             {u.name}
           </option>
         ))}
-      </select>
-      <select
+      </Select>
+      <Select
         aria-label="Filtrar por fecha"
         value={deadline}
         onChange={(e) => setDeadline(e.target.value)}
@@ -387,7 +411,7 @@ function App() {
         <option value="">Todas las fechas</option>
         <option value="1">Próximas 24 horas</option>
         <option value="7">Próximos 7 días</option>
-      </select>
+      </Select>
     </div>
   );
   const taskTable = (ts: Task[]) => (
@@ -475,10 +499,7 @@ function App() {
           );
         })
       ) : (
-        <Empty
-          text="Una buena idea empieza en equipo"
-          sub="Crea una comisión para empezar a organizaros."
-        />
+        <Empty text="No hay comisiones" sub="Crea una comisión para empezar a organizaros." />
       )}
     </div>
   );
@@ -502,8 +523,7 @@ function App() {
   if (boot)
     return (
       <div className="loading">
-        <Leaf size={40} />
-        <p>Preparando el campamento…</p>
+        <BananaLoader label="Cargando Bandarlog…" />
       </div>
     );
   if (!me)
@@ -514,15 +534,10 @@ function App() {
             Bandarlog<span>Comisiones que avanzan</span>
           </div>
           <img src="/monkey.webp" alt="Mascota de Bandarlog, un mono con mochila scout" />
-          <div className="login-quote">
-            Grandes aventuras.
-            <br />
-            Pequeñas tareas, juntos.
-          </div>
+
           <span className="leaf-decoration">✦</span>
         </div>
         <main className="login-form">
-          <span className="eyebrow">TU EQUIPO, MÁS CERCA</span>
           <h1>
             {loginToken ? '¡Ya casi estás!' : sent ? 'Revisa tu correo' : 'Bienvenido a Bandarlog'}
           </h1>
@@ -531,7 +546,7 @@ function App() {
               ? 'Confirma el acceso para entrar de forma segura.'
               : sent
                 ? 'Si tu correo está registrado o tiene una invitación, recibirás un enlace para entrar.'
-                : 'Organiza tus comisiones, comparte responsabilidades y disfruta del camino.'}
+                : 'Accede con el correo de tu grupo.'}
           </p>
           {error && (
             <div role="alert" className="error">
@@ -575,7 +590,11 @@ function App() {
               </label>
               <button className="primary" disabled={busy}>
                 <Mail size={18} />
-                {busy ? 'Preparando enlace…' : 'Recibir enlace de acceso'}
+                {busy ? (
+                  <BananaLoader compact label="Preparando enlace…" />
+                ) : (
+                  'Recibir enlace de acceso'
+                )}
               </button>
               <small>Sin contraseñas. Un enlace seguro, solo para ti.</small>
             </form>
@@ -627,9 +646,6 @@ function App() {
                 ))}
             </div>
           )}
-          <footer>
-            <Leaf size={14} /> Hecho para quienes hacen grupo.
-          </footer>
         </main>
       </div>
     );
@@ -660,14 +676,14 @@ function App() {
       <div className="app-shell">
         <aside className={`sidebar ${sidebar ? 'open' : ''}`}>
           <button className="brand sidebar-brand" onClick={() => navigate('home')}>
-            <img src="/icon.svg" alt="" />
+            <img src="/brand-mark.webp" alt="" />
             Bandarlog
           </button>
           <span className="nav-caption">ESPACIO DE TRABAJO</span>
           <nav>
             {[
               ['home', 'Resumen', LayoutDashboard],
-              ['rounds', 'Ronda solar', Flag],
+              ['rounds', 'Proyectos', Flag],
               ['camps', 'Campamentos', Tent],
               ['commissions', 'Comisiones', Users],
               ['tasks', 'Tareas', ClipboardCheck],
@@ -679,21 +695,20 @@ function App() {
                 <Icon size={19} />
                 {label}
                 {v === 'alerts' && (
-                  <b className="nav-count">
+                  <b
+                    className={
+                      data.tasks.some((t) => overdue(t) || t.status === 'blocked')
+                        ? 'nav-count'
+                        : 'nav-count zero'
+                    }
+                  >
                     {data.tasks.filter((t) => overdue(t) || t.status === 'blocked').length}
                   </b>
                 )}
               </button>
             ))}
           </nav>
-          <div className="sidebar-note">
-            <Leaf size={21} />
-            <p>
-              Cada pequeña tarea
-              <br />
-              hace un gran grupo.
-            </p>
-          </div>
+
           <button className="sidebar-profile" onClick={() => navigate('profile')}>
             <Avatar user={me} />
             <span>
@@ -721,7 +736,7 @@ function App() {
               </span>
             </div>
             <button className="mobile-brand" onClick={() => navigate('home')}>
-              <img src="/icon.svg" alt="" />
+              <img src="/brand-mark.webp" alt="" />
               Bandarlog
             </button>
             <div className="topbar-actions">
@@ -738,7 +753,9 @@ function App() {
                 onClick={() => navigate('alerts')}
               >
                 <Bell size={19} />
-                <i className="notification-dot" />
+                {data.tasks.some((t) => overdue(t) || t.status === 'blocked') && (
+                  <i className="notification-dot" />
+                )}
               </button>
               <button
                 className="icon-button profile-button"
@@ -775,15 +792,12 @@ function App() {
               <>
                 <div className="page-heading home-heading">
                   <div>
-                    <span className="eyebrow">TODO LISTO PARA AVANZAR</span>
                     <h1>
                       <span className="desktop-only">Resumen general</span>
                       <span className="mobile-only">¡Hola, {me.name.split(' ')[0]}!</span>
                     </h1>
                     <p>
-                      <span className="desktop-only">
-                        Una mirada a tu grupo. Cada tarea cuenta.
-                      </span>
+                      <span className="desktop-only"></span>
                       <span className="mobile-only">
                         Tienes {myTasks.filter((t) => t.status !== 'done').length} tareas
                         pendientes. ¡Vamos a por ellas!
@@ -791,7 +805,7 @@ function App() {
                     </p>
                   </div>
                   <div className="heading-filters">
-                    <select
+                    <Select
                       aria-label="Filtrar proyecto"
                       value={project}
                       onChange={(e) => setProject(e.target.value)}
@@ -802,7 +816,7 @@ function App() {
                           {p.name}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                     <button className="secondary" onClick={() => setModal('task')}>
                       <Plus size={16} /> Nueva tarea
                     </button>
@@ -952,7 +966,6 @@ function App() {
               <>
                 <div className="page-heading">
                   <div>
-                    <span className="eyebrow">PASO A PASO, JUNTOS</span>
                     <h1>
                       {view === 'alerts'
                         ? 'Lo que necesita atención'
@@ -961,9 +974,7 @@ function App() {
                           : 'Mis tareas'}
                     </h1>
                     <p>
-                      {view === 'alerts'
-                        ? 'Vencimientos y bloqueos para resolver en equipo.'
-                        : 'Cada tarea tiene una persona. Cada persona, un equipo.'}
+                      {view === 'alerts' ? 'Vencimientos y bloqueos para resolver en equipo.' : ''}
                     </p>
                   </div>
                   {(manage ||
@@ -983,9 +994,8 @@ function App() {
               <>
                 <div className="page-heading">
                   <div>
-                    <span className="eyebrow">LAS AVENTURAS QUE NOS UNEN</span>
-                    <h1>{view === 'rounds' ? 'Ronda solar' : 'Campamentos'}</h1>
-                    <p>Cada proyecto, un camino compartido.</p>
+                    <h1>{view === 'rounds' ? 'Proyectos' : 'Campamentos'}</h1>
+                    <p></p>
                   </div>
                   {manage && (
                     <button className="primary" onClick={() => setModal('project')}>
@@ -1021,7 +1031,7 @@ function App() {
                 </div>
                 {!data.projects.some((p) => p.type === (view === 'rounds' ? 'ronda' : 'camp')) && (
                   <Empty
-                    text="El próximo camino empieza aquí"
+                    text="No hay proyectos"
                     sub="Crea un proyecto para organizar sus comisiones."
                   />
                 )}
@@ -1031,9 +1041,8 @@ function App() {
               <>
                 <div className="page-heading">
                   <div>
-                    <span className="eyebrow">MUCHAS MANOS, UN MISMO RUMBO</span>
                     <h1>Comisiones</h1>
-                    <p>Los equipos que hacen que las cosas pasen.</p>
+                    <p></p>
                   </div>
                   {manage && (
                     <button className="primary" onClick={() => setModal('commission')}>
@@ -1113,7 +1122,7 @@ function App() {
                   </span>
                   <div>
                     <span className="eyebrow">
-                      {activeProject.type === 'camp' ? 'CAMPAMENTO' : 'RONDA SOLAR'}{' '}
+                      {activeProject.type === 'camp' ? 'CAMPAMENTO' : 'PROYECTO ANUAL'}{' '}
                       {activeProject.archived === 'true' ? '· ARCHIVADO' : ''}
                     </span>
                     <h1>{activeProject.name}</h1>
@@ -1220,7 +1229,29 @@ function App() {
                       </>
                     )}
                   </div>
-                  <img src="/monkey.webp" alt="" />
+                  {canManage(commission) &&
+                    ['pending', 'running'].includes(activeCommission.artworkStatus || '') && (
+                      <span className="artwork-status" role="status">
+                        <BananaLoader compact label="Preparando ilustraciones…" />
+                      </span>
+                    )}
+                  {canManage(commission) &&
+                    data.artworkEnabled &&
+                    ['failed', 'unavailable'].includes(activeCommission.artworkStatus || '') && (
+                      <button
+                        className="text-link artwork-retry"
+                        onClick={() =>
+                          void run(async () => {
+                            await api(`/commissions/${commission}/artwork`, 'POST');
+                          }, 'Ilustraciones en preparación')
+                        }
+                      >
+                        {activeCommission.artworkStatus === 'failed'
+                          ? 'Reintentar ilustraciones'
+                          : 'Generar ilustraciones'}
+                      </button>
+                    )}
+                  <img src={activeCommission.mascotUrl || '/monkey.webp'} alt="" />
                 </section>
                 {canManage(commission) && (
                   <section className="commission-summary" aria-label="Panel de Responsable">
@@ -1310,9 +1341,8 @@ function App() {
               <>
                 <div className="page-heading">
                   <div>
-                    <span className="eyebrow">LO MEJOR DEL GRUPO</span>
                     <h1>Personas</h1>
-                    <p>Nos organizamos para acompañarnos mejor.</p>
+                    <p></p>
                   </div>
                 </div>
                 <People />
@@ -1322,9 +1352,8 @@ function App() {
               <>
                 <div className="page-heading">
                   <div>
-                    <span className="eyebrow">TU ESPACIO</span>
                     <h1>{view === 'settings' ? 'Ajustes' : 'Mi perfil'}</h1>
-                    <p>Haz Bandarlog un poco más tuyo.</p>
+                    <p></p>
                   </div>
                 </div>
                 <section className="panel profile-panel">
@@ -1333,52 +1362,7 @@ function App() {
                   <p>
                     {me.email} · {manage ? 'Coordinación' : 'Miembro'}
                   </p>
-                  <form
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      const f = new FormData(e.currentTarget);
-                      if (
-                        await run(async () => {
-                          await api('/profile', 'PATCH', {
-                            name: f.get('name'),
-                            notifications: f.get('notifications') === 'on',
-                            weekly: f.get('weekly') === 'on',
-                          });
-                          const session = await api('/me');
-                          setMe(session.user);
-                        })
-                      )
-                        setToast('Preferencias guardadas');
-                    }}
-                  >
-                    <label>
-                      Nombre
-                      <input required name="name" defaultValue={me.name} />
-                    </label>
-                    <label className="checkbox-line">
-                      <input
-                        type="checkbox"
-                        name="notifications"
-                        defaultChecked={JSON.parse(me.preferences || '{}').notifications !== false}
-                      />{' '}
-                      Recibir avisos de mis tareas
-                    </label>
-                    <label className="checkbox-line">
-                      <input
-                        type="checkbox"
-                        name="weekly"
-                        defaultChecked={JSON.parse(me.preferences || '{}').weekly !== false}
-                      />{' '}
-                      Resumen semanal de coordinación
-                    </label>
-                    <p className="hint">
-                      Fechas y recordatorios en Europe/Madrid. Los avisos solo se envían por un
-                      proveedor configurado.
-                    </p>
-                    <button className="primary" disabled={busy}>
-                      Guardar preferencias
-                    </button>
-                  </form>
+                  <ProfileForm user={me} busy={busy} run={run} onSaved={setMe} />
                   <button
                     className="text-link logout"
                     onClick={async () => {
@@ -1393,10 +1377,7 @@ function App() {
                 {development && (
                   <section className="panel development-panel">
                     <h2>Entorno de desarrollo</h2>
-                    <p>
-                      Datos demostrativos independientes. Los correos se registran, no se envían
-                      mientras no haya SMTP.
-                    </p>
+                    <p>Consulta los mensajes y su estado de envío.</p>
                     <button
                       className="secondary"
                       onClick={async () => {
@@ -1411,13 +1392,6 @@ function App() {
               </>
             )}
           </main>
-          <footer className="desktop-footer">
-            <span>Bandarlog · Comisiones que avanzan</span>
-            <Leaf size={14} />
-            <span>
-              {development ? 'Entorno de desarrollo · datos demostrativos' : 'Siempre en equipo'}
-            </span>
-          </footer>
         </div>
         <nav className="bottom-nav" aria-label="Navegación principal">
           {[
@@ -1438,6 +1412,19 @@ function App() {
             </button>
           ))}
         </nav>
+        {celebrating && (
+          <div className="task-celebration" role="status" aria-live="polite">
+            <div className="vine-swing">
+              <img src="/monkey-vine.webp" alt="" />
+            </div>
+            <strong>Tarea completada</strong>
+          </div>
+        )}
+        {busy && (
+          <div className="operation-loading">
+            <BananaLoader compact label="Guardando…" />
+          </div>
+        )}
         {toast && (
           <div className="toast" role="status">
             <Check size={19} />
@@ -1779,9 +1766,7 @@ function App() {
             {modal === 'project' && <ProjectForm />}
             {modal === 'mail' && (
               <div className="mail-list">
-                <p className="hint">
-                  Previsualizaciones locales. No se ha enviado correo sin SMTP configurado.
-                </p>
+                <p className="hint">Consulta el estado de envío de cada mensaje.</p>
                 {outbox
                   .slice()
                   .reverse()
@@ -1792,7 +1777,7 @@ function App() {
                         {m.email} · {m.status} · intentos {m.attempts}
                       </small>
                       <iframe
-                            loading="lazy"
+                        loading="lazy"
                         title={`Correo: ${m.subject}`}
                         sandbox=""
                         srcDoc={m.html || ''}
@@ -1865,10 +1850,15 @@ function People() {
   const global = me.role === 'admin' || me.role === 'coordination';
   const canInvite = commission
     ? canManage(commission)
-    : global ||
-      data.commissions.some((c) => canManage(c.id) && (!project || c.projectId === project));
+    : project
+      ? global
+      : global || data.commissions.some((c) => canManage(c.id));
   const us = data.users.filter(
-    (u) => (!project && !commission && global) || members.some((m) => m.userId === u.id),
+    (u) =>
+      (!project && !commission && global) ||
+      members.some((m) => m.userId === u.id) ||
+      (!commission &&
+        data.projectMembers.some((m) => m.projectId === project && m.userId === u.id)),
   );
   return (
     <section className="people panel">
@@ -1879,7 +1869,7 @@ function People() {
             <Mail size={16} /> Invitar personas
           </button>
         )}
-        {commission && canManage(commission) && (
+        {((commission && canManage(commission)) || (!commission && project && global)) && (
           <button className="primary" onClick={() => setModal('members')}>
             <Plus size={16} /> Añadir personas
           </button>
@@ -1914,7 +1904,7 @@ function People() {
               </button>
             </div>
             {!commission && me.role === 'admin' && (
-              <select
+              <Select
                 aria-label={`Rol global de ${u.name}`}
                 value={u.role}
                 disabled={busy || u.id === me.id}
@@ -1928,7 +1918,7 @@ function People() {
                 <option value="member">Miembro</option>
                 <option value="coordination">Coordinación</option>
                 <option value="admin">Administrador</option>
-              </select>
+              </Select>
             )}
             {commission && (
               <span className={`badge ${member?.role === 'responsible' ? 'pending' : 'done'}`}>
@@ -1971,6 +1961,7 @@ function People() {
           commission
             ? i.commissionId === commission
             : !project ||
+              i.projectId === project ||
               data.commissions.some((c) => c.id === i.commissionId && c.projectId === project),
         )
         .map((i) => (
@@ -1984,7 +1975,9 @@ function People() {
                   ? data.commissions.find((c) => c.id === i.commissionId)?.name +
                     ' · ' +
                     (i.role === 'responsible' ? 'Responsable' : 'Scouter')
-                  : 'Grupo'}{' '}
+                  : i.projectId
+                    ? data.projects.find((p) => p.id === i.projectId)?.name
+                    : 'Grupo'}{' '}
                 ·{' '}
                 {
                   (
@@ -2074,14 +2067,14 @@ function TaskForm() {
           setModal('');
       }}
     >
-      <p className="muted">Un objetivo claro y un equipo para llevarlo a cabo.</p>
+      <p className="muted"></p>
       <label>
         Título
         <input name="title" required maxLength={200} placeholder="¿Qué hay que hacer?" />
       </label>
       <label>
         Comisión
-        <select value={cid} onChange={(e) => setCid(e.target.value)} required>
+        <Select value={cid} onChange={(e) => setCid(e.target.value)} required>
           <option value="">Selecciona una comisión</option>
           {data.commissions
             .filter((c) => canManage(c.id) && pOf(c)?.archived !== 'true')
@@ -2090,7 +2083,7 @@ function TaskForm() {
                 {c.name} · {pOf(c)?.name}
               </option>
             ))}
-        </select>
+        </Select>
       </label>
       <label>
         Fecha y hora límite (hora de este dispositivo)
@@ -2202,7 +2195,7 @@ function CommissionForm() {
           </label>
           <label>
             Proyecto
-            <select value={pid} onChange={(e) => setPid(e.target.value)} required>
+            <Select value={pid} onChange={(e) => setPid(e.target.value)} required>
               <option value="">Selecciona un proyecto</option>
               {data.projects
                 .filter((p) => p.archived === 'false')
@@ -2211,7 +2204,7 @@ function CommissionForm() {
                     {p.name}
                   </option>
                 ))}
-            </select>
+            </Select>
           </label>
           <label>
             Descripción (opcional)
@@ -2263,14 +2256,14 @@ function CommissionForm() {
                   <small>{u.email}</small>
                 </span>
                 {members[u.id] && (
-                  <select
+                  <Select
                     aria-label={`Rol de ${u.name}`}
                     value={members[u.id]}
                     onChange={(e) => setMembers({ ...members, [u.id]: e.target.value })}
                   >
                     <option value="scouter">Scouter</option>
                     <option value="responsible">Responsable</option>
-                  </select>
+                  </Select>
                 )}
               </div>
             ))}
@@ -2329,6 +2322,11 @@ function MemberForm() {
     [searchError, setSearchError] = useState('');
   useEffect(() => {
     let active = true;
+    if (!commission) {
+      setDirectory([]);
+      setSearchError('');
+      return;
+    }
     if (search.trim().length < 2) {
       setDirectory([]);
       return;
@@ -2361,9 +2359,13 @@ function MemberForm() {
           const f = new FormData(e.currentTarget);
           if (
             await run(async () => {
-              await api(`/commissions/${commission}/members`, 'POST', {
-                userIds: f.getAll('userIds'),
-              });
+              await api(
+                commission ? `/commissions/${commission}/members` : `/projects/${project}/members`,
+                'POST',
+                {
+                  userIds: f.getAll('userIds'),
+                },
+              );
             })
           )
             setModal('');
@@ -2386,7 +2388,9 @@ function MemberForm() {
         {available
           .filter(
             (u) =>
-              !data.members.some((m) => m.userId === u.id && m.commissionId === commission) &&
+              !(commission
+                ? data.members.some((m) => m.userId === u.id && m.commissionId === commission)
+                : data.projectMembers.some((m) => m.userId === u.id && m.projectId === project)) &&
               `${u.name} ${u.email}`.toLowerCase().includes(search.toLowerCase()),
           )
           .map((u) => (
@@ -2444,11 +2448,20 @@ function InvitationForm() {
         await run(
           async () => {
             setResult(
-              await api('/invitations', 'POST', {
-                commissionId: cid || null,
-                emails: unique,
-                role: cid ? role : 'scouter',
-              }),
+              await api(
+                commission
+                  ? `/commissions/${commission}/invitations`
+                  : project
+                    ? `/projects/${project}/invitations`
+                    : '/invitations',
+                'POST',
+                {
+                  commissionId: commission || (!project ? cid : null) || null,
+                  projectId: !commission && project ? project : null,
+                  emails: unique,
+                  role: commission || (!project && cid) ? role : 'scouter',
+                },
+              ),
             );
           },
           development
@@ -2461,24 +2474,35 @@ function InvitationForm() {
         Invita a una persona o pega una lista. No se crean cuentas duplicadas ni se cambian roles de
         personas que ya pertenecen al equipo.
       </p>
-      <label>
-        Destino de la invitación
-        <select value={cid} required={!global} onChange={(e) => setCid(e.target.value)}>
-          {global && <option value="">Grupo · sin comisión por ahora</option>}
-          {choices.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name} · {data.projects.find((p) => p.id === c.projectId)?.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      {cid && (
+      {commission || project ? (
+        <div className="invitation-destination">
+          <span>Destino de la invitación</span>
+          <strong>
+            {commission
+              ? data.commissions.find((c) => c.id === commission)?.name
+              : data.projects.find((p) => p.id === project)?.name}
+          </strong>
+        </div>
+      ) : (
+        <label>
+          Destino de la invitación
+          <Select value={cid} required={!global} onChange={(e) => setCid(e.target.value)}>
+            {global && <option value="">Grupo · sin comisión por ahora</option>}
+            {choices.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} · {data.projects.find((p) => p.id === c.projectId)?.name}
+              </option>
+            ))}
+          </Select>
+        </label>
+      )}
+      {(commission || (!project && cid)) && (
         <label>
           Rol en la comisión
-          <select value={role} onChange={(e) => setRole(e.target.value)}>
+          <Select value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="scouter">Scouter</option>
             <option value="responsible">Responsable</option>
-          </select>
+          </Select>
         </label>
       )}
       <div className="invitation-mode">
@@ -2553,7 +2577,11 @@ function InvitationForm() {
       <button
         className="primary"
         disabled={
-          busy || !unique.length || !!invalid.length || unique.length > 100 || (!global && !cid)
+          busy ||
+          !unique.length ||
+          !!invalid.length ||
+          unique.length > 100 ||
+          (!global && !commission && !project && !cid)
         }
       >
         <Mail size={16} />
@@ -2639,16 +2667,16 @@ function ProjectForm() {
       </label>
       <label>
         Tipo
-        <select value={kind} onChange={(e) => setKind(e.target.value)}>
-          <option value="ronda">Ronda solar</option>
+        <Select value={kind} onChange={(e) => setKind(e.target.value)}>
+          <option value="ronda">Proyecto anual</option>
           <option value="camp">Campamento</option>
-        </select>
+        </Select>
       </label>
       {kind === 'camp' && (
         <label>
-          Ronda solar
-          <select name="parentId" required>
-            <option value="">Selecciona una ronda</option>
+          Proyecto anual
+          <Select name="parentId" required>
+            <option value="">Selecciona un proyecto anual</option>
             {data.projects
               .filter((p) => p.type === 'ronda' && p.archived === 'false')
               .map((p) => (
@@ -2656,7 +2684,7 @@ function ProjectForm() {
                   {p.name}
                 </option>
               ))}
-          </select>
+          </Select>
         </label>
       )}
       <div className="form-grid">

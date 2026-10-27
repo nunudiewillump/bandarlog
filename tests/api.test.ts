@@ -49,6 +49,8 @@ before(async () => {
       APP_URL: 'http://localhost:5173',
       NODE_ENV: 'test',
       MAIL_TRANSPORT: 'preview',
+      ARTWORK_WORKER_URL: '',
+      ARTWORK_WORKER_TOKEN: '',
       SMTP_HOST: '',
       SMTP_USER: '',
       SMTP_PASS: '',
@@ -437,13 +439,137 @@ test('all queued emails include branded HTML and tasks have safe contextual acti
   assert.ok(
     messages.every(
       (m: any) =>
-        m.html.includes('Comisiones que avanzan') &&
-        m.html.includes('#124d38') &&
-        m.html.includes('#faf8f2'),
+        m.html.includes('Bandarlog') && m.html.includes('#124d38') && m.html.includes('#faf8f2'),
     ),
   );
   const taskMail = messages.find((m: any) => m.subject.includes('Nueva asignación'));
   assert.match(taskMail.html, /Completar tarea/);
   assert.match(taskMail.html, /action=done/);
-  assert.match(taskMail.html, /confirmar la acción/);
+  assert.match(taskMail.html, /se confirman en Bandarlog/);
+});
+
+test('project invitations stay in their project and do not grant access to its commissions', async () => {
+  assert.equal(
+    (
+      await request('/projects/camp/invitations', 'POST', {
+        projectId: 'ronda',
+        emails: ['wrong-project@example.test'],
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await request('/commissions/cocina/invitations', 'POST', {
+        commissionId: 'salud',
+        emails: ['wrong-commission@example.test'],
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await request(
+        '/projects/camp/invitations',
+        'POST',
+        { emails: ['project-guest@example.test'] },
+        member,
+      )
+    ).status,
+    403,
+  );
+  const invite = await request('/projects/camp/invitations', 'POST', {
+    emails: ['project-guest@example.test'],
+  });
+  assert.equal(invite.status, 201);
+  const guest = await login('project-guest@example.test');
+  const data = (await request('/data', 'GET', undefined, guest)).body;
+  assert.equal(data.projects.length, 1);
+  assert.equal(data.projects[0].id, 'camp');
+  assert.equal(data.commissions.length, 0);
+  assert.ok(data.projectMembers.some((m: any) => m.projectId === 'camp'));
+  assert.equal(
+    (await request('/projects/ronda/members', 'POST', { userIds: ['ana'] })).status,
+    200,
+  );
+  const all = (await request('/data')).body;
+  assert.ok(all.projectMembers.some((m: any) => m.projectId === 'ronda' && m.userId === 'ana'));
+});
+
+test('profile saves name, safe photos and reminder preferences without resetting omitted fields', async () => {
+  const photo = await (
+    await import('sharp')
+  )
+    .default({ create: { width: 32, height: 32, channels: 3, background: '#21865c' } })
+    .png()
+    .toBuffer();
+  const avatar = 'data:image/png;base64,' + photo.toString('base64');
+  assert.equal(
+    (
+      await request('/profile', 'PATCH', {
+        name: 'Álex de prueba',
+        avatarUrl: avatar,
+        reminderDays: [10, 2],
+        creation: false,
+        onDue: false,
+        overdueWeekly: false,
+      })
+    ).status,
+    200,
+  );
+  let profile = (await request('/me')).body.user;
+  assert.ok(profile.avatarUrl.startsWith('data:image/webp;base64,'));
+  assert.equal(profile.name, 'Álex de prueba');
+  assert.deepEqual(JSON.parse(profile.preferences).reminderDays, [10, 2]);
+  assert.equal((await request('/profile', 'PATCH', { name: 'Álex actualizado' })).status, 200);
+  profile = (await request('/me')).body.user;
+  assert.deepEqual(JSON.parse(profile.preferences).reminderDays, [10, 2]);
+  assert.equal(JSON.parse(profile.preferences).creation, false);
+  assert.equal(
+    (
+      await request('/profile', 'PATCH', {
+        name: 'Álex',
+        avatarUrl: 'data:image/svg+xml;base64,PHN2Zz4=',
+      })
+    ).status,
+    400,
+  );
+  assert.equal(
+    (await request('/profile', 'PATCH', { name: 'Álex', reminderDays: [-1] })).status,
+    400,
+  );
+  assert.equal(
+    (
+      await request('/profile', 'PATCH', {
+        name: 'Álex Martín',
+        avatarUrl: null,
+        creation: true,
+        reminderDays: [7, 3],
+        onDue: true,
+        overdueWeekly: true,
+      })
+    ).status,
+    200,
+  );
+  assert.equal((await request('/me')).body.user.avatarUrl, null);
+});
+
+test('creation notices respect personal opt-outs', async () => {
+  const ana = await login('ana@example.test');
+  await request('/profile', 'PATCH', { name: 'Ana García', creation: false }, ana);
+  const created = await request('/tasks', 'POST', {
+    title: 'Sin aviso de creación para Ana',
+    commissionId: 'cocina',
+    due: '2027-06-01T12:00:00+02:00',
+    responsibleIds: ['ana'],
+  });
+  assert.equal(created.status, 201);
+  const messages = (await request('/dev/mail')).body;
+  assert.ok(
+    !messages.some(
+      (m: any) =>
+        m.email === 'ana@example.test' && m.subject.includes('Sin aviso de creación para Ana'),
+    ),
+  );
+  await request('/profile', 'PATCH', { name: 'Ana García', creation: true }, ana);
 });

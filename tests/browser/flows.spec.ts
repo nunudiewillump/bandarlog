@@ -184,13 +184,13 @@ test('People sends single and bulk invitations, reports duplicates, and previews
   await expect(frame).toBeVisible();
   await frame.screenshot({ path: 'artifacts/correo-invitacion.png', animations: 'disabled' });
   const src = await frame.getAttribute('srcdoc');
-  expect(src).toContain('Comisiones que avanzan');
+  expect(src).toContain('Bandarlog');
   expect(src).toContain('#124d38');
   const preview = await page.context().newPage();
-  await preview.route('**/icon-192.png', (route) =>
-    route.fulfill({ path: 'public/icon-192.png', contentType: 'image/png' }),
+  await preview.route('**/brand-mark.*', (route) =>
+    route.fulfill({ path: 'public/brand-mark.png', contentType: 'image/png' }),
   );
-  await preview.setViewportSize({ width: 660, height: 900 });
+  await preview.setViewportSize({ width: 900, height: 900 });
   await preview.setContent(
     src!.replaceAll('http://127.0.0.1:5174', 'https://bandarlog.example.org'),
   );
@@ -200,9 +200,12 @@ test('People sends single and bulk invitations, reports duplicates, and previews
     animations: 'disabled',
   });
   const messages = await (await page.request.get('/api/dev/mail')).json();
-  const taskMessage = messages.find(
-    (m: any) => m.subject.includes('Nueva asignación') && m.html?.includes('Completar tarea'),
-  );
+  const taskMessage = messages
+    .slice()
+    .reverse()
+    .find(
+      (m: any) => m.subject.includes('Nueva asignación') && m.html?.includes('Completar tarea'),
+    );
   expect(taskMessage).toBeTruthy();
   await preview.setContent(
     taskMessage.html.replaceAll('http://127.0.0.1:5174', 'https://bandarlog.example.org'),
@@ -253,4 +256,144 @@ test('Responsible has a scoped panel and can create, reschedule and delete an un
   await dialog.getByRole('button', { name: 'Confirmar eliminación' }).click();
   await expect(dialog).not.toBeVisible();
   await expect(page.getByRole('button', { name: title, exact: true })).toHaveCount(0);
+});
+
+test('invitation destinations are locked to their commission or project and radios use green', async ({
+  page,
+}) => {
+  await login(page);
+  await page.goto('/?view=commission&project=camp&commission=cocina');
+  await page.getByRole('main').getByRole('button', { name: 'Personas', exact: true }).click();
+  await page.getByRole('button', { name: 'Invitar personas', exact: true }).click();
+  let dialog = page.getByRole('dialog');
+  await expect(dialog.locator('.invitation-destination')).toContainText('Cocina');
+  await expect(dialog.getByRole('combobox', { name: 'Destino de la invitación' })).toHaveCount(0);
+  await dialog.getByRole('combobox', { name: 'Rol en la comisión' }).click();
+  const option = page.getByRole('option', { name: 'Responsable', exact: true });
+  await expect(option).toBeVisible();
+  await option.click();
+  await dialog.getByRole('radio', { name: 'Lista de correos' }).check();
+  expect(
+    await dialog
+      .getByRole('radio', { name: 'Lista de correos' })
+      .evaluate((el) => getComputedStyle(el).accentColor),
+  ).toBe('rgb(18, 77, 56)');
+  await dialog.getByLabel('Correos electrónicos').fill(`commission-${Date.now()}@example.test`);
+  const first = page.waitForRequest(
+    (r) => r.url().endsWith('/api/commissions/cocina/invitations') && r.method() === 'POST',
+  );
+  await dialog.getByRole('button', { name: 'Enviar invitaciones', exact: true }).click();
+  expect((await first).postDataJSON().commissionId).toBe('cocina');
+  await expect(dialog.locator('.invitation-result')).toContainText('1 invitaciones preparadas');
+  await dialog.getByRole('button', { name: 'Cerrar', exact: true }).click();
+  await page.goto('/?view=project&project=camp');
+  await page.getByRole('main').getByRole('button', { name: 'Personas', exact: true }).click();
+  await page.getByRole('button', { name: 'Invitar personas', exact: true }).click();
+  dialog = page.getByRole('dialog');
+  await expect(dialog.locator('.invitation-destination')).toContainText('Campamento');
+  await expect(dialog.getByRole('combobox')).toHaveCount(0);
+  await dialog
+    .getByLabel('Correo electrónico', { exact: true })
+    .fill(`project-${Date.now()}@example.test`);
+  const second = page.waitForRequest((r) => r.url().endsWith('/api/projects/camp/invitations'));
+  await dialog.getByRole('button', { name: 'Enviar invitación', exact: true }).click();
+  expect((await second).postDataJSON().projectId).toBe('camp');
+  await expect(dialog.locator('.invitation-result')).toContainText('1 invitaciones preparadas');
+  await page.screenshot({ path: 'artifacts/invitacion-proyecto.png', animations: 'disabled' });
+});
+
+test('users save a profile photo and custom reminder schedule across reloads', async ({ page }) => {
+  await login(page);
+  await page.getByRole('button', { name: 'Mi perfil', exact: true }).click();
+  await page.getByLabel('Nombre', { exact: true }).fill('Álex Perfil');
+  await page.getByLabel('Foto de perfil').setInputFiles('public/icon-192.png');
+  await page.getByLabel('Días antes del vencimiento').fill('10, 2');
+  await page.getByLabel('Al vencer la tarea', { exact: true }).uncheck();
+  await page.getByRole('button', { name: 'Guardar perfil y avisos' }).click();
+  await expect(page.getByRole('heading', { name: 'Álex Perfil', exact: true })).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: 'Mi perfil', exact: true }).click();
+  await expect(page.getByLabel('Nombre', { exact: true })).toHaveValue('Álex Perfil');
+  await expect(page.getByLabel('Días antes del vencimiento')).toHaveValue('10, 2');
+  await expect(page.getByLabel('Al vencer la tarea', { exact: true })).not.toBeChecked();
+  await expect(page.getByAltText('Vista previa de tu foto')).toBeVisible();
+  await page.screenshot({
+    path: 'artifacts/perfil-avisos.png',
+    fullPage: true,
+    animations: 'disabled',
+  });
+  await page.getByLabel('Nombre', { exact: true }).fill('Álex Martín');
+  await page.getByLabel('Días antes del vencimiento').fill('7, 3');
+  await page.getByLabel('Al vencer la tarea', { exact: true }).check();
+  await page.getByRole('button', { name: 'Quitar foto' }).click();
+  await page.getByRole('button', { name: 'Guardar perfil y avisos' }).click();
+  await expect(page.getByRole('heading', { name: 'Álex Martín', exact: true })).toBeVisible();
+});
+
+test('a banana fills while waiting for initial data and disappears when ready', async ({
+  page,
+}) => {
+  let release!: () => void;
+  const hold = new Promise<void>((resolve) => (release = resolve));
+  await page.route('**/api/health', async (route) => {
+    await hold;
+    await route.continue();
+  });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('status', { name: 'Cargando Bandarlog…' })).toBeVisible();
+  await page.waitForTimeout(1400);
+  await page.screenshot({ path: 'artifacts/carga-banana.png' });
+  release();
+  await expect(page.getByLabel('Tu correo electrónico')).toBeVisible();
+  await expect(page.getByRole('status', { name: 'Cargando Bandarlog…' })).not.toBeVisible();
+});
+
+test('completing a task confirms persistence before showing the vine animation', async ({
+  page,
+}) => {
+  await login(page);
+  await page.goto('/?view=commission&project=camp&commission=cocina');
+  await page.getByRole('button', { name: 'Revisar listado de material', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  const complete = dialog.getByRole('button', { name: 'Completar', exact: true });
+  if (await complete.isVisible()) {
+    await complete.click();
+    await expect(page.locator('.task-celebration')).toBeVisible();
+    await expect(page.locator('.task-celebration')).toContainText('Tarea completada');
+    await page.waitForTimeout(900);
+    await page.screenshot({ path: 'artifacts/tarea-completada.png' });
+    await expect(page.locator('.task-celebration')).not.toBeVisible();
+    await expect(dialog.getByText('Terminada', { exact: true })).toBeVisible();
+    await dialog.getByRole('button', { name: 'Reabrir tarea' }).click();
+  }
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await dialog.getByRole('button', { name: 'Completar', exact: true }).click();
+  await expect(page.locator('.task-celebration')).toBeVisible();
+  await expect(page.locator('.vine-swing')).toHaveCSS('display', 'none');
+  await expect(dialog.getByText('Terminada', { exact: true })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Reabrir tarea' }).click();
+});
+
+test('the mobile artwork loader leaves commission actions accessible', async ({ page }) => {
+  await login(page);
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.route('**/api/data', async (route) => {
+    const response = await route.fetch();
+    const data = await response.json();
+    data.artworkEnabled = true;
+    data.commissions = data.commissions.map((c: any) => ({
+      ...c,
+      artworkStatus: c.id === 'cocina' ? 'running' : c.artworkStatus,
+    }));
+    await route.fulfill({ response, json: data });
+  });
+  await page.goto('/?view=commission&project=camp&commission=cocina');
+  const loader = page.getByRole('status', { name: 'Preparando ilustraciones…' });
+  await expect(loader).toBeVisible();
+  const loadBox = await loader.boundingBox();
+  const buttonBox = await page
+    .getByRole('button', { name: 'Nueva tarea', exact: true })
+    .boundingBox();
+  expect(loadBox!.y).toBeGreaterThanOrEqual(buttonBox!.y + buttonBox!.height);
+  await page.screenshot({ path: 'artifacts/comision-cargando-movil.png', animations: 'disabled' });
 });
