@@ -14,12 +14,15 @@ import {
   artworkCatalog,
   artworkThemes,
   inferArtworkTheme,
+  projectArtworkTheme,
+  hasArtworkAssociation,
   selectArtwork,
   type ArtworkTheme,
 } from '../shared/scout-catalog.js';
 import { normalizePhoto } from './photos.js';
 import { artworkImage } from './artwork.js';
 import { renderMail } from './mail-template.js';
+import { campSummaries } from './camp-summaries.js';
 const { production: prod, appUrl } = validateEnvironment();
 const { db, close } = await connect();
 await seed(db);
@@ -476,18 +479,16 @@ app.post('/api/artwork/catalog', async (q, r) => {
     return fail(400, 'Usa imágenes PNG, JPEG o WebP válidas.');
   }
   const entryId = id();
-  await db
-    .insert(s.artworkEntries)
-    .values({
-      id: entryId,
-      name: input.name,
-      collection: input.collection,
-      family: input.family,
-      iconData,
-      mascotData,
-      createdBy: r.locals.user.id,
-      createdAt: now(),
-    });
+  await db.insert(s.artworkEntries).values({
+    id: entryId,
+    name: input.name,
+    collection: input.collection,
+    family: input.family,
+    iconData,
+    mascotData,
+    createdBy: r.locals.user.id,
+    createdAt: now(),
+  });
   r.status(201).json({ id: entryId });
 });
 app.get('/api/artwork/assets/:id/:kind', async (q, r) => {
@@ -534,19 +535,20 @@ app.get('/api/data', async (_q, r) => {
     .filter((x) => globalManage(u) || uids.has(x.id))
     .map(({ preferences, ...x }) => x);
   r.json({
+    campSummaries: await campSummaries(db, visibleProjects),
     artworkEnabled: true,
     artworkThemes,
-    projects: visibleProjects,
+    projects: visibleProjects.map((p) => ({ ...p, artworkTheme: projectArtworkTheme(p) })),
     projectMembers: visibleProjectMembers,
     commissions: cs.map((c) => {
-      const theme = (visibleProjects.find((p) => p.id === c.projectId)?.artworkTheme ||
-        'scout') as ArtworkTheme;
+      const theme = projectArtworkTheme(visibleProjects.find((p) => p.id === c.projectId)!);
+      const artworkLocked = hasArtworkAssociation(c.name, theme, catalogueExtra);
       const artwork = selectArtwork(
         {
           name: c.name,
           description: c.description,
           theme,
-          key: c.artworkKey,
+          key: artworkLocked ? null : c.artworkKey,
           seed: c.id,
         },
         catalogueExtra,
@@ -557,7 +559,8 @@ app.get('/api/data', async (_q, r) => {
         mascotUrl: artwork.mascotUrl,
         artworkStatus: 'ready',
         artworkKey: artwork.id,
-        artworkMode: c.artworkKey === artwork.id ? 'manual' : 'automatic',
+        artworkLocked,
+        artworkMode: !artworkLocked && c.artworkKey === artwork.id ? 'manual' : 'automatic',
       };
     }),
     members: visibleMembers,
@@ -610,7 +613,7 @@ app.post('/api/projects', async (q, r) => {
     .insert(s.projects)
     .values({
       ...input,
-      artworkTheme: input.artworkTheme || inferArtworkTheme(input.name),
+      artworkTheme: projectArtworkTheme(input),
       id: id(),
       parentId: input.type === 'camp' ? input.parentId : null,
     })
@@ -628,6 +631,16 @@ app.patch('/api/projects/:id', async (q, r) => {
       .refine((v) => v.archived !== undefined || v.artworkTheme !== undefined, 'Indica un cambio.'),
     q.body,
   );
+  const [existingProject] = await db
+    .select()
+    .from(s.projects)
+    .where(eq(s.projects.id, String(q.params.id)));
+  if (
+    existingProject &&
+    artworkTheme === 'scout' &&
+    inferArtworkTheme(existingProject.name) === 'christmas'
+  )
+    fail(409, 'El nombre del campamento tiene asociada la colección de Navidad.');
   await db
     .update(s.projects)
     .set({
@@ -671,8 +684,12 @@ app.post('/api/commissions/:id/artwork', async (q, r) => {
   const { key } = parse(z.object({ key: z.string().nullable().optional() }), q.body);
   const [c] = await db.select().from(s.commissions).where(eq(s.commissions.id, cid));
   const [p] = await db.select().from(s.projects).where(eq(s.projects.id, c.projectId));
-  const available = [...artworkCatalog, ...(await extraArtwork())];
-  if (key && !available.some((a) => a.id === key && a.collection === p.artworkTheme))
+  const extra = await extraArtwork();
+  const theme = projectArtworkTheme(p);
+  if (hasArtworkAssociation(c.name, theme, extra))
+    fail(409, 'El nombre de esta comisión ya tiene ilustraciones asociadas.');
+  const available = [...artworkCatalog, ...extra];
+  if (key && !available.some((a) => a.id === key && a.collection === theme))
     fail(400, 'Selecciona una ilustración de la colección de este proyecto.');
   await db
     .update(s.commissions)
@@ -784,15 +801,18 @@ app.patch('/api/tasks/:id', async (q, r) => {
   const input = parse(
     z.object({
       status: statuses.optional(),
+      expectedUpdatedAt: z.string().optional(),
       blockedReason: z.string().trim().max(1000).optional(),
       responsibleIds: z.array(text).min(1).optional(),
       due: z.iso.datetime({ offset: true }).optional(),
     }),
     q.body,
   );
-  await db.transaction(async (tx: any) => {
+  const changedTask = await db.transaction(async (tx: any) => {
     await tx.execute(sql`select commission_id from tasks where id=${tid} for update`);
     const t = await editableTask(r.locals.user, tid, tx, !!(input.responsibleIds || input.due));
+    if (input.expectedUpdatedAt && +new Date(input.expectedUpdatedAt) !== +new Date(t.updatedAt))
+      fail(409, 'La tarea ha cambiado. Actualiza la vista antes de modificarla.');
     await tx.execute(sql`select id from commissions where id=${t.commissionId} for update`);
     if (input.status === 'blocked' && !input.blockedReason)
       fail(400, 'Indica un motivo de bloqueo.');
@@ -804,7 +824,9 @@ app.patch('/api/tasks/:id', async (q, r) => {
       for (const userId of new Set(input.responsibleIds))
         await tx.insert(s.assignments).values({ id: id(), taskId: tid, userId });
     }
-    const update: any = { updatedAt: now() };
+    const update: any = {
+      updatedAt: new Date(Math.max(Date.now(), +new Date(t.updatedAt) + 1)).toISOString(),
+    };
     if (input.due) update.due = input.due;
     if (input.status) {
       Object.assign(update, {
@@ -836,9 +858,10 @@ app.patch('/api/tasks/:id', async (q, r) => {
           : 'Actualización de tarea',
       `updated-${tid}-${id()}`,
     );
+    return changed;
   });
   void deliver();
-  r.json({ ok: true });
+  r.json({ ok: true, task: changedTask });
 });
 app.delete('/api/tasks/:id', async (q, r) => {
   const tid = String(q.params.id);

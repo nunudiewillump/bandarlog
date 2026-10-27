@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { AnimatedCounter } from './AnimatedCounter';
+import { MobileHome, MobileTasks, ProjectIdentity, CampOverview, TaskSummary } from './MobileUX';
 import { MascotArt, ArtworkPicker } from './Artwork';
 import { artworkThemes, inferArtworkTheme } from '../shared/scout-catalog';
 import { createRoot } from 'react-dom/client';
@@ -135,9 +137,45 @@ function App() {
     [sidebar, setSidebar] = useState(false),
     [pendingAction, setPendingAction] = useState(''),
     [celebrating, setCelebrating] = useState(false),
+    [satisfaction, setSatisfaction] = useState(false),
+    [pendingTasks, setPendingTasks] = useState(new Set<string>()),
+    [undo, setUndo] = useState<{ task: Task; expected: string; last: boolean } | null>(null),
     [emailInput, setEmailInput] = useState(''),
     [sent, setSent] = useState(false),
     [outbox, setOutbox] = useState<any[]>([]);
+  const dataRef = useRef(data),
+    loadSequence = useRef(0),
+    operations = useRef(0),
+    taskLocks = useRef(new Set<string>());
+  const detailScroll = useRef({ x: 0, y: 0 });
+  const lastAnnounced = useRef(false);
+  const celebrationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const satisfactionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (celebrationTimer.current) clearTimeout(celebrationTimer.current);
+      if (satisfactionTimer.current) clearTimeout(satisfactionTimer.current);
+    },
+    [],
+  );
+  useEffect(() => {
+    if (!undo) return;
+    const timer = setTimeout(() => setUndo(null), 12000);
+    return () => clearTimeout(timer);
+  }, [undo]);
+  useEffect(() => {
+    const pop = () => {
+      const params = new URLSearchParams(location.search);
+      setSelected(params.get('task') || '');
+      setPendingAction(params.get('action') || '');
+      if (!params.get('task'))
+        requestAnimationFrame(() =>
+          window.scrollTo(detailScroll.current.x, detailScroll.current.y),
+        );
+    };
+    window.addEventListener('popstate', pop);
+    return () => window.removeEventListener('popstate', pop);
+  }, []);
   const params = new URLSearchParams(location.search);
   const [loginToken, setLoginToken] = useState(params.get('token') || '');
   const manage = me?.role === 'admin' || me?.role === 'coordination';
@@ -146,7 +184,15 @@ function App() {
     data.members.some(
       (m) => m.commissionId === cid && m.userId === me?.id && m.role === 'responsible',
     );
-  const load = async () => setData(await api('/data'));
+  const load = async () => {
+    const sequence = ++loadSequence.current;
+    const next = await api('/data');
+    if (sequence === loadSequence.current) {
+      dataRef.current = next;
+      setData(next);
+    }
+    return dataRef.current;
+  };
   const bootup = async () => {
     try {
       const health = await api('/health');
@@ -188,7 +234,7 @@ function App() {
       const handler = (e: KeyboardEvent) => {
         if (e.key === 'Escape') {
           setModal('');
-          setSelected('');
+          closeTask();
         }
       };
       document.addEventListener('keydown', handler);
@@ -197,6 +243,7 @@ function App() {
   }, [modal, selected]);
   async function run(fn: () => Promise<void>, message = 'Cambios guardados') {
     setError('');
+    operations.current++;
     setBusy(true);
     try {
       await fn();
@@ -207,7 +254,8 @@ function App() {
       setError((e as Error).message);
       return false;
     } finally {
-      setBusy(false);
+      operations.current--;
+      setBusy(operations.current > 0);
     }
   }
   const navigate = (v: string, p = '', c = '') => {
@@ -264,28 +312,97 @@ function App() {
   const activeProject = data.projects.find((p) => p.id === project),
     activeCommission = data.commissions.find((c) => c.id === commission),
     detail = data.tasks.find((t) => t.id === selected);
+  function closeTask() {
+    setSelected('');
+    setPendingAction('');
+    if (history.state?.bandarlogTask) history.back();
+    else {
+      const route = new URL(location.href);
+      route.searchParams.delete('task');
+      route.searchParams.delete('action');
+      history.replaceState({}, '', route);
+    }
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => window.scrollTo(detailScroll.current.x, detailScroll.current.y)),
+    );
+  }
   const openTask = (t: Task) => {
+    detailScroll.current = { x: window.scrollX, y: window.scrollY };
     setSelected(t.id);
     setPendingAction('');
     setError('');
     const route = new URL(location.href);
     route.searchParams.set('task', t.id);
-    history.replaceState({}, '', route);
+    history.pushState({ bandarlogTask: true }, '', route);
   };
-  const taskStatus = async (t: Task, status: string, blockedReason?: string) => {
-    if (
-      await run(
+  const taskStatus = async (task: Task, status: string, blockedReason?: string) => {
+    const t = dataRef.current.tasks.find((item) => item.id === task.id) || task;
+    if (taskLocks.current.has(t.id) || (t.status === status && status === 'done')) return;
+    taskLocks.current.add(t.id);
+    setPendingTasks(new Set(taskLocks.current));
+    const assigned = new Set(
+      dataRef.current.assignments.filter((a) => a.userId === me?.id).map((a) => a.taskId),
+    );
+    const personalWasOpen = dataRef.current.tasks.some(
+      (item) => assigned.has(item.id) && item.status !== 'done',
+    );
+    if (personalWasOpen) lastAnnounced.current = false;
+    const scroll = { x: window.scrollX, y: window.scrollY };
+    let saved: Task | undefined;
+    try {
+      const ok = await run(
         async () => {
-          await api(`/tasks/${t.id}`, 'PATCH', { status, blockedReason });
+          const result = await api(`/tasks/${t.id}`, 'PATCH', {
+            status,
+            blockedReason,
+            expectedUpdatedAt: t.updatedAt,
+          });
+          saved = result.task;
         },
         status === 'done' ? '' : 'Estado actualizado',
-      )
-    ) {
+      );
+      if (!ok) return;
       setPendingAction('');
-      if (status === 'done') {
+      if (status !== 'done') setUndo((current) => (current?.task.id === t.id ? null : current));
+      if (status === 'done' && saved) {
+        const personalOpen = dataRef.current.tasks.some(
+          (item) => assigned.has(item.id) && item.status !== 'done',
+        );
+        const last =
+          assigned.has(t.id) && personalWasOpen && !personalOpen && !lastAnnounced.current;
+        if (last) {
+          lastAnnounced.current = true;
+          setSatisfaction(true);
+          if (satisfactionTimer.current) clearTimeout(satisfactionTimer.current);
+          satisfactionTimer.current = setTimeout(() => setSatisfaction(false), 2600);
+        }
+        setUndo({ task: t, expected: saved.updatedAt, last });
+        if (celebrationTimer.current) clearTimeout(celebrationTimer.current);
         setCelebrating(true);
-        setTimeout(() => setCelebrating(false), 2500);
+        celebrationTimer.current = setTimeout(() => setCelebrating(false), 2500);
       }
+      requestAnimationFrame(() => window.scrollTo(scroll.x, scroll.y));
+    } finally {
+      taskLocks.current.delete(t.id);
+      setPendingTasks(new Set(taskLocks.current));
+    }
+  };
+  const undoCompletion = async () => {
+    if (!undo || busy) return;
+    if (
+      await run(async () => {
+        await api(`/tasks/${undo.task.id}`, 'PATCH', {
+          status: undo.task.status,
+          blockedReason: undo.task.blockedReason || undefined,
+          expectedUpdatedAt: undo.expected,
+        });
+      }, 'Tarea restaurada')
+    ) {
+      setUndo(null);
+      setSatisfaction(false);
+      setCelebrating(false);
+      lastAnnounced.current = false;
+      if (satisfactionTimer.current) clearTimeout(satisfactionTimer.current);
     }
   };
   const metric = (ts: Task[], status: string) =>
@@ -308,7 +425,9 @@ function App() {
               <Icon size={22} />
             </span>
             <span>
-              <strong>{metric(ts, status)}</strong>
+              <strong>
+                <AnimatedCounter value={metric(ts, status)} />
+              </strong>
               <small>{['Pendientes', 'En curso', 'Bloqueadas', 'Vencidas', 'Terminadas'][i]}</small>
             </span>
           </button>
@@ -321,10 +440,18 @@ function App() {
       <div className="progress">
         <i style={{ width: `${progress(ts)}%` }} />
       </div>
-      <small>{ts.length ? `${progress(ts)}%` : 'Sin tareas'}</small>
+      <small>
+        {ts.length ? (
+          <>
+            <AnimatedCounter value={progress(ts)} />%
+          </>
+        ) : (
+          'Sin tareas'
+        )}
+      </small>
     </div>
   );
-  const taskList = (ts: Task[], compact = false) => (
+  const desktopTaskList = (ts: Task[], compact = false) => (
     <div className={`task-list ${compact ? 'compact' : ''}`}>
       {ts.length ? (
         ts.map((t) => (
@@ -355,7 +482,23 @@ function App() {
       )}
     </div>
   );
-  const filters = () => (
+  const taskList = (ts: Task[], compact = false) => (
+    <>
+      <div className="desktop-only">{desktopTaskList(ts, compact)}</div>
+      <div className="mobile-only">
+        <MobileTasks
+          tasks={ts}
+          data={data}
+          me={me!}
+          onOpen={openTask}
+          onComplete={(t) => void taskStatus(t, 'done')}
+          pending={pendingTasks}
+          canManage={canManage}
+        />
+      </div>
+    </>
+  );
+  const filterControls = () => (
     <div className="list-controls">
       <div className="filter-tabs" role="group" aria-label="Filtrar por estado">
         {[
@@ -406,6 +549,15 @@ function App() {
         <option value="7">Próximos 7 días</option>
       </Select>
     </div>
+  );
+  const filters = () => (
+    <>
+      <div className="desktop-only">{filterControls()}</div>
+      <details className="mobile-only mobile-task-filters">
+        <summary>Buscar y filtrar</summary>
+        {filterControls()}
+      </details>
+    </>
   );
   const taskTable = (ts: Task[]) => (
     <>
@@ -461,7 +613,9 @@ function App() {
           <Empty text="Sin tareas por aquí" sub="Prueba con otro filtro o crea la primera tarea." />
         )}
       </div>
-      <div className="mobile-list">{taskList(ts)}</div>
+      <div className="mobile-list">
+        {taskList(view === 'tasks' ? ts.filter((t) => myTasks.some((own) => own.id === t.id)) : ts)}
+      </div>
     </>
   );
   const commissionTable = (cs: Commission[]) => (
@@ -482,10 +636,10 @@ function App() {
               </span>
               <div className="commission-progress">{bar(ts)}</div>
               <span className="count pending" title="Pendientes">
-                {metric(ts, 'pending')}
+                <AnimatedCounter value={metric(ts, 'pending')} />
               </span>
               <span className="count overdue" title="Vencidas">
-                {metric(ts, 'overdue')}
+                <AnimatedCounter value={metric(ts, 'overdue')} />
               </span>
               <ChevronRight size={16} />
             </button>
@@ -695,7 +849,9 @@ function App() {
                         : 'nav-count zero'
                     }
                   >
-                    {data.tasks.filter((t) => overdue(t) || t.status === 'blocked').length}
+                    <AnimatedCounter
+                      value={data.tasks.filter((t) => overdue(t) || t.status === 'blocked').length}
+                    />
                   </b>
                 )}
               </button>
@@ -783,188 +939,177 @@ function App() {
             )}
             {view === 'home' && (
               <>
-                <div className="page-heading home-heading">
-                  <div>
-                    <h1>
-                      <span className="desktop-only">Resumen general</span>
-                      <span className="mobile-only">¡Hola, {me.name.split(' ')[0]}!</span>
-                    </h1>
-                    <p>
-                      <span className="desktop-only"></span>
-                      <span className="mobile-only">
-                        Tienes {myTasks.filter((t) => t.status !== 'done').length} tareas
-                        pendientes. ¡Vamos a por ellas!
-                      </span>
-                    </p>
-                  </div>
-                  <div className="heading-filters">
-                    <Select
-                      aria-label="Filtrar proyecto"
-                      value={project}
-                      onChange={(e) => setProject(e.target.value)}
-                    >
-                      <option value="">Todos los proyectos</option>
-                      {data.projects.map((p) => (
-                        <option value={p.id} key={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </Select>
-                    <button className="secondary" onClick={() => setModal('task')}>
-                      <Plus size={16} /> Nueva tarea
-                    </button>
-                  </div>
-                  <img className="heading-monkey" src="/monkey.webp" alt="" />
-                </div>
-                <div className="desktop-only">{metricCards(scoped)}</div>
-                <div className="mobile-only">{metricCards(myTasks)}</div>
-                <div className="mobile-home">
-                  <div className="section-heading">
-                    <h2>Mis tareas de hoy</h2>
-                    <button className="text-link" onClick={() => navigate('tasks')}>
-                      Ver todas
-                    </button>
-                  </div>
-                  {taskList(
-                    myTasks
-                      .filter((t) => t.status !== 'done')
-                      .sort((a, b) => +new Date(a.due) - +new Date(b.due))
-                      .slice(0, 3),
-                    true,
-                  )}
-                  <h2>Accesos rápidos</h2>
-                  <div className="quick-actions">
-                    {[
-                      [Plus, 'Nueva tarea', 'task'],
-                      [Users, 'Mis comisiones', 'commissions'],
-                      [Tent, 'Mis proyectos', 'camps'],
-                      [Bell, 'Alertas', 'alerts'],
-                    ].map(([Icon, label, target]: any) => (
-                      <button
-                        key={label}
-                        onClick={() => (target === 'task' ? setModal('task') : navigate(target))}
-                      >
-                        <span>
-                          <Icon size={22} />
-                        </span>
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="dashboard-grid">
-                  <section className="panel">
-                    <div className="section-heading">
-                      <h2>Progreso por proyecto</h2>
-                      <Tent size={18} />
+                <div className="desktop-home">
+                  <div className="page-heading home-heading">
+                    <div>
+                      <h1>Resumen general</h1>
                     </div>
-                    {data.projects
-                      .filter((p) => !project || p.id === project)
-                      .map((p) => (
-                        <button
-                          key={p.id}
-                          className="project-progress"
-                          onClick={() => navigate('project', p.id)}
-                        >
-                          <span>{p.name}</span>
-                          {bar(data.tasks.filter((t) => cOf(t)?.projectId === p.id))}
-                        </button>
-                      ))}
-                  </section>
-                  <section className="panel">
-                    <div className="section-heading">
-                      <h2>Estado de las tareas</h2>
-                      <span className="muted">Vista general</span>
-                    </div>
-                    <div className="chart">
-                      <button
-                        className="donut"
-                        aria-label="Ver todas las tareas"
-                        onClick={() => navigate('tasks')}
-                        style={{
-                          background: (() => {
-                            let n = 0;
-                            const total = scoped.length || 1;
-                            const stops = ['done', 'in_progress', 'pending', 'blocked'].map(
-                              (v, i) => {
-                                const start = n;
-                                n += (metric(scoped, v) / total) * 100;
-                                return `${['#21865c', '#438cd5', '#e8a33c', '#d9524b'][i]} ${start}% ${n}%`;
-                              },
-                            );
-                            return `conic-gradient(${stops.join(',')})`;
-                          })(),
-                        }}
+                    <div className="heading-filters">
+                      <Select
+                        aria-label="Filtrar proyecto"
+                        value={project}
+                        onChange={(e) => setProject(e.target.value)}
                       >
-                        <span>
-                          <strong>{scoped.length}</strong>
-                          <small>tareas</small>
-                        </span>
+                        <option value="">Todos los proyectos</option>
+                        {data.projects.map((p) => (
+                          <option value={p.id} key={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </Select>
+                      <button className="secondary" onClick={() => setModal('task')}>
+                        <Plus size={16} /> Nueva tarea
                       </button>
-                      <div className="chart-legend">
-                        {['pending', 'in_progress', 'done', 'blocked', 'overdue'].map((status) => (
+                    </div>
+                    <img className="heading-monkey" src="/monkey.webp" alt="" />
+                  </div>
+                  {metricCards(scoped)}
+                  <div className="dashboard-grid">
+                    <section className="panel">
+                      <div className="section-heading">
+                        <h2>Progreso por proyecto</h2>
+                        <Tent size={18} />
+                      </div>
+                      {data.projects
+                        .filter((p) => !project || p.id === project)
+                        .map((p) => (
                           <button
-                            key={status}
-                            onClick={() => {
-                              setView('tasks');
-                              setFilter(status);
-                            }}
+                            key={p.id}
+                            className="project-progress"
+                            onClick={() => navigate('project', p.id)}
                           >
-                            <i className={status} />
-                            <span>{status === 'overdue' ? 'Vencidas' : labels[status]}</span>
-                            <b>{metric(scoped, status)}</b>
+                            <span>{p.name}</span>
+                            {bar(data.tasks.filter((t) => cOf(t)?.projectId === p.id))}
                           </button>
                         ))}
+                    </section>
+                    <section className="panel">
+                      <div className="section-heading">
+                        <h2>Estado de las tareas</h2>
+                        <span className="muted">Vista general</span>
                       </div>
-                    </div>
-                  </section>
-                  <section className="panel">
-                    <div className="section-heading">
-                      <h2>Comisiones que necesitan atención</h2>
-                      <button className="text-link" onClick={() => navigate('commissions')}>
-                        Ver todas
-                      </button>
-                    </div>
-                    <div className="table-caption">
-                      <span>Comisión / proyecto</span>
-                      <span>Progreso · pendientes · vencidas</span>
-                    </div>
-                    {commissionTable(
-                      data.commissions.filter(
-                        (c) =>
-                          (!project || c.projectId === project) &&
-                          data.tasks.some(
-                            (t) =>
-                              t.commissionId === c.id && (overdue(t) || t.status === 'blocked'),
-                          ),
-                      ),
-                    )}
-                  </section>
-                  <section className="panel">
-                    <div className="section-heading">
-                      <h2>Tareas que requieren atención</h2>
-                      <span className="count overdue">
-                        {scoped.filter((t) => overdue(t) || t.status === 'blocked').length}
-                      </span>
-                    </div>
-                    {taskList(
-                      scoped.filter((t) => overdue(t) || t.status === 'blocked').slice(0, 4),
-                      true,
-                    )}
-                  </section>
+                      <div className="chart">
+                        <button
+                          className="donut"
+                          aria-label="Ver todas las tareas"
+                          onClick={() => navigate('tasks')}
+                          style={{
+                            background: (() => {
+                              let n = 0;
+                              const total = scoped.length || 1;
+                              const stops = ['done', 'in_progress', 'pending', 'blocked'].map(
+                                (v, i) => {
+                                  const start = n;
+                                  n += (metric(scoped, v) / total) * 100;
+                                  return `${['#21865c', '#438cd5', '#e8a33c', '#d9524b'][i]} ${start}% ${n}%`;
+                                },
+                              );
+                              return `conic-gradient(${stops.join(',')})`;
+                            })(),
+                          }}
+                        >
+                          <span>
+                            <strong>
+                              <AnimatedCounter value={scoped.length} />
+                            </strong>
+                            <small>tareas</small>
+                          </span>
+                        </button>
+                        <div className="chart-legend">
+                          {['pending', 'in_progress', 'done', 'blocked', 'overdue'].map(
+                            (status) => (
+                              <button
+                                key={status}
+                                onClick={() => {
+                                  setView('tasks');
+                                  setFilter(status);
+                                }}
+                              >
+                                <i className={status} />
+                                <span>{status === 'overdue' ? 'Vencidas' : labels[status]}</span>
+                                <b>
+                                  <AnimatedCounter value={metric(scoped, status)} />
+                                </b>
+                              </button>
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    </section>
+                    <section className="panel">
+                      <div className="section-heading">
+                        <h2>Comisiones que necesitan atención</h2>
+                        <button className="text-link" onClick={() => navigate('commissions')}>
+                          Ver todas
+                        </button>
+                      </div>
+                      <div className="table-caption">
+                        <span>Comisión / proyecto</span>
+                        <span>Progreso · pendientes · vencidas</span>
+                      </div>
+                      {commissionTable(
+                        data.commissions.filter(
+                          (c) =>
+                            (!project || c.projectId === project) &&
+                            data.tasks.some(
+                              (t) =>
+                                t.commissionId === c.id && (overdue(t) || t.status === 'blocked'),
+                            ),
+                        ),
+                      )}
+                    </section>
+                    <section className="panel">
+                      <div className="section-heading">
+                        <h2>Tareas que requieren atención</h2>
+                        <span className="count overdue">
+                          <AnimatedCounter
+                            value={
+                              scoped.filter((t) => overdue(t) || t.status === 'blocked').length
+                            }
+                          />
+                        </span>
+                      </div>
+                      {taskList(
+                        scoped.filter((t) => overdue(t) || t.status === 'blocked').slice(0, 4),
+                        true,
+                      )}
+                    </section>
+                  </div>
+                </div>
+                <div className="mobile-only">
+                  <MobileHome
+                    data={data}
+                    me={me}
+                    holding={satisfaction}
+                    pending={pendingTasks}
+                    onOpen={openTask}
+                    onComplete={(t) => void taskStatus(t, 'done')}
+                    canManage={canManage}
+                    navigate={navigate}
+                  />
                 </div>
               </>
             )}
             {['tasks', 'alerts'].includes(view) && (
               <>
+                {view === 'tasks' && (
+                  <div className="mobile-only">
+                    <TaskSummary tasks={myTasks} />
+                  </div>
+                )}
                 <div className="page-heading">
                   <div>
                     <h1>
-                      {view === 'alerts'
-                        ? 'Lo que necesita atención'
-                        : manage
-                          ? 'Todas las tareas'
-                          : 'Mis tareas'}
+                      {view === 'alerts' ? (
+                        'Lo que necesita atención'
+                      ) : manage ? (
+                        <>
+                          <span className="desktop-only">Todas las tareas</span>
+                          <span className="mobile-only">Mis tareas</span>
+                        </>
+                      ) : (
+                        'Mis tareas'
+                      )}
                     </h1>
                     <p>
                       {view === 'alerts' ? 'Vencimientos y bloqueos para resolver en equipo.' : ''}
@@ -1057,7 +1202,22 @@ function App() {
                     </button>
                   ))}
                 </div>
-                <div className="commissions-grid">
+                <div className="mobile-only mobile-commission-groups">
+                  {data.projects
+                    .filter((p) => !project || p.id === project)
+                    .map((p) => {
+                      const commissions = data.commissions.filter((c) => c.projectId === p.id);
+                      return commissions.length ? (
+                        <section key={p.id}>
+                          <h2>
+                            <ProjectIdentity project={p} />
+                          </h2>
+                          {commissionTable(commissions)}
+                        </section>
+                      ) : null;
+                    })}
+                </div>
+                <div className="commissions-grid desktop-only">
                   {data.commissions
                     .filter((c) => !project || c.projectId === project)
                     .map((c) => {
@@ -1077,10 +1237,16 @@ function App() {
                           {bar(ts)}
                           <div className="commission-card-bottom">
                             <span>
-                              <b className="count pending">{metric(ts, 'pending')}</b> pendientes
+                              <b className="count pending">
+                                <AnimatedCounter value={metric(ts, 'pending')} />
+                              </b>{' '}
+                              pendientes
                             </span>
                             <span>
-                              <b className="count overdue">{metric(ts, 'overdue')}</b> vencidas
+                              <b className="count overdue">
+                                <AnimatedCounter value={metric(ts, 'overdue')} />
+                              </b>{' '}
+                              vencidas
                             </span>
                             <div className="avatars">
                               {data.members
@@ -1131,7 +1297,7 @@ function App() {
                     Colección de ilustraciones
                     <Select
                       value={activeProject.artworkTheme || 'scout'}
-                      disabled={busy}
+                      disabled={busy || inferArtworkTheme(activeProject.name) === 'christmas'}
                       onChange={(event) =>
                         void run(async () => {
                           await api(`/projects/${project}`, 'PATCH', {
@@ -1152,6 +1318,11 @@ function App() {
                     </span>
                   </label>
                 )}
+                {data.campSummaries?.find((camp) => camp.id === project) && (
+                  <div className="mobile-only">
+                    <CampOverview camp={data.campSummaries.find((camp) => camp.id === project)!} />
+                  </div>
+                )}
                 <div className="page-tabs">
                   {[
                     ['tasks', 'Resumen'],
@@ -1166,6 +1337,9 @@ function App() {
                 </div>
                 {tab === 'tasks' && (
                   <>
+                    {!manage && activeProject.type === 'camp' && (
+                      <h2 className="mobile-only">Tareas de tus comisiones</h2>
+                    )}
                     {metricCards(scoped)}
                     <section className="panel general-progress">
                       <strong>Progreso general</strong>
@@ -1249,11 +1423,16 @@ function App() {
                       </>
                     )}
                   </div>
-                  {canManage(commission) && activeProject?.archived !== 'true' && (
-                    <button className="text-link artwork-retry" onClick={() => setModal('artwork')}>
-                      Elegir ilustraciones
-                    </button>
-                  )}
+                  {canManage(commission) &&
+                    !activeCommission.artworkLocked &&
+                    activeProject?.archived !== 'true' && (
+                      <button
+                        className="text-link artwork-retry"
+                        onClick={() => setModal('artwork')}
+                      >
+                        Elegir ilustraciones
+                      </button>
+                    )}
                   <MascotArt
                     className="commission-mascot"
                     src={activeCommission.mascotUrl || '/monkey.webp'}
@@ -1419,16 +1598,27 @@ function App() {
           ))}
         </nav>
         {celebrating && (
-          <div className="task-celebration" role="status" aria-live="polite">
+          <div className="task-celebration" aria-hidden="true">
             <div className="vine-swing">
               <img src="/monkey-vine.webp" alt="" />
             </div>
-            <strong>Tarea completada</strong>
+            <strong>{undo?.last ? '¡Tus tareas están al día!' : 'Tarea completada'}</strong>
           </div>
         )}
         {busy && (
           <div className="operation-loading">
             <BananaLoader compact label="Guardando…" />
+          </div>
+        )}
+        {undo && (
+          <div className="undo-toast" role="status">
+            <span>{undo.last ? '¡Tus tareas están al día!' : 'Tarea completada'}</span>
+            <button disabled={busy} onClick={() => void undoCompletion()}>
+              Deshacer
+            </button>
+            <button aria-label="Cerrar confirmación" onClick={() => setUndo(null)}>
+              <X size={16} />
+            </button>
           </div>
         )}
         {toast && (
@@ -1438,23 +1628,10 @@ function App() {
           </div>
         )}
         {selected && (
-          <Dialog
-            title="Detalle de tarea"
-            onClose={() => {
-              setSelected('');
-              setPendingAction('');
-              {
-                const route = new URL(location.href);
-                route.searchParams.delete('task');
-                route.searchParams.delete('action');
-                history.replaceState({}, '', route);
-              }
-            }}
-            side
-          >
+          <Dialog title="Detalle de tarea" onClose={closeTask} side>
             {detail ? (
               <>
-                <button className="text-link back" onClick={() => setSelected('')}>
+                <button className="text-link back" onClick={closeTask}>
                   <ArrowLeft size={16} /> Volver
                 </button>
                 <div className="detail-heading">
@@ -1771,7 +1948,7 @@ function App() {
             {modal === 'members' && <MemberForm />}
             {modal === 'invite' && <InvitationForm />}
             {modal === 'project' && <ProjectForm />}
-            {modal === 'artwork' && activeCommission && (
+            {modal === 'artwork' && activeCommission && !activeCommission.artworkLocked && (
               <ArtworkPicker
                 theme={activeProject?.artworkTheme || 'scout'}
                 selected={activeCommission.artworkKey}
@@ -1915,8 +2092,8 @@ function People() {
                   if (view === 'people') setView('tasks');
                 }}
               >
-                {tasks.filter((t) => t.status !== 'done').length} pendientes ·{' '}
-                {tasks.filter(overdue).length} vencidas
+                <AnimatedCounter value={tasks.filter((t) => t.status !== 'done').length} />{' '}
+                pendientes · <AnimatedCounter value={tasks.filter(overdue).length} /> vencidas
                 {tasks.some(
                   (t) =>
                     Date.now() - new Date(t.updatedAt).getTime() > 7 * 86400000 &&
@@ -2665,6 +2842,8 @@ function ProjectForm() {
   } = React.useContext(FormState);
   const [kind, setKind] = useState(view === 'rounds' ? 'ronda' : 'camp');
   const [artworkTheme, setArtworkTheme] = useState('scout');
+  const [projectName, setProjectName] = useState('');
+  const automaticChristmas = inferArtworkTheme(projectName) === 'christmas';
   const [themeChosen, setThemeChosen] = useState(false);
   return (
     <form
@@ -2677,7 +2856,7 @@ function ProjectForm() {
               const p = await api('/projects', 'POST', {
                 name: f.get('name'),
                 type: kind,
-                artworkTheme,
+                artworkTheme: automaticChristmas ? 'christmas' : artworkTheme,
                 parentId: f.get('parentId') || undefined,
                 starts: f.get('starts'),
                 ends: f.get('ends'),
@@ -2697,6 +2876,7 @@ function ProjectForm() {
           required
           maxLength={200}
           onChange={(event) => {
+            setProjectName(event.target.value);
             if (!themeChosen) setArtworkTheme(inferArtworkTheme(event.target.value));
           }}
         />
@@ -2726,7 +2906,8 @@ function ProjectForm() {
       <label>
         Colección de ilustraciones
         <Select
-          value={artworkTheme}
+          value={automaticChristmas ? 'christmas' : artworkTheme}
+          disabled={automaticChristmas}
           onChange={(event) => {
             setThemeChosen(true);
             setArtworkTheme(event.target.value);
@@ -2809,7 +2990,7 @@ function Dialog({
     return () => {
       document.body.style.overflow = old;
       root?.removeEventListener('keydown', trap);
-      previous?.focus();
+      previous?.focus({ preventScroll: true });
     };
   }, []);
   return (

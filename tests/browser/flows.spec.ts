@@ -9,6 +9,20 @@ async function login(page: any, email = 'alex@example.test') {
   await page.getByRole('button', { name: 'Confirmar inicio de sesión' }).click();
   await expect(page.getByRole('heading', { name: 'Resumen general' })).toBeVisible();
 }
+async function createCommission(page: any, name = `Equipo QA ${Date.now()}`, projectId = 'camp') {
+  const session = await (await page.request.get('/api/me')).json();
+  const response = await page.request.post('/api/commissions', {
+    headers: { 'X-CSRF-Token': session.csrf, Origin: 'http://127.0.0.1:5174' },
+    data: { name, projectId, members: [{ userId: session.user.id, role: 'responsible' }] },
+  });
+  expect(response.ok()).toBeTruthy();
+  return (await response.json()).id;
+}
+async function openUnmatchedCommission(page: any) {
+  const cid = await createCommission(page);
+  await page.goto(`/?view=commission&project=camp&commission=${cid}`);
+  return cid;
+}
 test('desktop: commission, task, comments and persistent status', async ({ page }) => {
   // This full workflow includes login, creation, comments, completion and a reload.
   test.setTimeout(60000);
@@ -379,7 +393,7 @@ test('completing a task confirms persistence before showing the vine animation',
 test('catalogue artwork is immediate and can be selected on mobile', async ({ page }) => {
   await login(page);
   await page.setViewportSize({ width: 390, height: 900 });
-  await page.goto('/?view=commission&project=camp&commission=cocina');
+  await openUnmatchedCommission(page);
   await expect(
     page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }),
   ).toBeVisible();
@@ -400,6 +414,45 @@ test('catalogue artwork is immediate and can be selected on mobile', async ({ pa
   await dialog.getByRole('button', { name: 'Elegir automáticamente' }).click();
 });
 
+test('Servicios, Animación and Logística automatically use their pair and hide manual selection', async ({
+  page,
+}) => {
+  await login(page);
+  await page.setViewportSize({ width: 390, height: 900 });
+  for (const [name, key, mascot] of [
+    ['Servicios', 'servicios-general', '/artwork/mascots/servicios.webp'],
+    ['Animación', 'animacion-general', '/artwork/mascots/animacion.webp'],
+    ['Logística', 'logistica-02', '/artwork/mascots/002.webp#tile=4'],
+  ]) {
+    let data = await (await page.request.get('/api/data')).json();
+    const existing = data.commissions.find((c: any) => c.projectId === 'camp' && c.name === name);
+    const cid = existing?.id || (await createCommission(page, name));
+    await page.goto(`/?view=commission&project=camp&commission=${cid}`);
+    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }),
+    ).toHaveCount(0);
+    data = await (await page.request.get('/api/data')).json();
+    const commission = data.commissions.find((c: any) => c.id === cid);
+    expect(commission.artworkKey).toBe(key);
+    expect(commission.artworkLocked).toBe(true);
+    expect(commission.mascotUrl).toBe(mascot);
+    await expect(page.locator('.commission-icon img')).toHaveAttribute(
+      'src',
+      `/artwork/icons/${key}.svg`,
+    );
+    const image = await page.request.get(mascot.split('#')[0]);
+    expect(image.ok()).toBeTruthy();
+    expect(image.headers()['content-type']).toContain('image/webp');
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.screenshot({
+      path: `artifacts/mobile-v2/catalogo-${key}.png`,
+      animations: 'disabled',
+    });
+    await page.setViewportSize({ width: 390, height: 900 });
+  }
+});
+
 test('camp creation uses camp labels and the project controls its Christmas collection', async ({
   page,
 }) => {
@@ -409,7 +462,7 @@ test('camp creation uses camp labels and the project controls its Christmas coll
   const dialog = page.getByRole('dialog');
   await expect(page.getByRole('dialog', { name: 'Nuevo campamento', exact: true })).toBeVisible();
   await expect(dialog.getByRole('button', { name: 'Crear campamento', exact: true })).toBeVisible();
-  await dialog.getByLabel('Nombre', { exact: true }).fill('Campamento de invierno');
+  await dialog.getByLabel('Nombre', { exact: true }).fill('Campamento de Navidad');
   await expect(dialog.getByRole('combobox', { name: 'Colección de ilustraciones' })).toHaveText(
     'Navidad',
   );
@@ -428,6 +481,10 @@ test('camp creation uses camp labels and the project controls its Christmas coll
   expect(iconBox!.x).toBeGreaterThanOrEqual(frameBox!.x);
   expect(iconBox!.x + iconBox!.width).toBeLessThanOrEqual(frameBox!.x + frameBox!.width);
   await page.screenshot({ path: 'artifacts/comision-navidad.png', animations: 'disabled' });
+  await expect(page.getByRole('button', { name: 'Elegir ilustraciones', exact: true })).toHaveCount(
+    0,
+  );
+  await openUnmatchedCommission(page);
   await page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }).click();
   await expect(page.getByRole('dialog').getByText('Colección:')).toContainText('Navidad');
   await page.screenshot({ path: 'artifacts/catalogo-navidad.png', animations: 'disabled' });
@@ -440,11 +497,62 @@ test('camp creation uses camp labels and the project controls its Christmas coll
   );
 });
 
+test('Campamento de Navidad assigns all six Christmas pairs without manual controls', async ({
+  page,
+}) => {
+  test.setTimeout(60000);
+  await login(page);
+  const session = await (await page.request.get('/api/me')).json();
+  const response = await page.request.post('/api/projects', {
+    headers: { 'X-CSRF-Token': session.csrf, Origin: 'http://127.0.0.1:5174' },
+    data: {
+      name: 'Campamento de Navidad',
+      type: 'camp',
+      parentId: 'ronda',
+      artworkTheme: 'scout',
+      starts: '2027-12-26',
+      ends: '2027-12-30',
+    },
+  });
+  expect(response.ok()).toBeTruthy();
+  const project = await response.json();
+  expect(project.artworkTheme).toBe('christmas');
+  await page.goto(`/?view=project&project=${project.id}`);
+  await expect(page.getByRole('combobox', { name: 'Colección de ilustraciones' })).toBeDisabled();
+  for (const [name, key] of [
+    ['Servicios', 'servicios'],
+    ['Animación', 'animacion'],
+    ['Material', 'material'],
+    ['Menú', 'menu'],
+    ['Logística', 'logistica'],
+    ['Lugar', 'lugar'],
+  ]) {
+    const cid = await createCommission(page, name, project.id);
+    await page.goto(`/?view=commission&project=${project.id}&commission=${cid}`);
+    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+    await expect(page.locator('.commission-icon img')).toHaveAttribute(
+      'src',
+      `/artwork/icons/navidad-${key}.svg`,
+    );
+    await expect(page.locator('.commission-mascot image')).toHaveAttribute(
+      'href',
+      '/artwork/mascots/055.webp',
+    );
+    await expect(
+      page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }),
+    ).toHaveCount(0);
+    await page.screenshot({
+      path: `artifacts/mobile-v2/navidad-${key}.png`,
+      animations: 'disabled',
+    });
+  }
+});
+
 test('coordination uploads a new matching pair and can use it after reloading', async ({
   page,
 }) => {
   await login(page);
-  await page.goto('/?view=commission&project=camp&commission=cocina');
+  await openUnmatchedCommission(page);
   await page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('button', { name: 'Añadir pareja al catálogo' }).click();
@@ -463,7 +571,7 @@ test('coordination uploads a new matching pair and can use it after reloading', 
     'src',
     /^\/api\/artwork\/assets\//,
   );
-  await expect(page.getByRole('heading', { name: 'Cocina', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Equipo QA/ })).toBeVisible();
   await page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }).click();
   await dialog.getByRole('button', { name: 'Elegir automáticamente' }).click();
 });

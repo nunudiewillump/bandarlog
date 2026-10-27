@@ -1,10 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
-import { artworkCatalog, inferArtworkTheme, selectArtwork } from '../shared/scout-catalog';
+import {
+  artworkCatalog,
+  inferArtworkTheme,
+  selectArtwork,
+  hasArtworkAssociation,
+  projectArtworkTheme,
+} from '../shared/scout-catalog';
 
-test('catalogue has 300 scout pairs and a separate Christmas collection with stable asset identifiers', () => {
-  assert.equal(artworkCatalog.filter((entry) => entry.collection === 'scout').length, 300);
+test('catalogue has 302 scout pairs and a separate Christmas collection with stable asset identifiers', () => {
+  assert.equal(artworkCatalog.filter((entry) => entry.collection === 'scout').length, 302);
   assert.ok(artworkCatalog.filter((entry) => entry.collection === 'christmas').length >= 30);
   assert.equal(new Set(artworkCatalog.map((entry) => entry.id)).size, artworkCatalog.length);
   assert.equal(new Set(artworkCatalog.map((entry) => entry.mascotUrl)).size, artworkCatalog.length);
@@ -43,6 +49,42 @@ test('normal commission names choose matching pairs using the project collection
   assert.equal(selectArtwork({ name: 'Cocina', theme: 'scout', key: custom.id }).id, custom.id);
   assert.equal(
     selectArtwork({ name: 'Cocina', theme: 'christmas', key: custom.id }).collection,
+    'christmas',
+  );
+});
+
+test('Servicios and Animación select dedicated pairs and Autobuses becomes Logística without changing its saved key', () => {
+  for (const [name, id] of [
+    ['Servicios', 'servicios-general'],
+    ['Animación', 'animacion-general'],
+    ['Logística', 'logistica-02'],
+  ]) {
+    const entry = selectArtwork({ name, theme: 'scout', seed: 'any-commission-id' });
+    assert.equal(entry.id, id);
+    assert.equal(entry.name, name);
+  }
+  const logistics = selectArtwork({ name: 'Otra comisión', theme: 'scout', key: 'logistica-02' });
+  assert.equal(logistics.name, 'Logística');
+  assert.equal(logistics.mascotUrl, '/artwork/mascots/002.webp#tile=4');
+  assert.ok(!artworkCatalog.some((entry) => entry.name === 'Autobuses'));
+});
+
+test('Christmas has six named pairs and names determine whether manual selection is available', () => {
+  for (const [name, key] of [
+    ['Servicios', 'servicios'],
+    ['Animación', 'animacion'],
+    ['Material', 'material'],
+    ['Menú', 'menu'],
+    ['Logística', 'logistica'],
+    ['Lugar', 'lugar'],
+  ]) {
+    assert.equal(selectArtwork({ name, theme: 'christmas' }).id, `navidad-${key}`);
+    assert.equal(hasArtworkAssociation(name, 'christmas'), true);
+    assert.equal(hasArtworkAssociation(name, 'scout'), true);
+  }
+  assert.equal(hasArtworkAssociation('Equipo QA sin coincidencias', 'scout'), false);
+  assert.equal(
+    projectArtworkTheme({ name: 'Campamento de Navidad', artworkTheme: 'scout' }),
     'christmas',
   );
 });

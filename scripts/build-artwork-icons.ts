@@ -8,7 +8,7 @@ const topicIcons: Record<string, string> = {
   cocina:
     'BookOpen|Coffee|Apple|Soup|ShieldCheck|Archive|ShoppingBasket|CookingPot|Carrot|Flame|CakeSlice|GlassWater|Refrigerator|Utensils|NotebookPen',
   logistica:
-    'Truck|Bus|Luggage|Route|PackagePlus|PackageCheck|Warehouse|ClipboardList|Ticket|FileCheck|Clock|SquareParking|Boxes|Hand|MapPin',
+    'Truck|Boxes|Luggage|Route|PackagePlus|PackageCheck|Warehouse|ClipboardList|Ticket|FileCheck|Clock|SquareParking|Boxes|Hand|MapPin',
   comunicacion:
     'PanelTop|MessageCircle|Camera|Video|Newspaper|Mail|Globe|Send|Users|Palette|Radio|Mic|NotebookPen|Images|Signpost',
   animacion:
@@ -86,11 +86,14 @@ function symbol(name: string) {
 await mkdir('public/artwork/icons', { recursive: true });
 for (const [index, entry] of artworkCatalog.entries()) {
   const topic =
-    entry.collection === 'christmas' ? entry.icon : topicIcons[entry.family].split('|')[index % 15];
+    entry.collection === 'christmas' || entry.id.endsWith('-general')
+      ? entry.icon
+      : topicIcons[entry.family].split('|')[index % 15];
+  const badge = entry.id === 'navidad-animacion' ? 'Music' : entry.icon;
   const angle = ((index % 15) * Math.PI * 2) / 15;
   const accentX = (32 + Math.cos(angle) * 26).toFixed(2);
   const accentY = (32 + Math.sin(angle) * 26).toFixed(2);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke-linecap="round" stroke-linejoin="round"><g stroke="#124d38" transform="translate(9 7) scale(1.8)">${symbol(topic)}</g><circle cx="50" cy="49" r="12" fill="#fff7e5" stroke="#d99a35" stroke-width="1.5"/><g stroke="#b17726" transform="translate(42 41) scale(.67)">${symbol(entry.icon)}</g><circle cx="${accentX}" cy="${accentY}" r="1.5" fill="#d99a35" stroke="none"/></svg>\n`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke-linecap="round" stroke-linejoin="round"><g stroke="#124d38" transform="translate(9 7) scale(1.8)">${symbol(topic)}</g><circle cx="50" cy="49" r="12" fill="#fff7e5" stroke="#d99a35" stroke-width="1.5"/><g stroke="#b17726" transform="translate(42 41) scale(.67)">${symbol(badge)}</g><circle cx="${accentX}" cy="${accentY}" r="1.5" fill="#d99a35" stroke="none"/></svg>\n`;
   await writeFile('public' + entry.iconUrl, svg);
 }
 console.log(`Prepared ${artworkCatalog.length} paired catalogue icons.`);

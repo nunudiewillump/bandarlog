@@ -10,7 +10,7 @@ const groups = [
     'logistica',
     'Logística',
     'Truck',
-    'Transporte|Autobuses|Equipajes|Rutas de llegada|Carga de vehículos|Reparto de material|Almacén|Inventario|Reservas|Permisos de viaje|Horarios|Aparcamiento|Suministros|Acogida|Puntos de encuentro',
+    'Transporte|Logística|Equipajes|Rutas de llegada|Carga de vehículos|Reparto de material|Almacén|Inventario|Reservas|Permisos de viaje|Horarios|Aparcamiento|Suministros|Acogida|Puntos de encuentro',
   ],
   [
     'comunicacion',
@@ -177,7 +177,7 @@ export type ArtworkEntry = {
   iconUrl: string;
   mascotUrl: string;
 };
-export const artworkCatalog: ArtworkEntry[] = [
+const originalArtworkCatalog: ArtworkEntry[] = [
   ...scoutCatalog.map((entry) => ({ ...entry, collection: 'scout' as const })),
   ...christmasTopics.map(([name, family, icon], index) => ({
     id: `navidad-${String(index + 1).padStart(2, '0')}`,
@@ -192,6 +192,48 @@ export const artworkCatalog: ArtworkEntry[] = [
   iconUrl: `/artwork/icons/${entry.id}.svg`,
   mascotUrl: `/artwork/mascots/${String(Math.floor(index / 6)).padStart(3, '0')}.webp#tile=${index % 6}`,
 }));
+
+// Append standalone pairs so existing sheet positions and saved selections stay stable.
+export const artworkCatalog: ArtworkEntry[] = [
+  ...originalArtworkCatalog,
+  {
+    id: 'servicios-general',
+    name: 'Servicios',
+    family: 'servicio',
+    familyName: 'Servicios',
+    icon: 'BrushCleaning',
+    collection: 'scout',
+    iconUrl: '/artwork/icons/servicios-general.svg',
+    mascotUrl: '/artwork/mascots/servicios.webp',
+  },
+  {
+    id: 'animacion-general',
+    name: 'Animación',
+    family: 'animacion',
+    familyName: 'Animación',
+    icon: 'Drama',
+    collection: 'scout',
+    iconUrl: '/artwork/icons/animacion-general.svg',
+    mascotUrl: '/artwork/mascots/animacion.webp',
+  },
+  ...[
+    ['servicios', 'Servicios', 'servicio', 'Gift'],
+    ['animacion', 'Animación', 'animacion', 'Star'],
+    ['material', 'Material', 'infraestructura', 'Package'],
+    ['menu', 'Menú', 'cocina', 'Gingerbread'],
+    ['logistica', 'Logística', 'logistica', 'Sleigh'],
+    ['lugar', 'Lugar', 'orientacion', 'TreePine'],
+  ].map(([key, name, family, icon], tile) => ({
+    id: `navidad-${key}`,
+    name,
+    family,
+    familyName: 'Navidad',
+    icon,
+    collection: 'christmas' as const,
+    iconUrl: `/artwork/icons/navidad-${key}.svg`,
+    mascotUrl: `/artwork/mascots/055.webp#tile=${tile}`,
+  })),
+];
 
 export type ArtworkTheme = 'scout' | 'christmas';
 export const artworkThemes = [
@@ -212,7 +254,7 @@ const aliases: Record<string, string[]> = {
   salud: ['salud', 'botiquin', 'sanitario', 'auxilios', 'enfermeria'],
   naturaleza: ['naturaleza', 'flora', 'fauna', 'huerto'],
   sostenibilidad: ['sostenibilidad', 'reciclaje', 'residuos', 'medio ambiente'],
-  orientacion: ['orientacion', 'brujula', 'mapas', 'geocaching'],
+  orientacion: ['orientacion', 'brujula', 'mapas', 'geocaching', 'lugar', 'emplazamiento'],
   aventura: ['aventura', 'senderismo', 'escalada', 'travesia', 'exploracion'],
   agua: ['acuatic', 'piscina', 'piragua', 'natacion', 'kayak'],
   deportes: ['deporte', 'futbol', 'baloncesto', 'olimpiada'],
@@ -229,6 +271,32 @@ export function inferArtworkTheme(projectName: string): ArtworkTheme {
   return /invierno|navidad|christmas/.test(normalizeArtworkText(projectName))
     ? 'christmas'
     : 'scout';
+}
+export function projectArtworkTheme(project: {
+  name: string;
+  artworkTheme?: string | null;
+}): ArtworkTheme {
+  return inferArtworkTheme(project.name) === 'christmas'
+    ? 'christmas'
+    : project.artworkTheme === 'christmas'
+      ? 'christmas'
+      : 'scout';
+}
+export function hasArtworkAssociation(
+  name: string,
+  theme: ArtworkTheme,
+  extra: ArtworkEntry[] = [],
+) {
+  const normalized = normalizeArtworkText(name).trim();
+  return [...artworkCatalog, ...extra].some((entry) => {
+    if (entry.collection !== theme) return false;
+    const topic = normalizeArtworkText(entry.name.split(' · ')[0]);
+    return (
+      normalized === topic ||
+      normalized.includes(topic) ||
+      (aliases[entry.family] || []).some((word) => normalized.includes(word))
+    );
+  });
 }
 export function selectArtwork(
   input: {
@@ -251,6 +319,7 @@ export function selectArtwork(
     const words = aliases[entry.family] || [];
     const topic = normalizeArtworkText(entry.name.split(' · ')[0]);
     const score =
+      (name === normalizeArtworkText(entry.name) ? 50 : 0) +
       (name === topic ? 30 : name.includes(topic) ? 20 : 0) +
       words.reduce(
         (n, word) => n + (name.includes(word) ? 10 : description.includes(word) ? 1 : 0),
