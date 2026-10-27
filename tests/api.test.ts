@@ -573,3 +573,97 @@ test('creation notices respect personal opt-outs', async () => {
   );
   await request('/profile', 'PATCH', { name: 'Ana García', creation: true }, ana);
 });
+
+test('catalogue artwork works without a worker and follows the project theme without renaming commissions', async () => {
+  const project = await request('/projects', 'POST', {
+    name: 'Campamento de invierno QA',
+    type: 'camp',
+    parentId: 'ronda',
+    starts: '2027-01-02',
+    ends: '2027-01-05',
+  });
+  assert.equal(project.status, 201);
+  assert.equal(project.body.artworkTheme, 'christmas');
+  const created = await request('/commissions', 'POST', {
+    name: 'Cocina',
+    projectId: project.body.id,
+    members: [{ userId: 'alex', role: 'responsible' }],
+  });
+  assert.equal(created.status, 201);
+  let data = (await request('/data')).body;
+  let c = data.commissions.find((entry: any) => entry.id === created.body.id);
+  assert.equal(c.name, 'Cocina');
+  assert.equal(c.artworkStatus, 'ready');
+  assert.match(c.iconUrl, /navidad-/);
+  assert.match(c.mascotUrl, /\/artwork\/mascots\//);
+  assert.equal(
+    (await request(`/projects/${project.body.id}`, 'PATCH', { artworkTheme: 'scout' }, member))
+      .status,
+    403,
+  );
+  assert.equal(
+    (await request(`/projects/${project.body.id}`, 'PATCH', { artworkTheme: 'scout' })).status,
+    200,
+  );
+  data = (await request('/data')).body;
+  c = data.commissions.find((entry: any) => entry.id === created.body.id);
+  assert.equal(c.name, 'Cocina');
+  assert.match(c.iconUrl, /cocina-/);
+  assert.equal(
+    (await request(`/commissions/${c.id}/artwork`, 'POST', { key: 'navidad-01' })).status,
+    400,
+  );
+  assert.equal(
+    (await request(`/commissions/${c.id}/artwork`, 'POST', { key: 'cocina-04' })).status,
+    200,
+  );
+  c = (await request('/data')).body.commissions.find((entry: any) => entry.id === c.id);
+  assert.equal(c.artworkKey, 'cocina-04');
+  assert.equal(c.artworkMode, 'manual');
+  assert.equal((await request(`/commissions/${c.id}/artwork`, 'POST', { key: null })).status, 200);
+  c = (await request('/data')).body.commissions.find((entry: any) => entry.id === c.id);
+  assert.equal(c.artworkMode, 'automatic');
+});
+
+test('coordination extends the catalogue with a validated pair stored in the database', async () => {
+  const { default: sharp } = await import('sharp');
+  const image =
+    'data:image/png;base64,' +
+    (
+      await sharp({ create: { width: 128, height: 128, channels: 4, background: '#124d38' } })
+        .png()
+        .toBuffer()
+    ).toString('base64');
+  const input = {
+    name: 'Nuevo farol navideño',
+    collection: 'christmas',
+    family: 'tecnica',
+    icon: image,
+    mascot: image,
+  };
+  assert.equal((await request('/artwork/catalog', 'POST', input, member)).status, 403);
+  assert.equal(
+    (
+      await request('/artwork/catalog', 'POST', {
+        ...input,
+        icon: 'data:image/svg+xml;base64,PHN2Zz4=',
+      })
+    ).status,
+    400,
+  );
+  const created = await request('/artwork/catalog', 'POST', input);
+  assert.equal(created.status, 201);
+  const catalogue = (await request('/artwork/catalog')).body;
+  const added = catalogue.find((item: any) => item.id === created.body.id);
+  assert.equal(added.name, input.name);
+  assert.equal(added.collection, 'christmas');
+  assert.match(added.iconUrl, /^\/api\/artwork\/assets\//);
+  assert.equal(added.iconData, undefined);
+  const response = await fetch(base + '/artwork/assets/' + created.body.id + '/icon', {
+    headers: { cookie: admin.cookie },
+  });
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('content-type') || '', /image\/webp/);
+  const metadata = await sharp(Buffer.from(await response.arrayBuffer())).metadata();
+  assert.equal(metadata.format, 'webp');
+});

@@ -1,4 +1,6 @@
-# Generador de ilustraciones de Bandarlog
+# Generador de ilustraciones de Bandarlog (histórico)
+
+La aplicación utiliza ahora un catálogo local automático y ampliable, sin este trabajador ni Colab. Este documento se conserva como referencia del prototipo.
 
 Proceso Python separado del servicio web, sin API de generación de pago. Un agente semántico usa el codificador CLIP del modelo para elegir un plan gráfico y un renderizador de pictogramas lo dibuja en el estilo de líneas de Bandarlog. La mascota se genera por difusión a partir de su referencia. Modelo `segmind/tiny-sd`, revisión fijada `cad0bd7495fa6c4bcca01b19a723dc91627fe84f`, licencia CreativeML OpenRAIL-M; la licencia del modelo y sus restricciones siguen vigentes. `rembg`/u2netp produce el recorte transparente. Los pesos descargados se convierten con `torch.load(weights_only=True)` a Safetensors antes de cargarse; no se ejecuta código remoto del repositorio del modelo. Se conservan TLS y las comprobaciones de descarga.
 

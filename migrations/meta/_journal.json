@@ -36,6 +36,20 @@
       "when": 1793102137770,
       "tag": "0004_tearful_makkari",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793118784397,
+      "tag": "0005_married_drax",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793119955254,
+      "tag": "0006_illegal_daimon_hellstrom",
+      "breakpoints": true
     }
   ]
 }
