@@ -45,9 +45,9 @@ No se ha desplegado en Railway ni validado una conexión real a Neon o SMTP. Con
 
 ## Correo del grupo
 
-Remitente previsto: **Bandarlog <scoutsrosalesdelcanal@gmail.com>**.
+Remitente previsto: **Bandarlog <grupo@example.org>**.
 
-Para Gmail: `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_USER=scoutsrosalesdelcanal@gmail.com`, `MAIL_FROM=Bandarlog <scoutsrosalesdelcanal@gmail.com>`. Activa verificación en dos pasos en Google y crea una contraseña de aplicación para `SMTP_PASS`; no uses la contraseña habitual ni la incluyas en Git, chat o capturas. La disponibilidad de contraseñas de aplicación depende de las políticas de la cuenta. Configúrala en los secretos/variables privadas del alojamiento. El alojamiento debe permitir conexiones SMTP salientes; ciertos planes pueden restringirlas. No se ha comprobado el acceso a esa cuenta ni se ha enviado correo desde ella.
+Para Gmail: `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_USER=grupo@example.org`, `MAIL_FROM=Bandarlog <grupo@example.org>`. Activa verificación en dos pasos en Google y crea una contraseña de aplicación para `SMTP_PASS`; no uses la contraseña habitual ni la incluyas en Git, chat o capturas. La disponibilidad de contraseñas de aplicación depende de las políticas de la cuenta. Configúrala en los secretos/variables privadas del alojamiento. El alojamiento debe permitir conexiones SMTP salientes; ciertos planes pueden restringirlas. No se ha comprobado el acceso a esa cuenta ni se ha enviado correo desde ella.
 
 El proceso comprueba vencimientos cada minuto y genera el resumen por proyecto una vez por semana (a partir del lunes, en la primera ejecución disponible). Las fechas se presentan en Europe/Madrid y las fechas límite se guardan como instantes UTC. Los formularios indican cuando usan la zona horaria del dispositivo. Los eventos tienen claves de deduplicación; cada mensaje se reclama antes de enviarse, con un máximo de cinco intentos y Message-ID estable. Una caída durante un envío puede dejar un mensaje en `sending`: requiere revisión del registro antes de reenviarlo, porque SMTP no garantiza exactamente un envío ante respuestas ambiguas. Sin SMTP los mensajes quedan en `preview`, no se consideran enviados ni se mandan automáticamente al configurar después un proveedor.
 
