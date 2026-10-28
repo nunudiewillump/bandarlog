@@ -1,0 +1,2611 @@
+{
+  "source": "tests/fixtures/mobile.ts unchanged; seven own titles edited only in static design export",
+  "user": {
+    "id": "mobile-scouter",
+    "name": "Scouter Prueba",
+    "email": "mobile@example.test",
+    "role": "member"
+  },
+  "commissions": [
+    {
+      "id": "commission-v2-0",
+      "name": "Material",
+      "projectId": "round-v2",
+      "description": "",
+      "icon": "tent",
+      "artworkStatus": "ready",
+      "iconUrl": "/artwork/icons/infraestructura-11.svg",
+      "mascotUrl": "/artwork/mascots/011.webp#tile=4",
+      "artworkKey": "infraestructura-11",
+      "artworkLocked": true,
+      "artworkMode": "automatic"
+    },
+    {
+      "id": "commission-v2-1",
+      "name": "Infraestructura",
+      "projectId": "round-v2",
+      "description": "",
+      "icon": "tent",
+      "artworkStatus": "ready",
+      "iconUrl": "/artwork/icons/infraestructura-12.svg",
+      "mascotUrl": "/artwork/mascots/011.webp#tile=5",
+      "artworkKey": "infraestructura-12",
+      "artworkLocked": true,
+      "artworkMode": "automatic"
+    },
+    {
+      "id": "commission-v2-2",
+      "name": "Botiquín",
+      "projectId": "round-v2",
+      "description": "",
+      "icon": "tent",
+      "artworkStatus": "ready",
+      "iconUrl": "/artwork/icons/salud-01.svg",
+      "mascotUrl": "/artwork/mascots/012.webp#tile=3",
+      "artworkKey": "salud-01",
+      "artworkLocked": true,
+      "artworkMode": "automatic"
+    },
+    {
+      "id": "commission-v2-3",
+      "name": "Animación",
+      "projectId": "round-v2",
+      "description": "",
+      "icon": "tent",
+      "artworkStatus": "ready",
+      "iconUrl": "/artwork/icons/animacion-general.svg",
+      "mascotUrl": "/artwork/mascots/animacion.webp",
+      "artworkKey": "animacion-general",
+      "artworkLocked": true,
+      "artworkMode": "automatic"
+    },
+    {
+      "id": "commission-v2-4",
+      "name": "Electricidad",
+      "projectId": "round-v2",
+      "description": "",
+      "icon": "tent",
+      "artworkStatus": "ready",
+      "iconUrl": "/artwork/icons/infraestructura-06.svg",
+      "mascotUrl": "/artwork/mascots/010.webp#tile=5",
+      "artworkKey": "infraestructura-06",
+      "artworkLocked": true,
+      "artworkMode": "automatic"
+    },
+    {
+      "id": "commission-v2-5",
+      "name": "Cocina",
+      "projectId": "camp-v2",
+      "description": "",
+      "icon": "tent",
+      "artworkStatus": "ready",
+      "iconUrl": "/artwork/icons/cocina-01.svg",
+      "mascotUrl": "/artwork/mascots/000.webp#tile=0",
+      "artworkKey": "cocina-01",
+      "artworkLocked": true,
+      "artworkMode": "automatic"
+    },
+    {
+      "id": "commission-v2-6",
+      "name": "Menú",
+      "projectId": "camp-v2",
+      "description": "",
+      "icon": "tent",
+      "artworkStatus": "ready",
+      "iconUrl": "/artwork/icons/cocina-02.svg",
+      "mascotUrl": "/artwork/mascots/000.webp#tile=1",
+      "artworkKey": "cocina-02",
+      "artworkLocked": true,
+      "artworkMode": "automatic"
+    },
+    {
+      "id": "commission-v2-7",
+      "name": "Logística",
+      "projectId": "camp-v2",
+      "description": "",
+      "icon": "tent",
+      "artworkStatus": "ready",
+      "iconUrl": "/artwork/icons/logistica-02.svg",
+      "mascotUrl": "/artwork/mascots/002.webp#tile=4",
+      "artworkKey": "logistica-02",
+      "artworkLocked": true,
+      "artworkMode": "automatic"
+    },
+    {
+      "id": "commission-v2-8",
+      "name": "Servicios",
+      "projectId": "camp-v2",
+      "description": "",
+      "icon": "tent",
+      "artworkStatus": "ready",
+      "iconUrl": "/artwork/icons/servicios-general.svg",
+      "mascotUrl": "/artwork/mascots/servicios.webp",
+      "artworkKey": "servicios-general",
+      "artworkLocked": true,
+      "artworkMode": "automatic"
+    },
+    {
+      "id": "commission-v2-9",
+      "name": "Staff",
+      "projectId": "camp-v2",
+      "description": "",
+      "icon": "tent",
+      "artworkStatus": "ready",
+      "iconUrl": "/artwork/icons/tradiciones-13.svg",
+      "mascotUrl": "/artwork/mascots/047.webp#tile=0",
+      "artworkKey": "tradiciones-13",
+      "artworkLocked": false,
+      "artworkMode": "automatic"
+    }
+  ],
+  "allTasks": [
+    {
+      "id": "v2-task-0",
+      "title": "Revisar el listado de material",
+      "commissionId": "commission-v2-0",
+      "description": "Datos de prueba aislados",
+      "due": "2026-10-27T11:40:34.869Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-1",
+      "title": "Revisar las instalaciones",
+      "commissionId": "commission-v2-1",
+      "description": "Datos de prueba aislados",
+      "due": "2026-10-30T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-2",
+      "title": "Reponer el botiquín",
+      "commissionId": "commission-v2-2",
+      "description": "Datos de prueba aislados",
+      "due": "2026-10-31T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-3",
+      "title": "Preparar la actividad de grupo",
+      "commissionId": "commission-v2-3",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-01T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-4",
+      "title": "Comprobar el cuadro eléctrico",
+      "commissionId": "commission-v2-4",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-02T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-5",
+      "title": "Confirmar el menú de cocina",
+      "commissionId": "commission-v2-5",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-03T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-6",
+      "title": "Definir las dietas especiales",
+      "commissionId": "commission-v2-6",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-04T11:40:34.870Z",
+      "status": "blocked",
+      "blockedReason": "Esperando material",
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-7",
+      "title": "Revisar la ruta del transporte",
+      "commissionId": "commission-v2-7",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-05T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-8",
+      "title": "Preparar los turnos",
+      "commissionId": "commission-v2-8",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-06T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-9",
+      "title": "Confirmar el equipo de apoyo",
+      "commissionId": "commission-v2-9",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-07T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-10",
+      "title": "Revisar el almacén",
+      "commissionId": "commission-v2-0",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-08T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-11",
+      "title": "Revisar la zona de montaje",
+      "commissionId": "commission-v2-1",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-09T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-12",
+      "title": "Comprobar las caducidades",
+      "commissionId": "commission-v2-2",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-10T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-13",
+      "title": "Preparar el juego de grupo",
+      "commissionId": "commission-v2-3",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-11T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-14",
+      "title": "Comprobar los alargadores",
+      "commissionId": "commission-v2-4",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-12T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-15",
+      "title": "Revisar los utensilios",
+      "commissionId": "commission-v2-5",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-13T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-16",
+      "title": "Confirmar las dietas",
+      "commissionId": "commission-v2-6",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-14T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-17",
+      "title": "Confirmar los horarios",
+      "commissionId": "commission-v2-7",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-15T11:40:34.870Z",
+      "status": "blocked",
+      "blockedReason": "Esperando material",
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-18",
+      "title": "Revisar la zona común",
+      "commissionId": "commission-v2-8",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-16T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-19",
+      "title": "Revisar la acogida",
+      "commissionId": "commission-v2-9",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-17T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-20",
+      "title": "Distribuir el material",
+      "commissionId": "commission-v2-0",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-18T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-21",
+      "title": "Preparar las herramientas",
+      "commissionId": "commission-v2-1",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-19T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-22",
+      "title": "Revisar el botiquín",
+      "commissionId": "commission-v2-2",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-20T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-23",
+      "title": "Revisar la actividad nocturna",
+      "commissionId": "commission-v2-3",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-21T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-24",
+      "title": "Revisar la iluminación",
+      "commissionId": "commission-v2-4",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-22T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-25",
+      "title": "Preparar la compra",
+      "commissionId": "commission-v2-5",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-23T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-26",
+      "title": "Revisar las raciones",
+      "commissionId": "commission-v2-6",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-24T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-27",
+      "title": "Organizar la carga",
+      "commissionId": "commission-v2-7",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-25T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-28",
+      "title": "Organizar la limpieza",
+      "commissionId": "commission-v2-8",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-26T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-29",
+      "title": "Distribuir los turnos de apoyo",
+      "commissionId": "commission-v2-9",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-27T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-30",
+      "title": "Comprobar las cuerdas",
+      "commissionId": "commission-v2-0",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-28T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-31",
+      "title": "Comprobar las instalaciones",
+      "commissionId": "commission-v2-1",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-29T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-32",
+      "title": "Reponer apósitos",
+      "commissionId": "commission-v2-2",
+      "description": "Datos de prueba aislados",
+      "due": "2026-11-30T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-33",
+      "title": "Organizar el material de juego",
+      "commissionId": "commission-v2-3",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-01T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-34",
+      "title": "Confirmar las tomas de corriente",
+      "commissionId": "commission-v2-4",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-02T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-35",
+      "title": "Organizar los turnos de cocina",
+      "commissionId": "commission-v2-5",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-03T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-36",
+      "title": "Preparar los menús",
+      "commissionId": "commission-v2-6",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-04T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-37",
+      "title": "Tarea de otra comisión 1",
+      "commissionId": "camp-other",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-05T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-38",
+      "title": "Tarea de otra comisión 2",
+      "commissionId": "camp-other",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-06T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-39",
+      "title": "Tarea de otra comisión 3",
+      "commissionId": "camp-other",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-07T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-40",
+      "title": "Tarea de otra comisión 4",
+      "commissionId": "camp-other",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-08T11:40:34.870Z",
+      "status": "blocked",
+      "blockedReason": "Esperando material",
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-41",
+      "title": "Tarea de otra comisión 5",
+      "commissionId": "camp-other",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-09T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-42",
+      "title": "Tarea de otra comisión 6",
+      "commissionId": "camp-other",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-10T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-43",
+      "title": "Tarea de otra comisión 7",
+      "commissionId": "camp-other",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-11T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-44",
+      "title": "Tarea de otra comisión 8",
+      "commissionId": "camp-other",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-12T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-45",
+      "title": "Tarea de otra comisión 9",
+      "commissionId": "camp-other",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-13T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-46",
+      "title": "Tarea de otra comisión 10",
+      "commissionId": "camp-other",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-14T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-47",
+      "title": "Tarea de otra comisión 11",
+      "commissionId": "camp-other",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-15T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-48",
+      "title": "Tarea de otra comisión 12",
+      "commissionId": "camp-other",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-16T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-49",
+      "title": "Tarea de otra comisión 13",
+      "commissionId": "camp-other",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-17T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-50",
+      "title": "Tarea de otra comisión 14",
+      "commissionId": "camp-other",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-18T11:40:34.870Z",
+      "status": "pending",
+      "blockedReason": null,
+      "completedBy": null,
+      "completedAt": null,
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-51",
+      "title": "Trabajo terminado 1",
+      "commissionId": "commission-v2-1",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-19T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-52",
+      "title": "Trabajo terminado 2",
+      "commissionId": "commission-v2-2",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-20T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-53",
+      "title": "Trabajo terminado 3",
+      "commissionId": "commission-v2-3",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-21T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-54",
+      "title": "Trabajo terminado 4",
+      "commissionId": "commission-v2-4",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-22T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-55",
+      "title": "Trabajo terminado 5",
+      "commissionId": "commission-v2-5",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-23T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-56",
+      "title": "Trabajo terminado 6",
+      "commissionId": "commission-v2-6",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-24T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-57",
+      "title": "Trabajo terminado 7",
+      "commissionId": "commission-v2-7",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-25T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-58",
+      "title": "Trabajo terminado 8",
+      "commissionId": "commission-v2-8",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-26T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-59",
+      "title": "Trabajo terminado 9",
+      "commissionId": "commission-v2-9",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-27T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-60",
+      "title": "Trabajo terminado 10",
+      "commissionId": "commission-v2-0",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-28T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-61",
+      "title": "Trabajo terminado 11",
+      "commissionId": "commission-v2-1",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-29T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-62",
+      "title": "Trabajo terminado 12",
+      "commissionId": "commission-v2-2",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-30T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-63",
+      "title": "Trabajo terminado 13",
+      "commissionId": "commission-v2-3",
+      "description": "Datos de prueba aislados",
+      "due": "2026-12-31T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-64",
+      "title": "Trabajo terminado 14",
+      "commissionId": "commission-v2-4",
+      "description": "Datos de prueba aislados",
+      "due": "2027-01-01T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-65",
+      "title": "Trabajo terminado 15",
+      "commissionId": "commission-v2-5",
+      "description": "Datos de prueba aislados",
+      "due": "2027-01-02T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-66",
+      "title": "Trabajo terminado 16",
+      "commissionId": "commission-v2-6",
+      "description": "Datos de prueba aislados",
+      "due": "2027-01-03T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-67",
+      "title": "Trabajo terminado 17",
+      "commissionId": "commission-v2-7",
+      "description": "Datos de prueba aislados",
+      "due": "2027-01-04T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-68",
+      "title": "Trabajo terminado 18",
+      "commissionId": "commission-v2-8",
+      "description": "Datos de prueba aislados",
+      "due": "2027-01-05T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-69",
+      "title": "Trabajo terminado 19",
+      "commissionId": "commission-v2-9",
+      "description": "Datos de prueba aislados",
+      "due": "2027-01-06T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-70",
+      "title": "Trabajo terminado 20",
+      "commissionId": "commission-v2-0",
+      "description": "Datos de prueba aislados",
+      "due": "2027-01-07T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-71",
+      "title": "Trabajo terminado 21",
+      "commissionId": "commission-v2-1",
+      "description": "Datos de prueba aislados",
+      "due": "2027-01-08T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-72",
+      "title": "Trabajo terminado 22",
+      "commissionId": "commission-v2-2",
+      "description": "Datos de prueba aislados",
+      "due": "2027-01-09T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    },
+    {
+      "id": "v2-task-73",
+      "title": "Trabajo terminado 23",
+      "commissionId": "commission-v2-3",
+      "description": "Datos de prueba aislados",
+      "due": "2027-01-10T11:40:34.870Z",
+      "status": "done",
+      "blockedReason": null,
+      "completedBy": "other",
+      "completedAt": "2026-10-28T11:40:34.870Z",
+      "updatedAt": "2026-10-28T11:39:34.870Z"
+    }
+  ],
+  "assignments": [
+    {
+      "id": "assign-0",
+      "taskId": "v2-task-0",
+      "userId": "mobile-scouter"
+    },
+    {
+      "id": "assign-1",
+      "taskId": "v2-task-1",
+      "userId": "mobile-scouter"
+    },
+    {
+      "id": "assign-2",
+      "taskId": "v2-task-2",
+      "userId": "mobile-scouter"
+    },
+    {
+      "id": "assign-3",
+      "taskId": "v2-task-3",
+      "userId": "mobile-scouter"
+    },
+    {
+      "id": "assign-4",
+      "taskId": "v2-task-4",
+      "userId": "mobile-scouter"
+    },
+    {
+      "id": "assign-5",
+      "taskId": "v2-task-5",
+      "userId": "mobile-scouter"
+    },
+    {
+      "id": "assign-6",
+      "taskId": "v2-task-6",
+      "userId": "mobile-scouter"
+    },
+    {
+      "id": "assign-7",
+      "taskId": "v2-task-7",
+      "userId": "other"
+    },
+    {
+      "id": "assign-8",
+      "taskId": "v2-task-8",
+      "userId": "other"
+    },
+    {
+      "id": "assign-9",
+      "taskId": "v2-task-9",
+      "userId": "other"
+    },
+    {
+      "id": "assign-10",
+      "taskId": "v2-task-10",
+      "userId": "other"
+    },
+    {
+      "id": "assign-11",
+      "taskId": "v2-task-11",
+      "userId": "other"
+    },
+    {
+      "id": "assign-12",
+      "taskId": "v2-task-12",
+      "userId": "other"
+    },
+    {
+      "id": "assign-13",
+      "taskId": "v2-task-13",
+      "userId": "other"
+    },
+    {
+      "id": "assign-14",
+      "taskId": "v2-task-14",
+      "userId": "other"
+    },
+    {
+      "id": "assign-15",
+      "taskId": "v2-task-15",
+      "userId": "other"
+    },
+    {
+      "id": "assign-16",
+      "taskId": "v2-task-16",
+      "userId": "other"
+    },
+    {
+      "id": "assign-17",
+      "taskId": "v2-task-17",
+      "userId": "other"
+    },
+    {
+      "id": "assign-18",
+      "taskId": "v2-task-18",
+      "userId": "other"
+    },
+    {
+      "id": "assign-19",
+      "taskId": "v2-task-19",
+      "userId": "other"
+    },
+    {
+      "id": "assign-20",
+      "taskId": "v2-task-20",
+      "userId": "other"
+    },
+    {
+      "id": "assign-21",
+      "taskId": "v2-task-21",
+      "userId": "other"
+    },
+    {
+      "id": "assign-22",
+      "taskId": "v2-task-22",
+      "userId": "other"
+    },
+    {
+      "id": "assign-23",
+      "taskId": "v2-task-23",
+      "userId": "other"
+    },
+    {
+      "id": "assign-24",
+      "taskId": "v2-task-24",
+      "userId": "other"
+    },
+    {
+      "id": "assign-25",
+      "taskId": "v2-task-25",
+      "userId": "other"
+    },
+    {
+      "id": "assign-26",
+      "taskId": "v2-task-26",
+      "userId": "other"
+    },
+    {
+      "id": "assign-27",
+      "taskId": "v2-task-27",
+      "userId": "other"
+    },
+    {
+      "id": "assign-28",
+      "taskId": "v2-task-28",
+      "userId": "other"
+    },
+    {
+      "id": "assign-29",
+      "taskId": "v2-task-29",
+      "userId": "other"
+    },
+    {
+      "id": "assign-30",
+      "taskId": "v2-task-30",
+      "userId": "other"
+    },
+    {
+      "id": "assign-31",
+      "taskId": "v2-task-31",
+      "userId": "other"
+    },
+    {
+      "id": "assign-32",
+      "taskId": "v2-task-32",
+      "userId": "other"
+    },
+    {
+      "id": "assign-33",
+      "taskId": "v2-task-33",
+      "userId": "other"
+    },
+    {
+      "id": "assign-34",
+      "taskId": "v2-task-34",
+      "userId": "other"
+    },
+    {
+      "id": "assign-35",
+      "taskId": "v2-task-35",
+      "userId": "other"
+    },
+    {
+      "id": "assign-36",
+      "taskId": "v2-task-36",
+      "userId": "other"
+    },
+    {
+      "id": "assign-51",
+      "taskId": "v2-task-51",
+      "userId": "mobile-scouter"
+    },
+    {
+      "id": "assign-52",
+      "taskId": "v2-task-52",
+      "userId": "mobile-scouter"
+    },
+    {
+      "id": "assign-53",
+      "taskId": "v2-task-53",
+      "userId": "mobile-scouter"
+    },
+    {
+      "id": "assign-54",
+      "taskId": "v2-task-54",
+      "userId": "mobile-scouter"
+    },
+    {
+      "id": "assign-55",
+      "taskId": "v2-task-55",
+      "userId": "mobile-scouter"
+    },
+    {
+      "id": "assign-56",
+      "taskId": "v2-task-56",
+      "userId": "mobile-scouter"
+    },
+    {
+      "id": "assign-57",
+      "taskId": "v2-task-57",
+      "userId": "mobile-scouter"
+    },
+    {
+      "id": "assign-58",
+      "taskId": "v2-task-58",
+      "userId": "mobile-scouter"
+    },
+    {
+      "id": "assign-59",
+      "taskId": "v2-task-59",
+      "userId": "other"
+    },
+    {
+      "id": "assign-60",
+      "taskId": "v2-task-60",
+      "userId": "other"
+    },
+    {
+      "id": "assign-61",
+      "taskId": "v2-task-61",
+      "userId": "other"
+    },
+    {
+      "id": "assign-62",
+      "taskId": "v2-task-62",
+      "userId": "other"
+    },
+    {
+      "id": "assign-63",
+      "taskId": "v2-task-63",
+      "userId": "other"
+    },
+    {
+      "id": "assign-64",
+      "taskId": "v2-task-64",
+      "userId": "other"
+    },
+    {
+      "id": "assign-65",
+      "taskId": "v2-task-65",
+      "userId": "other"
+    },
+    {
+      "id": "assign-66",
+      "taskId": "v2-task-66",
+      "userId": "other"
+    },
+    {
+      "id": "assign-67",
+      "taskId": "v2-task-67",
+      "userId": "other"
+    },
+    {
+      "id": "assign-68",
+      "taskId": "v2-task-68",
+      "userId": "other"
+    },
+    {
+      "id": "assign-69",
+      "taskId": "v2-task-69",
+      "userId": "other"
+    },
+    {
+      "id": "assign-70",
+      "taskId": "v2-task-70",
+      "userId": "other"
+    },
+    {
+      "id": "assign-71",
+      "taskId": "v2-task-71",
+      "userId": "other"
+    },
+    {
+      "id": "assign-72",
+      "taskId": "v2-task-72",
+      "userId": "other"
+    },
+    {
+      "id": "assign-73",
+      "taskId": "v2-task-73",
+      "userId": "other"
+    }
+  ],
+  "snapshots": {
+    "personal": {
+      "all": {
+        "total": 74,
+        "open": 51,
+        "done": 23,
+        "blocked": 3,
+        "overdue": 1
+      },
+      "personal": {
+        "total": 15,
+        "open": 7,
+        "done": 8,
+        "blocked": 1,
+        "overdue": 1
+      },
+      "commissions": [
+        {
+          "id": "commission-v2-0",
+          "name": "Material",
+          "projectId": "round-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/infraestructura-11.svg",
+          "mascotUrl": "/artwork/mascots/011.webp#tile=4",
+          "artworkKey": "infraestructura-11",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 6,
+            "open": 4,
+            "done": 2,
+            "blocked": 0,
+            "overdue": 1
+          }
+        },
+        {
+          "id": "commission-v2-1",
+          "name": "Infraestructura",
+          "projectId": "round-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/infraestructura-12.svg",
+          "mascotUrl": "/artwork/mascots/011.webp#tile=5",
+          "artworkKey": "infraestructura-12",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 7,
+            "open": 4,
+            "done": 3,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-2",
+          "name": "Botiquín",
+          "projectId": "round-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/salud-01.svg",
+          "mascotUrl": "/artwork/mascots/012.webp#tile=3",
+          "artworkKey": "salud-01",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 7,
+            "open": 4,
+            "done": 3,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-3",
+          "name": "Animación",
+          "projectId": "round-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/animacion-general.svg",
+          "mascotUrl": "/artwork/mascots/animacion.webp",
+          "artworkKey": "animacion-general",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 7,
+            "open": 4,
+            "done": 3,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-4",
+          "name": "Electricidad",
+          "projectId": "round-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/infraestructura-06.svg",
+          "mascotUrl": "/artwork/mascots/010.webp#tile=5",
+          "artworkKey": "infraestructura-06",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 6,
+            "open": 4,
+            "done": 2,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-5",
+          "name": "Cocina",
+          "projectId": "camp-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/cocina-01.svg",
+          "mascotUrl": "/artwork/mascots/000.webp#tile=0",
+          "artworkKey": "cocina-01",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 6,
+            "open": 4,
+            "done": 2,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-6",
+          "name": "Menú",
+          "projectId": "camp-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/cocina-02.svg",
+          "mascotUrl": "/artwork/mascots/000.webp#tile=1",
+          "artworkKey": "cocina-02",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 6,
+            "open": 4,
+            "done": 2,
+            "blocked": 1,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-7",
+          "name": "Logística",
+          "projectId": "camp-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/logistica-02.svg",
+          "mascotUrl": "/artwork/mascots/002.webp#tile=4",
+          "artworkKey": "logistica-02",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 5,
+            "open": 3,
+            "done": 2,
+            "blocked": 1,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-8",
+          "name": "Servicios",
+          "projectId": "camp-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/servicios-general.svg",
+          "mascotUrl": "/artwork/mascots/servicios.webp",
+          "artworkKey": "servicios-general",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 5,
+            "open": 3,
+            "done": 2,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-9",
+          "name": "Staff",
+          "projectId": "camp-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/tradiciones-13.svg",
+          "mascotUrl": "/artwork/mascots/047.webp#tile=0",
+          "artworkKey": "tradiciones-13",
+          "artworkLocked": false,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 5,
+            "open": 3,
+            "done": 2,
+            "blocked": 0,
+            "overdue": 0
+          }
+        }
+      ],
+      "camp": {
+        "id": "camp-v2",
+        "name": "Campamento de verano 2027",
+        "total": 41,
+        "open": 31,
+        "done": 10,
+        "blocked": 3,
+        "overdue": 0,
+        "nextDue": "2026-11-03T11:40:34.874Z",
+        "commissions": [
+          {
+            "id": "commission-v2-5",
+            "name": "Cocina",
+            "total": 6,
+            "open": 4,
+            "done": 2,
+            "blocked": 0,
+            "overdue": 0,
+            "nextDue": "2026-11-03T11:40:34.874Z"
+          },
+          {
+            "id": "commission-v2-6",
+            "name": "Menú",
+            "total": 6,
+            "open": 4,
+            "done": 2,
+            "blocked": 1,
+            "overdue": 0,
+            "nextDue": "2026-11-04T11:40:34.874Z"
+          },
+          {
+            "id": "commission-v2-7",
+            "name": "Logística",
+            "total": 5,
+            "open": 3,
+            "done": 2,
+            "blocked": 1,
+            "overdue": 0,
+            "nextDue": "2026-11-05T11:40:34.874Z"
+          },
+          {
+            "id": "commission-v2-8",
+            "name": "Servicios",
+            "total": 5,
+            "open": 3,
+            "done": 2,
+            "blocked": 0,
+            "overdue": 0,
+            "nextDue": "2026-11-06T11:40:34.874Z"
+          },
+          {
+            "id": "commission-v2-9",
+            "name": "Staff",
+            "total": 5,
+            "open": 3,
+            "done": 2,
+            "blocked": 0,
+            "overdue": 0,
+            "nextDue": "2026-11-07T11:40:34.874Z"
+          },
+          {
+            "id": "camp-other",
+            "name": "Otras comisiones del campamento",
+            "total": 14,
+            "open": 14,
+            "done": 0,
+            "blocked": 1,
+            "overdue": 0,
+            "nextDue": "2026-12-05T11:40:34.874Z"
+          }
+        ]
+      }
+    },
+    "commissions": {
+      "all": {
+        "total": 74,
+        "open": 44,
+        "done": 30,
+        "blocked": 2,
+        "overdue": 0
+      },
+      "personal": {
+        "total": 15,
+        "open": 0,
+        "done": 15,
+        "blocked": 0,
+        "overdue": 0
+      },
+      "commissions": [
+        {
+          "id": "commission-v2-0",
+          "name": "Material",
+          "projectId": "round-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/infraestructura-11.svg",
+          "mascotUrl": "/artwork/mascots/011.webp#tile=4",
+          "artworkKey": "infraestructura-11",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 6,
+            "open": 3,
+            "done": 3,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-1",
+          "name": "Infraestructura",
+          "projectId": "round-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/infraestructura-12.svg",
+          "mascotUrl": "/artwork/mascots/011.webp#tile=5",
+          "artworkKey": "infraestructura-12",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 7,
+            "open": 3,
+            "done": 4,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-2",
+          "name": "Botiquín",
+          "projectId": "round-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/salud-01.svg",
+          "mascotUrl": "/artwork/mascots/012.webp#tile=3",
+          "artworkKey": "salud-01",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 7,
+            "open": 3,
+            "done": 4,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-3",
+          "name": "Animación",
+          "projectId": "round-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/animacion-general.svg",
+          "mascotUrl": "/artwork/mascots/animacion.webp",
+          "artworkKey": "animacion-general",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 7,
+            "open": 3,
+            "done": 4,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-4",
+          "name": "Electricidad",
+          "projectId": "round-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/infraestructura-06.svg",
+          "mascotUrl": "/artwork/mascots/010.webp#tile=5",
+          "artworkKey": "infraestructura-06",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 6,
+            "open": 3,
+            "done": 3,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-5",
+          "name": "Cocina",
+          "projectId": "camp-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/cocina-01.svg",
+          "mascotUrl": "/artwork/mascots/000.webp#tile=0",
+          "artworkKey": "cocina-01",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 6,
+            "open": 3,
+            "done": 3,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-6",
+          "name": "Menú",
+          "projectId": "camp-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/cocina-02.svg",
+          "mascotUrl": "/artwork/mascots/000.webp#tile=1",
+          "artworkKey": "cocina-02",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 6,
+            "open": 3,
+            "done": 3,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-7",
+          "name": "Logística",
+          "projectId": "camp-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/logistica-02.svg",
+          "mascotUrl": "/artwork/mascots/002.webp#tile=4",
+          "artworkKey": "logistica-02",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 5,
+            "open": 3,
+            "done": 2,
+            "blocked": 1,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-8",
+          "name": "Servicios",
+          "projectId": "camp-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/servicios-general.svg",
+          "mascotUrl": "/artwork/mascots/servicios.webp",
+          "artworkKey": "servicios-general",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 5,
+            "open": 3,
+            "done": 2,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-9",
+          "name": "Staff",
+          "projectId": "camp-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/tradiciones-13.svg",
+          "mascotUrl": "/artwork/mascots/047.webp#tile=0",
+          "artworkKey": "tradiciones-13",
+          "artworkLocked": false,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 5,
+            "open": 3,
+            "done": 2,
+            "blocked": 0,
+            "overdue": 0
+          }
+        }
+      ],
+      "camp": {
+        "id": "camp-v2",
+        "name": "Campamento de verano 2027",
+        "total": 41,
+        "open": 29,
+        "done": 12,
+        "blocked": 2,
+        "overdue": 0,
+        "nextDue": "2026-11-05T11:40:34.879Z",
+        "commissions": [
+          {
+            "id": "commission-v2-5",
+            "name": "Cocina",
+            "total": 6,
+            "open": 3,
+            "done": 3,
+            "blocked": 0,
+            "overdue": 0,
+            "nextDue": "2026-11-13T11:40:34.879Z"
+          },
+          {
+            "id": "commission-v2-6",
+            "name": "Menú",
+            "total": 6,
+            "open": 3,
+            "done": 3,
+            "blocked": 0,
+            "overdue": 0,
+            "nextDue": "2026-11-14T11:40:34.879Z"
+          },
+          {
+            "id": "commission-v2-7",
+            "name": "Logística",
+            "total": 5,
+            "open": 3,
+            "done": 2,
+            "blocked": 1,
+            "overdue": 0,
+            "nextDue": "2026-11-05T11:40:34.879Z"
+          },
+          {
+            "id": "commission-v2-8",
+            "name": "Servicios",
+            "total": 5,
+            "open": 3,
+            "done": 2,
+            "blocked": 0,
+            "overdue": 0,
+            "nextDue": "2026-11-06T11:40:34.879Z"
+          },
+          {
+            "id": "commission-v2-9",
+            "name": "Staff",
+            "total": 5,
+            "open": 3,
+            "done": 2,
+            "blocked": 0,
+            "overdue": 0,
+            "nextDue": "2026-11-07T11:40:34.879Z"
+          },
+          {
+            "id": "camp-other",
+            "name": "Otras comisiones del campamento",
+            "total": 14,
+            "open": 14,
+            "done": 0,
+            "blocked": 1,
+            "overdue": 0,
+            "nextDue": "2026-12-05T11:40:34.879Z"
+          }
+        ]
+      }
+    },
+    "camps": {
+      "all": {
+        "total": 74,
+        "open": 14,
+        "done": 60,
+        "blocked": 1,
+        "overdue": 0
+      },
+      "personal": {
+        "total": 15,
+        "open": 0,
+        "done": 15,
+        "blocked": 0,
+        "overdue": 0
+      },
+      "commissions": [
+        {
+          "id": "commission-v2-0",
+          "name": "Material",
+          "projectId": "round-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/infraestructura-11.svg",
+          "mascotUrl": "/artwork/mascots/011.webp#tile=4",
+          "artworkKey": "infraestructura-11",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 6,
+            "open": 0,
+            "done": 6,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-1",
+          "name": "Infraestructura",
+          "projectId": "round-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/infraestructura-12.svg",
+          "mascotUrl": "/artwork/mascots/011.webp#tile=5",
+          "artworkKey": "infraestructura-12",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 7,
+            "open": 0,
+            "done": 7,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-2",
+          "name": "Botiquín",
+          "projectId": "round-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/salud-01.svg",
+          "mascotUrl": "/artwork/mascots/012.webp#tile=3",
+          "artworkKey": "salud-01",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 7,
+            "open": 0,
+            "done": 7,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-3",
+          "name": "Animación",
+          "projectId": "round-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/animacion-general.svg",
+          "mascotUrl": "/artwork/mascots/animacion.webp",
+          "artworkKey": "animacion-general",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 7,
+            "open": 0,
+            "done": 7,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-4",
+          "name": "Electricidad",
+          "projectId": "round-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/infraestructura-06.svg",
+          "mascotUrl": "/artwork/mascots/010.webp#tile=5",
+          "artworkKey": "infraestructura-06",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 6,
+            "open": 0,
+            "done": 6,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-5",
+          "name": "Cocina",
+          "projectId": "camp-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/cocina-01.svg",
+          "mascotUrl": "/artwork/mascots/000.webp#tile=0",
+          "artworkKey": "cocina-01",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 6,
+            "open": 0,
+            "done": 6,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-6",
+          "name": "Menú",
+          "projectId": "camp-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/cocina-02.svg",
+          "mascotUrl": "/artwork/mascots/000.webp#tile=1",
+          "artworkKey": "cocina-02",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 6,
+            "open": 0,
+            "done": 6,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-7",
+          "name": "Logística",
+          "projectId": "camp-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/logistica-02.svg",
+          "mascotUrl": "/artwork/mascots/002.webp#tile=4",
+          "artworkKey": "logistica-02",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 5,
+            "open": 0,
+            "done": 5,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-8",
+          "name": "Servicios",
+          "projectId": "camp-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/servicios-general.svg",
+          "mascotUrl": "/artwork/mascots/servicios.webp",
+          "artworkKey": "servicios-general",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 5,
+            "open": 0,
+            "done": 5,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-9",
+          "name": "Staff",
+          "projectId": "camp-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/tradiciones-13.svg",
+          "mascotUrl": "/artwork/mascots/047.webp#tile=0",
+          "artworkKey": "tradiciones-13",
+          "artworkLocked": false,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 5,
+            "open": 0,
+            "done": 5,
+            "blocked": 0,
+            "overdue": 0
+          }
+        }
+      ],
+      "camp": {
+        "id": "camp-v2",
+        "name": "Campamento de verano 2027",
+        "total": 41,
+        "open": 14,
+        "done": 27,
+        "blocked": 1,
+        "overdue": 0,
+        "nextDue": "2026-12-05T11:40:34.885Z",
+        "commissions": [
+          {
+            "id": "commission-v2-5",
+            "name": "Cocina",
+            "total": 6,
+            "open": 0,
+            "done": 6,
+            "blocked": 0,
+            "overdue": 0,
+            "nextDue": null
+          },
+          {
+            "id": "commission-v2-6",
+            "name": "Menú",
+            "total": 6,
+            "open": 0,
+            "done": 6,
+            "blocked": 0,
+            "overdue": 0,
+            "nextDue": null
+          },
+          {
+            "id": "commission-v2-7",
+            "name": "Logística",
+            "total": 5,
+            "open": 0,
+            "done": 5,
+            "blocked": 0,
+            "overdue": 0,
+            "nextDue": null
+          },
+          {
+            "id": "commission-v2-8",
+            "name": "Servicios",
+            "total": 5,
+            "open": 0,
+            "done": 5,
+            "blocked": 0,
+            "overdue": 0,
+            "nextDue": null
+          },
+          {
+            "id": "commission-v2-9",
+            "name": "Staff",
+            "total": 5,
+            "open": 0,
+            "done": 5,
+            "blocked": 0,
+            "overdue": 0,
+            "nextDue": null
+          },
+          {
+            "id": "camp-other",
+            "name": "Otras comisiones del campamento",
+            "total": 14,
+            "open": 14,
+            "done": 0,
+            "blocked": 1,
+            "overdue": 0,
+            "nextDue": "2026-12-05T11:40:34.885Z"
+          }
+        ]
+      }
+    },
+    "clear": {
+      "all": {
+        "total": 74,
+        "open": 0,
+        "done": 74,
+        "blocked": 0,
+        "overdue": 0
+      },
+      "personal": {
+        "total": 15,
+        "open": 0,
+        "done": 15,
+        "blocked": 0,
+        "overdue": 0
+      },
+      "commissions": [
+        {
+          "id": "commission-v2-0",
+          "name": "Material",
+          "projectId": "round-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/infraestructura-11.svg",
+          "mascotUrl": "/artwork/mascots/011.webp#tile=4",
+          "artworkKey": "infraestructura-11",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 6,
+            "open": 0,
+            "done": 6,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-1",
+          "name": "Infraestructura",
+          "projectId": "round-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/infraestructura-12.svg",
+          "mascotUrl": "/artwork/mascots/011.webp#tile=5",
+          "artworkKey": "infraestructura-12",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 7,
+            "open": 0,
+            "done": 7,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-2",
+          "name": "Botiquín",
+          "projectId": "round-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/salud-01.svg",
+          "mascotUrl": "/artwork/mascots/012.webp#tile=3",
+          "artworkKey": "salud-01",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 7,
+            "open": 0,
+            "done": 7,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-3",
+          "name": "Animación",
+          "projectId": "round-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/animacion-general.svg",
+          "mascotUrl": "/artwork/mascots/animacion.webp",
+          "artworkKey": "animacion-general",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 7,
+            "open": 0,
+            "done": 7,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-4",
+          "name": "Electricidad",
+          "projectId": "round-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/infraestructura-06.svg",
+          "mascotUrl": "/artwork/mascots/010.webp#tile=5",
+          "artworkKey": "infraestructura-06",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 6,
+            "open": 0,
+            "done": 6,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-5",
+          "name": "Cocina",
+          "projectId": "camp-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/cocina-01.svg",
+          "mascotUrl": "/artwork/mascots/000.webp#tile=0",
+          "artworkKey": "cocina-01",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 6,
+            "open": 0,
+            "done": 6,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-6",
+          "name": "Menú",
+          "projectId": "camp-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/cocina-02.svg",
+          "mascotUrl": "/artwork/mascots/000.webp#tile=1",
+          "artworkKey": "cocina-02",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 6,
+            "open": 0,
+            "done": 6,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-7",
+          "name": "Logística",
+          "projectId": "camp-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/logistica-02.svg",
+          "mascotUrl": "/artwork/mascots/002.webp#tile=4",
+          "artworkKey": "logistica-02",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 5,
+            "open": 0,
+            "done": 5,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-8",
+          "name": "Servicios",
+          "projectId": "camp-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/servicios-general.svg",
+          "mascotUrl": "/artwork/mascots/servicios.webp",
+          "artworkKey": "servicios-general",
+          "artworkLocked": true,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 5,
+            "open": 0,
+            "done": 5,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "id": "commission-v2-9",
+          "name": "Staff",
+          "projectId": "camp-v2",
+          "description": "",
+          "icon": "tent",
+          "artworkStatus": "ready",
+          "iconUrl": "/artwork/icons/tradiciones-13.svg",
+          "mascotUrl": "/artwork/mascots/047.webp#tile=0",
+          "artworkKey": "tradiciones-13",
+          "artworkLocked": false,
+          "artworkMode": "automatic",
+          "stats": {
+            "total": 5,
+            "open": 0,
+            "done": 5,
+            "blocked": 0,
+            "overdue": 0
+          }
+        }
+      ],
+      "camp": {
+        "id": "camp-v2",
+        "name": "Campamento de verano 2027",
+        "total": 41,
+        "open": 0,
+        "done": 41,
+        "blocked": 0,
+        "overdue": 0,
+        "nextDue": null,
+        "commissions": [
+          {
+            "id": "commission-v2-5",
+            "name": "Cocina",
+            "total": 6,
+            "open": 0,
+            "done": 6,
+            "blocked": 0,
+            "overdue": 0,
+            "nextDue": null
+          },
+          {
+            "id": "commission-v2-6",
+            "name": "Menú",
+            "total": 6,
+            "open": 0,
+            "done": 6,
+            "blocked": 0,
+            "overdue": 0,
+            "nextDue": null
+          },
+          {
+            "id": "commission-v2-7",
+            "name": "Logística",
+            "total": 5,
+            "open": 0,
+            "done": 5,
+            "blocked": 0,
+            "overdue": 0,
+            "nextDue": null
+          },
+          {
+            "id": "commission-v2-8",
+            "name": "Servicios",
+            "total": 5,
+            "open": 0,
+            "done": 5,
+            "blocked": 0,
+            "overdue": 0,
+            "nextDue": null
+          },
+          {
+            "id": "commission-v2-9",
+            "name": "Staff",
+            "total": 5,
+            "open": 0,
+            "done": 5,
+            "blocked": 0,
+            "overdue": 0,
+            "nextDue": null
+          },
+          {
+            "id": "camp-other",
+            "name": "Otras comisiones del campamento",
+            "total": 14,
+            "open": 0,
+            "done": 14,
+            "blocked": 0,
+            "overdue": 0,
+            "nextDue": null
+          }
+        ]
+      }
+    }
+  },
+  "generatedAt": "2026-10-28T11:45:05.407Z",
+  "evaluationDate": "2026-10-28",
+  "variants": {
+    "1": [
+      {
+        "id": "commission-v2-5",
+        "name": "Cocina",
+        "projectId": "camp-v2",
+        "description": "",
+        "icon": "tent",
+        "artworkStatus": "ready",
+        "iconUrl": "/artwork/icons/cocina-01.svg",
+        "mascotUrl": "/artwork/mascots/000.webp#tile=0",
+        "artworkKey": "cocina-01",
+        "artworkLocked": true,
+        "artworkMode": "automatic",
+        "stats": {
+          "total": 60,
+          "open": 37,
+          "done": 23
+        }
+      }
+    ],
+    "5": [
+      {
+        "id": "commission-v2-0",
+        "name": "Material",
+        "projectId": "round-v2",
+        "description": "",
+        "icon": "tent",
+        "artworkStatus": "ready",
+        "iconUrl": "/artwork/icons/infraestructura-11.svg",
+        "mascotUrl": "/artwork/mascots/011.webp#tile=4",
+        "artworkKey": "infraestructura-11",
+        "artworkLocked": true,
+        "artworkMode": "automatic",
+        "stats": {
+          "total": 12,
+          "open": 8,
+          "done": 4
+        }
+      },
+      {
+        "id": "commission-v2-1",
+        "name": "Infraestructura",
+        "projectId": "round-v2",
+        "description": "",
+        "icon": "tent",
+        "artworkStatus": "ready",
+        "iconUrl": "/artwork/icons/infraestructura-12.svg",
+        "mascotUrl": "/artwork/mascots/011.webp#tile=5",
+        "artworkKey": "infraestructura-12",
+        "artworkLocked": true,
+        "artworkMode": "automatic",
+        "stats": {
+          "total": 13,
+          "open": 8,
+          "done": 5
+        }
+      },
+      {
+        "id": "commission-v2-5",
+        "name": "Cocina",
+        "projectId": "camp-v2",
+        "description": "",
+        "icon": "tent",
+        "artworkStatus": "ready",
+        "iconUrl": "/artwork/icons/cocina-01.svg",
+        "mascotUrl": "/artwork/mascots/000.webp#tile=0",
+        "artworkKey": "cocina-01",
+        "artworkLocked": true,
+        "artworkMode": "automatic",
+        "stats": {
+          "total": 12,
+          "open": 7,
+          "done": 5
+        }
+      },
+      {
+        "id": "commission-v2-6",
+        "name": "Menú",
+        "projectId": "camp-v2",
+        "description": "",
+        "icon": "tent",
+        "artworkStatus": "ready",
+        "iconUrl": "/artwork/icons/cocina-02.svg",
+        "mascotUrl": "/artwork/mascots/000.webp#tile=1",
+        "artworkKey": "cocina-02",
+        "artworkLocked": true,
+        "artworkMode": "automatic",
+        "stats": {
+          "total": 12,
+          "open": 7,
+          "done": 5
+        }
+      },
+      {
+        "id": "commission-v2-7",
+        "name": "Logística",
+        "projectId": "camp-v2",
+        "description": "",
+        "icon": "tent",
+        "artworkStatus": "ready",
+        "iconUrl": "/artwork/icons/logistica-02.svg",
+        "mascotUrl": "/artwork/mascots/002.webp#tile=4",
+        "artworkKey": "logistica-02",
+        "artworkLocked": true,
+        "artworkMode": "automatic",
+        "stats": {
+          "total": 11,
+          "open": 7,
+          "done": 4
+        }
+      }
+    ]
+  }
+}

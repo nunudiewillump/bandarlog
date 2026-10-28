@@ -1,5 +1,7 @@
 # Forest Experience · comparación inicial
 
+**Actualización:** el usuario eligió refinar Codex. La [propuesta refinada](propuesta-refinada.md) ya está revisada con veredicto `meets direction`; se conserva esta comparación inicial como evidencia.
+
 Dos propuestas generadas en paralelo desde la misma especificación, tras verificar la conexión oficial de Stitch. Son diseños estáticos; no se ha cambiado la aplicación. La persona solicitante considera la salida de Stitch «extremadamente básica». Esa valoración queda incorporada a la revisión y no se presenta como una propuesta aceptable.
 
 ## Resultado

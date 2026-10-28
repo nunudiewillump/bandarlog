@@ -1,0 +1,233 @@
+{
+  "renderer": "platform",
+  "selection": "not approved yet",
+  "source": "Codex static board generated in this task",
+  "sceneCount": 43,
+  "requiredSceneCount": 27,
+  "assets": [
+    {
+      "id": "B-FOR-CANOPY",
+      "provenance": "Canopy SVG authored from approved geometry",
+      "sourceOrExport": "screens/*.html .canopy-edge",
+      "format": "inline SVG",
+      "variant": "mobile, simulated safe area",
+      "intendedTarget": "header",
+      "implementationReference": "Existing asset/import preserved; production integration not started",
+      "requiredForProposal": true,
+      "mobileRenderProof": "loaded in captured static scenes",
+      "desktopRenderProof": "brand/font/icons verified in F01 1440px; mobile-specific art not part of desktop login",
+      "productionRenderProof": "not implemented"
+    },
+    {
+      "id": "B-BRAND",
+      "provenance": "Existing Bandarlog official image",
+      "sourceOrExport": "../../../../public/brand-mark.webp",
+      "format": "WebP alpha",
+      "variant": "all",
+      "intendedTarget": "header",
+      "implementationReference": "Existing asset/import preserved; production integration not started",
+      "requiredForProposal": true,
+      "mobileRenderProof": "loaded in captured static scenes",
+      "desktopRenderProof": "brand/font/icons verified in F01 1440px; mobile-specific art not part of desktop login",
+      "productionRenderProof": "not implemented"
+    },
+    {
+      "id": "B-MONKEY",
+      "provenance": "Existing original Bandarlog mascot",
+      "sourceOrExport": "../../../../public/monkey.webp",
+      "format": "WebP alpha",
+      "variant": "F10,F21",
+      "intendedTarget": "empty/clear state",
+      "implementationReference": "Existing asset/import preserved; production integration not started",
+      "requiredForProposal": true,
+      "mobileRenderProof": "loaded in captured static scenes",
+      "desktopRenderProof": "brand/font/icons verified in F01 1440px; mobile-specific art not part of desktop login",
+      "productionRenderProof": "not implemented"
+    },
+    {
+      "id": "B-VINE",
+      "provenance": "Existing original completion asset",
+      "sourceOrExport": "../../../../public/monkey-vine.webp",
+      "format": "WebP alpha",
+      "variant": "F07",
+      "intendedTarget": "completion feedback",
+      "implementationReference": "Existing asset/import preserved; production integration not started",
+      "requiredForProposal": true,
+      "mobileRenderProof": "loaded in captured static scenes",
+      "desktopRenderProof": "brand/font/icons verified in F01 1440px; mobile-specific art not part of desktop login",
+      "productionRenderProof": "not implemented"
+    },
+    {
+      "id": "B-SERVICIOS",
+      "provenance": "Existing original independent mascot",
+      "sourceOrExport": "../../../../public/artwork/mascots/servicios.webp",
+      "format": "WebP alpha",
+      "variant": "F14",
+      "intendedTarget": "commission identity",
+      "implementationReference": "Existing asset/import preserved; production integration not started",
+      "requiredForProposal": true,
+      "mobileRenderProof": "loaded in captured static scenes",
+      "desktopRenderProof": "brand/font/icons verified in F01 1440px; mobile-specific art not part of desktop login",
+      "productionRenderProof": "not implemented"
+    },
+    {
+      "id": "B-FONT",
+      "provenance": "@fontsource/nunito-sans, SIL OFL",
+      "sourceOrExport": "assets/nunito-{400,600,800}.woff2",
+      "format": "WOFF2",
+      "variant": "all",
+      "intendedTarget": "typography",
+      "implementationReference": "Existing asset/import preserved; production integration not started",
+      "requiredForProposal": true,
+      "mobileRenderProof": "loaded in captured static scenes",
+      "desktopRenderProof": "brand/font/icons verified in F01 1440px; mobile-specific art not part of desktop login",
+      "productionRenderProof": "not implemented"
+    },
+    {
+      "id": "B-ICONS",
+      "provenance": "lucide-react, ISC",
+      "sourceOrExport": "assets/icons.json and embedded SVG",
+      "format": "SVG",
+      "variant": "all",
+      "intendedTarget": "semantic control decoration",
+      "implementationReference": "Existing asset/import preserved; production integration not started",
+      "requiredForProposal": true,
+      "mobileRenderProof": "loaded in captured static scenes",
+      "desktopRenderProof": "brand/font/icons verified in F01 1440px; mobile-specific art not part of desktop login",
+      "productionRenderProof": "not implemented"
+    },
+    {
+      "id": "B-CROP-EXAMPLE",
+      "provenance": "Existing original monkey.webp explicitly labeled as synthetic photo-editor test image; no invented person",
+      "sourceOrExport": "../../../../public/monkey.webp",
+      "format": "WebP alpha",
+      "intendedTarget": "F05 crop preview only",
+      "requiredForProposal": true,
+      "mobileRenderProof": "Loaded in revision1 static captures; zero broken images recorded across187measurement records.",
+      "productionRenderProof": "Not implemented"
+    },
+    {
+      "id": "B-ICON-commission-v2-0",
+      "provenance": "Existing shared/scout-catalog.ts selection from unchanged mobile fixture",
+      "sourceOrExport": "/artwork/icons/infraestructura-11.svg",
+      "catalogKey": "infraestructura-11",
+      "format": "SVG",
+      "intendedTarget": "Commission Material",
+      "requiredForProposal": true,
+      "mobileRenderProof": "Loaded in revision1 static captures; zero broken images recorded across187measurement records.",
+      "productionRenderProof": "Existing app asset; new app UI not implemented"
+    },
+    {
+      "id": "B-ICON-commission-v2-1",
+      "provenance": "Existing shared/scout-catalog.ts selection from unchanged mobile fixture",
+      "sourceOrExport": "/artwork/icons/infraestructura-12.svg",
+      "catalogKey": "infraestructura-12",
+      "format": "SVG",
+      "intendedTarget": "Commission Infraestructura",
+      "requiredForProposal": true,
+      "mobileRenderProof": "Loaded in revision1 static captures; zero broken images recorded across187measurement records.",
+      "productionRenderProof": "Existing app asset; new app UI not implemented"
+    },
+    {
+      "id": "B-ICON-commission-v2-2",
+      "provenance": "Existing shared/scout-catalog.ts selection from unchanged mobile fixture",
+      "sourceOrExport": "/artwork/icons/salud-01.svg",
+      "catalogKey": "salud-01",
+      "format": "SVG",
+      "intendedTarget": "Commission Botiquín",
+      "requiredForProposal": true,
+      "mobileRenderProof": "Loaded in revision1 static captures; zero broken images recorded across187measurement records.",
+      "productionRenderProof": "Existing app asset; new app UI not implemented"
+    },
+    {
+      "id": "B-ICON-commission-v2-3",
+      "provenance": "Existing shared/scout-catalog.ts selection from unchanged mobile fixture",
+      "sourceOrExport": "/artwork/icons/animacion-general.svg",
+      "catalogKey": "animacion-general",
+      "format": "SVG",
+      "intendedTarget": "Commission Animación",
+      "requiredForProposal": true,
+      "mobileRenderProof": "Loaded in revision1 static captures; zero broken images recorded across187measurement records.",
+      "productionRenderProof": "Existing app asset; new app UI not implemented"
+    },
+    {
+      "id": "B-ICON-commission-v2-4",
+      "provenance": "Existing shared/scout-catalog.ts selection from unchanged mobile fixture",
+      "sourceOrExport": "/artwork/icons/infraestructura-06.svg",
+      "catalogKey": "infraestructura-06",
+      "format": "SVG",
+      "intendedTarget": "Commission Electricidad",
+      "requiredForProposal": true,
+      "mobileRenderProof": "Loaded in revision1 static captures; zero broken images recorded across187measurement records.",
+      "productionRenderProof": "Existing app asset; new app UI not implemented"
+    },
+    {
+      "id": "B-ICON-commission-v2-5",
+      "provenance": "Existing shared/scout-catalog.ts selection from unchanged mobile fixture",
+      "sourceOrExport": "/artwork/icons/cocina-01.svg",
+      "catalogKey": "cocina-01",
+      "format": "SVG",
+      "intendedTarget": "Commission Cocina",
+      "requiredForProposal": true,
+      "mobileRenderProof": "Loaded in revision1 static captures; zero broken images recorded across187measurement records.",
+      "productionRenderProof": "Existing app asset; new app UI not implemented"
+    },
+    {
+      "id": "B-ICON-commission-v2-6",
+      "provenance": "Existing shared/scout-catalog.ts selection from unchanged mobile fixture",
+      "sourceOrExport": "/artwork/icons/cocina-02.svg",
+      "catalogKey": "cocina-02",
+      "format": "SVG",
+      "intendedTarget": "Commission Menú",
+      "requiredForProposal": true,
+      "mobileRenderProof": "Loaded in revision1 static captures; zero broken images recorded across187measurement records.",
+      "productionRenderProof": "Existing app asset; new app UI not implemented"
+    },
+    {
+      "id": "B-ICON-commission-v2-7",
+      "provenance": "Existing shared/scout-catalog.ts selection from unchanged mobile fixture",
+      "sourceOrExport": "/artwork/icons/logistica-02.svg",
+      "catalogKey": "logistica-02",
+      "format": "SVG",
+      "intendedTarget": "Commission Logística",
+      "requiredForProposal": true,
+      "mobileRenderProof": "Loaded in revision1 static captures; zero broken images recorded across187measurement records.",
+      "productionRenderProof": "Existing app asset; new app UI not implemented"
+    },
+    {
+      "id": "B-ICON-commission-v2-8",
+      "provenance": "Existing shared/scout-catalog.ts selection from unchanged mobile fixture",
+      "sourceOrExport": "/artwork/icons/servicios-general.svg",
+      "catalogKey": "servicios-general",
+      "format": "SVG",
+      "intendedTarget": "Commission Servicios",
+      "requiredForProposal": true,
+      "mobileRenderProof": "Loaded in revision1 static captures; zero broken images recorded across187measurement records.",
+      "productionRenderProof": "Existing app asset; new app UI not implemented"
+    },
+    {
+      "id": "B-ICON-commission-v2-9",
+      "provenance": "Existing shared/scout-catalog.ts selection from unchanged mobile fixture",
+      "sourceOrExport": "/artwork/icons/tradiciones-13.svg",
+      "catalogKey": "tradiciones-13",
+      "format": "SVG",
+      "intendedTarget": "Commission Staff",
+      "requiredForProposal": true,
+      "mobileRenderProof": "Loaded in revision1 static captures; zero broken images recorded across187measurement records.",
+      "productionRenderProof": "Existing app asset; new app UI not implemented"
+    }
+  ],
+  "blockedFutureWork": [
+    {
+      "id": "B-CATALOG-INDIVIDUALS",
+      "description": "Export and inspect all 338 catalog mascot pairs as independent images. This proposal reuses existing individual images only. No collection-wide completion claim.",
+      "status": "implementation pending after proposal approval"
+    }
+  ],
+  "revision": 1,
+  "selectedRefinementScope": "platform (explicit user authorization)",
+  "captures": "revision-1/captures",
+  "geometryEvidence": "measurements.json",
+  "datasetEvidence": "dataset-reconciliation.json",
+  "productionStatus": "not implemented; static design only"
+}

@@ -1,8 +1,8 @@
 {
   "reviewId": "forest-experience-20261028",
   "initialRendererScope": "both",
-  "refinementScope": null,
-  "correctionRoundsUsed": 0,
+  "refinementScope": "platform",
+  "correctionRoundsUsed": 1,
   "commonBriefSha256": "e601cd44ec047bffbd39a6a69d867c4f3dc80adab32f0d4e0692e2aa68dbed38",
   "stitchProject": "projects/9157822480698906524",
   "stitchVisibility": "PRIVATE",
@@ -28,5 +28,20 @@
     }
   },
   "userFeedback": "La propuesta de Stitch es extremadamente básica",
-  "selectedDesign": null
+  "selectedDesign": null,
+  "refinementAuthorization": "Perfecto, refina la propuesta de Codex y continuamos con el flujo",
+  "refinementCheckpoint": "452183a",
+  "refinementStatus": "round-1-reviewed",
+  "refinedRendererResult": {
+    "renderer": "platform",
+    "verdict": "meets direction",
+    "review": "codex/revision-1/independent-review.md",
+    "scenes": 43,
+    "captures": 251,
+    "measurements": 187,
+    "correctionsResolved": 15,
+    "correctionsPartial": 0,
+    "materialCorrectionsUnresolved": 0
+  },
+  "visualProposalGate": "awaiting-user-approval"
 }

@@ -17,8 +17,8 @@
 | Generación | Ambas propuestas iniciadas en paralelo con la misma especificación. Proyecto privado Stitch `9157822480698906524`. Codex genera una lámina estática separada; resultados conservados e inspeccionados por separado. |
 | Graph assistance | No se ha construido ni utilizado un grafo. No hay identidad de proyecto de Design Arc verificada para validarlo; se sigue el flujo ordinario sin atribuir evidencia al grafo. |
 | Veredicto visual inicial | Codex: meets with corrections. Stitch: does not meet. Matrices independientes y comparación en comparacion.md. |
-| Rondas de corrección | Cero usadas. |
-| Aprobación visual | Pendiente. El usuario considera la propuesta Stitch extremadamente básica. Primero debe elegir ámbito de refinamiento tras la comparación; el modo elegido exige aprobar la propuesta corregida antes de implementar. |
+| Rondas de corrección | Una usada, solo Codex, seleccionada por el usuario. Quedan dos del presupuesto compartido; no se necesitan para los hallazgos materiales de esta propuesta. |
+| Aprobación visual | Pendiente sobre la propuesta Codex refinada. El usuario eligió platform. Ronda 1: meets direction, quince correcciones resueltas, sin pendientes materiales en la revisión estática. Véase propuesta-refinada.md. |
 | Implementación | No iniciada. No cambios en `src`, `server`, `shared`, pruebas, dependencias ni base de datos. |
 | Producción | Sin despliegue, cambios de variables ni envío de correos. |
 
