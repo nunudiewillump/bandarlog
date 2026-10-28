@@ -11,14 +11,14 @@
 | Auditoría | Fuente, pruebas y capturas actuales inspeccionadas. Auth y dirección artística revisados en paralelo mediante agentes de solo lectura siguiendo Designly Director. |
 | Dirección | A, copa compacta en flujo normal, seleccionada por el modo elegido. Alternativa y trade-offs documentados. |
 | Renderizadores | Codex y Stitch, elegidos por el usuario. La elección se conserva. |
-| Acceso Stitch | No verificado: no hay herramientas Stitch expuestas en la sesión. No se pudo ejecutar `list_projects`; no se atribuye acceso a un manifiesto de plugin. |
+| Acceso Stitch | Verificado mediante MCP oficial por HTTPS: initialize, tools/list y list_projects respondieron correctamente. La cuenta no tenía proyectos. No se muestran datos ajenos. |
 | Conexión registrada | El usuario autorizó expresamente el cambio. Registrado en el perfil Codex de este ejecutor el endpoint oficial con cabecera vinculada a `STITCH_API_KEY`. Verificado mediante `codex mcp get stitch --json`, sin mostrar valores secretos. |
-| Credencial | No disponible en el proceso actual. Guardado requisito de secreto personal `STITCH_API_KEY`, limitado a `stitch.googleapis.com`, en el borrador del entorno. El guardado está confirmado; requiere entrada segura de clave y publicar el entorno. No está aplicado ni implica una conexión verificada. |
-| Generación | No iniciada. Ambas propuestas deben comenzar en paralelo desde `stitch-brief.md` cuando Stitch esté verificado. No se reemplaza el camino elegido por una propuesta solo Codex. |
+| Credencial | Requisito activado por el usuario; entorno revisión 13 con observación actual ready. No se ha leído ni guardado su valor. La cabecera usa la referencia del proceso y el proxy heredado. |
+| Generación | Ambas propuestas iniciadas en paralelo con la misma especificación. Proyecto privado Stitch `9157822480698906524`. Codex genera una lámina estática separada; resultados conservados e inspeccionados por separado. |
 | Graph assistance | No se ha construido ni utilizado un grafo. No hay identidad de proyecto de Design Arc verificada para validarlo; se sigue el flujo ordinario sin atribuir evidencia al grafo. |
-| Veredicto visual | Pendiente: no hay nuevas pantallas renderizadas que permitan emitir uno de los tres veredictos. |
+| Veredicto visual inicial | Codex: meets with corrections. Stitch: does not meet. Matrices independientes y comparación en comparacion.md. |
 | Rondas de corrección | Cero usadas. |
-| Aprobación visual | Pendiente. El modo elegido exige presentar la propuesta antes de implementar. |
+| Aprobación visual | Pendiente. El usuario considera la propuesta Stitch extremadamente básica. Primero debe elegir ámbito de refinamiento tras la comparación; el modo elegido exige aprobar la propuesta corregida antes de implementar. |
 | Implementación | No iniciada. No cambios en `src`, `server`, `shared`, pruebas, dependencias ni base de datos. |
 | Producción | Sin despliegue, cambios de variables ni envío de correos. |
 
@@ -28,13 +28,13 @@ Capturas actuales revisadas: `artifacts/revision-movil/home-active-390.png`, `co
 
 La revisión encontró un fragmento de otro personaje bajo Cocina y duplicaciones de texto, progreso y acceso a tareas. Son hallazgos observados, no una certificación completa de accesibilidad.
 
-## Bloqueo y siguiente acción
+## Conexión y siguiente acción
 
-Stitch permite crear mockups editables en un lienzo visual. Para el camino emparejado elegido falta activar la credencial y comprobar una llamada de lectura. El perfil del ejecutor ya contiene la configuración autorizada y solo referencia `STITCH_API_KEY`: nunca guardar la clave en el repositorio, archivos del proyecto, chat o estado de Design Arc. Esto no modifica el perfil del ordenador personal del usuario ni garantiza que las herramientas se recarguen en una sesión ya abierta.
+Stitch está conectado por su servidor oficial, usando la referencia segura del entorno y sin guardar su valor. Se verificó una consulta de proyectos vacía y se creó el proyecto privado `9157822480698906524`. Como las herramientas no se recargaron en el catálogo de esta sesión, se utilizó el protocolo MCP oficial por HTTPS con el proxy heredado; no un servicio alternativo.
 
-La clave se crea en https://stitch.withgoogle.com/ → foto de perfil → Stitch settings → API key → Create key. Debe introducirse únicamente mediante la interfaz segura de secretos de la configuración de este entorno, en `STITCH_API_KEY`. Revisar y guardar los cambios, y publicar el entorno para activarlos. Después, redescubrir herramientas y verificar `list_projects` antes de generar. Si las herramientas no se recargan en la sesión actual, informar del límite; no improvisar archivos de secretos.
+Ambas propuestas se iniciaron en paralelo. Se conserva la especificación exacta enviada en `common-brief.sent.txt` y su huella en `generation-record.json`. La clave no forma parte de esos archivos. Los cinco recursos oficiales públicos se verificaron contra el repositorio antes de enviarlos como referencias.
 
-Tras verificar la conexión, empezar las dos propuestas con la misma especificación sin repetir auditoría, objetivo ni elección de renderizadores. Si no se puede conectar, continuar solo con Codex requiere elección explícita del usuario.
+La siguiente acción es inspeccionar los dos resultados completos, producir matrices de conformidad independientes y compararlos. Solo entonces se elegirá el alcance de refinamiento. La autorización de conexión no cambia los límites de diseño, implementación ni despliegue.
 
 ## Prueba que no aporta una lámina
 

@@ -1,6 +1,6 @@
 # Especificación común · Codex y Stitch
 
-Estado: preparada, no enviada. El usuario seleccionó ambos renderizadores. Stitch no expone herramientas en esta sesión y su acceso no está verificado. No se ha iniciado ninguno de los dos renderizadores: deben recibir esta misma especificación y comenzar en paralelo una vez verificada la conexión.
+Estado: enviada al proyecto privado Stitch `9157822480698906524` tras verificar su MCP oficial. Codex y Stitch iniciaron en paralelo desde esta especificación y el README completo. Se añadieron las URLs públicas de los cinco recursos oficiales, verificadas contra los archivos del repositorio en `assets-evidence.json`. Los resultados se conservan por separado.
 
 ## Resultado solicitado
 

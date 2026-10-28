@@ -1,0 +1,32 @@
+{
+  "reviewId": "forest-experience-20261028",
+  "initialRendererScope": "both",
+  "refinementScope": null,
+  "correctionRoundsUsed": 0,
+  "commonBriefSha256": "e601cd44ec047bffbd39a6a69d867c4f3dc80adab32f0d4e0692e2aa68dbed38",
+  "stitchProject": "projects/9157822480698906524",
+  "stitchVisibility": "PRIVATE",
+  "stitchConnectionVerified": true,
+  "credentialsStoredInRepository": false,
+  "appImplementationStarted": false,
+  "initialRendererResults": {
+    "platform": {
+      "verdict": "meets with corrections",
+      "review": "codex/initial-review.md",
+      "scenes": 27,
+      "variants": 4,
+      "captures": 56,
+      "measuredCases": 52
+    },
+    "stitch": {
+      "verdict": "does not meet",
+      "review": "stitch/initial-review.md",
+      "screen": "75e24a11fa2e431ba93fbfd68859e025",
+      "actualScreenshotWidth": 2560,
+      "actualScreenshotHeight": 3006,
+      "export": "stitch/original.html"
+    }
+  },
+  "userFeedback": "La propuesta de Stitch es extremadamente básica",
+  "selectedDesign": null
+}

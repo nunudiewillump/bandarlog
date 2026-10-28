@@ -177,4 +177,4 @@ No se repite ahora la batería de 36 pruebas API/aplicación y 42 browser del PR
 
 ## Estado de aprobación
 
-Objetivo confirmado. Dirección A seleccionada por el modo elegido. Propuesta visual en preparación; la validación y sus límites se registran en `validacion.md`. **No implementar ni desplegar basándose únicamente en este documento.** La siguiente aprobación es sobre las pantallas renderizadas, no sobre una promesa de diseño.
+Objetivo confirmado. Dirección A seleccionada por el modo elegido. Propuestas iniciales renderizadas: [comparación](comparacion.md). Codex cumple con correcciones; Stitch no cumple. El alcance de refinamiento está pendiente de elección explícita; cero rondas aplicadas. La validación y sus límites se registran en `validacion.md`. **No implementar ni desplegar basándose únicamente en este documento.** La siguiente aprobación es sobre las pantallas renderizadas, no sobre una promesa de diseño.

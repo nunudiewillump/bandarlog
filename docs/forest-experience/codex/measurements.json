@@ -1,0 +1,1904 @@
+[
+  {
+    "scene": "F01",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Continuar con Google",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Recibir código",
+        "width": 350,
+        "height": 48
+      }
+    ],
+    "minText": 14,
+    "pageId": "Acceso · Google configurado · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F02",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Cambiar correo",
+        "width": 125.4375,
+        "height": 44
+      },
+      {
+        "label": "Entrar",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Reenviar código",
+        "width": 350,
+        "height": 48
+      }
+    ],
+    "minText": 14,
+    "pageId": "Código dentro de la PWA · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F03",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Aceptar invitación y entrar",
+        "width": 350,
+        "height": 48
+      }
+    ],
+    "minText": 14,
+    "pageId": "Aceptar invitación · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F04",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Elegir foto",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Hacer foto",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Continuar",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Ahora no, sin foto",
+        "width": 350,
+        "height": 48
+      }
+    ],
+    "minText": 14,
+    "pageId": "Primer acceso · nombre y foto · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F05",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 886,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Volver",
+        "width": 66.75,
+        "height": 44
+      },
+      {
+        "label": "Alejar",
+        "width": 171,
+        "height": 48
+      },
+      {
+        "label": "Acercar",
+        "width": 171,
+        "height": 48
+      },
+      {
+        "label": "Centrar",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Guardar foto",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Cancelar",
+        "width": 350,
+        "height": 48
+      }
+    ],
+    "minText": 14,
+    "pageId": "Editor de foto · cancelación · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F06",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Completar Revisar el listado de material",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Revisar el listado de material\n\nRonda 26/27 · Material\n\nHoy, 18:00\nVencida",
+        "width": 298,
+        "height": 77
+      },
+      {
+        "label": "Completar Confirmar el transporte",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Confirmar el transporte\n\nVerano 2027 · Logística\n\nMañana, 12:00\nPendiente",
+        "width": 298,
+        "height": 77
+      },
+      {
+        "label": "Completar Preparar la actividad de grupo",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Preparar la actividad de grupo\n\nRonda 26/27 · Animación\n\n3 nov, 19:00\nPendiente",
+        "width": 298,
+        "height": 77
+      },
+      {
+        "label": "Ver todas mis tareas",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Inicio",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Mis tareas",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Comisiones",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Perfil",
+        "width": 93.5,
+        "height": 59
+      }
+    ],
+    "minText": 12,
+    "pageId": "Inicio · tareas personales · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F07",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      },
+      {
+        "src": "../../../../public/monkey-vine.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Deshacer",
+        "width": 77.546875,
+        "height": 48
+      },
+      {
+        "label": "Inicio",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Mis tareas",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Comisiones",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Perfil",
+        "width": 93.5,
+        "height": 59
+      }
+    ],
+    "minText": 12,
+    "pageId": "Última tarea · satisfacción · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F08",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Revisar el listado de material\n\nRonda 26/27 · Material\n\nHoy, 18:00\nVencida",
+        "width": 298,
+        "height": 77
+      },
+      {
+        "label": "Confirmar el transporte\n\nVerano 2027 · Logística\n\nMañana, 12:00\nPendiente",
+        "width": 298,
+        "height": 77
+      },
+      {
+        "label": "Preparar la actividad de grupo\n\nRonda 26/27 · Animación\n\n3 nov, 19:00\nPendiente",
+        "width": 298,
+        "height": 77
+      },
+      {
+        "label": "Ver mis comisiones",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Inicio",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Mis tareas",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Comisiones",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Perfil",
+        "width": 93.5,
+        "height": 59
+      }
+    ],
+    "minText": 12,
+    "pageId": "Inicio · equipo en consulta · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F09",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Ver campamento",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Inicio",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Mis tareas",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Comisiones",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Perfil",
+        "width": 93.5,
+        "height": 59
+      }
+    ],
+    "minText": 12,
+    "pageId": "Inicio · campamento autorizado · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F10",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      },
+      {
+        "src": "../../../../public/monkey.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Revisar el listado de material\n\nRonda 26/27 · Material\n\nHoy\nTerminada",
+        "width": 298,
+        "height": 77
+      },
+      {
+        "label": "Confirmar el transporte\n\nVerano 2027 · Logística\n\nAyer\nTerminada",
+        "width": 298,
+        "height": 77
+      },
+      {
+        "label": "Inicio",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Mis tareas",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Comisiones",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Perfil",
+        "width": 93.5,
+        "height": 59
+      }
+    ],
+    "minText": 12,
+    "pageId": "Todo al día · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F11",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 886,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Buscar y filtrar",
+        "width": 154.71875,
+        "height": 44
+      },
+      {
+        "label": "Completar Revisar el listado de material",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Revisar el listado de material\n\nRonda 26/27 · Material\n\nHoy, 18:00\nVencida",
+        "width": 298,
+        "height": 77
+      },
+      {
+        "label": "Completar Confirmar el transporte",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Confirmar el transporte\n\nVerano 2027 · Logística\n\nMañana, 12:00\nPendiente",
+        "width": 298,
+        "height": 77
+      },
+      {
+        "label": "Completar Preparar la actividad de grupo",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Preparar la actividad de grupo\n\nRonda 26/27 · Animación\n\n3 nov, 19:00\nPendiente",
+        "width": 298,
+        "height": 77
+      },
+      {
+        "label": "Completar Reponer el botiquín",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Reponer el botiquín\n\nRonda 26/27 · Botiquín\n\n5 nov, 18:00\nPendiente",
+        "width": 298,
+        "height": 77
+      },
+      {
+        "label": "Completar Confirmar los menús",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Confirmar los menús\n\nVerano 2027 · Menú\n\n6 nov, 12:00\nPendiente",
+        "width": 298,
+        "height": 77
+      },
+      {
+        "label": "Inicio",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Mis tareas",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Comisiones",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Perfil",
+        "width": 93.5,
+        "height": 59
+      }
+    ],
+    "minText": 12,
+    "pageId": "Mis tareas · lista única · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F12",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 935,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Mis tareas",
+        "width": 92.265625,
+        "height": 44
+      },
+      {
+        "label": "Ver Alex",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Completar",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Marcar en curso",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Inicio",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Mis tareas",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Comisiones",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Perfil",
+        "width": 93.5,
+        "height": 59
+      }
+    ],
+    "minText": 12,
+    "pageId": "Detalle de tarea · asignada · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F13",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 1118,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Material\n1 pendientes",
+        "width": 350,
+        "height": 72
+      },
+      {
+        "label": "Infraestructura\n2 pendientes",
+        "width": 350,
+        "height": 72
+      },
+      {
+        "label": "Botiquín\n3 pendientes",
+        "width": 350,
+        "height": 72
+      },
+      {
+        "label": "Animación\n4 pendientes",
+        "width": 350,
+        "height": 72
+      },
+      {
+        "label": "Electricidad\nAl día",
+        "width": 350,
+        "height": 72
+      },
+      {
+        "label": "Cocina\n2 pendientes",
+        "width": 350,
+        "height": 72
+      },
+      {
+        "label": "Menú\n3 pendientes",
+        "width": 350,
+        "height": 72
+      },
+      {
+        "label": "Logística\n4 pendientes",
+        "width": 350,
+        "height": 72
+      },
+      {
+        "label": "Servicios\nAl día",
+        "width": 350,
+        "height": 72
+      },
+      {
+        "label": "Staff\n6 pendientes",
+        "width": 350,
+        "height": 72
+      },
+      {
+        "label": "Inicio",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Mis tareas",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Comisiones",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Perfil",
+        "width": 93.5,
+        "height": 59
+      }
+    ],
+    "minText": 12,
+    "pageId": "Comisiones · diez agrupadas · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F14",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 832,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      },
+      {
+        "src": "../../../../public/artwork/mascots/servicios.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Comisiones",
+        "width": 99.3125,
+        "height": 44
+      },
+      {
+        "label": "Nueva tarea",
+        "width": 171,
+        "height": 56
+      },
+      {
+        "label": "Añadir personas",
+        "width": 171,
+        "height": 48
+      },
+      {
+        "label": "Tareas",
+        "width": 43.5625,
+        "height": 45
+      },
+      {
+        "label": "Personas",
+        "width": 58.375,
+        "height": 45
+      },
+      {
+        "label": "Actividad",
+        "width": 60.046875,
+        "height": 45
+      },
+      {
+        "label": "Completar Preparar los turnos",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Preparar los turnos\n\nVerano 2027 · Servicios\n\nMañana, 12:00\nPendiente",
+        "width": 298,
+        "height": 77
+      },
+      {
+        "label": "Completar Revisar la zona común",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Revisar la zona común\n\nVerano 2027 · Servicios\n\n4 nov, 18:00\nPendiente",
+        "width": 298,
+        "height": 77
+      },
+      {
+        "label": "Inicio",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Mis tareas",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Comisiones",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Perfil",
+        "width": 93.5,
+        "height": 59
+      }
+    ],
+    "minText": 12,
+    "pageId": "Comisión · Responsable · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F15",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Material\n3 pendientes",
+        "width": 350,
+        "height": 72
+      },
+      {
+        "label": "Infraestructura\n3 pendientes",
+        "width": 350,
+        "height": 72
+      },
+      {
+        "label": "Nuevo proyecto",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Inicio",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Mis tareas",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Comisiones",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Perfil",
+        "width": 93.5,
+        "height": 59
+      }
+    ],
+    "minText": 12,
+    "pageId": "Proyectos anuales · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F16",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Nuevo campamento",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Ver campamento",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Ver campamento",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Inicio",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Mis tareas",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Comisiones",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Perfil",
+        "width": 93.5,
+        "height": 59
+      }
+    ],
+    "minText": 12,
+    "pageId": "Campamentos · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F17",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Logística\n2 pendientes · 1 vencida",
+        "width": 350,
+        "height": 72
+      },
+      {
+        "label": "Servicios\n3 pendientes",
+        "width": 350,
+        "height": 72
+      },
+      {
+        "label": "Cocina\nAl día",
+        "width": 350,
+        "height": 72
+      },
+      {
+        "label": "Inicio",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Mis tareas",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Comisiones",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Perfil",
+        "width": 93.5,
+        "height": 59
+      }
+    ],
+    "minText": 12,
+    "pageId": "Seguimiento · Coordinación · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F18",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 1081,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Servicios",
+        "width": 83.65625,
+        "height": 44
+      },
+      {
+        "label": "Ver Alex",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Ver Laura",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Ver Carlos",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Un correo",
+        "width": 64.765625,
+        "height": 45
+      },
+      {
+        "label": "Lista de correos",
+        "width": 100.484375,
+        "height": 45
+      },
+      {
+        "label": "Enviar invitación",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Inicio",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Mis tareas",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Comisiones",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Perfil",
+        "width": 93.5,
+        "height": 59
+      }
+    ],
+    "minText": 12,
+    "pageId": "Personas e invitaciones · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F19",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 917,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Cambiar foto",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Configurar avisos",
+        "width": 316,
+        "height": 48
+      },
+      {
+        "label": "Guardar perfil",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Cerrar sesión",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Inicio",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Mis tareas",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Comisiones",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Perfil",
+        "width": 93.5,
+        "height": 59
+      }
+    ],
+    "minText": 12,
+    "pageId": "Perfil y avisos · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F20",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 970,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Servicios",
+        "width": 83.65625,
+        "height": 44
+      },
+      {
+        "label": "Crear tarea",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Cancelar",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Inicio",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Mis tareas",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Comisiones",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Perfil",
+        "width": 93.5,
+        "height": 59
+      }
+    ],
+    "minText": 12,
+    "pageId": "Nueva tarea · validación · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F21",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      },
+      {
+        "src": "../../../../public/monkey.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Inicio",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Mis tareas",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Comisiones",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Perfil",
+        "width": 93.5,
+        "height": 59
+      }
+    ],
+    "minText": 12,
+    "pageId": "Cuenta sin asignaciones · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F22",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Inicio",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Mis tareas",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Comisiones",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Perfil",
+        "width": 93.5,
+        "height": 59
+      }
+    ],
+    "minText": 12,
+    "pageId": "Carga · sin destello de login · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F23",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Reintentar",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Inicio",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Mis tareas",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Comisiones",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Perfil",
+        "width": 93.5,
+        "height": 59
+      }
+    ],
+    "minText": 12,
+    "pageId": "Sin conexión · reintentar · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F24",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Recibir código",
+        "width": 350,
+        "height": 48
+      }
+    ],
+    "minText": 16,
+    "pageId": "Sesión caducada · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F25",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Cambiar correo",
+        "width": 125.4375,
+        "height": 44
+      },
+      {
+        "label": "Entrar",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Reenviar código",
+        "width": 350,
+        "height": 48
+      }
+    ],
+    "minText": 14,
+    "pageId": "Código incorrecto · recuperación · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F26",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Continuar",
+        "width": 350,
+        "height": 48
+      }
+    ],
+    "minText": 16,
+    "pageId": "Foto omitida · nombre validado · Propuesta Bandarlog"
+  },
+  {
+    "scene": "F27",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Recibir código",
+        "width": 350,
+        "height": 48
+      },
+      {
+        "label": "Volver a Google",
+        "width": 350,
+        "height": 48
+      }
+    ],
+    "minText": 16,
+    "pageId": "Google cancelado · alternativa · Propuesta Bandarlog"
+  },
+  {
+    "scene": "V01",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Recibir código",
+        "width": 350,
+        "height": 48
+      }
+    ],
+    "minText": 14,
+    "pageId": "Acceso · sin Google · Propuesta Bandarlog"
+  },
+  {
+    "scene": "V02",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Cocina\n3 pendientes",
+        "width": 350,
+        "height": 72
+      },
+      {
+        "label": "Inicio",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Mis tareas",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Comisiones",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Perfil",
+        "width": 93.5,
+        "height": 59
+      }
+    ],
+    "minText": 12,
+    "pageId": "Comisiones · una comisión · Propuesta Bandarlog"
+  },
+  {
+    "scene": "V05",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Material\n3 pendientes",
+        "width": 350,
+        "height": 72
+      },
+      {
+        "label": "Infraestructura\n3 pendientes",
+        "width": 350,
+        "height": 72
+      },
+      {
+        "label": "Cocina\n3 pendientes",
+        "width": 350,
+        "height": 72
+      },
+      {
+        "label": "Menú\n3 pendientes",
+        "width": 350,
+        "height": 72
+      },
+      {
+        "label": "Logística\n3 pendientes",
+        "width": 350,
+        "height": 72
+      },
+      {
+        "label": "Inicio",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Mis tareas",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Comisiones",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Perfil",
+        "width": 93.5,
+        "height": 59
+      }
+    ],
+    "minText": 12,
+    "pageId": "Comisiones · cinco comisiones · Propuesta Bandarlog"
+  },
+  {
+    "scene": "VSAFE",
+    "width": 390,
+    "documentWidth": 390,
+    "height": 820,
+    "fonts": "loaded",
+    "images": [
+      {
+        "src": "../../../../public/brand-mark.webp",
+        "loaded": true
+      }
+    ],
+    "targets": [
+      {
+        "label": "Bandarlog, inicio",
+        "width": 152.515625,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Completar Revisar el listado de material",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Revisar el listado de material\n\nRonda 26/27 · Material\n\nHoy, 18:00\nVencida",
+        "width": 298,
+        "height": 77
+      },
+      {
+        "label": "Completar Confirmar el transporte",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Confirmar el transporte\n\nVerano 2027 · Logística\n\nMañana, 12:00\nPendiente",
+        "width": 298,
+        "height": 77
+      },
+      {
+        "label": "Completar Preparar la actividad de grupo",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Preparar la actividad de grupo\n\nRonda 26/27 · Animación\n\n3 nov, 19:00\nPendiente",
+        "width": 298,
+        "height": 77
+      },
+      {
+        "label": "Inicio",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Mis tareas",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Comisiones",
+        "width": 93.5,
+        "height": 59
+      },
+      {
+        "label": "Perfil",
+        "width": 93.5,
+        "height": 59
+      }
+    ],
+    "minText": 12,
+    "pageId": "Áreas seguras · esquema · Propuesta Bandarlog"
+  },
+  {
+    "scene": "f01",
+    "width": 320,
+    "documentWidth": 320,
+    "variant": true
+  },
+  {
+    "scene": "f06",
+    "width": 320,
+    "documentWidth": 320,
+    "variant": true
+  },
+  {
+    "scene": "f13",
+    "width": 320,
+    "documentWidth": 320,
+    "variant": true
+  },
+  {
+    "scene": "f14",
+    "width": 320,
+    "documentWidth": 320,
+    "variant": true
+  },
+  {
+    "scene": "f18",
+    "width": 320,
+    "documentWidth": 320,
+    "variant": true
+  },
+  {
+    "scene": "vsafe",
+    "width": 320,
+    "documentWidth": 320,
+    "variant": true
+  },
+  {
+    "scene": "f01",
+    "width": 375,
+    "documentWidth": 375,
+    "variant": true
+  },
+  {
+    "scene": "f06",
+    "width": 375,
+    "documentWidth": 375,
+    "variant": true
+  },
+  {
+    "scene": "f13",
+    "width": 375,
+    "documentWidth": 375,
+    "variant": true
+  },
+  {
+    "scene": "f14",
+    "width": 375,
+    "documentWidth": 375,
+    "variant": true
+  },
+  {
+    "scene": "f18",
+    "width": 375,
+    "documentWidth": 375,
+    "variant": true
+  },
+  {
+    "scene": "vsafe",
+    "width": 375,
+    "documentWidth": 375,
+    "variant": true
+  },
+  {
+    "scene": "f01",
+    "width": 430,
+    "documentWidth": 430,
+    "variant": true
+  },
+  {
+    "scene": "f06",
+    "width": 430,
+    "documentWidth": 430,
+    "variant": true
+  },
+  {
+    "scene": "f13",
+    "width": 430,
+    "documentWidth": 430,
+    "variant": true
+  },
+  {
+    "scene": "f14",
+    "width": 430,
+    "documentWidth": 430,
+    "variant": true
+  },
+  {
+    "scene": "f18",
+    "width": 430,
+    "documentWidth": 430,
+    "variant": true
+  },
+  {
+    "scene": "vsafe",
+    "width": 430,
+    "documentWidth": 430,
+    "variant": true
+  },
+  {
+    "scene": "f01",
+    "width": 768,
+    "height": 1024,
+    "documentWidth": 768,
+    "variant": true
+  },
+  {
+    "scene": "f01",
+    "width": 1440,
+    "height": 1000,
+    "documentWidth": 1440,
+    "variant": true
+  },
+  {
+    "scene": "f06",
+    "width": 844,
+    "height": 390,
+    "documentWidth": 844,
+    "variant": true
+  }
+]

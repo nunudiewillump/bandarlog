@@ -1,0 +1,510 @@
+{
+  "projectId": "9157822480698906524",
+  "sessionId": "15269044289773594512",
+  "outputComponents": [
+    {
+      "designSystem": {
+        "name": "assets/434069c46410409d91fcd2ae18261ce7",
+        "designSystem": {
+          "displayName": "Forest Operations",
+          "styleGuidelines": "## Brand & Style\n\nThis design system serves field operations and management for scout volunteer teams. The design ethos is utilitarian, sober, and grounded—prioritizing clarity, environmental resilience (usable under direct sunlight and in damp, low-signal conditions), and ergonomic efficiency over engagement mechanics. \n\nThere are zero decorative gamification motifs, vanity badges, or speculative social feeds. The aesthetic combines tactile pragmatism with a calm, forest-rooted identity. Visual structures borrow from navigational logbooks and field toolkits: precise data density, robust touch targets (minimum 44x44px), legible contrasting surfaces, and an architectural canopy motif that anchors key operational views without hindering viewport efficiency.\n\n## Layout & Spacing\n\nThe layout model favors dense, high-efficiency information arrangement. All layouts rely on a compact 4-column structure on mobile devices, expanding to 8 columns on tablets and 12 columns on desktop workstations.\n\n- **Tree Canopy Header:** The primary operational masthead features a compact 64px tall structural bar in `#103B2D` (Profundo), accompanied by an organic 16px bottom fringe SVG silhouette (total visual envelope of 80px). This decorative silhouette remains strictly non-interactive and does not shift or obstruct operational content beneath it.\n- **Bottom Navigation Bar:** Anchored at a fixed 68px height to accommodate thumb zones easily, providing direct access to operational logs, sectors, map overlays, and emergency protocols.\n- **Touch Areas:** Regardless of visual component padding, all actionable target areas must reserve an invisible boundary of at least 44x44px.\n\n## Elevation & Depth\n\nTo avoid optical wash-out under high sunlight conditions, depth is established through tonal layering, crisp borders (`#DFE5DA`), and flat color blocking rather than heavy, diffuse drop shadows.\n\n- **Level 0 (Base Canvas):** `#FAF8F2` (Crema), completely flat.\n- **Level 1 (Card & Module Layer):** Pure white `#FFFFFF` or softened `#F5F3EC` surfaces bound by a 1px solid `#DFE5DA` stroke. No shadow blur.\n- **Level 2 (Floating Action Trays & Sheets):** Grounded containers carrying a crisp, dark tinted rim: `0 2px 4px rgba(16, 59, 45, 0.08), 0 4px 12px rgba(16, 59, 45, 0.12)`.\n- **Level 3 (Tactical Modals / Alert Banners):** Framed directly with high-contrast outlines (2px solid `#124D38` or `#A52D26`) with an ambient low-spread shadow: `0 4px 16px rgba(16, 59, 45, 0.20)`.\n\n## Components\n\n### Buttons\n- **Primary:** Background `#124D38`, text `#FAF8F2`, border-radius 4px. Height: 44px minimum. Active press state shifts to `#103B2D`.\n- **Secondary:** Background transparent, border 1.5px solid `#52675A`, text `#24352B`.\n- **Destructive/Emergency:** Background `#A52D26`, text `#FAF8F2`, border none.\n\n### Chips & Tactical Tags\n- Constructed with a height of 28px (or 44px tap frame where interactive).\n- Border: 1px solid `#DFE5DA`. Background: `#FBF3D5` for camp alerts, `#FAF8F2` for routine telemetry.\n- Label: Nunito Sans `label-sm` (`#24352B`), bold, uppercase.\n\n### Lists\n- High-density rows separated by 1px solid `#DFE5DA`. \n- Padding: 12px vertical, 16px horizontal.\n- Right accessory zones dedicated to plain status indicators, toggle switches, or chevron directional glyphs.\n\n### Inputs & Form Fields\n- Height: 44px. Background: `#FFFFFF`. Border: 1.5px solid `#DFE5DA`.\n- Focus state: Border transitions to 2px solid `#124D38` without outer glow rings.\n- Text: Nunito Sans `body-md` (`#24352B`).\n\n### Cards & Modules\n- Built with a `#FFFFFF` fill and a 1px solid `#DFE5DA` perimeter.\n- Spacing: 12px internal padding for inventory matrices, 16px for route briefings.\n- Sharp hierarchical header bar with `#52675A` micro-titles.\n\n### Checkboxes & Radios\n- Size: 20x20px with an extended 44x44px hit-box.\n- Selected state: Solid `#124D38` with `#FAF8F2` crisp interior mark. Unselected: `#FFFFFF` fill with 1.5px `#52675A` border.",
+          "theme": {
+            "colorMode": "LIGHT",
+            "font": "NUNITO_SANS",
+            "roundness": "ROUND_FOUR",
+            "customColor": "#124d38",
+            "headlineFont": "NUNITO_SANS",
+            "bodyFont": "NUNITO_SANS",
+            "labelFont": "NUNITO_SANS",
+            "namedColors": {
+              "secondary_container": "#cee5d5",
+              "tertiary_container": "#6a3700",
+              "secondary_fixed_dim": "#b5ccbc",
+              "on_tertiary_fixed": "#2f1500",
+              "on_tertiary_container": "#ff9939",
+              "primary_fixed": "#b5efd2",
+              "on_error": "#ffffff",
+              "outline": "#707973",
+              "surface_dim": "#cbdfd0",
+              "surface_container_lowest": "#ffffff",
+              "on_tertiary_fixed_variant": "#6e3900",
+              "surface_bright": "#eafeef",
+              "surface_container_highest": "#d3e7d9",
+              "inverse_on_surface": "#e2f6e7",
+              "tertiary_fixed_dim": "#ffb77d",
+              "on_error_container": "#93000a",
+              "secondary_fixed": "#d1e8d8",
+              "on_secondary_fixed": "#0c1f15",
+              "on_background": "#0e1f16",
+              "on_primary_fixed": "#002115",
+              "on_primary": "#ffffff",
+              "on_surface": "#0e1f16",
+              "primary_container": "#124d38",
+              "primary_fixed_dim": "#99d3b7",
+              "secondary": "#4e6356",
+              "surface_container_low": "#e4f9e9",
+              "error_container": "#ffdad6",
+              "on_primary_container": "#84bda2",
+              "surface": "#eafeef",
+              "surface_container": "#dff3e4",
+              "on_secondary_container": "#52675a",
+              "surface_container_high": "#d9edde",
+              "primary": "#003524",
+              "on_secondary_fixed_variant": "#374b3f",
+              "outline_variant": "#c0c9c2",
+              "on_surface_variant": "#404944",
+              "tertiary_fixed": "#ffdcc3",
+              "on_secondary": "#ffffff",
+              "on_tertiary": "#ffffff",
+              "inverse_surface": "#23342a",
+              "background": "#eafeef",
+              "error": "#ba1a1a",
+              "inverse_primary": "#99d3b7",
+              "surface_tint": "#316852",
+              "tertiary": "#4a2400",
+              "on_primary_fixed_variant": "#16503b",
+              "surface_variant": "#d3e7d9"
+            },
+            "designMd": "---\nname: Forest Operations\ncolors:\n  surface: '#eafeef'\n  surface-dim: '#cbdfd0'\n  surface-bright: '#eafeef'\n  surface-container-lowest: '#ffffff'\n  surface-container-low: '#e4f9e9'\n  surface-container: '#dff3e4'\n  surface-container-high: '#d9edde'\n  surface-container-highest: '#d3e7d9'\n  on-surface: '#0e1f16'\n  on-surface-variant: '#404944'\n  inverse-surface: '#23342a'\n  inverse-on-surface: '#e2f6e7'\n  outline: '#707973'\n  outline-variant: '#c0c9c2'\n  surface-tint: '#316852'\n  primary: '#003524'\n  on-primary: '#ffffff'\n  primary-container: '#124d38'\n  on-primary-container: '#84bda2'\n  inverse-primary: '#99d3b7'\n  secondary: '#4e6356'\n  on-secondary: '#ffffff'\n  secondary-container: '#cee5d5'\n  on-secondary-container: '#52675a'\n  tertiary: '#4a2400'\n  on-tertiary: '#ffffff'\n  tertiary-container: '#6a3700'\n  on-tertiary-container: '#ff9939'\n  error: '#ba1a1a'\n  on-error: '#ffffff'\n  error-container: '#ffdad6'\n  on-error-container: '#93000a'\n  primary-fixed: '#b5efd2'\n  primary-fixed-dim: '#99d3b7'\n  on-primary-fixed: '#002115'\n  on-primary-fixed-variant: '#16503b'\n  secondary-fixed: '#d1e8d8'\n  secondary-fixed-dim: '#b5ccbc'\n  on-secondary-fixed: '#0c1f15'\n  on-secondary-fixed-variant: '#374b3f'\n  tertiary-fixed: '#ffdcc3'\n  tertiary-fixed-dim: '#ffb77d'\n  on-tertiary-fixed: '#2f1500'\n  on-tertiary-fixed-variant: '#6e3900'\n  background: '#eafeef'\n  on-background: '#0e1f16'\n  surface-variant: '#d3e7d9'\ntypography:\n  headline-lg:\n    fontFamily: Nunito Sans\n    fontSize: 32px\n    fontWeight: '800'\n    lineHeight: 38px\n  headline-lg-mobile:\n    fontFamily: Nunito Sans\n    fontSize: 26px\n    fontWeight: '800'\n    lineHeight: 32px\n  headline-md:\n    fontFamily: Nunito Sans\n    fontSize: 22px\n    fontWeight: '700'\n    lineHeight: 28px\n  headline-sm:\n    fontFamily: Nunito Sans\n    fontSize: 18px\n    fontWeight: '700'\n    lineHeight: 24px\n  title-md:\n    fontFamily: Nunito Sans\n    fontSize: 16px\n    fontWeight: '700'\n    lineHeight: 22px\n  body-lg:\n    fontFamily: Nunito Sans\n    fontSize: 16px\n    fontWeight: '400'\n    lineHeight: 24px\n  body-md:\n    fontFamily: Nunito Sans\n    fontSize: 14px\n    fontWeight: '400'\n    lineHeight: 20px\n  body-sm:\n    fontFamily: Nunito Sans\n    fontSize: 13px\n    fontWeight: '400'\n    lineHeight: 18px\n  label-lg:\n    fontFamily: Nunito Sans\n    fontSize: 14px\n    fontWeight: '700'\n    lineHeight: 18px\n    letterSpacing: 0.2px\n  label-md:\n    fontFamily: Nunito Sans\n    fontSize: 12px\n    fontWeight: '600'\n    lineHeight: 16px\n    letterSpacing: 0.4px\n  label-sm:\n    fontFamily: Nunito Sans\n    fontSize: 11px\n    fontWeight: '700'\n    lineHeight: 14px\n    letterSpacing: 0.5px\nrounded:\n  sm: 0.125rem\n  DEFAULT: 0.25rem\n  md: 0.375rem\n  lg: 0.5rem\n  xl: 0.75rem\n  full: 9999px\nspacing:\n  gutter: 1rem\n  margin: 1rem\n  space-xs: 0.25rem\n  space-sm: 0.5rem\n  space-md: 0.75rem\n  space-lg: 1rem\n  space-xl: 1.5rem\n---\n\n## Brand & Style\n\nThis design system serves field operations and management for scout volunteer teams. The design ethos is utilitarian, sober, and grounded—prioritizing clarity, environmental resilience (usable under direct sunlight and in damp, low-signal conditions), and ergonomic efficiency over engagement mechanics. \n\nThere are zero decorative gamification motifs, vanity badges, or speculative social feeds. The aesthetic combines tactile pragmatism with a calm, forest-rooted identity. Visual structures borrow from navigational logbooks and field toolkits: precise data density, robust touch targets (minimum 44x44px), legible contrasting surfaces, and an architectural canopy motif that anchors key operational views without hindering viewport efficiency.\n\n## Colors\n\nThe palette directly reflects field terrain and physical parchment, avoiding sterile clinical whites or hyper-saturated digital hues.\n\n- **Primary (`#124D38` - Bosque):** Used for primary structural anchors, actionable primary buttons, and key state transitions.\n- **Deep Anchor (`#103B2D` - Profundo):** Used for header canopies, top-level status overlays, and deep-ground navigational containers.\n- **Surface (`#FAF8F2` - Crema):** The base background canvas, providing high legibility with minimal glare under natural outdoor light.\n- **Typography Base (`#24352B` - Tinta):** The high-contrast dark green-slate tone for all primary body and heading texts.\n- **Muted Structural (`#52675A` - Secundario):** For subordinate labels, deactivated control states, and auxiliary technical metrics.\n- **Separators (`#DFE5DA` - Línea):** Used for borders, hairline card dividers, and data-grid perimeters.\n- **Camp Accent Range:** `#D97706` (Base), `#F59E0B` (Bright), and `#FBF3D5` (Soft surface) represent active camp zones, route alerts, and tactical logistics highlights.\n- **Functional Semantics:** Critical errors use `#A52D26` (Error); non-blocking alerts use `#805006` (Aviso).\n\n## Typography\n\nNunito Sans provides warmth without sacrificing structural discipline. Its rounded letterforms ensure readability at high speeds and under rapid glance scenarios in the field. \n\n- **Display & Headings:** Tightly tracked with heavier weights (`700` and `800`) to present location data, sector names, and emergency flags clearly.\n- **Body:** Standardized at `14px` and `16px` with comfortable leading to prevent visual fatigue when scanning shift assignments, participant rosters, and supply logs.\n- **Labels:** Uppercase or semi-bold labels at `11px` to `14px` handle field measurements, timestamps, telemetry, and tabular attributes.\n\n## Layout & Spacing\n\nThe layout model favors dense, high-efficiency information arrangement. All layouts rely on a compact 4-column structure on mobile devices, expanding to 8 columns on tablets and 12 columns on desktop workstations.\n\n- **Tree Canopy Header:** The primary operational masthead features a compact 64px tall structural bar in `#103B2D` (Profundo), accompanied by an organic 16px bottom fringe SVG silhouette (total visual envelope of 80px). This decorative silhouette remains strictly non-interactive and does not shift or obstruct operational content beneath it.\n- **Bottom Navigation Bar:** Anchored at a fixed 68px height to accommodate thumb zones easily, providing direct access to operational logs, sectors, map overlays, and emergency protocols.\n- **Touch Areas:** Regardless of visual component padding, all actionable target areas must reserve an invisible boundary of at least 44x44px.\n\n## Elevation & Depth\n\nTo avoid optical wash-out under high sunlight conditions, depth is established through tonal layering, crisp borders (`#DFE5DA`), and flat color blocking rather than heavy, diffuse drop shadows.\n\n- **Level 0 (Base Canvas):** `#FAF8F2` (Crema), completely flat.\n- **Level 1 (Card & Module Layer):** Pure white `#FFFFFF` or softened `#F5F3EC` surfaces bound by a 1px solid `#DFE5DA` stroke. No shadow blur.\n- **Level 2 (Floating Action Trays & Sheets):** Grounded containers carrying a crisp, dark tinted rim: `0 2px 4px rgba(16, 59, 45, 0.08), 0 4px 12px rgba(16, 59, 45, 0.12)`.\n- **Level 3 (Tactical Modals / Alert Banners):** Framed directly with high-contrast outlines (2px solid `#124D38` or `#A52D26`) with an ambient low-spread shadow: `0 4px 16px rgba(16, 59, 45, 0.20)`.\n\n## Shapes\n\nThe design uses soft, sturdy geometric curves (`0.25rem` / 4px base corner radius) reflecting calibrated tools, wooden clipboards, and heavy-duty field cases. \n\n- Interactive controls, status badges, input fields, and cards share consistent, subtle radius values (`4px` to `8px`).\n- Pure pill shapes (`rounded-full`) are strictly reserved for urgent status indicators, numerical inventory counters, and physical avatar/unit designations to maintain geometric distinction against structural containers.\n\n## Components\n\n### Buttons\n- **Primary:** Background `#124D38`, text `#FAF8F2`, border-radius 4px. Height: 44px minimum. Active press state shifts to `#103B2D`.\n- **Secondary:** Background transparent, border 1.5px solid `#52675A`, text `#24352B`.\n- **Destructive/Emergency:** Background `#A52D26`, text `#FAF8F2`, border none.\n\n### Chips & Tactical Tags\n- Constructed with a height of 28px (or 44px tap frame where interactive).\n- Border: 1px solid `#DFE5DA`. Background: `#FBF3D5` for camp alerts, `#FAF8F2` for routine telemetry.\n- Label: Nunito Sans `label-sm` (`#24352B`), bold, uppercase.\n\n### Lists\n- High-density rows separated by 1px solid `#DFE5DA`. \n- Padding: 12px vertical, 16px horizontal.\n- Right accessory zones dedicated to plain status indicators, toggle switches, or chevron directional glyphs.\n\n### Inputs & Form Fields\n- Height: 44px. Background: `#FFFFFF`. Border: 1.5px solid `#DFE5DA`.\n- Focus state: Border transitions to 2px solid `#124D38` without outer glow rings.\n- Text: Nunito Sans `body-md` (`#24352B`).\n\n### Cards & Modules\n- Built with a `#FFFFFF` fill and a 1px solid `#DFE5DA` perimeter.\n- Spacing: 12px internal padding for inventory matrices, 16px for route briefings.\n- Sharp hierarchical header bar with `#52675A` micro-titles.\n\n### Checkboxes & Radios\n- Size: 20x20px with an extended 44x44px hit-box.\n- Selected state: Solid `#124D38` with `#FAF8F2` crisp interior mark. Unselected: `#FFFFFF` fill with 1.5px `#52675A` border.",
+            "colorVariant": "FIDELITY",
+            "overridePrimaryColor": "#124d38",
+            "overrideSecondaryColor": "#52675a",
+            "overrideTertiaryColor": "#d97706",
+            "overrideNeutralColor": "#24352b",
+            "spacingScale": 2,
+            "typography": {
+              "body-sm": {
+                "fontFamily": "Nunito Sans",
+                "fontSize": "13px",
+                "fontWeight": "400",
+                "lineHeight": "18px"
+              },
+              "label-md": {
+                "fontFamily": "Nunito Sans",
+                "fontSize": "12px",
+                "fontWeight": "600",
+                "lineHeight": "16px",
+                "letterSpacing": "0.4px"
+              },
+              "headline-sm": {
+                "fontFamily": "Nunito Sans",
+                "fontSize": "18px",
+                "fontWeight": "700",
+                "lineHeight": "24px"
+              },
+              "headline-lg": {
+                "fontFamily": "Nunito Sans",
+                "fontSize": "32px",
+                "fontWeight": "800",
+                "lineHeight": "38px"
+              },
+              "body-lg": {
+                "fontFamily": "Nunito Sans",
+                "fontSize": "16px",
+                "fontWeight": "400",
+                "lineHeight": "24px"
+              },
+              "body-md": {
+                "fontFamily": "Nunito Sans",
+                "fontSize": "14px",
+                "fontWeight": "400",
+                "lineHeight": "20px"
+              },
+              "title-md": {
+                "fontFamily": "Nunito Sans",
+                "fontSize": "16px",
+                "fontWeight": "700",
+                "lineHeight": "22px"
+              },
+              "label-lg": {
+                "fontFamily": "Nunito Sans",
+                "fontSize": "14px",
+                "fontWeight": "700",
+                "lineHeight": "18px",
+                "letterSpacing": "0.2px"
+              },
+              "label-sm": {
+                "fontFamily": "Nunito Sans",
+                "fontSize": "11px",
+                "fontWeight": "700",
+                "lineHeight": "14px",
+                "letterSpacing": "0.5px"
+              },
+              "headline-lg-mobile": {
+                "fontFamily": "Nunito Sans",
+                "fontSize": "26px",
+                "fontWeight": "800",
+                "lineHeight": "32px"
+              },
+              "headline-md": {
+                "fontFamily": "Nunito Sans",
+                "fontSize": "22px",
+                "fontWeight": "700",
+                "lineHeight": "28px"
+              }
+            },
+            "spacing": {
+              "margin": "1rem",
+              "space-xl": "1.5rem",
+              "space-xs": "0.25rem",
+              "space-lg": "1rem",
+              "space-sm": "0.5rem",
+              "gutter": "1rem",
+              "space-md": "0.75rem"
+            },
+            "headlineFontFamily": "Nunito Sans",
+            "bodyFontFamily": "Nunito Sans",
+            "labelFontFamily": "Nunito Sans"
+          }
+        },
+        "version": "1"
+      }
+    },
+    {
+      "design": {
+        "screens": [
+          {
+            "screenshot": {
+              "name": "projects/9157822480698906524/files/0e74f9cb2637480c938d8eacb43260ab",
+              "downloadUrl": "https://stitch.googleapis.com/v1/projects/9157822480698906524/files/0e74f9cb2637480c938d8eacb43260ab:download"
+            },
+            "htmlCode": {
+              "name": "projects/9157822480698906524/files/1f8ba5836b684db0a7a01dea11d8017b",
+              "downloadUrl": "https://stitch.googleapis.com/v1/projects/9157822480698906524/files/1f8ba5836b684db0a7a01dea11d8017b:download",
+              "mimeType": "text/html"
+            },
+            "id": "75e24a11fa2e431ba93fbfd68859e025",
+            "generatedBy": "figaro_agent",
+            "width": "2560",
+            "height": "3006",
+            "title": "Bandarlog · Forest Experience Board",
+            "prompt": "Tablero completo de diseño Bandarlog · Forest Experience (Dirección A: Copa compacta).\nContiene un visor interactivo y cuadrícula navegable de las 27 escenas de especificación (F01 a F27), mostrando la fidelidad móvil de 390px, responsive a 320/375/430px, tablet y desktop.\nPaleta: Bosque (#124D38), Profundo (#103B2D), Crema (#FAF8F2), Tinta (#24352B), Secundario (#52675A), Línea (#DFE5DA), Arena campamento (#D97706 / #F59E0B). Tipografía Nunito Sans.\nUtilizar exactamente los assets oficiales cargados:\n- Logo oficial mono: {{DATA:IMAGE:IMAGE_1}}\n- Mascota oficial: {{DATA:IMAGE:IMAGE_4}}\n- Mascota con liana feedback: {{DATA:IMAGE:IMAGE_2}}\n- Mascota servicios: {{DATA:IMAGE:IMAGE_3}}\n- Mascota animación: {{DATA:IMAGE:IMAGE_5}}\n\nLa pantalla principal incluye:\n1. Barra superior de presentación con ficha técnica de la revisión (Dirección A confirmada, PR #8, modo Operate, 0 dependencias externas ficticias).\n2. Selector de categorías de escenas: Acceso & Onboarding (F01-F05, F24-F27), Smart Focus & Inicio (F06-F10), Operativa de Tareas y Comisiones (F11-F16, F20), Coordinación & Personas (F17-F19), Estados de Sistema & Red (F21-F23).\n3. Lienzo central con mockup de iPhone 390px navegable e interactivo que muestra con exactitud la Copa compacta (64px + 16px curva orgánica en SVG, logo {{DATA:IMAGE:IMAGE_1}}, texto Bandarlog crema), las tareas con checkbox 44x44px, divisores sutiles, contexto calendario/tienda, y la barra inferior de 68px de cuatro pestañas.\n4. Matriz lateral de tarjetas de previsualización para inspeccionar cada uno de los 27 estados F01 a F27 con su descripción técnica, justificación W3C y especificación de datos sintéticos.\n5. Manifiesto de assets y trazabilidad de movimiento (M01 a M05).\n## Available Images\nYou MUST include the following images in this design. You must reference them\nby putting their exact placeholder IDs in `src` attributes or CSS\n`background-image` rules. Do NOT use external URLs or generate new\nplaceholders. Preserve these IDs exactly as written. Read each image's\nDescription to understand its subject, intended section, and visual role.\n\n- {{DATA:IMAGE:IMAGE_1}}\n  Description: Image fetched from https://bandarlog-production.up.railway.app/brand-mark.webp\n  Dimensions: 192x192\n  Aspect Ratio: 1.00\n- {{DATA:IMAGE:IMAGE_2}}\n  Description: Image fetched from https://bandarlog-production.up.railway.app/monkey-vine.webp\n  Dimensions: 433x650\n  Aspect Ratio: 0.67\n- {{DATA:IMAGE:IMAGE_3}}\n  Description: Image fetched from https://bandarlog-production.up.railway.app/artwork/mascots/servicios.webp\n  Dimensions: 512x683\n  Aspect Ratio: 0.75\n- {{DATA:IMAGE:IMAGE_4}}\n  Description: Image fetched from https://bandarlog-production.up.railway.app/monkey.webp\n  Dimensions: 700x1050\n  Aspect Ratio: 0.67\n- {{DATA:IMAGE:IMAGE_5}}\n  Description: Image fetched from https://bandarlog-production.up.railway.app/artwork/mascots/animacion.webp\n  Dimensions: 512x683\n  Aspect Ratio: 0.75\n",
+            "name": "projects/9157822480698906524/screens/75e24a11fa2e431ba93fbfd68859e025",
+            "theme": {
+              "colorMode": "LIGHT",
+              "font": "NUNITO_SANS",
+              "roundness": "ROUND_FOUR",
+              "customColor": "#124d38",
+              "headlineFont": "NUNITO_SANS",
+              "bodyFont": "NUNITO_SANS",
+              "labelFont": "NUNITO_SANS",
+              "namedColors": {
+                "surface_container": "#dff3e4",
+                "primary": "#003524",
+                "on_tertiary_fixed_variant": "#6e3900",
+                "on_secondary_fixed": "#0c1f15",
+                "surface_tint": "#316852",
+                "tertiary": "#4a2400",
+                "tertiary_fixed_dim": "#ffb77d",
+                "on_primary_fixed": "#002115",
+                "on_error_container": "#93000a",
+                "primary_fixed": "#b5efd2",
+                "on_secondary": "#ffffff",
+                "surface": "#eafeef",
+                "inverse_on_surface": "#e2f6e7",
+                "background": "#eafeef",
+                "on_secondary_container": "#52675a",
+                "surface_dim": "#cbdfd0",
+                "secondary": "#4e6356",
+                "on_background": "#0e1f16",
+                "surface_container_highest": "#d3e7d9",
+                "surface_container_lowest": "#ffffff",
+                "on_tertiary_container": "#ff9939",
+                "surface_container_high": "#d9edde",
+                "surface_bright": "#eafeef",
+                "tertiary_container": "#6a3700",
+                "secondary_fixed": "#d1e8d8",
+                "on_tertiary": "#ffffff",
+                "error": "#ba1a1a",
+                "outline": "#707973",
+                "tertiary_fixed": "#ffdcc3",
+                "on_tertiary_fixed": "#2f1500",
+                "on_surface_variant": "#404944",
+                "error_container": "#ffdad6",
+                "secondary_fixed_dim": "#b5ccbc",
+                "on_primary_fixed_variant": "#16503b",
+                "secondary_container": "#cee5d5",
+                "on_primary": "#ffffff",
+                "on_surface": "#0e1f16",
+                "on_error": "#ffffff",
+                "on_primary_container": "#84bda2",
+                "inverse_surface": "#23342a",
+                "inverse_primary": "#99d3b7",
+                "surface_variant": "#d3e7d9",
+                "primary_fixed_dim": "#99d3b7",
+                "on_secondary_fixed_variant": "#374b3f",
+                "surface_container_low": "#e4f9e9",
+                "primary_container": "#124d38",
+                "outline_variant": "#c0c9c2"
+              },
+              "colorVariant": "FIDELITY",
+              "overridePrimaryColor": "#124d38",
+              "overrideSecondaryColor": "#52675a",
+              "overrideTertiaryColor": "#d97706",
+              "overrideNeutralColor": "#24352b",
+              "spacingScale": 2,
+              "typography": {
+                "title-md": {
+                  "fontFamily": "Nunito Sans",
+                  "fontSize": "16px",
+                  "fontWeight": "700",
+                  "lineHeight": "22px"
+                },
+                "label-lg": {
+                  "fontFamily": "Nunito Sans",
+                  "fontSize": "14px",
+                  "fontWeight": "700",
+                  "lineHeight": "18px",
+                  "letterSpacing": "0.2px"
+                },
+                "label-md": {
+                  "fontFamily": "Nunito Sans",
+                  "fontSize": "12px",
+                  "fontWeight": "600",
+                  "lineHeight": "16px",
+                  "letterSpacing": "0.4px"
+                },
+                "headline-md": {
+                  "fontFamily": "Nunito Sans",
+                  "fontSize": "22px",
+                  "fontWeight": "700",
+                  "lineHeight": "28px"
+                },
+                "body-md": {
+                  "fontFamily": "Nunito Sans",
+                  "fontSize": "14px",
+                  "fontWeight": "400",
+                  "lineHeight": "20px"
+                },
+                "body-sm": {
+                  "fontFamily": "Nunito Sans",
+                  "fontSize": "13px",
+                  "fontWeight": "400",
+                  "lineHeight": "18px"
+                },
+                "headline-lg-mobile": {
+                  "fontFamily": "Nunito Sans",
+                  "fontSize": "26px",
+                  "fontWeight": "800",
+                  "lineHeight": "32px"
+                },
+                "headline-lg": {
+                  "fontFamily": "Nunito Sans",
+                  "fontSize": "32px",
+                  "fontWeight": "800",
+                  "lineHeight": "38px"
+                },
+                "headline-sm": {
+                  "fontFamily": "Nunito Sans",
+                  "fontSize": "18px",
+                  "fontWeight": "700",
+                  "lineHeight": "24px"
+                },
+                "label-sm": {
+                  "fontFamily": "Nunito Sans",
+                  "fontSize": "11px",
+                  "fontWeight": "700",
+                  "lineHeight": "14px",
+                  "letterSpacing": "0.5px"
+                },
+                "body-lg": {
+                  "fontFamily": "Nunito Sans",
+                  "fontSize": "16px",
+                  "fontWeight": "400",
+                  "lineHeight": "24px"
+                }
+              },
+              "spacing": {
+                "gutter": "1rem",
+                "space-xs": "0.25rem",
+                "space-xl": "1.5rem",
+                "space-md": "0.75rem",
+                "space-sm": "0.5rem",
+                "space-lg": "1rem",
+                "margin": "1rem"
+              },
+              "headlineFontFamily": "Nunito Sans",
+              "bodyFontFamily": "Nunito Sans",
+              "labelFontFamily": "Nunito Sans"
+            },
+            "deviceType": "DESKTOP",
+            "screenType": "DESIGN",
+            "screenMetadata": {
+              "agentType": "PRO_AGENT",
+              "status": "COMPLETE"
+            },
+            "designSystem": {
+              "name": "assets/434069c46410409d91fcd2ae18261ce7",
+              "designSystem": {
+                "displayName": "Forest Operations",
+                "styleGuidelines": "## Brand & Style\n\nThis design system serves field operations and management for scout volunteer teams. The design ethos is utilitarian, sober, and grounded—prioritizing clarity, environmental resilience (usable under direct sunlight and in damp, low-signal conditions), and ergonomic efficiency over engagement mechanics. \n\nThere are zero decorative gamification motifs, vanity badges, or speculative social feeds. The aesthetic combines tactile pragmatism with a calm, forest-rooted identity. Visual structures borrow from navigational logbooks and field toolkits: precise data density, robust touch targets (minimum 44x44px), legible contrasting surfaces, and an architectural canopy motif that anchors key operational views without hindering viewport efficiency.\n\n## Layout & Spacing\n\nThe layout model favors dense, high-efficiency information arrangement. All layouts rely on a compact 4-column structure on mobile devices, expanding to 8 columns on tablets and 12 columns on desktop workstations.\n\n- **Tree Canopy Header:** The primary operational masthead features a compact 64px tall structural bar in `#103B2D` (Profundo), accompanied by an organic 16px bottom fringe SVG silhouette (total visual envelope of 80px). This decorative silhouette remains strictly non-interactive and does not shift or obstruct operational content beneath it.\n- **Bottom Navigation Bar:** Anchored at a fixed 68px height to accommodate thumb zones easily, providing direct access to operational logs, sectors, map overlays, and emergency protocols.\n- **Touch Areas:** Regardless of visual component padding, all actionable target areas must reserve an invisible boundary of at least 44x44px.\n\n## Elevation & Depth\n\nTo avoid optical wash-out under high sunlight conditions, depth is established through tonal layering, crisp borders (`#DFE5DA`), and flat color blocking rather than heavy, diffuse drop shadows.\n\n- **Level 0 (Base Canvas):** `#FAF8F2` (Crema), completely flat.\n- **Level 1 (Card & Module Layer):** Pure white `#FFFFFF` or softened `#F5F3EC` surfaces bound by a 1px solid `#DFE5DA` stroke. No shadow blur.\n- **Level 2 (Floating Action Trays & Sheets):** Grounded containers carrying a crisp, dark tinted rim: `0 2px 4px rgba(16, 59, 45, 0.08), 0 4px 12px rgba(16, 59, 45, 0.12)`.\n- **Level 3 (Tactical Modals / Alert Banners):** Framed directly with high-contrast outlines (2px solid `#124D38` or `#A52D26`) with an ambient low-spread shadow: `0 4px 16px rgba(16, 59, 45, 0.20)`.\n\n## Components\n\n### Buttons\n- **Primary:** Background `#124D38`, text `#FAF8F2`, border-radius 4px. Height: 44px minimum. Active press state shifts to `#103B2D`.\n- **Secondary:** Background transparent, border 1.5px solid `#52675A`, text `#24352B`.\n- **Destructive/Emergency:** Background `#A52D26`, text `#FAF8F2`, border none.\n\n### Chips & Tactical Tags\n- Constructed with a height of 28px (or 44px tap frame where interactive).\n- Border: 1px solid `#DFE5DA`. Background: `#FBF3D5` for camp alerts, `#FAF8F2` for routine telemetry.\n- Label: Nunito Sans `label-sm` (`#24352B`), bold, uppercase.\n\n### Lists\n- High-density rows separated by 1px solid `#DFE5DA`. \n- Padding: 12px vertical, 16px horizontal.\n- Right accessory zones dedicated to plain status indicators, toggle switches, or chevron directional glyphs.\n\n### Inputs & Form Fields\n- Height: 44px. Background: `#FFFFFF`. Border: 1.5px solid `#DFE5DA`.\n- Focus state: Border transitions to 2px solid `#124D38` without outer glow rings.\n- Text: Nunito Sans `body-md` (`#24352B`).\n\n### Cards & Modules\n- Built with a `#FFFFFF` fill and a 1px solid `#DFE5DA` perimeter.\n- Spacing: 12px internal padding for inventory matrices, 16px for route briefings.\n- Sharp hierarchical header bar with `#52675A` micro-titles.\n\n### Checkboxes & Radios\n- Size: 20x20px with an extended 44x44px hit-box.\n- Selected state: Solid `#124D38` with `#FAF8F2` crisp interior mark. Unselected: `#FFFFFF` fill with 1.5px `#52675A` border.",
+                "theme": {
+                  "colorMode": "LIGHT",
+                  "font": "NUNITO_SANS",
+                  "roundness": "ROUND_FOUR",
+                  "customColor": "#124d38",
+                  "headlineFont": "NUNITO_SANS",
+                  "bodyFont": "NUNITO_SANS",
+                  "labelFont": "NUNITO_SANS",
+                  "namedColors": {
+                    "tertiary": "#4a2400",
+                    "on_primary_container": "#84bda2",
+                    "inverse_primary": "#99d3b7",
+                    "outline": "#707973",
+                    "inverse_on_surface": "#e2f6e7",
+                    "surface_variant": "#d3e7d9",
+                    "primary_fixed": "#b5efd2",
+                    "on_secondary_fixed": "#0c1f15",
+                    "tertiary_fixed_dim": "#ffb77d",
+                    "surface_container_lowest": "#ffffff",
+                    "on_error_container": "#93000a",
+                    "inverse_surface": "#23342a",
+                    "background": "#eafeef",
+                    "secondary_container": "#cee5d5",
+                    "outline_variant": "#c0c9c2",
+                    "secondary_fixed_dim": "#b5ccbc",
+                    "on_tertiary_fixed_variant": "#6e3900",
+                    "on_tertiary_fixed": "#2f1500",
+                    "primary_fixed_dim": "#99d3b7",
+                    "tertiary_container": "#6a3700",
+                    "error": "#ba1a1a",
+                    "surface_dim": "#cbdfd0",
+                    "tertiary_fixed": "#ffdcc3",
+                    "primary_container": "#124d38",
+                    "surface_container_highest": "#d3e7d9",
+                    "secondary": "#4e6356",
+                    "error_container": "#ffdad6",
+                    "surface_container_low": "#e4f9e9",
+                    "on_background": "#0e1f16",
+                    "on_surface_variant": "#404944",
+                    "on_secondary_fixed_variant": "#374b3f",
+                    "on_tertiary": "#ffffff",
+                    "primary": "#003524",
+                    "on_primary": "#ffffff",
+                    "on_surface": "#0e1f16",
+                    "on_primary_fixed": "#002115",
+                    "secondary_fixed": "#d1e8d8",
+                    "surface_container": "#dff3e4",
+                    "surface": "#eafeef",
+                    "surface_bright": "#eafeef",
+                    "surface_tint": "#316852",
+                    "surface_container_high": "#d9edde",
+                    "on_primary_fixed_variant": "#16503b",
+                    "on_secondary": "#ffffff",
+                    "on_error": "#ffffff",
+                    "on_secondary_container": "#52675a",
+                    "on_tertiary_container": "#ff9939"
+                  },
+                  "designMd": "---\nname: Forest Operations\ncolors:\n  surface: '#eafeef'\n  surface-dim: '#cbdfd0'\n  surface-bright: '#eafeef'\n  surface-container-lowest: '#ffffff'\n  surface-container-low: '#e4f9e9'\n  surface-container: '#dff3e4'\n  surface-container-high: '#d9edde'\n  surface-container-highest: '#d3e7d9'\n  on-surface: '#0e1f16'\n  on-surface-variant: '#404944'\n  inverse-surface: '#23342a'\n  inverse-on-surface: '#e2f6e7'\n  outline: '#707973'\n  outline-variant: '#c0c9c2'\n  surface-tint: '#316852'\n  primary: '#003524'\n  on-primary: '#ffffff'\n  primary-container: '#124d38'\n  on-primary-container: '#84bda2'\n  inverse-primary: '#99d3b7'\n  secondary: '#4e6356'\n  on-secondary: '#ffffff'\n  secondary-container: '#cee5d5'\n  on-secondary-container: '#52675a'\n  tertiary: '#4a2400'\n  on-tertiary: '#ffffff'\n  tertiary-container: '#6a3700'\n  on-tertiary-container: '#ff9939'\n  error: '#ba1a1a'\n  on-error: '#ffffff'\n  error-container: '#ffdad6'\n  on-error-container: '#93000a'\n  primary-fixed: '#b5efd2'\n  primary-fixed-dim: '#99d3b7'\n  on-primary-fixed: '#002115'\n  on-primary-fixed-variant: '#16503b'\n  secondary-fixed: '#d1e8d8'\n  secondary-fixed-dim: '#b5ccbc'\n  on-secondary-fixed: '#0c1f15'\n  on-secondary-fixed-variant: '#374b3f'\n  tertiary-fixed: '#ffdcc3'\n  tertiary-fixed-dim: '#ffb77d'\n  on-tertiary-fixed: '#2f1500'\n  on-tertiary-fixed-variant: '#6e3900'\n  background: '#eafeef'\n  on-background: '#0e1f16'\n  surface-variant: '#d3e7d9'\ntypography:\n  headline-lg:\n    fontFamily: Nunito Sans\n    fontSize: 32px\n    fontWeight: '800'\n    lineHeight: 38px\n  headline-lg-mobile:\n    fontFamily: Nunito Sans\n    fontSize: 26px\n    fontWeight: '800'\n    lineHeight: 32px\n  headline-md:\n    fontFamily: Nunito Sans\n    fontSize: 22px\n    fontWeight: '700'\n    lineHeight: 28px\n  headline-sm:\n    fontFamily: Nunito Sans\n    fontSize: 18px\n    fontWeight: '700'\n    lineHeight: 24px\n  title-md:\n    fontFamily: Nunito Sans\n    fontSize: 16px\n    fontWeight: '700'\n    lineHeight: 22px\n  body-lg:\n    fontFamily: Nunito Sans\n    fontSize: 16px\n    fontWeight: '400'\n    lineHeight: 24px\n  body-md:\n    fontFamily: Nunito Sans\n    fontSize: 14px\n    fontWeight: '400'\n    lineHeight: 20px\n  body-sm:\n    fontFamily: Nunito Sans\n    fontSize: 13px\n    fontWeight: '400'\n    lineHeight: 18px\n  label-lg:\n    fontFamily: Nunito Sans\n    fontSize: 14px\n    fontWeight: '700'\n    lineHeight: 18px\n    letterSpacing: 0.2px\n  label-md:\n    fontFamily: Nunito Sans\n    fontSize: 12px\n    fontWeight: '600'\n    lineHeight: 16px\n    letterSpacing: 0.4px\n  label-sm:\n    fontFamily: Nunito Sans\n    fontSize: 11px\n    fontWeight: '700'\n    lineHeight: 14px\n    letterSpacing: 0.5px\nrounded:\n  sm: 0.125rem\n  DEFAULT: 0.25rem\n  md: 0.375rem\n  lg: 0.5rem\n  xl: 0.75rem\n  full: 9999px\nspacing:\n  gutter: 1rem\n  margin: 1rem\n  space-xs: 0.25rem\n  space-sm: 0.5rem\n  space-md: 0.75rem\n  space-lg: 1rem\n  space-xl: 1.5rem\n---\n\n## Brand & Style\n\nThis design system serves field operations and management for scout volunteer teams. The design ethos is utilitarian, sober, and grounded—prioritizing clarity, environmental resilience (usable under direct sunlight and in damp, low-signal conditions), and ergonomic efficiency over engagement mechanics. \n\nThere are zero decorative gamification motifs, vanity badges, or speculative social feeds. The aesthetic combines tactile pragmatism with a calm, forest-rooted identity. Visual structures borrow from navigational logbooks and field toolkits: precise data density, robust touch targets (minimum 44x44px), legible contrasting surfaces, and an architectural canopy motif that anchors key operational views without hindering viewport efficiency.\n\n## Colors\n\nThe palette directly reflects field terrain and physical parchment, avoiding sterile clinical whites or hyper-saturated digital hues.\n\n- **Primary (`#124D38` - Bosque):** Used for primary structural anchors, actionable primary buttons, and key state transitions.\n- **Deep Anchor (`#103B2D` - Profundo):** Used for header canopies, top-level status overlays, and deep-ground navigational containers.\n- **Surface (`#FAF8F2` - Crema):** The base background canvas, providing high legibility with minimal glare under natural outdoor light.\n- **Typography Base (`#24352B` - Tinta):** The high-contrast dark green-slate tone for all primary body and heading texts.\n- **Muted Structural (`#52675A` - Secundario):** For subordinate labels, deactivated control states, and auxiliary technical metrics.\n- **Separators (`#DFE5DA` - Línea):** Used for borders, hairline card dividers, and data-grid perimeters.\n- **Camp Accent Range:** `#D97706` (Base), `#F59E0B` (Bright), and `#FBF3D5` (Soft surface) represent active camp zones, route alerts, and tactical logistics highlights.\n- **Functional Semantics:** Critical errors use `#A52D26` (Error); non-blocking alerts use `#805006` (Aviso).\n\n## Typography\n\nNunito Sans provides warmth without sacrificing structural discipline. Its rounded letterforms ensure readability at high speeds and under rapid glance scenarios in the field. \n\n- **Display & Headings:** Tightly tracked with heavier weights (`700` and `800`) to present location data, sector names, and emergency flags clearly.\n- **Body:** Standardized at `14px` and `16px` with comfortable leading to prevent visual fatigue when scanning shift assignments, participant rosters, and supply logs.\n- **Labels:** Uppercase or semi-bold labels at `11px` to `14px` handle field measurements, timestamps, telemetry, and tabular attributes.\n\n## Layout & Spacing\n\nThe layout model favors dense, high-efficiency information arrangement. All layouts rely on a compact 4-column structure on mobile devices, expanding to 8 columns on tablets and 12 columns on desktop workstations.\n\n- **Tree Canopy Header:** The primary operational masthead features a compact 64px tall structural bar in `#103B2D` (Profundo), accompanied by an organic 16px bottom fringe SVG silhouette (total visual envelope of 80px). This decorative silhouette remains strictly non-interactive and does not shift or obstruct operational content beneath it.\n- **Bottom Navigation Bar:** Anchored at a fixed 68px height to accommodate thumb zones easily, providing direct access to operational logs, sectors, map overlays, and emergency protocols.\n- **Touch Areas:** Regardless of visual component padding, all actionable target areas must reserve an invisible boundary of at least 44x44px.\n\n## Elevation & Depth\n\nTo avoid optical wash-out under high sunlight conditions, depth is established through tonal layering, crisp borders (`#DFE5DA`), and flat color blocking rather than heavy, diffuse drop shadows.\n\n- **Level 0 (Base Canvas):** `#FAF8F2` (Crema), completely flat.\n- **Level 1 (Card & Module Layer):** Pure white `#FFFFFF` or softened `#F5F3EC` surfaces bound by a 1px solid `#DFE5DA` stroke. No shadow blur.\n- **Level 2 (Floating Action Trays & Sheets):** Grounded containers carrying a crisp, dark tinted rim: `0 2px 4px rgba(16, 59, 45, 0.08), 0 4px 12px rgba(16, 59, 45, 0.12)`.\n- **Level 3 (Tactical Modals / Alert Banners):** Framed directly with high-contrast outlines (2px solid `#124D38` or `#A52D26`) with an ambient low-spread shadow: `0 4px 16px rgba(16, 59, 45, 0.20)`.\n\n## Shapes\n\nThe design uses soft, sturdy geometric curves (`0.25rem` / 4px base corner radius) reflecting calibrated tools, wooden clipboards, and heavy-duty field cases. \n\n- Interactive controls, status badges, input fields, and cards share consistent, subtle radius values (`4px` to `8px`).\n- Pure pill shapes (`rounded-full`) are strictly reserved for urgent status indicators, numerical inventory counters, and physical avatar/unit designations to maintain geometric distinction against structural containers.\n\n## Components\n\n### Buttons\n- **Primary:** Background `#124D38`, text `#FAF8F2`, border-radius 4px. Height: 44px minimum. Active press state shifts to `#103B2D`.\n- **Secondary:** Background transparent, border 1.5px solid `#52675A`, text `#24352B`.\n- **Destructive/Emergency:** Background `#A52D26`, text `#FAF8F2`, border none.\n\n### Chips & Tactical Tags\n- Constructed with a height of 28px (or 44px tap frame where interactive).\n- Border: 1px solid `#DFE5DA`. Background: `#FBF3D5` for camp alerts, `#FAF8F2` for routine telemetry.\n- Label: Nunito Sans `label-sm` (`#24352B`), bold, uppercase.\n\n### Lists\n- High-density rows separated by 1px solid `#DFE5DA`. \n- Padding: 12px vertical, 16px horizontal.\n- Right accessory zones dedicated to plain status indicators, toggle switches, or chevron directional glyphs.\n\n### Inputs & Form Fields\n- Height: 44px. Background: `#FFFFFF`. Border: 1.5px solid `#DFE5DA`.\n- Focus state: Border transitions to 2px solid `#124D38` without outer glow rings.\n- Text: Nunito Sans `body-md` (`#24352B`).\n\n### Cards & Modules\n- Built with a `#FFFFFF` fill and a 1px solid `#DFE5DA` perimeter.\n- Spacing: 12px internal padding for inventory matrices, 16px for route briefings.\n- Sharp hierarchical header bar with `#52675A` micro-titles.\n\n### Checkboxes & Radios\n- Size: 20x20px with an extended 44x44px hit-box.\n- Selected state: Solid `#124D38` with `#FAF8F2` crisp interior mark. Unselected: `#FFFFFF` fill with 1.5px `#52675A` border.",
+                  "colorVariant": "FIDELITY",
+                  "overridePrimaryColor": "#124d38",
+                  "overrideSecondaryColor": "#52675a",
+                  "overrideTertiaryColor": "#d97706",
+                  "overrideNeutralColor": "#24352b",
+                  "spacingScale": 2,
+                  "typography": {
+                    "label-sm": {
+                      "fontFamily": "Nunito Sans",
+                      "fontSize": "11px",
+                      "fontWeight": "700",
+                      "lineHeight": "14px",
+                      "letterSpacing": "0.5px"
+                    },
+                    "headline-sm": {
+                      "fontFamily": "Nunito Sans",
+                      "fontSize": "18px",
+                      "fontWeight": "700",
+                      "lineHeight": "24px"
+                    },
+                    "headline-lg": {
+                      "fontFamily": "Nunito Sans",
+                      "fontSize": "32px",
+                      "fontWeight": "800",
+                      "lineHeight": "38px"
+                    },
+                    "headline-lg-mobile": {
+                      "fontFamily": "Nunito Sans",
+                      "fontSize": "26px",
+                      "fontWeight": "800",
+                      "lineHeight": "32px"
+                    },
+                    "body-sm": {
+                      "fontFamily": "Nunito Sans",
+                      "fontSize": "13px",
+                      "fontWeight": "400",
+                      "lineHeight": "18px"
+                    },
+                    "headline-md": {
+                      "fontFamily": "Nunito Sans",
+                      "fontSize": "22px",
+                      "fontWeight": "700",
+                      "lineHeight": "28px"
+                    },
+                    "label-md": {
+                      "fontFamily": "Nunito Sans",
+                      "fontSize": "12px",
+                      "fontWeight": "600",
+                      "lineHeight": "16px",
+                      "letterSpacing": "0.4px"
+                    },
+                    "body-lg": {
+                      "fontFamily": "Nunito Sans",
+                      "fontSize": "16px",
+                      "fontWeight": "400",
+                      "lineHeight": "24px"
+                    },
+                    "title-md": {
+                      "fontFamily": "Nunito Sans",
+                      "fontSize": "16px",
+                      "fontWeight": "700",
+                      "lineHeight": "22px"
+                    },
+                    "body-md": {
+                      "fontFamily": "Nunito Sans",
+                      "fontSize": "14px",
+                      "fontWeight": "400",
+                      "lineHeight": "20px"
+                    },
+                    "label-lg": {
+                      "fontFamily": "Nunito Sans",
+                      "fontSize": "14px",
+                      "fontWeight": "700",
+                      "lineHeight": "18px",
+                      "letterSpacing": "0.2px"
+                    }
+                  },
+                  "spacing": {
+                    "space-xl": "1.5rem",
+                    "margin": "1rem",
+                    "space-xs": "0.25rem",
+                    "space-lg": "1rem",
+                    "gutter": "1rem",
+                    "space-sm": "0.5rem",
+                    "space-md": "0.75rem"
+                  },
+                  "headlineFontFamily": "Nunito Sans",
+                  "bodyFontFamily": "Nunito Sans",
+                  "labelFontFamily": "Nunito Sans"
+                }
+              },
+              "version": "1"
+            }
+          }
+        ],
+        "theme": {}
+      }
+    },
+    {
+      "text": "### Propuesta Visual · Bandarlog Forest Experience (feat/forest-experience)\n\nSe ha generado con éxito el **Tablero Visual Oficial Bandarlog Forest Experience** (Bandarlog · Forest Experience Board), implementando rigurosamente todas las directrices, contratos de diseño y evidencias acordadas tras el PR #8.\n\n---\n\n### 1. Resumen de Ejecución y Contratos Visuales\n\n- **Dirección A (Copa compacta):**\n  - Cabecera en flujo normal: 64 px de contenido funcional + 16 px de silueta orgánica inferior en SVG puro sin texturas ni hojas invasivas.\n  - Integración de marca oficial: Logo mono `brand-mark.webp` (Image fetched from https://bandarlog-production.up.railway.app/brand-mark.webp) en crema con tipografía *Nunito Sans 800*, sin cápsula blanca.\n  - Comienzo inmediato de la operativa sin tarjetas hero redundantes ni métricas decorativas.\n- **Navegación Móvil (390 px con soporte responsive 320/375/430 px):**\n  - Barra de 68 px de altura con base crema opaca (`#FAF8F2`), divisores sutiles (`#DFE5DA`), 4 pestañas estables (*Inicio*, *Mis tareas*, *Comisiones*, *Perfil*) y objetivos táctiles mínimos de 44×44 px (cumplimiento W3C Target Size Enhanced).\n- **Paleta Operativa (Modo Operate):**\n  - Bosque (`#124D38`), Profundo (`#103B2D`), Crema (`#FAF8F2`), Tinta (`#24352B`), Secundario (`#52675A`), Línea (`#DFE5DA`), y acentos contextuales Arena (`#D97706` / `#F59E0B`) para campamento.\n- **Manifiesto de Recursos Oficiales Reutilizados:**\n  - `brand-mark.webp`: Image fetched from https://bandarlog-production.up.railway.app/brand-mark.webp (Wordmark y cabecera)\n  - `monkey-vine.webp`: Image fetched from https://bandarlog-production.up.railway.app/monkey-vine.webp (Feedback de tarea completada y satisfacción)\n  - `servicios.webp`: Image fetched from https://bandarlog-production.up.railway.app/artwork/mascots/servicios.webp (Mascota comisiones operativas / servicios)\n  - `monkey.webp`: Image fetched from https://bandarlog-production.up.railway.app/monkey.webp (Mascota oficial e identidad)\n  - `animacion.webp`: Image fetched from https://bandarlog-production.up.railway.app/artwork/mascots/animacion.webp (Mascota cultura / campamento)\n  - *Cero reemplazos ni ilustraciones sintéticas externas.*\n\n---\n\n### 2. Cobertura de Escenas F01 – F27 en el Tablero\n\nEl tablero organiza y permite inspeccionar los **27 estados esenciales**:\n1. **Acceso & Onboarding (F01–F05, F24–F27):** Código de campo único pegable, Google condicionado por flag de configuración, aceptación transaccional de invitación, pantalla inicial obligatoria *«¿Cómo te llamamos?»*, editor circular de foto y flujos de recuperación segura.\n2. **Smart Focus & Inicio (F06–F10):** Tres tareas prioritarias abiertas, transición de última tarea (1→0) con pausa respetada de 2600 ms (M02), vistas de equipo, resumen agregado y estado \"Todo al día\".\n3. **Operativa & Comisiones (F11–F16, F20):** Lista continua por vencimiento, detalle con responsables y actividad, comisiones agrupadas por proyecto (Material, Infraestructura, Botiquín, etc.) y formulario accesible de nueva tarea.\n4. **Coordinación, Personas & Perfil (F17–F19):** Seguimiento ejecutivo, directorio de personas con permisos granulares y perfil con cierre de sesión revocado en backend.\n5. **Resiliencia & Red (F21–F23):** Estado sin asignaciones, indicador de carga (banana con contorno y relleno sin porcentajes ficticios) y estado offline con reintento.\n\n---\n\n### 3. Contratos de Movimiento y Accesibilidad\n\n- **M01–M05 documentados y representados:** Sin transiciones espaciales que provoquen mareo o desorientación; respeto estricto a `prefers-reduced-motion`.\n- **Ratios de contraste:** Ratios de 7.4:1 en cabecera y >11:1 en textos principales sobre superficie crema, superando ampliamente el estándar WCAG AA / AAA."
+    },
+    {
+      "suggestion": "Inspeccionar vista detallada de Smart Focus (F06-F08) en el mockup de 390px"
+    },
+    {
+      "suggestion": "Revisar el flujo de Onboarding y primer acceso \"¿Cómo te llamamos?\" (F04-F05)"
+    },
+    {
+      "suggestion": "Ver desglose de comisiones de Campamento y Ronda (F13-F14)"
+    }
+  ]
+}
