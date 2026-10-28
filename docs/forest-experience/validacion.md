@@ -12,7 +12,8 @@
 | Dirección | A, copa compacta en flujo normal, seleccionada por el modo elegido. Alternativa y trade-offs documentados. |
 | Renderizadores | Codex y Stitch, elegidos por el usuario. La elección se conserva. |
 | Acceso Stitch | No verificado: no hay herramientas Stitch expuestas en la sesión. No se pudo ejecutar `list_projects`; no se atribuye acceso a un manifiesto de plugin. |
-| Conexión preparada | Endpoint y referencia segura documentados en `conexion-stitch.toml`, sin clave. Cambio de perfil pendiente de autorización expresa. No se han cambiado variables reales. |
+| Conexión registrada | El usuario autorizó expresamente el cambio. Registrado en el perfil Codex de este ejecutor el endpoint oficial con cabecera vinculada a `STITCH_API_KEY`. Verificado mediante `codex mcp get stitch --json`, sin mostrar valores secretos. |
+| Credencial | No disponible en el proceso actual. Guardado requisito de secreto personal `STITCH_API_KEY`, limitado a `stitch.googleapis.com`, en el borrador del entorno. El guardado está confirmado; requiere entrada segura de clave y publicar el entorno. No está aplicado ni implica una conexión verificada. |
 | Generación | No iniciada. Ambas propuestas deben comenzar en paralelo desde `stitch-brief.md` cuando Stitch esté verificado. No se reemplaza el camino elegido por una propuesta solo Codex. |
 | Graph assistance | No se ha construido ni utilizado un grafo. No hay identidad de proyecto de Design Arc verificada para validarlo; se sigue el flujo ordinario sin atribuir evidencia al grafo. |
 | Veredicto visual | Pendiente: no hay nuevas pantallas renderizadas que permitan emitir uno de los tres veredictos. |
@@ -29,9 +30,9 @@ La revisión encontró un fragmento de otro personaje bajo Cocina y duplicacione
 
 ## Bloqueo y siguiente acción
 
-Stitch permite crear mockups editables en un lienzo visual. Para el camino emparejado elegido falta conectar su servidor oficial y comprobar una llamada de lectura. La configuración propuesta solo referencia `STITCH_API_KEY`: nunca guardar la clave en el repositorio, archivos del proyecto, chat o estado de Design Arc.
+Stitch permite crear mockups editables en un lienzo visual. Para el camino emparejado elegido falta activar la credencial y comprobar una llamada de lectura. El perfil del ejecutor ya contiene la configuración autorizada y solo referencia `STITCH_API_KEY`: nunca guardar la clave en el repositorio, archivos del proyecto, chat o estado de Design Arc. Esto no modifica el perfil del ordenador personal del usuario ni garantiza que las herramientas se recarguen en una sesión ya abierta.
 
-La clave se crea en https://stitch.withgoogle.com/ → foto de perfil → Stitch settings → API key → Create key. Debe introducirse únicamente mediante una interfaz segura de credenciales de Codex. Después de configurar, redescubrir herramientas y verificar `list_projects` antes de generar. Si el entorno no ofrece entrada segura, informar del límite; no improvisar archivos de secretos.
+La clave se crea en https://stitch.withgoogle.com/ → foto de perfil → Stitch settings → API key → Create key. Debe introducirse únicamente mediante la interfaz segura de secretos de la configuración de este entorno, en `STITCH_API_KEY`. Revisar y guardar los cambios, y publicar el entorno para activarlos. Después, redescubrir herramientas y verificar `list_projects` antes de generar. Si las herramientas no se recargan en la sesión actual, informar del límite; no improvisar archivos de secretos.
 
 Tras verificar la conexión, empezar las dos propuestas con la misma especificación sin repetir auditoría, objetivo ni elección de renderizadores. Si no se puede conectar, continuar solo con Codex requiere elección explícita del usuario.
 

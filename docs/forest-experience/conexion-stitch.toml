@@ -1,4 +1,5 @@
-# Propuesta de configuración, NO aplicada al perfil de Codex.
+# Configuración autorizada y aplicada al perfil Codex del ejecutor de esta tarea.
+# Credencial y herramientas todavía pendientes de activar y verificar.
 # Sin valores secretos. La clave se introduce únicamente en una interfaz segura.
 # Referencia oficial: plugins/design-arc/.codex-plugin/plugin.json de Design Arc.
 
