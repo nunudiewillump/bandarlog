@@ -2029,7 +2029,8 @@ td svg {
     font-size: 9px;
   }
 }
-@media (max-width: 767px) {
+@media (max-width: 767px),
+  (orientation: landscape) and (max-height: 599px) and (max-width: 1023px) {
   :root {
     font-size: 14px;
   }
@@ -2728,7 +2729,8 @@ td svg {
 .invite-form textarea {
   min-height: 150px;
 }
-@media (max-width: 767px) {
+@media (max-width: 767px),
+  (orientation: landscape) and (max-height: 599px) and (max-width: 1023px) {
   .responsible-attention {
     flex-direction: column;
   }
@@ -2979,7 +2981,8 @@ input[type='checkbox'] {
 .select-control .select-trigger svg {
   color: currentColor;
 }
-@media (max-width: 767px) {
+@media (max-width: 767px),
+  (orientation: landscape) and (max-height: 599px) and (max-width: 1023px) {
   .list-controls > .select-control {
     width: calc(50% - 5px);
     max-width: none;
@@ -3183,7 +3186,8 @@ input[type='file']::file-selector-button {
   margin-right: 12px;
   cursor: pointer;
 }
-@media (max-width: 767px) {
+@media (max-width: 767px),
+  (orientation: landscape) and (max-height: 599px) and (max-width: 1023px) {
   .commission-banner .artwork-status,
   .commission-banner .artwork-retry {
     position: static;
@@ -3249,7 +3253,8 @@ input[type='file']::file-selector-button {
   width: 24px;
   height: 24px;
 }
-@media (max-width: 767px) {
+@media (max-width: 767px),
+  (orientation: landscape) and (max-height: 599px) and (max-width: 1023px) {
   .commission-banner > .commission-mascot {
     display: none;
   }
@@ -3634,7 +3639,8 @@ input[type='file']::file-selector-button {
   outline: 3px solid #397a57;
   outline-offset: 3px;
 }
-@media (max-width: 767px) {
+@media (max-width: 767px),
+  (orientation: landscape) and (max-height: 599px) and (max-width: 1023px) {
   .desktop-home,
   .commissions-grid.desktop-only {
     display: none !important;
@@ -3812,7 +3818,8 @@ input[type='file']::file-selector-button {
   margin-right: 10px;
   font: inherit;
 }
-@media (max-width: 767px) {
+@media (max-width: 767px),
+  (orientation: landscape) and (max-height: 599px) and (max-width: 1023px) {
   .main > .page-heading,
   .main > .profile-panel,
   .main > .panel {
@@ -3984,7 +3991,8 @@ input[type='file']::file-selector-button {
     min-width: 0;
   }
 }
-@media (max-width: 767px) {
+@media (max-width: 767px),
+  (orientation: landscape) and (max-height: 599px) and (max-width: 1023px) {
   .person-row {
     display: grid;
     grid-template-columns: 36px minmax(0, 1fr);
@@ -4080,7 +4088,8 @@ input[type='file']::file-selector-button {
 .project-camp-overview .camp-overview > .project-identity {
   display: none;
 }
-@media (max-width: 767px) {
+@media (max-width: 767px),
+  (orientation: landscape) and (max-height: 599px) and (max-width: 1023px) {
   .project-camp-overview.mobile-only {
     display: block;
   }

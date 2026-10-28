@@ -1,0 +1,260 @@
+[
+  {
+    "id": "F01",
+    "label": "Acceso · Google configurado",
+    "auth": true,
+    "note": "Variante con Google configurado; datos sintéticos."
+  },
+  {
+    "id": "F02",
+    "label": "Código dentro de la PWA",
+    "auth": true,
+    "note": ""
+  },
+  {
+    "id": "F03",
+    "label": "Aceptar invitación",
+    "auth": true,
+    "note": ""
+  },
+  {
+    "id": "F04",
+    "label": "Primer acceso · nombre y foto",
+    "auth": true,
+    "note": ""
+  },
+  {
+    "id": "F05",
+    "label": "Editor de foto · cancelación",
+    "auth": true,
+    "note": "Imagen de prueba: mascota original, no foto de una persona. Cancelar vuelve a VRETURN con Alex intacto. Recorte funcional pendiente de implementación."
+  },
+  {
+    "id": "F06",
+    "label": "Inicio · tareas personales",
+    "auth": false,
+    "note": ""
+  },
+  {
+    "id": "F07",
+    "label": "Última tarea · satisfacción",
+    "auth": false,
+    "note": "Secuencia de satisfacción: VLAST muestra 1; F07 muestra 0; F08 conserva la confirmación personal tras 2,6s. Estos frames estáticos no prueban tiempo ni interrupción."
+  },
+  {
+    "id": "F08",
+    "label": "Inicio · equipo en consulta",
+    "auth": false,
+    "note": "Scouter: sin controles para completar tareas ajenas."
+  },
+  {
+    "id": "F09",
+    "label": "Inicio · campamento autorizado",
+    "auth": false,
+    "note": "Etapa camps del fixture: 60tareas propias/comisiones terminadas; campamento41total/27done/14open. Se muestran solo agregados autorizados."
+  },
+  {
+    "id": "F10",
+    "label": "Todo al día",
+    "auth": false,
+    "note": "Historial ilustrativo de tareas reales de la cuenta en producción; no fabricar datos."
+  },
+  {
+    "id": "F11",
+    "label": "Mis tareas · lista única",
+    "auth": false,
+    "note": "Siete tareas personales abiertas del fixture, por fecha, de cinco comisiones anuales y Cocina/Menú del campamento. No se insertan tareas ajenas en esta lista."
+  },
+  {
+    "id": "F12",
+    "label": "Detalle de tarea · asignada",
+    "auth": false,
+    "note": ""
+  },
+  {
+    "id": "F13",
+    "label": "Comisiones · diez agrupadas",
+    "auth": false,
+    "note": "Escenario de diez comisiones. La lista continúa por scroll sin diez tarjetas grandes."
+  },
+  {
+    "id": "F14",
+    "label": "Comisión · Responsable",
+    "auth": false,
+    "note": "Responsable: gestiona esta comisión. Fixture personal: 3abiertas/2done/5total, progreso40%. Ver VSCOUTER para consulta sin gestión."
+  },
+  {
+    "id": "F15",
+    "label": "Proyectos anuales",
+    "auth": false,
+    "note": "Un único encabezado del proyecto. Fixture:33total/13done/20open; progreso39%."
+  },
+  {
+    "id": "F16",
+    "label": "Campamentos",
+    "auth": false,
+    "note": "Navidad es un segundo proyecto vacío de muestra; no se inventa progreso. Verano utiliza etapa personal del fixture:41total/10done/31open."
+  },
+  {
+    "id": "F17",
+    "label": "Seguimiento · Coordinación",
+    "auth": false,
+    "note": "Coordinación, etapa personal del mismo fixture: campamento41total/31open/10done y3bloqueadas. Alcance de backend pendiente de prueba."
+  },
+  {
+    "id": "F18",
+    "label": "Personas e invitaciones",
+    "auth": false,
+    "note": "Destino bloqueado a Servicios; desde proyecto, al proyecto de origen. Lista de correos comparte destino."
+  },
+  {
+    "id": "F19",
+    "label": "Perfil y avisos",
+    "auth": false,
+    "note": ""
+  },
+  {
+    "id": "F20",
+    "label": "Nueva tarea · validación",
+    "auth": false,
+    "note": ""
+  },
+  {
+    "id": "F21",
+    "label": "Cuenta sin asignaciones",
+    "auth": false,
+    "note": "Cuenta vacía: sin estadísticas ni obligaciones inventadas."
+  },
+  {
+    "id": "F22",
+    "label": "Carga · sin destello de login",
+    "auth": false,
+    "note": "Estado estático del indicador existente. No representa porcentaje de progreso real."
+  },
+  {
+    "id": "F23",
+    "label": "Sin conexión · reintentar",
+    "auth": false,
+    "note": "No se confunde falta de red con cierre de sesión; conservar contexto seguro."
+  },
+  {
+    "id": "F24",
+    "label": "Sesión caducada",
+    "auth": true,
+    "note": "Renovación y límites se prueban en backend después de implementar."
+  },
+  {
+    "id": "F25",
+    "label": "Código incorrecto · recuperación",
+    "auth": true,
+    "note": ""
+  },
+  {
+    "id": "F26",
+    "label": "Foto omitida · nombre validado",
+    "auth": false,
+    "note": "Destino tras Continuar sin fotografía: Inicio con avatarAL, nombreAlex y sin repetir la pregunta. Persistencia servidor pendiente de implementación."
+  },
+  {
+    "id": "F27",
+    "label": "Google cancelado · alternativa",
+    "auth": true,
+    "note": "Google configurado y cancelado; no se crea acceso ni se cambia la cuenta."
+  },
+  {
+    "id": "V01",
+    "label": "Acceso · sin Google",
+    "auth": true,
+    "note": "Google se omite cuando falta configuración."
+  },
+  {
+    "id": "V02",
+    "label": "Comisiones · una comisión",
+    "auth": false,
+    "note": ""
+  },
+  {
+    "id": "V05",
+    "label": "Comisiones · cinco comisiones",
+    "auth": false,
+    "note": ""
+  },
+  {
+    "id": "VSAFE",
+    "label": "Áreas seguras · esquema",
+    "auth": false,
+    "note": "Esquema de márgenes: top 44px y bottom 34px simulados; no dispositivo físico."
+  },
+  {
+    "id": "VLAST",
+    "label": "Secuencia · queda una tarea",
+    "auth": false,
+    "note": "Frame anterior a F07: las otras6 propias ya se completaron. Completar esta última conduce a0 y satisfacción; la transición no se simula en HTML."
+  },
+  {
+    "id": "VWAIT",
+    "label": "Código · espera de reenvío",
+    "auth": true,
+    "note": "Estado de espera del mismo desafío; valor42s ilustrativo. Temporizador y límites se implementarán en servidor/cliente."
+  },
+  {
+    "id": "VEXHAUST",
+    "label": "Código · intentos agotados",
+    "auth": true,
+    "note": "El desafío anterior queda inválido. Esta muestra no consume ni envía códigos."
+  },
+  {
+    "id": "VNAME",
+    "label": "Primer acceso · nombre vacío",
+    "auth": true,
+    "note": "Campo required. Ambas acciones deben validar el nombre antes de guardar; omitir nunca omite nombre."
+  },
+  {
+    "id": "VRETURN",
+    "label": "Editor cancelado · nombre conservado",
+    "auth": true,
+    "note": "Retorno desde Cancelar de F05: nombreAlex y foto sin cambios. No se pierde el dato escrito."
+  },
+  {
+    "id": "VBULK",
+    "label": "Invitación · lista de correos",
+    "auth": false,
+    "note": "Lista abierta con2direcciones sintéticas. El destino no se cambia desde este formulario."
+  },
+  {
+    "id": "VBULKERROR",
+    "label": "Invitación · correo incorrecto",
+    "auth": false,
+    "note": "Error local concreto; toda la lista permanece editable y no se envía parcialmente sin confirmarlo."
+  },
+  {
+    "id": "VPROJECTINVITE",
+    "label": "Invitación · desde proyecto",
+    "auth": false,
+    "note": "Invitación de proyecto: destino fijado al proyecto, sin convertirla en comisión ni asignar rol global."
+  },
+  {
+    "id": "VSCOUTER",
+    "label": "Servicios · Scouter en consulta",
+    "auth": false,
+    "note": "Scouter: no Nueva tarea/Añadir personas ni círculos sobre tareas ajenas. Solo lectura del equipo autorizado."
+  },
+  {
+    "id": "VSELECT",
+    "label": "Selector · abierto",
+    "auth": false,
+    "note": "Selector diseñado para la UI; opción seleccionada verde y confirmada con check, objetivos44px. Interacción real reutilizará Select existente."
+  },
+  {
+    "id": "VSENDERROR",
+    "label": "Nueva tarea · envío fallido",
+    "auth": false,
+    "note": "Fallo de envío distinto de validación: título, fecha, encargado y descripción se conservan."
+  },
+  {
+    "id": "VINVITESENDERROR",
+    "label": "Invitación · envío fallido",
+    "auth": false,
+    "note": "DestinoServicios y datos conservados; no se afirma que se haya enviado la invitación."
+  }
+]

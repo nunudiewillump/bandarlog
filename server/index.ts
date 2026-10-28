@@ -1,7 +1,7 @@
 import express from 'express';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
-import { randomBytes, createHash, randomUUID } from 'node:crypto';
+import { randomBytes, randomInt, createHash, randomUUID } from 'node:crypto';
 import { eq, and, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { createMailTransport } from './mail.js';
@@ -23,6 +23,17 @@ import { normalizePhoto } from './photos.js';
 import { artworkImage } from './artwork.js';
 import { renderMail } from './mail-template.js';
 import { campSummaries } from './camp-summaries.js';
+import {
+  codeVerifier,
+  equalSecret,
+  sessionDeadline,
+  googleEmailAuthoritative,
+  verifyGoogleToken,
+  CODE_LIFETIME,
+  SESSION_IDLE,
+  SESSION_ABSOLUTE,
+  SESSION_RENEW_INTERVAL,
+} from './auth-security.js';
 const { production: prod, appUrl } = validateEnvironment();
 const { db, close } = await connect();
 await seed(db);
@@ -34,11 +45,17 @@ app.use('/api', (_q, r, n) => {
   r.set('Cache-Control', 'no-store');
   n();
 });
+app.use('/api/auth', (q, r, n) => {
+  if (!['GET', 'HEAD'].includes(q.method) && q.headers.origin && q.headers.origin !== appUrl)
+    return r.status(403).json({ error: 'Origen no permitido.' });
+  n();
+});
 app.use(
   '/api/auth',
   rateLimit({
     windowMs: 15 * 60000,
     limit: 30,
+    skip: (q) => q.path === '/config',
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     handler: (_q, r) => {
@@ -186,6 +203,73 @@ app.post('/api/auth/request', async (q, r) => {
   }
   r.json({ message: 'Si tienes acceso, recibirás un enlace por correo.' });
 });
+async function authenticatedUser(tx: any, recipient: string, invitationId?: string) {
+  let [u] = await tx.select().from(s.users).where(eq(s.users.email, recipient));
+  const invites = await tx
+    .select()
+    .from(s.invitations)
+    .where(
+      and(
+        eq(s.invitations.email, recipient),
+        eq(s.invitations.status, 'pending'),
+        sql`${s.invitations.expires}>now()`,
+      ),
+    )
+    .for('update');
+  if (invitationId && !invites.some((i: any) => i.id === invitationId))
+    fail(403, 'La invitación ha caducado, se ha revocado o ya se ha aceptado.');
+  if (!u && !invites.length) fail(403, 'La invitación ya no está disponible.');
+  if (!u) {
+    [u] = await tx
+      .insert(s.users)
+      .values({ id: id(), email: recipient, name: invites[0].name, role: 'member' })
+      .returning();
+  }
+  for (const i of invites) {
+    if (i.projectId)
+      await tx
+        .insert(s.projectMembers)
+        .values({ id: id(), projectId: i.projectId, userId: u.id })
+        .onConflictDoNothing();
+    if (i.commissionId)
+      await tx
+        .insert(s.members)
+        .values({ id: id(), commissionId: i.commissionId, userId: u.id, role: i.role })
+        .onConflictDoNothing();
+    await tx.update(s.invitations).set({ status: 'accepted' }).where(eq(s.invitations.id, i.id));
+  }
+  return u;
+}
+async function createSession(tx: any, userId: string) {
+  const raw = secret(),
+    csrf = secret(),
+    stamp = now();
+  await tx.insert(s.sessions).values({
+    id: hash(raw),
+    userId,
+    csrf,
+    createdAt: stamp,
+    renewedAt: stamp,
+    expires: new Date(Date.now() + SESSION_IDLE).toISOString(),
+    absoluteExpiresAt: new Date(Date.now() + SESSION_ABSOLUTE).toISOString(),
+  });
+  return { raw, csrf };
+}
+function sessionCookie(r: express.Response, raw: string, expires = Date.now() + SESSION_IDLE) {
+  r.cookie('bandarlog', raw, {
+    httpOnly: true,
+    secure: prod,
+    sameSite: 'lax',
+    maxAge: Math.max(0, expires - Date.now()),
+    path: '/',
+  });
+}
+const cookie = (q: express.Request, name: string) =>
+  q.headers.cookie
+    ?.split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${name}=`))
+    ?.slice(name.length + 1);
 app.post('/api/auth/verify', async (q, r) => {
   const { token } = parse(z.object({ token: z.string().min(32).max(128) }), q.body);
   const invitationId = token.match(/^invite\.([a-f0-9-]{36})\.[a-f0-9]{64}$/)?.[1];
@@ -195,59 +279,344 @@ app.post('/api/auth/verify', async (q, r) => {
       .where(and(eq(s.tokens.id, hash(token)), sql`${s.tokens.expires}>now()`))
       .returning();
     if (!t) fail(400, 'El enlace ha caducado o ya se ha utilizado. Solicita otro.');
-    let [u] = await tx.select().from(s.users).where(eq(s.users.email, t.email));
+    const u = await authenticatedUser(tx, t.email, invitationId);
+    return createSession(tx, u.id);
+  });
+  sessionCookie(r, result.raw);
+  r.json({ ok: true });
+});
+const googleEnabled = Boolean(
+  process.env.GOOGLE_LOGIN_CLIENT_ID && process.env.GOOGLE_LOGIN_CLIENT_SECRET,
+);
+const challengeSecret =
+  process.env.AUTH_CHALLENGE_SECRET || 'bandarlog-local-development-challenge-key';
+app.get('/api/auth/config', (_q, r) => r.json({ googleEnabled, codeEnabled: true }));
+app.post('/api/auth/code/request', async (q, r) => {
+  const input = parse(
+    z.object({ email, task: z.string().max(100).optional(), action: statuses.optional() }),
+    q.body,
+  );
+  const stamp = Date.now();
+  const result = await db.transaction(async (tx: any) => {
+    // A row exists for every email, including unknown ones: cooldown and responses do not disclose registration.
+    await tx
+      .insert(s.authChallenges)
+      .values({
+        email: input.email,
+        id: hash(secret()),
+        verifier: '',
+        expires: new Date(0).toISOString(),
+        requestedAt: new Date(0).toISOString(),
+        windowStartedAt: now(),
+        requests: 0,
+      })
+      .onConflictDoNothing();
+    const [previous] = await tx
+      .select()
+      .from(s.authChallenges)
+      .where(eq(s.authChallenges.email, input.email))
+      .for('update');
+    const wait = Math.ceil((+new Date(previous.requestedAt) + 60000 - stamp) / 1000);
+    if (wait > 0) return { retryAfter: wait };
+    const reset = stamp - +new Date(previous.windowStartedAt) >= 15 * 60000;
+    if (!reset && previous.requests >= 5)
+      return {
+        retryAfter: Math.max(
+          1,
+          Math.ceil((+new Date(previous.windowStartedAt) + 15 * 60000 - stamp) / 1000),
+        ),
+      };
+    const challengeId = secret(),
+      code = String(randomInt(1000000)).padStart(6, '0');
+    let googleLinkId: string | null = null;
+    const googleLink = cookie(q, 'bandarlog_google_link');
+    if (googleLink) {
+      const [link] = await tx
+        .select()
+        .from(s.googleLinks)
+        .where(
+          and(
+            eq(s.googleLinks.id, hash(googleLink)),
+            eq(s.googleLinks.email, input.email),
+            sql`${s.googleLinks.expires}>now()`,
+          ),
+        );
+      if (link) {
+        googleLinkId = link.id;
+        // The verified Google proof must remain live until this OTP expires.
+        await tx
+          .update(s.googleLinks)
+          .set({ expires: new Date(stamp + CODE_LIFETIME).toISOString() })
+          .where(eq(s.googleLinks.id, link.id));
+      }
+    }
+    await tx
+      .update(s.authChallenges)
+      .set({
+        id: hash(challengeId),
+        verifier: codeVerifier(challengeSecret, challengeId, input.email, code),
+        expires: new Date(stamp + CODE_LIFETIME).toISOString(),
+        attempts: 0,
+        consumedAt: null,
+        requestedAt: new Date(stamp).toISOString(),
+        windowStartedAt: reset ? new Date(stamp).toISOString() : previous.windowStartedAt,
+        requests: reset ? 1 : previous.requests + 1,
+        googleLinkId,
+      })
+      .where(eq(s.authChallenges.email, input.email));
+    const [user] = await tx.select().from(s.users).where(eq(s.users.email, input.email));
     const invites = await tx
       .select()
       .from(s.invitations)
       .where(
         and(
-          eq(s.invitations.email, t.email),
+          eq(s.invitations.email, input.email),
           eq(s.invitations.status, 'pending'),
           sql`${s.invitations.expires}>now()`,
         ),
-      )
-      .for('update');
-    if (invitationId && !invites.some((i: any) => i.id === invitationId))
-      fail(403, 'La invitación ha caducado, se ha revocado o ya se ha aceptado.');
-    if (!u && !invites.length) fail(403, 'La invitación ya no está disponible.');
-    if (!u) {
-      [u] = await tx
-        .insert(s.users)
-        .values({ id: id(), email: t.email, name: invites[0].name, role: 'member' })
-        .returning();
-    }
-    for (const i of invites) {
-      if (i.projectId)
-        await tx
-          .insert(s.projectMembers)
-          .values({ id: id(), projectId: i.projectId, userId: u.id })
-          .onConflictDoNothing();
-      if (i.commissionId)
-        await tx
-          .insert(s.members)
-          .values({ id: id(), commissionId: i.commissionId, userId: u.id, role: i.role })
-          .onConflictDoNothing();
-      await tx.update(s.invitations).set({ status: 'accepted' }).where(eq(s.invitations.id, i.id));
-    }
-    const raw = secret(),
-      csrf = secret();
-    await tx.insert(s.sessions).values({
-      id: hash(raw),
-      userId: u.id,
-      csrf,
-      expires: new Date(Date.now() + 7 * 86400000).toISOString(),
-    });
-    return { raw, csrf };
+      );
+    if (user || invites.length)
+      await queue(
+        input.email,
+        'Tu código de acceso a Bandarlog',
+        `Tu código de acceso es: ${code}\nCaduca en 10 minutos y solo se puede usar una vez. Introdúcelo en Bandarlog sin salir de la aplicación.\nSi no lo has solicitado, ignora este correo.`,
+        id(),
+        tx,
+      );
+    return { challengeId };
   });
-  r.cookie('bandarlog', result.raw, {
+  if ('retryAfter' in result)
+    return r
+      .status(429)
+      .json({ error: 'Espera antes de solicitar otro código.', retryAfter: result.retryAfter });
+  void deliver();
+  r.json({
+    challengeId: result.challengeId,
+    resendAfter: 60,
+    expiresIn: 600,
+    message: 'Si tienes acceso, recibirás un código por correo.',
+  });
+});
+app.post('/api/auth/code/verify', async (q, r) => {
+  const input = parse(
+    z.object({
+      challengeId: z.string().regex(/^[a-f0-9]{64}$/),
+      code: z.string().regex(/^\d{6}$/),
+    }),
+    q.body,
+  );
+  const result = await db.transaction(async (tx: any) => {
+    const [challenge] = await tx
+      .select()
+      .from(s.authChallenges)
+      .where(eq(s.authChallenges.id, hash(input.challengeId)))
+      .for('update');
+    if (!challenge || challenge.consumedAt || +new Date(challenge.expires) <= Date.now())
+      return { error: 'El código ha caducado o ya se ha utilizado. Solicita otro.', status: 400 };
+    if (challenge.attempts >= 5)
+      return { error: 'Se han agotado los intentos. Solicita un nuevo código.', status: 429 };
+    if (
+      !equalSecret(
+        challenge.verifier,
+        codeVerifier(challengeSecret, input.challengeId, challenge.email, input.code),
+      )
+    ) {
+      await tx
+        .update(s.authChallenges)
+        .set({ attempts: challenge.attempts + 1 })
+        .where(eq(s.authChallenges.email, challenge.email));
+      return {
+        error:
+          challenge.attempts >= 4
+            ? 'Se han agotado los intentos. Solicita un nuevo código.'
+            : 'El código no es correcto. Compruébalo e inténtalo de nuevo.',
+        status: challenge.attempts >= 4 ? 429 : 400,
+      };
+    }
+    const user = await authenticatedUser(tx, challenge.email);
+    if (challenge.googleLinkId) {
+      const [link] = await tx
+        .delete(s.googleLinks)
+        .where(
+          and(
+            eq(s.googleLinks.id, challenge.googleLinkId),
+            eq(s.googleLinks.email, challenge.email),
+            sql`${s.googleLinks.expires}>now()`,
+          ),
+        )
+        .returning();
+      if (link) {
+        await tx
+          .insert(s.googleIdentities)
+          .values({ subject: link.subject, userId: user.id })
+          .onConflictDoNothing();
+        const [identity] = await tx
+          .select()
+          .from(s.googleIdentities)
+          .where(eq(s.googleIdentities.subject, link.subject));
+        if (identity?.userId !== user.id)
+          fail(403, 'Esta cuenta de Google ya está vinculada a otra identidad.');
+      }
+    }
+    await tx
+      .update(s.authChallenges)
+      .set({ consumedAt: now(), verifier: '' })
+      .where(eq(s.authChallenges.email, challenge.email));
+    return { session: await createSession(tx, user.id) };
+  });
+  if ('error' in result) return r.status(result.status || 400).json({ error: result.error });
+  sessionCookie(r, result.session.raw);
+  r.clearCookie('bandarlog_google_link', { path: '/api/auth' });
+  r.json({ ok: true });
+});
+app.get('/api/auth/google/start', async (_q, r) => {
+  if (!googleEnabled)
+    return r
+      .status(503)
+      .json({ error: 'El acceso con Google no está configurado. Usa tu correo.' });
+  const state = secret(),
+    browser = secret(),
+    nonce = secret(),
+    verifier = secret();
+  await db.delete(s.googleStates).where(sql`${s.googleStates.expires}<=now()`);
+  await db.insert(s.googleStates).values({
+    id: hash(state),
+    browser: hash(browser),
+    nonce,
+    verifier,
+    expires: new Date(Date.now() + CODE_LIFETIME).toISOString(),
+  });
+  r.cookie('bandarlog_google', browser, {
     httpOnly: true,
     secure: prod,
     sameSite: 'lax',
-    maxAge: 7 * 86400000,
-    path: '/',
+    maxAge: CODE_LIFETIME,
+    path: '/api/auth/google',
   });
-  r.json({ ok: true });
+  const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+  url.search = new URLSearchParams({
+    client_id: process.env.GOOGLE_LOGIN_CLIENT_ID!,
+    redirect_uri: `${appUrl}/api/auth/google/callback`,
+    response_type: 'code',
+    scope: 'openid email profile',
+    state,
+    nonce,
+    code_challenge: createHash('sha256').update(verifier).digest('base64url'),
+    code_challenge_method: 'S256',
+    prompt: 'select_account',
+  }).toString();
+  r.redirect(url.toString());
 });
+let googleKeys: { keys: JsonWebKey[]; expires: number } | undefined;
+async function signingKeys() {
+  if (googleKeys && googleKeys.expires > Date.now()) return googleKeys.keys;
+  const response = await fetch('https://www.googleapis.com/oauth2/v3/certs', {
+    signal: AbortSignal.timeout(10000),
+    redirect: 'error',
+  });
+  if (!response.ok) throw new Error('Google keys unavailable');
+  const json = (await response.json()) as { keys: JsonWebKey[] };
+  if (!Array.isArray(json.keys)) throw new Error('Google keys unavailable');
+  googleKeys = { keys: json.keys, expires: Date.now() + 5 * 60000 };
+  return json.keys;
+}
+app.get('/api/auth/google/callback', async (q, r) => {
+  r.clearCookie('bandarlog_google', { path: '/api/auth/google' });
+  try {
+    if (
+      !googleEnabled ||
+      typeof q.query.state !== 'string' ||
+      !/^[a-f0-9]{64}$/.test(q.query.state)
+    )
+      throw new Error('Invalid OAuth state');
+    const browser = cookie(q, 'bandarlog_google');
+    if (!browser) throw new Error('Missing OAuth browser');
+    // Delete only a state bound to this browser. A foreign callback cannot consume another browser's flow.
+    const [flow] = await db
+      .delete(s.googleStates)
+      .where(
+        and(
+          eq(s.googleStates.id, hash(q.query.state)),
+          eq(s.googleStates.browser, hash(browser)),
+          sql`${s.googleStates.expires}>now()`,
+        ),
+      )
+      .returning();
+    if (!flow || q.query.error || typeof q.query.code !== 'string' || q.query.code.length > 4096)
+      throw new Error('OAuth cancelled');
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      signal: AbortSignal.timeout(10000),
+      redirect: 'error',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: q.query.code,
+        client_id: process.env.GOOGLE_LOGIN_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_LOGIN_CLIENT_SECRET!,
+        redirect_uri: `${appUrl}/api/auth/google/callback`,
+        code_verifier: flow.verifier,
+      }),
+    });
+    if (!response.ok) throw new Error('OAuth exchange failed');
+    const token = (await response.json()) as { id_token?: string };
+    if (!token.id_token) throw new Error('Missing Google token');
+    const claims = verifyGoogleToken(
+      token.id_token,
+      await signingKeys(),
+      process.env.GOOGLE_LOGIN_CLIENT_ID!,
+      flow.nonce,
+    );
+    const [linked] = await db
+      .select()
+      .from(s.googleIdentities)
+      .where(eq(s.googleIdentities.subject, claims.sub));
+    if (!linked && !googleEmailAuthoritative(claims)) {
+      const link = secret();
+      await db.delete(s.googleLinks).where(sql`${s.googleLinks.expires}<=now()`);
+      await db.insert(s.googleLinks).values({
+        id: hash(link),
+        subject: claims.sub,
+        email: claims.email,
+        expires: new Date(Date.now() + CODE_LIFETIME).toISOString(),
+      });
+      r.cookie('bandarlog_google_link', link, {
+        httpOnly: true,
+        secure: prod,
+        sameSite: 'lax',
+        maxAge: CODE_LIFETIME,
+        path: '/api/auth',
+      });
+      return r.redirect(`${appUrl}/?auth_error=google_email_verify`);
+    }
+    const session = await db.transaction(async (tx: any) => {
+      let user;
+      if (linked) {
+        [user] = await tx.select().from(s.users).where(eq(s.users.id, linked.userId));
+        if (!user) fail(403, 'Cuenta no disponible.');
+        if (user.email === claims.email) user = await authenticatedUser(tx, user.email);
+      } else {
+        user = await authenticatedUser(tx, claims.email);
+        await tx
+          .insert(s.googleIdentities)
+          .values({ subject: claims.sub, userId: user.id })
+          .onConflictDoNothing();
+        const [identity] = await tx
+          .select()
+          .from(s.googleIdentities)
+          .where(eq(s.googleIdentities.subject, claims.sub));
+        if (identity?.userId !== user.id) fail(403, 'Identidad de Google ya vinculada.');
+      }
+      return createSession(tx, user.id);
+    });
+    sessionCookie(r, session.raw);
+    r.redirect(appUrl);
+  } catch {
+    // Never leak tokens, callback parameters, credentials, or provider response bodies.
+    r.redirect(`${appUrl}/?auth_error=google`);
+  }
+});
+
 if (!prod)
   app.get('/api/dev/mail', async (_q, r) => {
     r.json(await db.select().from(s.notifications).orderBy(s.notifications.createdAt));
@@ -262,7 +631,13 @@ app.use('/api', async (q, r, n) => {
   const [session] = await db
     .select()
     .from(s.sessions)
-    .where(and(eq(s.sessions.id, hash(raw)), sql`${s.sessions.expires}>now()`));
+    .where(
+      and(
+        eq(s.sessions.id, hash(raw)),
+        sql`${s.sessions.expires}>now()`,
+        sql`${s.sessions.absoluteExpiresAt}>now()`,
+      ),
+    );
   if (!session) return r.status(401).json({ error: 'Tu sesión ha caducado.' });
   const [user] = await db.select().from(s.users).where(eq(s.users.id, session.userId));
   if (!user) return r.sendStatus(401);
@@ -282,6 +657,20 @@ app.use('/api', async (q, r, n) => {
       ]).has(origin)
     )
       return r.status(403).json({ error: 'Origen no permitido.' });
+  }
+  if (+new Date(session.renewedAt) <= Date.now() - SESSION_RENEW_INTERVAL) {
+    const expires = sessionDeadline(session.absoluteExpiresAt);
+    const renewed = await db
+      .update(s.sessions)
+      .set({ expires, renewedAt: now() })
+      .where(
+        and(
+          eq(s.sessions.id, session.id),
+          sql`${s.sessions.renewedAt} <= now() - interval '1 day'`,
+        ),
+      )
+      .returning();
+    if (renewed.length) sessionCookie(r, raw, +new Date(expires));
   }
   n();
 });
@@ -406,8 +795,40 @@ async function taskMail(
   }
 }
 app.get('/api/me', (_q, r) =>
-  r.json({ user: r.locals.user, csrf: r.locals.session.csrf, development: !prod }),
+  r.json({
+    user: r.locals.user,
+    csrf: r.locals.session.csrf,
+    development: !prod,
+    googleEnabled: Boolean(
+      process.env.GOOGLE_LOGIN_CLIENT_ID && process.env.GOOGLE_LOGIN_CLIENT_SECRET,
+    ),
+  }),
 );
+app.post('/api/onboarding', async (q, r) => {
+  const input = parse(
+    z.object({ name: text, avatarUrl: z.string().nullable().optional() }),
+    q.body,
+  );
+  let photo: string | null | undefined;
+  if (input.avatarUrl !== undefined) {
+    try {
+      photo = await normalizePhoto(input.avatarUrl);
+    } catch (e) {
+      fail(400, (e as Error).message);
+    }
+  }
+  await db.transaction(async (tx: any) => {
+    await tx
+      .update(s.users)
+      .set({
+        name: input.name,
+        ...(photo !== undefined ? { avatarUrl: photo } : {}),
+        onboardingCompletedAt: now(),
+      })
+      .where(eq(s.users.id, r.locals.user.id));
+  });
+  r.json({ ok: true });
+});
 app.post('/api/logout', async (_q, r) => {
   await db.delete(s.sessions).where(eq(s.sessions.id, r.locals.session.id));
   r.clearCookie('bandarlog', { path: '/' }).json({ ok: true });

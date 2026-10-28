@@ -14,7 +14,7 @@ npm run dev:web   # otra terminal: interfaz Vite en 5173
 
 Sin `DATABASE_URL`, PGlite ejecuta PostgreSQL y guarda los datos en `.data/db`. No hay datos reales ni conexión a Google Sheets. Los proyectos y tareas de demostración se crean solo en bases de desarrollo vacías, en una transacción.
 
-Solicita acceso con `alex@example.test` (administración) o `laura@example.test` (Scouter a nivel de grupo y Responsable de las comisiones demostrativas). Pulsa **Bandeja de desarrollo**, **Abrir enlace de prueba** y confirma el inicio de sesión. Los enlaces caducan a los 15 minutos, son de un solo uso y no autentican por GET. La bandeja local expone mensajes deliberadamente y nunca existe en producción. No utilices datos personales reales en desarrollo.
+Solicita acceso con `alex@example.test` (administración) o `laura@example.test` (Scouter a nivel de grupo y Responsable de las comisiones demostrativas). Pulsa **Recibir código**, abre **Bandeja de desarrollo → Actualizar correos de prueba** e introduce el código de seis cifras en Bandarlog. Los códigos caducan a los diez minutos y admiten cinco intentos. Los enlaces anteriores siguen funcionando: caducan a los quince minutos, son de un solo uso y no autentican por GET. La bandeja local expone mensajes deliberadamente y nunca existe en producción. No utilices datos personales reales en desarrollo.
 
 ## Comprobaciones
 
@@ -38,6 +38,8 @@ Pasos de configuración: [Despliegue en Neon y Railway](docs/despliegue.md). Rai
 | `APP_URL` | Origen público HTTPS, sin rutas; usado por correos y validación de origen |
 | `DATABASE_URL` | URL PostgreSQL de Neon con verificación TLS (`sslmode=verify-full`) |
 | `BOOTSTRAP_EMAIL` | Primer administrador; solo se usa si no hay usuarios |
+| `AUTH_CHALLENGE_SECRET` | **Obligatorio nuevo:** secreto privado estable y aleatorio de al menos 32 caracteres para verificar códigos |
+| `GOOGLE_LOGIN_CLIENT_ID`, `GOOGLE_LOGIN_CLIENT_SECRET` | Opcionales y conjuntos; cliente web independiente para iniciar sesión con Google |
 | `MAIL_TRANSPORT` | `gmail_api` para Gmail por HTTPS; `smtp` solo si el alojamiento lo permite |
 | `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` | Credenciales OAuth privadas si se usa Gmail API |
 | `SMTP_HOST`, `SMTP_PORT` | Servidor de correo: 587 con STARTTLS obligatorio, o 465 con TLS |
@@ -45,7 +47,7 @@ Pasos de configuración: [Despliegue en Neon y Railway](docs/despliegue.md). Rai
 | `MAIL_FROM` | Nombre y correo de remitente autorizado |
 | `PORT` | Railway lo proporciona |
 
-No se ha desplegado en Railway ni validado una conexión real a Neon o SMTP. Conserva copias de seguridad de la base. Ejecuta una sola réplica inicialmente; la limitación de intentos de acceso reside en memoria del proceso. Para varias réplicas se necesita un almacén compartido para esa limitación. El administrador inicial puede crear proyectos, gestionar comisiones y designar roles globales desde Personas; no puede retirar su propio rol. Un Responsable de comisión tiene permisos locales, sin acceder a comisiones ajenas.
+Las pruebas de este cambio son locales y aisladas; no validan la configuración externa concreta de Google, Neon o del proveedor de correo. Conserva copias de seguridad de la base. Ejecuta una sola réplica inicialmente; la limitación de intentos de acceso reside en memoria del proceso. Para varias réplicas se necesita un almacén compartido para esa limitación. El administrador inicial puede crear proyectos, gestionar comisiones y designar roles globales desde Personas; no puede retirar su propio rol. Un Responsable de comisión tiene permisos locales, sin acceder a comisiones ajenas.
 
 ## Correo del grupo
 
@@ -97,10 +99,16 @@ Cada persona puede editar nombre y foto en Perfil. El editor permite mover y amp
 
 Las invitaciones abiertas desde una comisión o proyecto fijan ese destino. Una invitación al proyecto añade a su lista de personas y no concede automáticamente acceso a todas sus comisiones. Los selectores, radios, barras de desplazamiento y estados de carga comparten el estilo de la interfaz. La animación de tarea completada respeta la preferencia de movimiento reducido y solo aparece tras confirmar el guardado.
 
-Las comisiones reciben automáticamente una pareja de icono y mono del catálogo local: 302 ilustraciones scouts distintas y 36 adicionales de Navidad. No requiere Colab, tokens, túneles ni servicios de generación en producción. La colección se configura en el proyecto o campamento y las comisiones conservan sus nombres: Cocina, Logística, Comunicación, etc. El nombre «Campamento de Navidad» activa automáticamente la colección navideña, incluso en campamentos existentes. También se conserva la detección de invierno. Las comisiones existentes también reciben sus ilustraciones al abrir la aplicación.
+Las comisiones reciben automáticamente los iconos del catálogo local: 302 scouts y 36 adicionales de Navidad. Se conservan sus IDs y las asociaciones por nombre/proyecto. «Campamento de Navidad» activa la colección estacional sin cambiar los nombres normales de las comisiones. Los nombres asociados bloquean «Elegir icono»; para los demás se puede elegir un icono o volver a automático. Coordinación puede ampliar el catálogo subiendo un icono, guardado en la base de datos.
 
-Si el nombre de la comisión tiene una pareja asociada, se aplica automáticamente y no aparece «Elegir ilustraciones»; la API también impide cambiarla. Para nombres sin asociación, ese botón permite elegir una pareja o volver a la selección automática. Coordinación puede «Añadir pareja al catálogo» subiendo el icono y el mono; las nuevas parejas se guardan en Neon y se reutilizan en la colección elegida. Las antiguas variables `ARTWORK_WORKER_URL` y `ARTWORK_WORKER_TOKEN` ya no se utilizan y pueden eliminarse de Railway. Las nueve variables básicas de despliegue no cambian. El antiguo trabajador de IA y el cuaderno se conservan como referencia histórica, sin intervenir en la aplicación.
+La interfaz Forest Experience retira los monos 3D estáticos. Conserva el pequeño mono 2D del logotipo y usa una nueva ilustración 2D para la liana al completar tareas. Los originales del catálogo se conservan por compatibilidad, pero no se cargan en las vistas ni en el selector. No se necesita Colab, trabajador IA, túneles ni credenciales de generación en producción. `ARTWORK_WORKER_URL` y `ARTWORK_WORKER_TOKEN` siguen sin utilizarse.
 
-Para ampliar las colecciones incluidas por código, añade entradas a `shared/scout-catalog.ts`, sus ilustraciones y sus iconos. Los identificadores existentes y sus posiciones en las hojas deben mantenerse estables. Los archivos de `public/artwork/mascots` contienen hojas de seis ilustraciones originales y parejas adicionales en archivos individuales. Se muestran por separado en la interfaz; no son poses recoloreadas.
+Para ampliar las colecciones incluidas por código, añade entradas a `shared/scout-catalog.ts`, sus ilustraciones y sus iconos. Los identificadores existentes y sus posiciones en las hojas deben mantenerse estables. Los archivos de `public/artwork/mascots` contienen hojas de seis ilustraciones originales y parejas adicionales en archivos individuales. Se conservan como fuentes históricas; no se muestran en la interfaz actual. No son poses recoloreadas.
 
 La [revisión móvil y del acceso](docs/revision-movil-y-acceso.md) documenta las invitaciones directas, la corrección del error de lectura de JPEG y las capturas con tareas activas, todo al día y cuentas sin contenido.
+
+## Forest Experience y acceso
+
+El móvil usa copa de árbol, listas continuas, iconos originales y cuatro destinos estables. Se mantienen Smart Focus, permisos, completar/Deshacer y la experiencia operativa desktop. El primer acceso de las cuentas nuevas pide nombre obligatorio y foto opcional; se registra en servidor y no vuelve a mostrarse. La migración respeta perfiles e invitaciones anteriores.
+
+El acceso por código permanece dentro de la PWA. La sesión local admite hasta treinta días de inactividad y noventa días absolutos, con renovación controlada y revocación al cerrar sesión. Google es opcional, se prepara mediante OIDC verificado en backend y no usa las credenciales de Gmail. Configuración y límites de prueba: [Forest Experience implementado](docs/forest-experience/implementacion.md).

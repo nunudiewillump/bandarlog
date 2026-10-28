@@ -8,7 +8,10 @@ import {
   CampOverview,
   TaskSummary,
 } from './MobileUX';
-import { MascotArt, ArtworkPicker } from './Artwork';
+import { ArtworkPicker } from './Artwork';
+import { ForestHeader } from './ForestHeader';
+import { AuthScreen } from './AuthScreen';
+import { Onboarding } from './Onboarding';
 import { artworkThemes, inferArtworkTheme } from '../shared/scout-catalog';
 import { createRoot } from 'react-dom/client';
 import {
@@ -49,7 +52,7 @@ import {
   Leaf,
   MoreHorizontal,
 } from 'lucide-react';
-import { api, setCSRF } from './api';
+import { api, setCSRF, ApiError } from './api';
 import {
   type Data,
   type Task,
@@ -66,6 +69,7 @@ import '@fontsource/nunito-sans/latin-700.css';
 import '@fontsource/nunito-sans/latin-800.css';
 import '@fontsource/nunito-sans/latin-900.css';
 import './styles.css';
+import './forest.css';
 import { ProfileForm } from './ProfileForm';
 import { BananaLoader } from './BananaLoader';
 import { Select } from './Select';
@@ -126,6 +130,7 @@ function Badge({ task }: { task: Task }) {
 function App() {
   const [me, setMe] = useState<User | null>(null),
     [boot, setBoot] = useState(true),
+    [bootError, setBootError] = useState(''),
     [data, setData] = useState<Data>(initial),
     [view, setView] = useState('home'),
     [project, setProject] = useState(''),
@@ -147,10 +152,6 @@ function App() {
     [satisfaction, setSatisfaction] = useState(false),
     [pendingTasks, setPendingTasks] = useState(new Set<string>()),
     [undo, setUndo] = useState<{ task: Task; expected: string; last: boolean } | null>(null),
-    [emailInput, setEmailInput] = useState(() =>
-      (new URLSearchParams(location.search).get('email') || '').slice(0, 254),
-    ),
-    [sent, setSent] = useState(false),
     [outbox, setOutbox] = useState<any[]>([]);
   const dataRef = useRef(data),
     loadSequence = useRef(0),
@@ -204,6 +205,7 @@ function App() {
     return dataRef.current;
   };
   const bootup = async () => {
+    setBootError('');
     try {
       const health = await api('/health');
       setDevelopment(health.mail === 'development');
@@ -226,7 +228,13 @@ function App() {
         setView('commission');
       }
       if (p.get('view')) setView(p.get('view')!);
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        setMe(null);
+        setCSRF('');
+      } else {
+        setBootError((error as Error).message || 'No se ha podido cargar Bandarlog.');
+      }
     } finally {
       setBoot(false);
     }
@@ -645,6 +653,11 @@ function App() {
               <span className="commission-name">
                 <strong>{c.name}</strong>
                 <small>{pOf(c)?.name}</small>
+                <small className="commission-open-label">
+                  {ts.some((t) => t.status !== 'done')
+                    ? `${ts.filter((t) => t.status !== 'done').length} pendientes${ts.some(overdue) ? ` · ${ts.filter(overdue).length} vencidas` : ''}`
+                    : 'Al día'}
+                </small>
               </span>
               <div className="commission-progress">{bar(ts)}</div>
               <span className="count pending" title="Pendientes">
@@ -662,166 +675,56 @@ function App() {
       )}
     </div>
   );
-  async function requestLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setError('');
-    setBusy(true);
-    try {
-      await api('/auth/request', 'POST', {
-        email: emailInput,
-        task: params.get('task') || undefined,
-        action: params.get('action') || undefined,
-      });
-      setSent(true);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
   if (boot)
     return (
       <div className="loading">
         <BananaLoader label="Cargando Bandarlog…" />
       </div>
     );
-  if (!me || invitationAccess)
+  if (bootError)
     return (
-      <div className="login">
-        <div className="login-art">
-          <div className="brand">
-            Bandarlog<span>Comisiones que avanzan</span>
-          </div>
-          <img src="/monkey.webp" alt="Mascota de Bandarlog, un mono con mochila scout" />
-
-          <span className="leaf-decoration">✦</span>
-        </div>
-        <main className="login-form">
-          <h1>
-            {invitationAccess
-              ? 'Te han invitado a Bandarlog'
-              : loginToken
-                ? '¡Ya casi estás!'
-                : sent
-                  ? 'Revisa tu correo'
-                  : 'Bienvenido a Bandarlog'}
-          </h1>
-          <p>
-            {invitationAccess
-              ? 'Acepta para entrar con el correo de la invitación.'
-              : loginToken
-                ? 'Confirma el acceso para entrar de forma segura.'
-                : sent
-                  ? 'Si tu correo está registrado o tiene una invitación, recibirás un enlace para entrar.'
-                  : 'Accede con tu correo. Si has recibido una invitación, usa esa misma dirección.'}
+      <div className="forest-auth">
+        <ForestHeader />
+        <main className="forest-auth-main">
+          <h1>No se pudo cargar Bandarlog</h1>
+          <p role="alert" className="error">
+            {bootError}
           </p>
-          {error && (
-            <div role="alert" className="error">
-              {error}
-            </div>
-          )}
-          {loginToken ? (
-            <button
-              className="primary"
-              disabled={busy}
-              onClick={async () => {
-                setBusy(true);
-                try {
-                  await api('/auth/verify', 'POST', { token: loginToken });
-                  setBoot(true);
-                  setMe(null);
-                  setData(initial);
-                  dataRef.current = initial;
-                  setLoginToken('');
-                  const next = new URL(location.href);
-                  next.searchParams.delete('token');
-                  next.searchParams.delete('email');
-                  history.replaceState({}, '', next);
-                  await bootup();
-                } catch (e) {
-                  setError((e as Error).message);
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              {invitationAccess ? 'Aceptar invitación y entrar' : 'Confirmar inicio de sesión'}{' '}
-              <ArrowRight size={18} />
-            </button>
-          ) : (
-            <form onSubmit={requestLogin}>
-              <label>
-                Tu correo electrónico
-                <input
-                  type="email"
-                  required
-                  autoComplete="email"
-                  placeholder="nombre@ejemplo.com"
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                />
-              </label>
-              <button className="primary" disabled={busy}>
-                <Mail size={18} />
-                {busy ? (
-                  <BananaLoader compact label="Preparando enlace…" />
-                ) : (
-                  'Recibir enlace de acceso'
-                )}
-              </button>
-              <small>Sin contraseñas. Un enlace seguro, solo para ti.</small>
-            </form>
-          )}
-          {sent && (
-            <button className="text-link" onClick={() => setSent(false)}>
-              Usar otro correo
-            </button>
-          )}
-          {development && (
-            <div className="dev-mail">
-              <button
-                className="text-link"
-                onClick={async () => {
-                  try {
-                    const messages = await api('/dev/mail');
-                    setOutbox(messages);
-                  } catch {
-                    setError('La bandeja local solo está disponible en desarrollo.');
-                  }
-                }}
-              >
-                Bandeja de desarrollo
-              </button>
-              {outbox.length > 0 && (
-                <p className="hint">
-                  Datos de prueba: alex@example.test · laura@example.test. Los mensajes de esta
-                  bandeja no se han enviado.
-                </p>
-              )}
-              {outbox
-                .filter((m) => m.subject.includes('enlace'))
-                .slice(-5)
-                .reverse()
-                .map((m) => (
-                  <article key={m.id}>
-                    <strong>{m.email}</strong>
-                    <p>{m.subject}</p>
-                    <button
-                      className="secondary"
-                      onClick={() => {
-                        const match = m.body.match(/token=([a-f0-9]+)/);
-                        if (match) setLoginToken(match[1]);
-                      }}
-                    >
-                      Abrir enlace de prueba
-                    </button>
-                  </article>
-                ))}
-            </div>
-          )}
+          <button
+            className="primary"
+            onClick={() => {
+              setBoot(true);
+              void bootup();
+            }}
+          >
+            Reintentar
+          </button>
         </main>
       </div>
     );
+  async function authenticated() {
+    setBoot(true);
+    setMe(null);
+    setData(initial);
+    dataRef.current = initial;
+    setLoginToken('');
+    const next = new URL(location.href);
+    next.searchParams.delete('token');
+    next.searchParams.delete('email');
+    next.searchParams.delete('auth_error');
+    history.replaceState({}, '', next);
+    await bootup();
+  }
+  if (!me || invitationAccess)
+    return (
+      <AuthScreen
+        token={loginToken}
+        development={development}
+        onAuthenticated={authenticated}
+        onToken={setLoginToken}
+      />
+    );
+  if (me.onboardingCompletedAt === null) return <Onboarding user={me} onComplete={bootup} />;
   return (
     <FormState.Provider
       value={{
@@ -895,6 +798,12 @@ function App() {
         </aside>
         {sidebar && <div className="sidebar-backdrop" onClick={() => setSidebar(false)} />}
         <div className="workspace">
+          <ForestHeader
+            className="app-forest-header"
+            avatar={<Avatar user={me} small />}
+            onHome={() => navigate('home')}
+            onProfile={() => navigate('profile')}
+          />
           <header className="topbar">
             <button
               className="icon-button menu-toggle"
@@ -987,7 +896,6 @@ function App() {
                         <Plus size={16} /> Nueva tarea
                       </button>
                     </div>
-                    <img className="heading-monkey" src="/monkey.webp" alt="" />
                   </div>
                   {metricCards(scoped)}
                   <div className="dashboard-grid">
@@ -1214,7 +1122,7 @@ function App() {
                     </button>
                   )}
                 </div>
-                <div className="filter-tabs project-tabs">
+                <div className="filter-tabs project-tabs desktop-only">
                   <button className={!project ? 'active' : ''} onClick={() => setProject('')}>
                     Todas
                   </button>
@@ -1328,13 +1236,12 @@ function App() {
                       {date(activeProject.starts)} – {date(activeProject.ends)}
                     </p>
                   </div>
-                  <img src="/monkey.webp" alt="" />
                 </div>
                 {manage && activeProject.archived !== 'true' && (
                   <details className="project-appearance">
-                    <summary>Ilustraciones del proyecto</summary>
+                    <summary>Iconos del proyecto</summary>
                     <label className="project-artwork-theme">
-                      Colección de ilustraciones
+                      Colección de iconos
                       <Select
                         value={activeProject.artworkTheme || 'scout'}
                         disabled={busy || inferArtworkTheme(activeProject.name) === 'christmas'}
@@ -1482,13 +1389,9 @@ function App() {
                         className="text-link artwork-retry"
                         onClick={() => setModal('artwork')}
                       >
-                        Elegir ilustraciones
+                        Elegir icono
                       </button>
                     )}
-                  <MascotArt
-                    className="commission-mascot"
-                    src={activeCommission.mascotUrl || '/monkey.webp'}
-                  />
                 </section>
                 {canManage(commission) && (
                   <section className="commission-summary" aria-label="Panel de Responsable">
@@ -1648,7 +1551,11 @@ function App() {
             <button
               key={v}
               className={
-                view === v || (v === 'commissions' && view === 'commission') ? 'active' : ''
+                view === v ||
+                (v === 'commissions' &&
+                  ['commission', 'project', 'rounds', 'camps', 'people'].includes(view))
+                  ? 'active'
+                  : ''
               }
               onClick={() => navigate(v)}
             >
@@ -1660,7 +1567,7 @@ function App() {
         {celebrating && (
           <div className="task-celebration" aria-hidden="true">
             <div className="vine-swing">
-              <img src="/monkey-vine.webp" alt="" />
+              <img src="/monkey-vine-2d.webp" alt="" />
             </div>
             <strong>{undo?.last ? '¡Tus tareas están al día!' : 'Tarea completada'}</strong>
           </div>
@@ -1988,7 +1895,7 @@ function App() {
                   members: 'Añadir personas',
                   invite: 'Invitar personas',
                   project: view === 'camps' ? 'Nuevo campamento' : 'Nuevo proyecto',
-                  artwork: 'Elegir ilustraciones',
+                  artwork: 'Elegir icono',
                   mail: 'Bandeja de desarrollo',
                 } as any
               )[modal]
@@ -2484,11 +2391,6 @@ function CommissionForm() {
               placeholder="¿De qué se encargará este equipo?"
             />
           </label>
-          <img
-            className="form-monkey"
-            src="/monkey.webp"
-            alt="La mascota de Bandarlog preparada para ayudar"
-          />
         </>
       )}
       {step === 2 && (
@@ -2543,7 +2445,6 @@ function CommissionForm() {
       )}
       {step === 3 && (
         <div className="confirm-commission">
-          <img className="form-monkey" src="/monkey.webp" alt="" />
           <h2>{name}</h2>
           <p>{data.projects.find((p) => p.id === pid)?.name}</p>
           <p>{description}</p>
@@ -2973,7 +2874,7 @@ function ProjectForm() {
         </label>
       )}
       <label>
-        Colección de ilustraciones
+        Colección de iconos
         <Select
           value={automaticChristmas ? 'christmas' : artworkTheme}
           disabled={automaticChristmas}
@@ -3012,7 +2913,6 @@ function localInput(value: string) {
 function Empty({ text, sub }: { text: string; sub: string }) {
   return (
     <div className="empty">
-      <img src="/monkey.webp" alt="" />
       <h3>{text}</h3>
       <p>{sub}</p>
     </div>

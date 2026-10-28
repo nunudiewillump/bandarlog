@@ -12,13 +12,24 @@ async function login(page: Page, email = 'alex@example.test') {
   }
   await page.goto('/');
   await page.getByLabel('Tu correo electrónico').fill(email);
-  await page.getByRole('button', { name: 'Recibir enlace de acceso' }).click();
-  await page.getByRole('button', { name: 'Bandeja de desarrollo' }).click();
-  await page.getByRole('button', { name: 'Abrir enlace de prueba' }).first().click();
-  await page.getByRole('button', { name: 'Confirmar inicio de sesión' }).click();
+  await page.getByRole('button', { name: 'Recibir código', exact: true }).click();
+  await expect(page.getByLabel('Código de acceso')).toBeVisible();
+  const outbox = await (await page.request.get('/api/dev/mail')).json();
+  const message = outbox.filter((m: any) => m.email === email && /\b\d{6}\b/.test(m.body)).at(-1);
+  expect(message).toBeTruthy();
+  await page.getByLabel('Código de acceso').fill(message.body.match(/\b(\d{6})\b/)[1]);
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Resumen general' })).toBeVisible();
   loginCookies.set(email, await page.context().cookies());
 }
+
+async function finishFirstAccess(page: Page) {
+  await expect(page.getByRole('heading', { name: '¿Cómo te llamamos?' })).toBeVisible();
+  await expect(page.getByLabel('Nombre', { exact: true })).not.toHaveValue('');
+  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+  await expect(page.getByRole('heading', { name: '¿Cómo te llamamos?' })).toHaveCount(0);
+}
+
 async function createCommission(page: any, name = `Equipo QA ${Date.now()}`, projectId = 'camp') {
   const session = await (await page.request.get('/api/me')).json();
   const response = await page.request.post('/api/commissions', {
@@ -76,7 +87,8 @@ test('a new person accepts the first invitation email and enters without request
       animations: 'disabled',
     });
     await invited.getByRole('button', { name: 'Aceptar invitación y entrar' }).click();
-    await expect(invited.getByRole('heading', { name: 'Hola, Persona' })).toBeVisible();
+    await finishFirstAccess(invited);
+    await expect(invited.locator('.mobile-focus')).toBeVisible();
     const me = await (await invited.request.get('http://127.0.0.1:5174/api/me')).json();
     expect(me.user.email).toBe(recipient);
     expect(me.user.role).toBe('member');
@@ -100,6 +112,7 @@ test('accepting an invitation while another account is signed in enters as the i
   await expect(page.getByRole('button', { name: 'Aceptar invitación y entrar' })).toBeVisible();
   expect((await (await page.request.get('/api/me')).json()).user.email).toBe('alex@example.test');
   await page.getByRole('button', { name: 'Aceptar invitación y entrar' }).click();
+  await finishFirstAccess(page);
   await expect(page.getByRole('heading', { name: 'Resumen general' })).toBeVisible();
   expect((await (await page.request.get('/api/me')).json()).user.email).toBe(recipient);
   const data = await (await page.request.get('/api/data')).json();
@@ -551,6 +564,7 @@ test('completing a task confirms persistence before showing the vine animation',
     await complete.click();
     await expect(page.locator('.task-celebration')).toBeVisible();
     await expect(page.locator('.task-celebration')).toContainText('Tarea completada');
+    await expect(page.locator('.vine-swing img')).toHaveAttribute('src', '/monkey-vine-2d.webp');
     await page.waitForTimeout(900);
     await page.screenshot({ path: 'artifacts/tarea-completada.png' });
     await expect(page.locator('.task-celebration')).not.toBeVisible();
@@ -569,18 +583,16 @@ test('catalogue artwork is immediate and can be selected on mobile', async ({ pa
   await login(page);
   await page.setViewportSize({ width: 390, height: 900 });
   await openUnmatchedCommission(page);
-  await expect(
-    page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Elegir icono', exact: true })).toBeVisible();
   await expect(page.getByRole('status', { name: 'Preparando ilustraciones…' })).not.toBeVisible();
-  await page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }).click();
+  await page.getByRole('button', { name: 'Elegir icono', exact: true }).click();
   const dialog = page.getByRole('dialog');
-  await dialog.getByLabel('Buscar ilustración').fill('Desayunos');
+  await dialog.getByLabel('Buscar icono').fill('Desayunos');
   await dialog.getByRole('button', { name: 'Desayunos', exact: true }).click();
   await expect(dialog).not.toBeVisible();
   await page.reload();
-  await page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }).click();
-  await dialog.getByLabel('Buscar ilustración').fill('Desayunos');
+  await page.getByRole('button', { name: 'Elegir icono', exact: true }).click();
+  await dialog.getByLabel('Buscar icono').fill('Desayunos');
   await expect(dialog.getByRole('button', { name: 'Desayunos', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
@@ -604,9 +616,7 @@ test('Servicios, Animación and Logística automatically use their pair and hide
     const cid = existing?.id || (await createCommission(page, name));
     await page.goto(`/?view=commission&project=camp&commission=${cid}`);
     await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
-    await expect(
-      page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }),
-    ).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Elegir icono', exact: true })).toHaveCount(0);
     data = await (await page.request.get('/api/data')).json();
     const commission = data.commissions.find((c: any) => c.id === cid);
     expect(commission.artworkKey).toBe(key);
@@ -616,9 +626,7 @@ test('Servicios, Animación and Logística automatically use their pair and hide
       'src',
       `/artwork/icons/${key}.svg`,
     );
-    const image = await page.request.get(mascot.split('#')[0]);
-    expect(image.ok()).toBeTruthy();
-    expect(image.headers()['content-type']).toContain('image/webp');
+    await expect(page.locator('.commission-mascot')).toHaveCount(0);
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.screenshot({
       path: `artifacts/mobile-v2/catalogo-${key}.png`,
@@ -638,17 +646,13 @@ test('camp creation uses camp labels and the project controls its Christmas coll
   await expect(page.getByRole('dialog', { name: 'Nuevo campamento', exact: true })).toBeVisible();
   await expect(dialog.getByRole('button', { name: 'Crear campamento', exact: true })).toBeVisible();
   await dialog.getByLabel('Nombre', { exact: true }).fill('Campamento de Navidad');
-  await expect(dialog.getByRole('combobox', { name: 'Colección de ilustraciones' })).toHaveText(
-    'Navidad',
-  );
+  await expect(dialog.getByRole('combobox', { name: 'Colección de iconos' })).toHaveText('Navidad');
   await dialog.getByRole('button', { name: 'Cerrar', exact: true }).click();
   await page.goto('/?view=project&project=camp');
   await page.locator('.project-appearance > summary').click();
-  await page.getByRole('combobox', { name: 'Colección de ilustraciones' }).click();
+  await page.getByRole('combobox', { name: 'Colección de iconos' }).click();
   await page.getByRole('option', { name: 'Navidad', exact: true }).click();
-  await expect(page.getByRole('combobox', { name: 'Colección de ilustraciones' })).toHaveText(
-    'Navidad',
-  );
+  await expect(page.getByRole('combobox', { name: 'Colección de iconos' })).toHaveText('Navidad');
   await page.goto('/?view=commission&project=camp&commission=cocina');
   await expect(page.getByRole('heading', { name: 'Cocina', exact: true })).toBeVisible();
   await expect(page.locator('.commission-icon img')).toHaveAttribute('src', /navidad-/);
@@ -657,21 +661,17 @@ test('camp creation uses camp labels and the project controls its Christmas coll
   expect(iconBox!.x).toBeGreaterThanOrEqual(frameBox!.x);
   expect(iconBox!.x + iconBox!.width).toBeLessThanOrEqual(frameBox!.x + frameBox!.width);
   await page.screenshot({ path: 'artifacts/comision-navidad.png', animations: 'disabled' });
-  await expect(page.getByRole('button', { name: 'Elegir ilustraciones', exact: true })).toHaveCount(
-    0,
-  );
+  await expect(page.getByRole('button', { name: 'Elegir icono', exact: true })).toHaveCount(0);
   await openUnmatchedCommission(page);
-  await page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }).click();
+  await page.getByRole('button', { name: 'Elegir icono', exact: true }).click();
   await expect(page.getByRole('dialog').getByText('Colección:')).toContainText('Navidad');
   await page.screenshot({ path: 'artifacts/catalogo-navidad.png', animations: 'disabled' });
   await page.getByRole('dialog').getByRole('button', { name: 'Cerrar', exact: true }).click();
   await page.goto('/?view=project&project=camp');
   await page.locator('.project-appearance > summary').click();
-  await page.getByRole('combobox', { name: 'Colección de ilustraciones' }).click();
+  await page.getByRole('combobox', { name: 'Colección de iconos' }).click();
   await page.getByRole('option', { name: 'Scouts', exact: true }).click();
-  await expect(page.getByRole('combobox', { name: 'Colección de ilustraciones' })).toHaveText(
-    'Scouts',
-  );
+  await expect(page.getByRole('combobox', { name: 'Colección de iconos' })).toHaveText('Scouts');
 });
 
 test('Campamento de Navidad assigns all six Christmas pairs without manual controls', async ({
@@ -696,7 +696,7 @@ test('Campamento de Navidad assigns all six Christmas pairs without manual contr
   expect(project.artworkTheme).toBe('christmas');
   await page.goto(`/?view=project&project=${project.id}`);
   await page.locator('.project-appearance > summary').click();
-  await expect(page.getByRole('combobox', { name: 'Colección de ilustraciones' })).toBeDisabled();
+  await expect(page.getByRole('combobox', { name: 'Colección de iconos' })).toBeDisabled();
   for (const [name, key] of [
     ['Servicios', 'servicios'],
     ['Animación', 'animacion'],
@@ -712,13 +712,11 @@ test('Campamento de Navidad assigns all six Christmas pairs without manual contr
       'src',
       `/artwork/icons/navidad-${key}.svg`,
     );
-    await expect(page.locator('.commission-mascot image')).toHaveAttribute(
-      'href',
-      '/artwork/mascots/055.webp',
-    );
+    await expect(page.locator('.commission-mascot')).toHaveCount(0);
     await expect(
-      page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }),
+      page.locator('img[src*="/artwork/mascots/"], svg image[href*="/artwork/mascots/"]'),
     ).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Elegir icono', exact: true })).toHaveCount(0);
     await page.screenshot({
       path: `artifacts/mobile-v2/navidad-${key}.png`,
       animations: 'disabled',
@@ -731,12 +729,11 @@ test('coordination uploads a new matching pair and can use it after reloading', 
 }) => {
   await login(page);
   await openUnmatchedCommission(page);
-  await page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }).click();
+  await page.getByRole('button', { name: 'Elegir icono', exact: true }).click();
   const dialog = page.getByRole('dialog');
-  await dialog.getByRole('button', { name: 'Añadir pareja al catálogo' }).click();
-  await dialog.getByLabel('Nombre de la ilustración').fill(`Farol adicional QA ${Date.now()}`);
+  await dialog.getByRole('button', { name: 'Añadir icono al catálogo' }).click();
+  await dialog.getByLabel('Nombre del icono').fill(`Farol adicional QA ${Date.now()}`);
   await dialog.getByLabel('Icono', { exact: true }).setInputFiles('public/brand-mark.png');
-  await dialog.getByLabel('Mono', { exact: true }).setInputFiles('public/monkey.webp');
   await page.screenshot({ path: 'artifacts/ampliar-catalogo.png', animations: 'disabled' });
   await dialog.getByRole('button', { name: 'Guardar y utilizar' }).click();
   await expect(dialog).not.toBeVisible();
@@ -745,11 +742,8 @@ test('coordination uploads a new matching pair and can use it after reloading', 
     'src',
     /^\/api\/artwork\/assets\//,
   );
-  await expect(page.locator('.commission-mascot')).toHaveAttribute(
-    'src',
-    /^\/api\/artwork\/assets\//,
-  );
+  await expect(page.locator('.commission-mascot')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: /^Equipo QA/ })).toBeVisible();
-  await page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }).click();
+  await page.getByRole('button', { name: 'Elegir icono', exact: true }).click();
   await dialog.getByRole('button', { name: 'Elegir automáticamente' }).click();
 });

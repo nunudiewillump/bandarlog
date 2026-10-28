@@ -1,0 +1,52 @@
+{
+  "selectedDesign": "platform",
+  "approvedCheckpoint": "7088637",
+  "amendment": "User removes all static 3D monkeys and requests all monkey details, including vine, in 2D.",
+  "assets": [
+    {
+      "id": "B-FOR-CANOPY",
+      "source": "src/ForestHeader.tsx",
+      "reference": "docs/forest-experience/codex/build-board.py header()",
+      "use": "mobile header + new auth/onboarding",
+      "format": "inline SVG with semantic HTML controls",
+      "required": true
+    },
+    {
+      "id": "B-BRAND",
+      "source": "public/brand-mark.webp",
+      "use": "header mark",
+      "format": "transparent WebP",
+      "required": true
+    },
+    {
+      "id": "B-VINE-2D",
+      "source": "public/monkey-vine-2d.webp",
+      "use": "confirmed completion only; reduced motion hides movement",
+      "format": "transparent 569x650 WebP",
+      "required": true,
+      "provenance": "original image generation based on official 2D brand; public/ASSETS.md"
+    },
+    {
+      "id": "B-COMMISSION-ICONS",
+      "source": "shared/scout-catalog.ts + public/artwork/icons",
+      "use": "associated commission icons, icon-only picker",
+      "format": "SVG originals and validated user icon raster",
+      "required": true
+    },
+    {
+      "id": "B-FONT",
+      "source": "@fontsource/nunito-sans",
+      "use": "existing local bundled typeface",
+      "format": "WOFF2",
+      "required": true
+    }
+  ],
+  "retiredFromRequiredSet": [
+    "B-MONKEY",
+    "B-SERVICIOS",
+    "B-VINE (3D)"
+  ],
+  "retiredAssetPolicy": "Original files and saved catalogue IDs are preserved for compatibility; UI does not render/request static 3D assets.",
+  "renderProof": "Independent implementation review: ship. Source assets and current mobile/landscape/auth/desktop screenshots inspected; docs/forest-experience/revision-implementacion.md.",
+  "productionProof": "not deployed"
+}

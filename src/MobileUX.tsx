@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CalendarDays, Tent, Check, LockKeyhole, ChevronRight } from 'lucide-react';
+import { CalendarDays, Tent, Check, LockKeyhole, ChevronRight, Leaf } from 'lucide-react';
 import { AnimatedCounter } from './AnimatedCounter';
 import { BananaLoader } from './BananaLoader';
 import { smartFocus } from './focus';
@@ -16,7 +16,8 @@ import {
 export function MobileEmpty({ title, detail }: { title: string; detail: string }) {
   return (
     <div className="mobile-empty-state">
-      <img src="/monkey.webp" alt="" width="110" height="150" />
+      <Leaf size={28} aria-hidden="true" />
+
       <h2>{title}</h2>
       <p>{detail}</p>
     </div>
@@ -112,7 +113,9 @@ export function MobileTasks({
                 )}
                 <span className="mobile-task-meta">
                   <span className={overdue(task) ? 'late-text' : ''}>{date(task.due, true)}</span>
-                  <span className={`badge ${task.status}`}>{labels[task.status]}</span>
+                  <span className={`badge ${task.status} ${overdue(task) ? 'late-text' : ''}`}>
+                    {overdue(task) ? 'Vencida' : labels[task.status]}
+                  </span>
                 </span>
               </button>
             </div>
@@ -246,18 +249,24 @@ export function MobileHome(props: {
       data-holding={holding}
     >
       <header>
-        <h1>Hola, {me.name.split(' ')[0]}</h1>
-        <p>
-          {focus.level === 'personal'
-            ? 'Tu trabajo pendiente, por orden de atención.'
-            : 'Tu situación y el avance del equipo.'}
-        </p>
+        <h1>
+          {holding
+            ? 'Tus tareas están al día'
+            : focus.level === 'personal'
+              ? 'Mis tareas'
+              : focus.level === 'commissions'
+                ? 'Mis comisiones'
+                : focus.level === 'camps'
+                  ? 'Campamento'
+                  : hasContext
+                    ? 'Todo al día'
+                    : 'Sin tareas asignadas'}
+        </h1>
       </header>
       {personalClear && (holding || focus.level !== 'clear') && (
         <section className={`personal-clear ${holding ? 'just-finished' : ''}`}>
           <div>
             <h2>¡Tus tareas están al día!</h2>
-            <p>Has terminado todo lo que tenías pendiente.</p>
           </div>
           <img src="/brand-mark.webp" alt="" width="52" height="52" />
         </section>
@@ -270,21 +279,16 @@ export function MobileHome(props: {
         />
       )}
       {holding ? (
-        <p className="satisfaction-pause">Tu trabajo personal está terminado.</p>
+        <p className="satisfaction-pause">Tarea completada</p>
       ) : (
         <>
           {(focus.level === 'personal' || focus.level === 'commissions') && (
             <section className="focus-primary">
-              <div className="section-heading">
-                <h2>{focus.level === 'personal' ? 'Mis tareas' : 'Así van tus comisiones'}</h2>
-                <button
-                  className="text-link"
-                  onClick={() => navigate(focus.level === 'personal' ? 'tasks' : 'commissions')}
-                >
-                  Ver todas
-                  <ChevronRight size={16} />
-                </button>
-              </div>
+              {focus.level === 'commissions' && (
+                <div className="section-heading">
+                  <h2>Tareas del equipo</h2>
+                </div>
+              )}
               {focus.level === 'commissions' && (
                 <p className="focus-context-note">
                   Tus tareas están al día. Estas tareas pertenecen a tu equipo.
@@ -319,8 +323,8 @@ export function MobileHome(props: {
                 <span className="clear-status">
                   <Check size={16} /> Sin pendientes
                 </span>
-                <img src="/monkey.webp" alt="" width="160" height="195" />
-                <h2>{hasContext ? 'Todo está al día' : 'Sin tareas asignadas'}</h2>
+
+                <Check size={34} aria-hidden="true" />
                 {hasContext && (
                   <div className="personal-clear compact">
                     <p>¡Tus tareas están al día!</p>

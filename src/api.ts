@@ -1,3 +1,11 @@
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status = 0,
+  ) {
+    super(message);
+  }
+}
 let csrf = '';
 export const setCSRF = (value: string) => {
   csrf = value;
@@ -11,9 +19,12 @@ export async function api(path: string, method = 'GET', body?: unknown) {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
-    throw new Error('Sin conexión. El cambio no se ha guardado. Vuelve a intentarlo.');
+    throw new ApiError('Sin conexión. Vuelve a intentarlo cuando recuperes la conexión.');
   }
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'No se pudo completar la operación.');
+  const data = await response
+    .json()
+    .catch(() => ({ error: 'No se ha podido leer la respuesta. Vuelve a intentarlo.' }));
+  if (!response.ok)
+    throw new ApiError(data.error || 'No se pudo completar la operación.', response.status);
   return data;
 }

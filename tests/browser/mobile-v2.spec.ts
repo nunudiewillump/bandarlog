@@ -71,7 +71,7 @@ async function setup(
     return route.fulfill({ status: 404, json: { error: 'No disponible en esta prueba aislada' } });
   });
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Hola, Scouter' })).toBeVisible();
+  await expect(page.locator('.mobile-focus')).toBeVisible();
   return { ...fixture, calls };
 }
 const metric = (page: Page, label: string) =>
@@ -153,7 +153,7 @@ test('the last personal task gets a satisfaction pause before read-only team con
   await page.waitForTimeout(1500);
   await expect(page.locator('.mobile-focus .focus-primary')).toHaveCount(0);
   await page.screenshot({ path: 'artifacts/mobile-v2/last-task.png', animations: 'disabled' });
-  await expect(page.getByRole('heading', { name: 'Así van tus comisiones' })).toBeVisible({
+  await expect(page.getByRole('heading', { name: 'Mis comisiones', exact: true })).toBeVisible({
     timeout: 5000,
   });
   await expect(page.locator('.personal-clear')).toBeVisible();
@@ -182,7 +182,7 @@ for (const level of ['camps', 'clear'] as const)
       ).toBeVisible();
       await expect(page.locator('.camp-overview')).toHaveCount(1);
       await expect(page.locator('.camp-overview > p [data-value="14"]')).toHaveCount(1);
-    } else await expect(page.getByRole('heading', { name: 'Todo está al día' })).toBeVisible();
+    } else await expect(page.getByRole('heading', { name: 'Todo al día' })).toBeVisible();
     await page.screenshot({
       path: `artifacts/mobile-v2/${level}.png`,
       fullPage: true,
@@ -282,6 +282,11 @@ for (const width of [320, 390, 430])
       for (const [name, query] of views) {
         await page.goto('/' + query);
         await expect(page.getByRole('main')).toBeVisible();
+        await expect(
+          page.locator(
+            'img[src="/monkey.webp"], img[src*="/artwork/mascots/"], svg image[href*="/artwork/mascots/"]',
+          ),
+        ).toHaveCount(0);
         await expect(page.locator('.loading')).toHaveCount(0);
         expect(
           await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
@@ -327,7 +332,7 @@ for (const width of [320, 390, 430])
       });
       await page.getByRole('dialog').getByRole('button', { name: 'Cerrar', exact: true }).click();
       await page.goto('/?view=commission&project=camp-v2&commission=commission-v2-9');
-      await page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }).click();
+      await page.getByRole('button', { name: 'Elegir icono', exact: true }).click();
       const catalogue = page.getByRole('dialog');
       await expect(catalogue).toBeVisible();
       expect(
@@ -375,6 +380,11 @@ for (const width of [320, 430])
     ]) {
       await page.goto('/?view=' + view);
       await expect(page.getByRole('main')).toBeVisible();
+      await expect(
+        page.locator(
+          'img[src="/monkey.webp"], img[src*="/artwork/mascots/"], svg image[href*="/artwork/mascots/"]',
+        ),
+      ).toHaveCount(0);
       await expect(page.locator('.loading')).toHaveCount(0);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,

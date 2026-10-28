@@ -58,5 +58,11 @@ export function validateEnvironment(env: NodeJS.ProcessEnv = process.env) {
       throw new Error('La conexión Neon de producción requiere sslmode=verify-full.');
     }
   }
+  if (production && (!env.AUTH_CHALLENGE_SECRET || env.AUTH_CHALLENGE_SECRET.length < 32))
+    throw new Error(
+      'Producción requiere AUTH_CHALLENGE_SECRET aleatorio de al menos 32 caracteres.',
+    );
+  if (Boolean(env.GOOGLE_LOGIN_CLIENT_ID) !== Boolean(env.GOOGLE_LOGIN_CLIENT_SECRET))
+    throw new Error('Configura GOOGLE_LOGIN_CLIENT_ID y GOOGLE_LOGIN_CLIENT_SECRET conjuntamente.');
   return { production, appUrl: origin.origin };
 }

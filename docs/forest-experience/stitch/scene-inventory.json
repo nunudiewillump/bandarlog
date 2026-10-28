@@ -1,0 +1,114 @@
+{
+  "source": "original.html",
+  "states": [
+    {
+      "id": "F01",
+      "exportedTitle": "Splash Inicial & Saludo"
+    },
+    {
+      "id": "F02",
+      "exportedTitle": "Autenticación Scout ID"
+    },
+    {
+      "id": "F03",
+      "exportedTitle": "Selección de Rol y Patrulla"
+    },
+    {
+      "id": "F04",
+      "exportedTitle": "Sincronización Inicial de Camp"
+    },
+    {
+      "id": "F05",
+      "exportedTitle": "Permisos y Sensores de Campo"
+    },
+    {
+      "id": "F06",
+      "exportedTitle": "Tablero General de Campamento"
+    },
+    {
+      "id": "F07",
+      "exportedTitle": "Smart Focus & Contexto Inmediato"
+    },
+    {
+      "id": "F08",
+      "exportedTitle": "Línea de Tiempo del Día"
+    },
+    {
+      "id": "F09",
+      "exportedTitle": "Modo Nocturno / Linterna Rápida"
+    },
+    {
+      "id": "F10",
+      "exportedTitle": "Avisos de Base y Megafonía"
+    },
+    {
+      "id": "F11",
+      "exportedTitle": "Lista de Mis Tareas Activas"
+    },
+    {
+      "id": "F12",
+      "exportedTitle": "Detalle de Tarea & Materiales"
+    },
+    {
+      "id": "F13",
+      "exportedTitle": "Comisión de Cocina y Menús"
+    },
+    {
+      "id": "F14",
+      "exportedTitle": "Comisión de Pionerismo y Madera"
+    },
+    {
+      "id": "F15",
+      "exportedTitle": "Comisión de Sanidad y Botiquín"
+    },
+    {
+      "id": "F16",
+      "exportedTitle": "Comisión de Programa & Grandes Juegos"
+    },
+    {
+      "id": "F17",
+      "exportedTitle": "Directorio de Scouters & Monitores"
+    },
+    {
+      "id": "F18",
+      "exportedTitle": "Asamblea & Registro de Asistencia"
+    },
+    {
+      "id": "F19",
+      "exportedTitle": "Consejo de Grupo & Actas Rápidas"
+    },
+    {
+      "id": "F20",
+      "exportedTitle": "Historial de Tareas Completadas"
+    },
+    {
+      "id": "F21",
+      "exportedTitle": "Alerta Meteorológica de Urgencia"
+    },
+    {
+      "id": "F22",
+      "exportedTitle": "Modo Sin Cobertura (Mesh Scout)"
+    },
+    {
+      "id": "F23",
+      "exportedTitle": "Recuperación de Conflicto de Datos"
+    },
+    {
+      "id": "F24",
+      "exportedTitle": "Ajustes de Perfil Scout"
+    },
+    {
+      "id": "F25",
+      "exportedTitle": "Configuración de Ahorro Extremo"
+    },
+    {
+      "id": "F26",
+      "exportedTitle": "Protocolo de Cierre de Campamento"
+    },
+    {
+      "id": "F27",
+      "exportedTitle": "Exportación de Memoria Oficial"
+    }
+  ],
+  "note": "Los nombres del export no demuestran que existan 27 pantallas distintas renderizadas."
+}

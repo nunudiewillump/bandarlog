@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Bandarlog · Forest Experience — Tablero de Especificación UI/UX</title>
+<!-- Google Fonts: Nunito Sans & Material Symbols -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,300;0,6..12,400;0,6..12,600;0,6..12,700;0,6..12,800;1,6..12,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration Verbatim -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-secondary": "#ffffff",
+            "surface-container-low": "#e4f9e9",
+            "on-primary-fixed-variant": "#16503b",
+            "primary-fixed-dim": "#99d3b7",
+            "on-secondary-fixed": "#0c1f15",
+            "on-background": "#0e1f16",
+            "tertiary-fixed-dim": "#ffb77d",
+            "tertiary": "#4a2400",
+            "secondary-fixed": "#d1e8d8",
+            "tertiary-fixed": "#ffdcc3",
+            "on-primary-fixed": "#002115",
+            "secondary-container": "#cee5d5",
+            "on-tertiary-fixed-variant": "#6e3900",
+            "on-primary": "#ffffff",
+            "on-primary-container": "#84bda2",
+            "surface-container-high": "#d9edde",
+            "primary-container": "#124d38",
+            "inverse-surface": "#23342a",
+            "error-container": "#ffdad6",
+            "surface-tint": "#316852",
+            "on-secondary-fixed-variant": "#374b3f",
+            "inverse-primary": "#99d3b7",
+            "on-error-container": "#93000a",
+            "inverse-on-surface": "#e2f6e7",
+            "surface": "#eafeef",
+            "surface-variant": "#d3e7d9",
+            "error": "#ba1a1a",
+            "on-tertiary-container": "#ff9939",
+            "primary-fixed": "#b5efd2",
+            "secondary": "#4e6356",
+            "on-tertiary-fixed": "#2f1500",
+            "on-surface-variant": "#404944",
+            "background": "#eafeef",
+            "surface-container-lowest": "#ffffff",
+            "surface-bright": "#eafeef",
+            "outline-variant": "#c0c9c2",
+            "surface-dim": "#cbdfd0",
+            "on-secondary-container": "#52675a",
+            "primary": "#003524",
+            "outline": "#707973",
+            "tertiary-container": "#6a3700",
+            "on-tertiary": "#ffffff",
+            "secondary-fixed-dim": "#b5ccbc",
+            "on-surface": "#0e1f16",
+            "on-error": "#ffffff",
+            "surface-container": "#dff3e4",
+            "surface-container-highest": "#d3e7d9"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-lg": "1rem",
+            "space-xl": "1.5rem",
+            "space-sm": "0.5rem",
+            "space-xs": "0.25rem",
+            "margin": "1rem",
+            "gutter": "1rem",
+            "space-md": "0.75rem"
+          },
+          "fontFamily": {
+            "headline-lg": ["Nunito Sans"],
+            "headline-lg-mobile": ["Nunito Sans"],
+            "body-lg": ["Nunito Sans"],
+            "label-lg": ["Nunito Sans"],
+            "label-md": ["Nunito Sans"],
+            "label-sm": ["Nunito Sans"],
+            "body-md": ["Nunito Sans"],
+            "headline-md": ["Nunito Sans"],
+            "body-sm": ["Nunito Sans"],
+            "title-md": ["Nunito Sans"],
+            "headline-sm": ["Nunito Sans"]
+          },
+          "fontSize": {
+            "headline-lg": ["32px", { "lineHeight": "38px", "fontWeight": "800" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "32px", "fontWeight": "800" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "label-lg": ["14px", { "lineHeight": "18px", "letterSpacing": "0.2px", "fontWeight": "700" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.4px", "fontWeight": "600" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.5px", "fontWeight": "700" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "headline-md": ["22px", { "lineHeight": "28px", "fontWeight": "700" }],
+            "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+            "title-md": ["16px", { "lineHeight": "22px", "fontWeight": "700" }],
+            "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "700" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    /* Tactile scrollbar & custom transitions */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #e4f9e9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #c0c9c2;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #707973;
+    }
+    .canopy-silhouette {
+      clip-path: polygon(0 0, 100% 0, 100% 78%, 95% 88%, 88% 76%, 80% 92%, 72% 79%, 64% 96%, 55% 82%, 47% 93%, 38% 80%, 28% 98%, 20% 82%, 12% 91%, 5% 78%, 0 88%);
+    }
+    .phone-shadow {
+      box-shadow: 0 20px 48px -10px rgba(0, 53, 36, 0.28), 0 0 0 10px #23342a, 0 0 0 12px #c0c9c2;
+    }
+  </style>
+</head>
+<body class="bg-surface font-body-md text-on-surface antialiased min-h-screen flex flex-col selection:bg-primary selection:text-surface">
+<!-- TOP APP BAR / BRAND HEADER (Shared Components JSON execution) -->
+<header class="bg-primary text-surface docked full-width top h-20 border-b border-outline-variant relative z-40 select-none">
+<div class="flex justify-between items-center w-full px-4 h-16">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 rounded bg-primary-container flex items-center justify-center p-1 border border-outline-variant/30">
+<img alt="Bandarlog Mark" class="w-8 h-8 object-contain" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg"/>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-md text-headline-md font-bold tracking-tight text-surface">Bandarlog</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-primary-container">Forest Experience · Spec Ops PR #8</span>
+</div>
+</div>
+<!-- Action items & Live Telemetry Chips -->
+<div class="flex items-center space-x-2 md:space-x-4">
+<div class="hidden sm:flex items-center bg-primary-container/80 px-2.5 py-1 rounded border border-outline-variant/40 space-x-2">
+<span class="w-2 h-2 rounded-full bg-primary-fixed animate-pulse"></span>
+<span class="font-label-sm text-label-sm text-surface uppercase font-bold tracking-wider">Dirección A: Copa Compacta</span>
+</div>
+<div class="hidden lg:flex items-center bg-primary-container/40 px-2.5 py-1 rounded text-surface-variant font-label-sm text-label-sm">
+<span>W3C Level AA / Touch 44px / F01-F27</span>
+</div>
+<button class="w-10 h-10 rounded flex items-center justify-center bg-primary-container hover:bg-primary transition-colors text-surface active:scale-95 transition-transform duration-150" id="btn-device-toggle" title="Cambiar modo de vista">
+<span class="material-symbols-outlined text-[20px]">devices</span>
+</button>
+<button class="w-10 h-10 rounded flex items-center justify-center bg-error-container hover:bg-error transition-colors text-on-error-container active:scale-95 transition-transform duration-150" id="btn-alert-review" title="Protocolo de Emergencia">
+<span class="material-symbols-outlined text-[20px]">emergency</span>
+</button>
+</div>
+</div>
+<!-- 16px Organic Fringe Silhouette Anchor (Style Guidance) -->
+<div class="w-full h-4 bg-primary canopy-silhouette"></div>
+</header>
+<!-- WORKSPACE TOOLBAR & CATEGORY NAVIGATOR -->
+<section class="bg-surface-container border-b border-outline-variant px-4 py-3 sticky top-0 z-30 shadow-sm backdrop-blur-md">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
+<!-- Category Pills -->
+<div class="flex items-center overflow-x-auto pb-1 md:pb-0 gap-1.5 no-scrollbar" id="category-pills">
+<button class="cat-pill active px-3 py-1.5 rounded font-label-sm text-label-sm uppercase font-bold bg-primary text-surface whitespace-nowrap transition-colors" onclick="filterCategory('all', this)">
+          Todas (27 Escenas)
+        </button>
+<button class="cat-pill px-3 py-1.5 rounded font-label-sm text-label-sm uppercase font-bold bg-surface-container-lowest text-secondary border border-outline-variant hover:border-primary whitespace-nowrap transition-colors" onclick="filterCategory('onboarding', this)">
+          Acceso &amp; Onboarding (F01-F05, F24-F27)
+        </button>
+<button class="cat-pill px-3 py-1.5 rounded font-label-sm text-label-sm uppercase font-bold bg-surface-container-lowest text-secondary border border-outline-variant hover:border-primary whitespace-nowrap transition-colors" onclick="filterCategory('smartfocus', this)">
+          Smart Focus &amp; Inicio (F06-F10)
+        </button>
+<button class="cat-pill px-3 py-1.5 rounded font-label-sm text-label-sm uppercase font-bold bg-surface-container-lowest text-secondary border border-outline-variant hover:border-primary whitespace-nowrap transition-colors" onclick="filterCategory('tasks', this)">
+          Operativa &amp; Comisiones (F11-F16, F20)
+        </button>
+<button class="cat-pill px-3 py-1.5 rounded font-label-sm text-label-sm uppercase font-bold bg-surface-container-lowest text-secondary border border-outline-variant hover:border-primary whitespace-nowrap transition-colors" onclick="filterCategory('coordination', this)">
+          Coordinación (F17-F19)
+        </button>
+<button class="cat-pill px-3 py-1.5 rounded font-label-sm text-label-sm uppercase font-bold bg-surface-container-lowest text-secondary border border-outline-variant hover:border-primary whitespace-nowrap transition-colors" onclick="filterCategory('system', this)">
+          Estados de Red (F21-F23)
+        </button>
+</div>
+<!-- Quick Metrics & View Controls -->
+<div class="flex items-center space-x-2 shrink-0 self-end md:self-auto">
+<span class="font-label-sm text-label-sm text-secondary font-bold">Escena activa:</span>
+<span class="px-2 py-0.5 rounded bg-primary-container text-surface font-label-sm text-label-sm font-bold" id="active-scene-badge">F07 · Smart Focus</span>
+<button class="w-8 h-8 rounded border border-outline-variant bg-surface-container-lowest hover:bg-surface-container-high flex items-center justify-center text-primary" onclick="cycleScenes(-1)" title="Anterior">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<button class="w-8 h-8 rounded border border-outline-variant bg-surface-container-lowest hover:bg-surface-container-high flex items-center justify-center text-primary" onclick="cycleScenes(1)" title="Siguiente">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+</section>
+<!-- MAIN CANVAS: BENTO DUAL PANE -->
+<main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+<!-- LEFT PANEL: PHONE STAGE (390px Viewport Simulation) -->
+<section class="lg:col-span-5 xl:col-span-5 flex flex-col items-center sticky top-20">
+<!-- Device Selector bar -->
+<div class="w-full max-w-[390px] mb-3 flex items-center justify-between px-2 text-secondary font-label-sm text-label-sm">
+<div class="flex items-center space-x-2">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="font-bold tracking-tight">iPhone 14 / 15 Pro (390 × 844 px)</span>
+</div>
+<div class="flex space-x-1">
+<span class="px-1.5 py-0.5 bg-surface-container-high rounded text-[10px] font-bold">100% SCALE</span>
+<span class="px-1.5 py-0.5 bg-surface-container-high rounded text-[10px] font-bold">44PX HITBOX</span>
+</div>
+</div>
+<!-- IPHONE HARDWARE WRAPPER -->
+<div class="w-[390px] h-[812px] bg-inverse-surface rounded-[48px] p-3 phone-shadow relative flex flex-col overflow-hidden select-none">
+<!-- Dynamic Island / Hardware notch -->
+<div class="absolute top-4 left-1/2 -translate-x-1/2 w-28 h-6 bg-black rounded-full z-50 flex items-center justify-end pr-2 space-x-1.5">
+<div class="w-2.5 h-2.5 rounded-full bg-primary/40 border border-outline/30"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-primary/90"></div>
+</div>
+<!-- Inner Screen Canvas: Crema (#FAF8F2) -->
+<div class="w-full h-full bg-[#FAF8F2] rounded-[38px] flex flex-col overflow-hidden relative border border-outline-variant/40">
+<!-- MOBILE STATUS BAR -->
+<div class="h-10 w-full pt-2 px-6 flex justify-between items-center text-[#24352B] font-label-sm text-[12px] font-bold z-40">
+<span>09:41</span>
+<div class="flex items-center space-x-1.5">
+<span class="material-symbols-outlined text-[14px]">signal_cellular_4_bar</span>
+<span class="material-symbols-outlined text-[14px]">wifi</span>
+<span class="material-symbols-outlined text-[14px]">battery_charging_full</span>
+</div>
+</div>
+<!-- COPA COMPACTA MASTHEAD (64px base + 16px fringe SVG) -->
+<div class="relative w-full z-30 shrink-0">
+<div class="bg-primary text-surface h-16 px-4 flex items-center justify-between">
+<div class="flex items-center space-x-2">
+<img alt="Mono Bandarlog" class="w-7 h-7 object-contain" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg"/>
+<span class="font-headline-md text-[20px] font-bold text-surface tracking-tight">Bandarlog</span>
+</div>
+<div class="flex items-center space-x-1">
+<button class="w-11 h-11 flex items-center justify-center text-surface hover:text-surface-bright active:scale-95 transition-transform" title="Notificaciones de Base">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+<button class="w-11 h-11 flex items-center justify-center text-surface hover:text-surface-bright active:scale-95 transition-transform" title="Emergencias">
+<span class="material-symbols-outlined text-[20px] text-error-container">emergency</span>
+</button>
+</div>
+</div>
+<!-- 16px bottom organic silhouette -->
+<div class="w-full h-4 bg-primary canopy-silhouette"></div>
+</div>
+<!-- SCROLLABLE MOBILE CONTENT CONTAINER -->
+<div class="flex-1 overflow-y-auto px-4 pb-20 pt-2 space-y-4" id="phone-content-stream">
+<!-- SMART FOCUS BANNER / DYNAMIC STAGE -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-3 shadow-none">
+<div class="flex items-start justify-between">
+<div>
+<div class="flex items-center space-x-2">
+<span class="px-2 py-0.5 rounded bg-[#FBF3D5] text-[#D97706] font-label-sm text-label-sm font-bold uppercase tracking-wider">Sector B-3 Camp</span>
+<span class="font-label-sm text-label-sm text-secondary font-bold">14:00 - 16:30</span>
+</div>
+<h2 class="font-headline-sm text-headline-sm font-bold text-on-surface mt-1">Montaje de Toldos de Refuerzo</h2>
+<p class="font-body-sm text-body-sm text-secondary mt-0.5">Comisión de Intendencia &amp; Pionerismo</p>
+</div>
+<!-- Mascot avatar -->
+<div class="w-12 h-12 rounded bg-surface-container flex items-center justify-center overflow-hidden border border-outline-variant shrink-0">
+<img alt="Mascota Bandarlog" class="w-10 h-10 object-contain" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg"/>
+</div>
+</div>
+<!-- Quick action row -->
+<div class="mt-3 pt-3 border-t border-outline-variant flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-secondary font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary">groups</span>
+                  4 Scouters asignados
+                </span>
+<button class="h-9 px-3 bg-primary text-surface rounded font-label-sm text-label-sm uppercase font-bold hover:bg-primary-container active:scale-95 transition-all">
+                  Marcar Check-in
+                </button>
+</div>
+</div>
+<!-- TAREAS DE ALTA PRIORIDAD (Checkbox 44x44px target) -->
+<div class="space-y-2">
+<div class="flex justify-between items-center px-1">
+<span class="font-label-sm text-label-sm text-secondary uppercase font-bold tracking-wider">Tareas Urgentes de Turno</span>
+<span class="font-label-sm text-label-sm text-primary font-bold">3 pendientes</span>
+</div>
+<!-- Task 1 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-2.5 flex items-center justify-between">
+<div class="flex items-center space-x-2 min-h-[44px]">
+<label class="w-11 h-11 flex items-center justify-center cursor-pointer">
+<input checked="" class="w-5 h-5 rounded text-primary focus:ring-0 cursor-pointer border-outline" type="checkbox"/>
+</label>
+<div>
+<p class="font-body-md text-body-md font-bold text-on-surface leading-tight">Inventario de piquetes y cabos</p>
+<p class="font-body-sm text-[12px] text-secondary">Almacén Central · Tienda 04</p>
+</div>
+</div>
+<span class="px-2 py-1 bg-surface-container rounded text-secondary font-label-sm text-[11px] font-bold">14:15</span>
+</div>
+<!-- Task 2 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-2.5 flex items-center justify-between">
+<div class="flex items-center space-x-2 min-h-[44px]">
+<label class="w-11 h-11 flex items-center justify-center cursor-pointer">
+<input class="w-5 h-5 rounded text-primary focus:ring-0 cursor-pointer border-outline" type="checkbox"/>
+</label>
+<div>
+<p class="font-body-md text-body-md font-bold text-on-surface leading-tight">Revisión de botiquines P1</p>
+<p class="font-body-sm text-[12px] text-secondary">Sanidad · Punto de Encuentro</p>
+</div>
+</div>
+<span class="px-2 py-1 bg-[#FBF3D5] text-[#D97706] rounded font-label-sm text-[11px] font-bold">URGENTE</span>
+</div>
+<!-- Task 3 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-2.5 flex items-center justify-between">
+<div class="flex items-center space-x-2 min-h-[44px]">
+<label class="w-11 h-11 flex items-center justify-center cursor-pointer">
+<input class="w-5 h-5 rounded text-primary focus:ring-0 cursor-pointer border-outline" type="checkbox"/>
+</label>
+<div>
+<p class="font-body-md text-body-md font-bold text-on-surface leading-tight">Canalizar aguas pluviales</p>
+<p class="font-body-sm text-[12px] text-secondary">Sector Comedor y Cocina</p>
+</div>
+</div>
+<span class="px-2 py-1 bg-surface-container rounded text-secondary font-label-sm text-[11px] font-bold">15:00</span>
+</div>
+</div>
+<!-- ASSET SPOTLIGHT CARD: Feedback Mascota con Liana -->
+<div class="bg-[#F5F3EC] border border-outline-variant rounded p-3 flex items-center space-x-3">
+<div class="w-14 h-16 shrink-0 bg-surface-container-lowest rounded border border-outline-variant flex items-center justify-center overflow-hidden">
+<img alt="Mascota liana" class="h-14 object-contain" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg"/>
+</div>
+<div class="flex-1">
+<p class="font-label-sm text-label-sm uppercase font-bold text-primary tracking-wide">Registro de Logística</p>
+<p class="font-body-sm text-body-sm text-on-surface">"Recuerda sincronizar la lista de raciones antes de perder señal en la vaguada."</p>
+</div>
+</div>
+</div>
+<!-- BOTTOM NAVBAR (Shared Components JSON execution) -->
+<!-- docked full-width bottom-0 h-[68px], border-t border-outline-variant, 4 tabs -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 h-[68px] bg-surface border-t border-outline-variant text-primary select-none">
+<!-- Tab 1: Inicio (Active) -->
+<button class="flex flex-col items-center justify-center text-primary font-bold min-h-[44px] min-w-[44px] active:scale-95 transition-transform duration-150" onclick="switchPhoneTab(0)">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-sm text-label-sm uppercase font-bold mt-0.5">Inicio</span>
+</button>
+<!-- Tab 2: Mis tareas -->
+<button class="flex flex-col items-center justify-center text-secondary font-medium min-h-[44px] min-w-[44px] hover:text-primary active:scale-95 transition-transform duration-150" onclick="switchPhoneTab(1)">
+<span class="material-symbols-outlined text-[22px]">checklist</span>
+<span class="font-label-sm text-label-sm uppercase font-bold mt-0.5">Mis tareas</span>
+</button>
+<!-- Tab 3: Comisiones -->
+<button class="flex flex-col items-center justify-center text-secondary font-medium min-h-[44px] min-w-[44px] hover:text-primary active:scale-95 transition-transform duration-150" onclick="switchPhoneTab(2)">
+<span class="material-symbols-outlined text-[22px]">groups</span>
+<span class="font-label-sm text-label-sm uppercase font-bold mt-0.5">Comisiones</span>
+</button>
+<!-- Tab 4: Perfil -->
+<button class="flex flex-col items-center justify-center text-secondary font-medium min-h-[44px] min-w-[44px] hover:text-primary active:scale-95 transition-transform duration-150" onclick="switchPhoneTab(3)">
+<span class="material-symbols-outlined text-[22px]">person</span>
+<span class="font-label-sm text-label-sm uppercase font-bold mt-0.5">Perfil</span>
+</button>
+</nav>
+</div>
+</div>
+<!-- Simulator notes -->
+<div class="mt-4 text-center">
+<p class="font-label-sm text-label-sm text-secondary font-bold">
+          Visualización estricta 390px · Cumple contraste AA (7.4:1 en Copa, 11.2:1 en Textos)
+        </p>
+</div>
+</section>
+<!-- RIGHT PANEL: 27 SCENES SPECIFICATION MATRIX & ASSET CATALOG -->
+<section class="lg:col-span-7 xl:col-span-7 space-y-6">
+<!-- INSPECTION CARD: CURRENT SELECTED SCENE -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-5 shadow-sm">
+<div class="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant pb-3 mb-4">
+<div class="flex items-center space-x-2">
+<span class="px-2.5 py-1 bg-primary text-surface font-label-lg text-label-lg font-bold rounded" id="detail-code">F07</span>
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface" id="detail-title">Smart Focus &amp; Contexto Inmediato</h3>
+</div>
+<div class="flex items-center space-x-2">
+<span class="px-2 py-0.5 bg-surface-container rounded font-label-sm text-label-sm text-secondary font-bold uppercase" id="detail-category">Smart Focus &amp; Inicio</span>
+<span class="px-2 py-0.5 bg-secondary-fixed text-on-secondary-fixed rounded font-label-sm text-label-sm font-bold uppercase">Validado PR #8</span>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div>
+<span class="font-label-sm text-label-sm text-secondary uppercase font-bold">Justificación Funcional &amp; W3C</span>
+<p class="font-body-md text-body-md text-on-surface mt-1 leading-relaxed" id="detail-desc">
+              Prioriza en primer plano la actividad activa según franja horaria y geovalla del sector de campamento. Elimina la fatiga de navegación presentando un único llamado a la acción primario con contraste mínimo 4.5:1.
+            </p>
+</div>
+<div class="bg-surface-container-low p-3 rounded border border-outline-variant">
+<span class="font-label-sm text-label-sm text-secondary uppercase font-bold">Especificación de Datos Sintéticos</span>
+<ul class="font-body-sm text-body-sm text-on-surface space-y-1 mt-1.5" id="detail-specs">
+<li>• Sector B-3 Camp · Turno 14:00 - 16:30</li>
+<li>• Comisión: Intendencia y Pionerismo</li>
+<li>• 4 Scouters asignados con telemetría offline</li>
+<li>• Touch targets verificados: 44×44px estricto</li>
+</ul>
+</div>
+</div>
+<div class="mt-4 pt-3 border-t border-outline-variant flex flex-wrap items-center justify-between gap-2">
+<div class="flex items-center space-x-2 text-secondary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px] text-primary">verified</span>
+<span>0 librerías pesadas externas · CSS nativo Tailwind</span>
+</div>
+<button class="h-9 px-3 bg-primary-container text-surface hover:bg-primary font-label-sm text-label-sm uppercase font-bold rounded flex items-center space-x-1.5 transition-colors" onclick="renderToPhone(currentSceneIndex)">
+<span class="material-symbols-outlined text-[18px]">phone_iphone</span>
+<span>Simular en mockup</span>
+</button>
+</div>
+</div>
+<!-- 27 SCENES BENTO GRID (F01 to F27) -->
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<h4 class="font-headline-sm text-headline-sm font-bold text-on-surface">Catálogo Completo de Escenas (F01 - F27)</h4>
+<span class="font-label-sm text-label-sm text-secondary font-bold" id="visible-count">Mostrando 27 estados</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 max-h-[480px] overflow-y-auto pr-1" id="scene-grid">
+<!-- Dynamically populated via JS for full interactive fidelity -->
+</div>
+</div>
+<!-- MANIFIESTO OFICIAL DE ASSETS & TRAZABILIDAD DE MOVIMIENTO (M01-M05) -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-5">
+<div class="flex items-center justify-between border-b border-outline-variant pb-3 mb-4">
+<div>
+<h4 class="font-headline-sm text-headline-sm font-bold text-on-surface">Manifiesto Oficial de Assets &amp; Animación</h4>
+<p class="font-body-sm text-body-sm text-secondary">Recursos autorizados de la expedición Scout Bandarlog</p>
+</div>
+<span class="px-2 py-1 bg-surface-container text-primary font-label-sm text-label-sm font-bold rounded uppercase">5 Assets Activos</span>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+<!-- Asset 1 -->
+<div class="border border-outline-variant rounded p-2.5 flex flex-col items-center text-center bg-surface-container-low">
+<div class="w-12 h-12 flex items-center justify-center p-1 bg-white rounded border border-outline-variant mb-2">
+<img alt="Mono Brand Mark" class="w-10 h-10 object-contain" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg"/>
+</div>
+<span class="font-label-sm text-[11px] font-bold text-on-surface">IMAGE_1</span>
+<span class="font-body-sm text-[10px] text-secondary">Brand Mark Mono</span>
+</div>
+<!-- Asset 2 -->
+<div class="border border-outline-variant rounded p-2.5 flex flex-col items-center text-center bg-surface-container-low">
+<div class="w-12 h-12 flex items-center justify-center p-1 bg-white rounded border border-outline-variant mb-2">
+<img alt="Mono Liana" class="h-10 object-contain" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg"/>
+</div>
+<span class="font-label-sm text-[11px] font-bold text-on-surface">IMAGE_2</span>
+<span class="font-body-sm text-[10px] text-secondary">Liana Feedback</span>
+</div>
+<!-- Asset 3 -->
+<div class="border border-outline-variant rounded p-2.5 flex flex-col items-center text-center bg-surface-container-low">
+<div class="w-12 h-12 flex items-center justify-center p-1 bg-white rounded border border-outline-variant mb-2">
+<img alt="Mono Servicios" class="h-10 object-contain" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg"/>
+</div>
+<span class="font-label-sm text-[11px] font-bold text-on-surface">IMAGE_3</span>
+<span class="font-body-sm text-[10px] text-secondary">Servicios Ops</span>
+</div>
+<!-- Asset 4 -->
+<div class="border border-outline-variant rounded p-2.5 flex flex-col items-center text-center bg-surface-container-low">
+<div class="w-12 h-12 flex items-center justify-center p-1 bg-white rounded border border-outline-variant mb-2">
+<img alt="Mono Oficial" class="h-10 object-contain" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg"/>
+</div>
+<span class="font-label-sm text-[11px] font-bold text-on-surface">IMAGE_4</span>
+<span class="font-body-sm text-[10px] text-secondary">Mascota Oficial</span>
+</div>
+<!-- Asset 5 -->
+<div class="border border-outline-variant rounded p-2.5 flex flex-col items-center text-center bg-surface-container-low">
+<div class="w-12 h-12 flex items-center justify-center p-1 bg-white rounded border border-outline-variant mb-2">
+<img alt="Mono Animación" class="h-10 object-contain" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg"/>
+</div>
+<span class="font-label-sm text-[11px] font-bold text-on-surface">IMAGE_5</span>
+<span class="font-body-sm text-[10px] text-secondary">Animación Camp</span>
+</div>
+</div>
+<!-- M01 to M05 Micro-interaction protocols -->
+<div class="mt-4 pt-3 border-t border-outline-variant grid grid-cols-1 md:grid-cols-3 gap-2">
+<div class="bg-surface p-2 rounded border border-outline-variant text-[11px]">
+<span class="font-bold text-primary block">M01 · Transición de Copa:</span>
+<span class="text-secondary">Compresión suave de 80px a 64px al deslizar listas densas.</span>
+</div>
+<div class="bg-surface p-2 rounded border border-outline-variant text-[11px]">
+<span class="font-bold text-primary block">M02 · Checkbox Táctil:</span>
+<span class="text-secondary">Efecto háptico con escalado 0.95 y fill sólido Bosque (#124D38).</span>
+</div>
+<div class="bg-surface p-2 rounded border border-outline-variant text-[11px]">
+<span class="font-bold text-primary block">M05 · Sincronización Offline:</span>
+<span class="text-secondary">Indicador de pulso verde en barra superior con reintento silencioso.</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- FOOTER AUDIT LOG -->
+<footer class="bg-surface-container border-t border-outline-variant py-4 px-6 mt-8">
+<div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between text-secondary font-label-sm text-label-sm gap-2">
+<div class="flex items-center space-x-2">
+<span class="font-bold text-on-surface">Bandarlog Forest Experience</span>
+<span>— Dirección A (Copa compacta) verificada</span>
+</div>
+<div>
+<span>Desarrollado para voluntariado Scout · Resiliencia outdoor sin dependencias externas</span>
+</div>
+</div>
+</footer>
+<!-- SCRIPT LOGIC FOR SCENE NAVIGATION & 27 SCENES METADATA -->
+<script>
+    const scenes = [
+      { id: "F01", name: "Splash Inicial & Saludo", cat: "onboarding", asset: "https://bandarlog-production.up.railway.app/brand-mark.webp", desc: "Pantalla de bienvenida y carga ligera sin telemetría pesada.", specs: "Copa en reposo, verificación de caché offline" },
+      { id: "F02", name: "Autenticación Scout ID", cat: "onboarding", asset: "https://bandarlog-production.up.railway.app/monkey.webp", desc: "Ingreso táctil con soporte biométrico y PIN de patrulla.", specs: "Teclado numérico 44px, cero fricción" },
+      { id: "F03", name: "Selección de Rol y Patrulla", cat: "onboarding", asset: "https://bandarlog-production.up.railway.app/artwork/mascots/servicios.webp", desc: "Asignación de rama: Castores, Manada, Tropa, Escultas, Clan o Scouter.", specs: "Tarjetas 100% accesibles con borde #DFE5DA" },
+      { id: "F04", name: "Sincronización Inicial de Camp", cat: "onboarding", asset: "https://bandarlog-production.up.railway.app/artwork/mascots/animacion.webp", desc: "Descarga del manifiesto de actividades para uso 100% offline.", specs: "Barra de progreso con animación nativa" },
+      { id: "F05", name: "Permisos y Sensores de Campo", cat: "onboarding", asset: "https://bandarlog-production.up.railway.app/monkey-vine.webp", desc: "Configuración respetuosa de GPS de baja precisión y notificaciones.", specs: "Cumplimiento RGPD y privacidad Scout" },
+      
+      { id: "F06", name: "Tablero General de Campamento", cat: "smartfocus", asset: "https://bandarlog-production.up.railway.app/monkey.webp", desc: "Resumen de estado del día, condiciones climáticas y hora solar.", specs: "Tarjeta resumen con chips Crema (#FAF8F2)" },
+      { id: "F07", name: "Smart Focus & Contexto Inmediato", cat: "smartfocus", asset: "https://bandarlog-production.up.railway.app/monkey.webp", desc: "Prioridad número uno según geocerca y reloj de guardia activo.", specs: "Copa compacta 64+16px, CTA dominante" },
+      { id: "F08", name: "Línea de Tiempo del Día", cat: "smartfocus", asset: "https://bandarlog-production.up.railway.app/artwork/mascots/servicios.webp", desc: "Cronograma interactivo con banderas de izada, comidas y fuegos.", specs: "Lista de alta densidad con líneas guía #DFE5DA" },
+      { id: "F09", name: "Modo Nocturno / Linterna Rápida", cat: "smartfocus", asset: "https://bandarlog-production.up.railway.app/brand-mark.webp", desc: "Contraste optimizado para veladas sin deslumbrar a los acampados.", specs: "Fondos invertidos (#23342A), bajo brillo" },
+      { id: "F10", name: "Avisos de Base y Megafonía", cat: "smartfocus", asset: "https://bandarlog-production.up.railway.app/monkey-vine.webp", desc: "Bandeja de anuncios prioritarios del Comité de Campamento.", specs: "Bordes ámbar #D97706, lectura rápida" },
+
+      { id: "F11", name: "Lista de Mis Tareas Activas", cat: "tasks", asset: "https://bandarlog-production.up.railway.app/monkey.webp", desc: "Gestión directa de responsabilidades individuales con casillas 44px.", specs: "Checkboxes táctiles con retorno visual verde" },
+      { id: "F12", name: "Detalle de Tarea & Materiales", cat: "tasks", asset: "https://bandarlog-production.up.railway.app/artwork/mascots/servicios.webp", desc: "Ficha con herramientas requeridas de intendencia y mapa de sector.", specs: "Inventario en chips 28px con borde táctil" },
+      { id: "F13", name: "Comisión de Cocina y Menús", cat: "tasks", asset: "https://bandarlog-production.up.railway.app/artwork/mascots/servicios.webp", desc: "Control de alérgenos, cantidades de ración y turno de limpieza.", specs: "Tablas compactas sin scroll horizontal" },
+      { id: "F14", name: "Comisión de Pionerismo y Madera", cat: "tasks", asset: "https://bandarlog-production.up.railway.app/artwork/mascots/animacion.webp", desc: "Planos de montaje, estado de cuerdas y permisos forestales.", specs: "Visor esquemático de alta legibilidad" },
+      { id: "F15", name: "Comisión de Sanidad y Botiquín", cat: "tasks", asset: "https://bandarlog-production.up.railway.app/brand-mark.webp", desc: "Registro confidencial de curas leves y medicamentos horarios.", specs: "Protocolo de seguridad W3C reforzado" },
+      { id: "F16", name: "Comisión de Programa & Grandes Juegos", cat: "tasks", asset: "https://bandarlog-production.up.railway.app/artwork/mascots/animacion.webp", desc: "Puntuaciones de juegos de pistas y bases de animación.", specs: "Marcadores de cuadrícula Bento" },
+      
+      { id: "F17", name: "Directorio de Scouters & Monitores", cat: "coordination", asset: "https://bandarlog-production.up.railway.app/monkey.webp", desc: "Localización de responsables de sección por canales de radio.", specs: "Frecuencias Walkie / Walkie Talkie integradas" },
+      { id: "F18", name: "Asamblea & Registro de Asistencia", cat: "coordination", asset: "https://bandarlog-production.up.railway.app/artwork/mascots/servicios.webp", desc: "Pase de lista ultrarrápido sin necesidad de señal WiFi.", specs: "Toggle binario verde/gris por educando" },
+      { id: "F19", name: "Consejo de Grupo & Actas Rápidas", cat: "coordination", asset: "https://bandarlog-production.up.railway.app/brand-mark.webp", desc: "Notas de voz transcritas y acuerdos operativos del día.", specs: "Diseño sobrio de libreta de bitácora" },
+      
+      { id: "F20", name: "Historial de Tareas Completadas", cat: "tasks", asset: "https://bandarlog-production.up.railway.app/monkey-vine.webp", desc: "Registro histórico para memorias finales de campamento.", specs: "Listas archivadas con sello de hora y firma" },
+      
+      { id: "F21", name: "Alerta Meteorológica de Urgencia", cat: "system", asset: "https://bandarlog-production.up.railway.app/brand-mark.webp", desc: "Protocolo de evacuación o refugio por tormenta súbita.", specs: "Borde rojo #BA1A1A de 2px, z-index máximo" },
+      { id: "F22", name: "Modo Sin Cobertura (Mesh Scout)", cat: "system", asset: "https://bandarlog-production.up.railway.app/monkey-vine.webp", desc: "Estado de sincronización por proximidad bluetooth.", specs: "Iconografía de enlace de liana y satélite" },
+      { id: "F23", name: "Recuperación de Conflicto de Datos", cat: "system", asset: "https://bandarlog-production.up.railway.app/artwork/mascots/animacion.webp", desc: "Resolución visual de dos fichas editadas offline a la vez.", specs: "Comparador lado a lado sin jerga técnica" },
+      
+      { id: "F24", name: "Ajustes de Perfil Scout", cat: "onboarding", asset: "https://bandarlog-production.up.railway.app/monkey.webp", desc: "Carnet digital, grupo Scout de pertenencia y promesa.", specs: "Diseño de parche bordado estilizado" },
+      { id: "F25", name: "Configuración de Ahorro Extremo", cat: "onboarding", asset: "https://bandarlog-production.up.railway.app/artwork/mascots/servicios.webp", desc: "Modo batería ultra-baja para travesías de montaña de 3 días.", specs: "Inhabilitación de animaciones secundarias" },
+      { id: "F26", name: "Protocolo de Cierre de Campamento", cat: "onboarding", asset: "https://bandarlog-production.up.railway.app/artwork/mascots/animacion.webp", desc: "Checklist 'Deja el mundo mejor de cómo lo encontraste'.", specs: "Verificación de huella cero en terreno" },
+      { id: "F27", name: "Exportación de Memoria Oficial", cat: "onboarding", asset: "https://bandarlog-production.up.railway.app/brand-mark.webp", desc: "Generación de informe consolidado para federaciones y familias.", specs: "Formato A4 imprimible con trazabilidad PR #8" }
+    ];
+
+    let currentSceneIndex = 6; // F07 initially
+
+    function renderSceneGrid(filteredScenes) {
+      const grid = document.getElementById("scene-grid");
+      grid.innerHTML = "";
+      filteredScenes.forEach((s) => {
+        const isSelected = s.id === scenes[currentSceneIndex].id;
+        const card = document.createElement("div");
+        card.className = `p-2.5 rounded border transition-all cursor-pointer text-left flex items-start space-x-2.5 ${
+          isSelected 
+            ? 'bg-primary-container text-surface border-primary font-bold shadow-sm' 
+            : 'bg-surface-container-lowest text-on-surface border-outline-variant hover:border-primary/60'
+        }`;
+        card.onclick = () => selectSceneById(s.id);
+        
+        card.innerHTML = `
+          <span class="px-1.5 py-0.5 rounded text-[11px] font-bold ${
+            isSelected ? 'bg-surface text-primary' : 'bg-surface-container text-secondary'
+          }">${s.id}</span>
+          <div class="flex-1 min-w-0">
+            <p class="font-label-sm text-label-sm truncate leading-tight">${s.name}</p>
+            <p class="font-body-sm text-[11px] opacity-80 truncate mt-0.5">${s.specs}</p>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+      document.getElementById("visible-count").innerText = `Mostrando ${filteredScenes.length} de 27 estados`;
+    }
+
+    function selectSceneById(id) {
+      const idx = scenes.findIndex(s => s.id === id);
+      if (idx !== -1) {
+        currentSceneIndex = idx;
+        updateSceneDetails();
+        renderSceneGrid(getActiveFilteredScenes());
+        renderToPhone(idx);
+      }
+    }
+
+    function updateSceneDetails() {
+      const s = scenes[currentSceneIndex];
+      document.getElementById("detail-code").innerText = s.id;
+      document.getElementById("detail-title").innerText = s.name;
+      document.getElementById("detail-desc").innerText = s.desc;
+      document.getElementById("active-scene-badge").innerText = `${s.id} · ${s.name.split(' ')[0]}`;
+      
+      const categoryMap = {
+        onboarding: "Acceso & Onboarding",
+        smartfocus: "Smart Focus & Inicio",
+        tasks: "Operativa de Tareas",
+        coordination: "Coordinación & Personas",
+        system: "Estados de Sistema & Red"
+      };
+      document.getElementById("detail-category").innerText = categoryMap[s.cat] || "Operativa";
+
+      document.getElementById("detail-specs").innerHTML = `
+        <li>• Identificador único: ${s.id} (Revisión Dirección A)</li>
+        <li>• Requerimiento: ${s.specs}</li>
+        <li>• Asset vinculado: ${s.asset.replace('{{DATA:IMAGE:', '').replace('}}', '')}</li>
+        <li>• Nivel de contraste: AAA en títulos, AA en secundarios</li>
+      `;
+    }
+
+    let activeFilter = 'all';
+
+    function getActiveFilteredScenes() {
+      if (activeFilter === 'all') return scenes;
+      return scenes.filter(s => s.cat === activeFilter);
+    }
+
+    function filterCategory(cat, btn) {
+      activeFilter = cat;
+      document.querySelectorAll('.cat-pill').forEach(b => {
+        b.className = "cat-pill px-3 py-1.5 rounded font-label-sm text-label-sm uppercase font-bold bg-surface-container-lowest text-secondary border border-outline-variant hover:border-primary whitespace-nowrap transition-colors";
+      });
+      btn.className = "cat-pill active px-3 py-1.5 rounded font-label-sm text-label-sm uppercase font-bold bg-primary text-surface whitespace-nowrap transition-colors";
+      
+      const filtered = getActiveFilteredScenes();
+      renderSceneGrid(filtered);
+    }
+
+    function cycleScenes(delta) {
+      currentSceneIndex = (currentSceneIndex + delta + scenes.length) % scenes.length;
+      updateSceneDetails();
+      renderSceneGrid(getActiveFilteredScenes());
+      renderToPhone(currentSceneIndex);
+    }
+
+    function renderToPhone(idx) {
+      const s = scenes[idx];
+      const container = document.getElementById("phone-content-stream");
+
+      // Dynamic mockup generation according to scene context
+      if (s.cat === 'tasks') {
+        container.innerHTML = `
+          <div class="bg-surface-container-lowest border border-outline-variant rounded p-3">
+            <div class="flex items-center justify-between">
+              <span class="font-headline-sm text-headline-sm font-bold text-on-surface">${s.name}</span>
+              <span class="px-2 py-0.5 rounded bg-surface-container text-primary font-label-sm text-[11px] font-bold">${s.id}</span>
+            </div>
+            <p class="font-body-sm text-body-sm text-secondary mt-1">${s.desc}</p>
+          </div>
+          <div class="space-y-2">
+            <div class="bg-surface-container-lowest border border-outline-variant rounded p-2.5 flex items-center justify-between">
+              <label class="w-11 h-11 flex items-center justify-center cursor-pointer">
+                <input type="checkbox" checked class="w-5 h-5 rounded text-primary focus:ring-0">
+              </label>
+              <div class="flex-1 px-1">
+                <p class="font-body-md text-body-md font-bold text-on-surface">Inspección de nudos y tensores</p>
+                <p class="font-body-sm text-[11px] text-secondary">Tiendas de Tropa 1 y 2</p>
+              </div>
+              <span class="text-primary font-label-sm text-label-sm font-bold">Hecho</span>
+            </div>
+            <div class="bg-surface-container-lowest border border-outline-variant rounded p-2.5 flex items-center justify-between">
+              <label class="w-11 h-11 flex items-center justify-center cursor-pointer">
+                <input type="checkbox" class="w-5 h-5 rounded text-primary focus:ring-0">
+              </label>
+              <div class="flex-1 px-1">
+                <p class="font-body-md text-body-md font-bold text-on-surface">Distribución de leña seca</p>
+                <p class="font-body-sm text-[11px] text-secondary">Cocina de campo · Turno cena</p>
+              </div>
+              <span class="text-[#D97706] font-label-sm text-label-sm font-bold">Pendiente</span>
+            </div>
+          </div>
+          <div class="p-3 bg-surface-container rounded border border-outline-variant flex items-center space-x-3">
+            <img src="${s.asset}" alt="Icono" class="w-10 h-10 object-contain">
+            <p class="font-body-sm text-body-sm text-on-surface">Operativa sincronizada bajo protocolo scout local.</p>
+          </div>
+        `;
+      } else if (s.cat === 'system') {
+        container.innerHTML = `
+          <div class="bg-error-container text-on-error-container border-2 border-error rounded p-3">
+            <div class="flex items-center space-x-2">
+              <span class="material-symbols-outlined text-[20px] text-error">warning</span>
+              <span class="font-headline-sm text-headline-sm font-bold text-error">${s.name}</span>
+            </div>
+            <p class="font-body-sm text-body-sm mt-1.5 font-bold">${s.desc}</p>
+          </div>
+          <div class="bg-surface-container-lowest border border-outline-variant rounded p-3 space-y-2">
+            <span class="font-label-sm text-label-sm text-secondary uppercase font-bold">Estado de Nodos Offline</span>
+            <div class="flex items-center justify-between text-body-sm">
+              <span>Campamento Base:</span>
+              <span class="text-primary font-bold">Conectado (Mesh)</span>
+            </div>
+            <div class="flex items-center justify-between text-body-sm">
+              <span>Puesto de Sanidad:</span>
+              <span class="text-primary font-bold">Directo P2P</span>
+            </div>
+          </div>
+          <div class="flex justify-center p-4">
+            <img src="${s.asset}" alt="Alerta" class="w-24 h-24 object-contain">
+          </div>
+        `;
+      } else {
+        container.innerHTML = `
+          <div class="bg-surface-container-lowest border border-outline-variant rounded p-3 shadow-none">
+            <div class="flex items-start justify-between">
+              <div>
+                <div class="flex items-center space-x-2">
+                  <span class="px-2 py-0.5 rounded bg-[#FBF3D5] text-[#D97706] font-label-sm text-label-sm font-bold uppercase tracking-wider">Sector B-3 Camp</span>
+                  <span class="font-label-sm text-label-sm text-secondary font-bold">14:00 - 16:30</span>
+                </div>
+                <h2 class="font-headline-sm text-headline-sm font-bold text-on-surface mt-1">${s.name}</h2>
+                <p class="font-body-sm text-body-sm text-secondary mt-0.5">${s.desc}</p>
+              </div>
+              <div class="w-12 h-12 rounded bg-surface-container flex items-center justify-center overflow-hidden border border-outline-variant shrink-0">
+                <img src="${s.asset}" alt="Mascota" class="w-10 h-10 object-contain">
+              </div>
+            </div>
+            <div class="mt-3 pt-3 border-t border-outline-variant flex items-center justify-between">
+              <span class="font-label-sm text-label-sm text-secondary font-bold flex items-center gap-1">
+                <span class="material-symbols-outlined text-[16px] text-primary">groups</span>
+                Scouters activos
+              </span>
+              <button class="h-9 px-3 bg-primary text-surface rounded font-label-sm text-label-sm uppercase font-bold hover:bg-primary-container active:scale-95 transition-all">
+                Check-in
+              </button>
+            </div>
+          </div>
+          <div class="bg-surface-container-lowest border border-outline-variant rounded p-3 flex items-center space-x-3">
+            <img src="https://bandarlog-production.up.railway.app/monkey-vine.webp" alt="Liana" class="h-12 object-contain">
+            <div>
+              <p class="font-label-sm text-label-sm font-bold text-primary">CONSEJO DE EXPEDICIÓN</p>
+              <p class="font-body-sm text-body-sm text-secondary">Telemetría y notas del sector verificadas sin conexión.</p>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function switchPhoneTab(index) {
+      const labels = ["Inicio", "Mis tareas", "Comisiones", "Perfil"];
+      const navButtons = document.querySelectorAll("nav button");
+      navButtons.forEach((btn, idx) => {
+        const iconSpan = btn.querySelector(".material-symbols-outlined");
+        const textSpan = btn.querySelector("span:last-child");
+        if (idx === index) {
+          btn.className = "flex flex-col items-center justify-center text-primary font-bold min-h-[44px] min-w-[44px] active:scale-95 transition-transform duration-150";
+          if (iconSpan) iconSpan.style.fontVariationSettings = "'FILL' 1";
+        } else {
+          btn.className = "flex flex-col items-center justify-center text-secondary font-medium min-h-[44px] min-w-[44px] hover:text-primary active:scale-95 transition-transform duration-150";
+          if (iconSpan) iconSpan.style.fontVariationSettings = "'FILL' 0";
+        }
+      });
+    }
+
+    // Initialize application
+    document.addEventListener("DOMContentLoaded", () => {
+      renderSceneGrid(scenes);
+      updateSceneDetails();
+    });
+  </script>
+</body></html>

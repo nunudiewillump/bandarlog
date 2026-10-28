@@ -42,6 +42,7 @@ Si se utiliza Railway Pro o superior, puedes elegir `MAIL_TRANSPORT=smtp`, con l
 | `APP_URL` | `<origen HTTPS generado por Railway>` |
 | `DATABASE_URL` | `<URL PostgreSQL privada de Neon con sslmode=verify-full>` |
 | `BOOTSTRAP_EMAIL` | `<correo del primer administrador>` |
+| `AUTH_CHALLENGE_SECRET` | `<secreto privado aleatorio estable de al menos 32 caracteres>` |
 | `MAIL_TRANSPORT` | `gmail_api` |
 | `MAIL_FROM` | `Bandarlog <correo-remitente-autorizado>` |
 | `GMAIL_CLIENT_ID` | `<cliente OAuth de Google>` |
@@ -56,7 +57,7 @@ Railway proporciona `PORT`: no lo fijes al puerto local del desarrollo. Deja una
 
 - El despliegue debe superar el healthcheck y el dominio debe mostrar la pantalla de acceso de Bandarlog, sin bandeja de desarrollo.
 - `GET /api/health` debe indicar `ok: true`, `database: postgresql` y `mail: gmail_api`. Esto confirma el arranque y la base, pero no certifica por sí solo la autorización del correo.
-- Solicita el primer enlace usando el correo de `BOOTSTRAP_EMAIL`. Verifica la recepción real y confirma el acceso. No compartas el enlace: contiene un token temporal.
+- Solicita el código usando el correo de `BOOTSTRAP_EMAIL`, verifica su recepción real e introdúcelo dentro de Bandarlog. Completa nombre y foto opcional si es una cuenta nueva. No compartas códigos ni enlaces de acceso.
 - Crea una ronda solar, una comisión y una tarea con una fecha futura; comprueba el correo de asignación y que sus enlaces solo modifican datos tras autenticar y confirmar.
 - Recarga la aplicación y comprueba la persistencia. Las tablas se pueden consultar en Neon sin exportar datos privados al chat.
 - Si falla el correo, verifica que Gmail API está habilitada, que el token pertenece al cliente OAuth configurado, que el alcance autorizado incluye `gmail.send` y que no ha caducado el consentimiento de prueba.
@@ -68,3 +69,15 @@ Los valores secretos pueden reemplazarse en Railway sin editar ni volver a publi
 Las personas invitadas entran desde el primer correo, pulsando «Aceptar invitación y entrar». No necesitan cuenta ni acceso al panel de Railway, ni autorizar Google. Tras actualizar una instalación anterior, reenvía las invitaciones pendientes: los correos antiguos conservan el punto erróneo al final del dominio y no se modifican al desplegar.
 
 La subida de fotos usa vistas previas `data:` compatibles con la política de imágenes de producción. El recorte y la compresión suceden antes del envío; no es necesario ampliar la política de seguridad para permitir `blob:`. Consulta la [revisión móvil y del acceso](revision-movil-y-acceso.md).
+
+## Forest Experience: nuevas variables y Google opcional
+
+Antes de desplegar esta versión, añade **AUTH_CHALLENGE_SECRET** a los secretos de Railway: valor aleatorio estable de al menos 32 caracteres. La configuración de producción lo valida antes de migrar. No reutilices una contraseña, el token de Stitch o una credencial de Gmail; no lo guardes en GitHub ni en el chat. El acceso por código usa el transporte de correo ya configurado.
+
+Google Login es opcional. Para activarlo, crea un cliente OAuth **web** propio para iniciar sesión, separado del cliente de envío de Gmail. Registra exactamente `${APP_URL}/api/auth/google/callback` como URI de redirección autorizada y añade **GOOGLE_LOGIN_CLIENT_ID** y **GOOGLE_LOGIN_CLIENT_SECRET** conjuntamente en Railway. Scopes mínimos: `openid email profile`. Mantén los usuarios de prueba y el estado de publicación/consentimiento que corresponda a ese cliente. No se solicitan permisos Gmail, refresh tokens Google ni acceso offline para mantener la sesión de Bandarlog.
+
+Sin esas dos variables se oculta Google y el código sigue disponible. Un correo Google ajeno a Gmail/Workspace puede requerir confirmar propiedad mediante el código enviado a esa misma dirección antes de vincularlo. No hay registro abierto: se exige usuario existente o invitación vigente. La identidad se conserva por `sub`, no por un email mutable.
+
+La migración conserva usuarios e invitaciones, marca como configurados los perfiles existentes y deja los nuevos pendientes de nombre/foto. Las sesiones existentes mantienen su caducidad previa hasta su renovación válida. Las sesiones nuevas usan cookie HttpOnly/Secure/Lax, treinta días de inactividad y noventa días absolutos, con renovación como máximo diaria. Por ese intervalo una sesión puede vencer hasta casi un día antes del objetivo de treinta días desde la última actividad.
+
+Las pruebas locales validan códigos, verificadores JWT y permisos con datos aislados. El intercambio real con Google y el retorno entre navegador externo y PWA instalada requieren prueba en Safari iOS, Chrome iOS y Android después de configurar el cliente. No se da por probado compartir cookies entre esos contextos: el código dentro de la PWA es la alternativa disponible. `STITCH_API_KEY` pertenece a las herramientas de diseño y **no** debe añadirse a Railway.

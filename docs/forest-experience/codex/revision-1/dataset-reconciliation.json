@@ -1,0 +1,582 @@
+{
+  "fixture": "tests/fixtures/mobile.ts (unchanged)",
+  "dataset": "../dataset.json",
+  "evaluationDate": "2026-10-28",
+  "generatedAt": "2026-10-28T11:45:05.407Z",
+  "partition": {
+    "allTasks": 74,
+    "ownOpen": 7,
+    "otherTeamOpen": 30,
+    "otherCampOpenAggregatedOnly": 14,
+    "doneInitially": 23
+  },
+  "snapshots": {
+    "personal": {
+      "personal": {
+        "total": 15,
+        "open": 7,
+        "done": 8,
+        "blocked": 1,
+        "overdue": 1
+      },
+      "all": {
+        "total": 74,
+        "open": 51,
+        "done": 23,
+        "blocked": 3,
+        "overdue": 1
+      },
+      "openOwnCommissions": 37,
+      "camp": {
+        "total": 41,
+        "open": 31,
+        "done": 10,
+        "blocked": 3,
+        "overdue": 0
+      },
+      "rows": [
+        {
+          "name": "Material",
+          "stats": {
+            "total": 6,
+            "open": 4,
+            "done": 2,
+            "blocked": 0,
+            "overdue": 1
+          }
+        },
+        {
+          "name": "Infraestructura",
+          "stats": {
+            "total": 7,
+            "open": 4,
+            "done": 3,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Botiquín",
+          "stats": {
+            "total": 7,
+            "open": 4,
+            "done": 3,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Animación",
+          "stats": {
+            "total": 7,
+            "open": 4,
+            "done": 3,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Electricidad",
+          "stats": {
+            "total": 6,
+            "open": 4,
+            "done": 2,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Cocina",
+          "stats": {
+            "total": 6,
+            "open": 4,
+            "done": 2,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Menú",
+          "stats": {
+            "total": 6,
+            "open": 4,
+            "done": 2,
+            "blocked": 1,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Logística",
+          "stats": {
+            "total": 5,
+            "open": 3,
+            "done": 2,
+            "blocked": 1,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Servicios",
+          "stats": {
+            "total": 5,
+            "open": 3,
+            "done": 2,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Staff",
+          "stats": {
+            "total": 5,
+            "open": 3,
+            "done": 2,
+            "blocked": 0,
+            "overdue": 0
+          }
+        }
+      ]
+    },
+    "commissions": {
+      "personal": {
+        "total": 15,
+        "open": 0,
+        "done": 15,
+        "blocked": 0,
+        "overdue": 0
+      },
+      "all": {
+        "total": 74,
+        "open": 44,
+        "done": 30,
+        "blocked": 2,
+        "overdue": 0
+      },
+      "openOwnCommissions": 30,
+      "camp": {
+        "total": 41,
+        "open": 29,
+        "done": 12,
+        "blocked": 2,
+        "overdue": 0
+      },
+      "rows": [
+        {
+          "name": "Material",
+          "stats": {
+            "total": 6,
+            "open": 3,
+            "done": 3,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Infraestructura",
+          "stats": {
+            "total": 7,
+            "open": 3,
+            "done": 4,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Botiquín",
+          "stats": {
+            "total": 7,
+            "open": 3,
+            "done": 4,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Animación",
+          "stats": {
+            "total": 7,
+            "open": 3,
+            "done": 4,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Electricidad",
+          "stats": {
+            "total": 6,
+            "open": 3,
+            "done": 3,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Cocina",
+          "stats": {
+            "total": 6,
+            "open": 3,
+            "done": 3,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Menú",
+          "stats": {
+            "total": 6,
+            "open": 3,
+            "done": 3,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Logística",
+          "stats": {
+            "total": 5,
+            "open": 3,
+            "done": 2,
+            "blocked": 1,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Servicios",
+          "stats": {
+            "total": 5,
+            "open": 3,
+            "done": 2,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Staff",
+          "stats": {
+            "total": 5,
+            "open": 3,
+            "done": 2,
+            "blocked": 0,
+            "overdue": 0
+          }
+        }
+      ]
+    },
+    "camps": {
+      "personal": {
+        "total": 15,
+        "open": 0,
+        "done": 15,
+        "blocked": 0,
+        "overdue": 0
+      },
+      "all": {
+        "total": 74,
+        "open": 14,
+        "done": 60,
+        "blocked": 1,
+        "overdue": 0
+      },
+      "openOwnCommissions": 0,
+      "camp": {
+        "total": 41,
+        "open": 14,
+        "done": 27,
+        "blocked": 1,
+        "overdue": 0
+      },
+      "rows": [
+        {
+          "name": "Material",
+          "stats": {
+            "total": 6,
+            "open": 0,
+            "done": 6,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Infraestructura",
+          "stats": {
+            "total": 7,
+            "open": 0,
+            "done": 7,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Botiquín",
+          "stats": {
+            "total": 7,
+            "open": 0,
+            "done": 7,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Animación",
+          "stats": {
+            "total": 7,
+            "open": 0,
+            "done": 7,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Electricidad",
+          "stats": {
+            "total": 6,
+            "open": 0,
+            "done": 6,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Cocina",
+          "stats": {
+            "total": 6,
+            "open": 0,
+            "done": 6,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Menú",
+          "stats": {
+            "total": 6,
+            "open": 0,
+            "done": 6,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Logística",
+          "stats": {
+            "total": 5,
+            "open": 0,
+            "done": 5,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Servicios",
+          "stats": {
+            "total": 5,
+            "open": 0,
+            "done": 5,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Staff",
+          "stats": {
+            "total": 5,
+            "open": 0,
+            "done": 5,
+            "blocked": 0,
+            "overdue": 0
+          }
+        }
+      ]
+    },
+    "clear": {
+      "personal": {
+        "total": 15,
+        "open": 0,
+        "done": 15,
+        "blocked": 0,
+        "overdue": 0
+      },
+      "all": {
+        "total": 74,
+        "open": 0,
+        "done": 74,
+        "blocked": 0,
+        "overdue": 0
+      },
+      "openOwnCommissions": 0,
+      "camp": {
+        "total": 41,
+        "open": 0,
+        "done": 41,
+        "blocked": 0,
+        "overdue": 0
+      },
+      "rows": [
+        {
+          "name": "Material",
+          "stats": {
+            "total": 6,
+            "open": 0,
+            "done": 6,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Infraestructura",
+          "stats": {
+            "total": 7,
+            "open": 0,
+            "done": 7,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Botiquín",
+          "stats": {
+            "total": 7,
+            "open": 0,
+            "done": 7,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Animación",
+          "stats": {
+            "total": 7,
+            "open": 0,
+            "done": 7,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Electricidad",
+          "stats": {
+            "total": 6,
+            "open": 0,
+            "done": 6,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Cocina",
+          "stats": {
+            "total": 6,
+            "open": 0,
+            "done": 6,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Menú",
+          "stats": {
+            "total": 6,
+            "open": 0,
+            "done": 6,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Logística",
+          "stats": {
+            "total": 5,
+            "open": 0,
+            "done": 5,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Servicios",
+          "stats": {
+            "total": 5,
+            "open": 0,
+            "done": 5,
+            "blocked": 0,
+            "overdue": 0
+          }
+        },
+        {
+          "name": "Staff",
+          "stats": {
+            "total": 5,
+            "open": 0,
+            "done": 5,
+            "blocked": 0,
+            "overdue": 0
+          }
+        }
+      ]
+    }
+  },
+  "commissionIcons": [
+    {
+      "commission": "Material",
+      "source": "/artwork/icons/infraestructura-11.svg",
+      "catalogKey": "infraestructura-11",
+      "seed": "commission-v2-0"
+    },
+    {
+      "commission": "Infraestructura",
+      "source": "/artwork/icons/infraestructura-12.svg",
+      "catalogKey": "infraestructura-12",
+      "seed": "commission-v2-1"
+    },
+    {
+      "commission": "Botiquín",
+      "source": "/artwork/icons/salud-01.svg",
+      "catalogKey": "salud-01",
+      "seed": "commission-v2-2"
+    },
+    {
+      "commission": "Animación",
+      "source": "/artwork/icons/animacion-general.svg",
+      "catalogKey": "animacion-general",
+      "seed": "commission-v2-3"
+    },
+    {
+      "commission": "Electricidad",
+      "source": "/artwork/icons/infraestructura-06.svg",
+      "catalogKey": "infraestructura-06",
+      "seed": "commission-v2-4"
+    },
+    {
+      "commission": "Cocina",
+      "source": "/artwork/icons/cocina-01.svg",
+      "catalogKey": "cocina-01",
+      "seed": "commission-v2-5"
+    },
+    {
+      "commission": "Menú",
+      "source": "/artwork/icons/cocina-02.svg",
+      "catalogKey": "cocina-02",
+      "seed": "commission-v2-6"
+    },
+    {
+      "commission": "Logística",
+      "source": "/artwork/icons/logistica-02.svg",
+      "catalogKey": "logistica-02",
+      "seed": "commission-v2-7"
+    },
+    {
+      "commission": "Servicios",
+      "source": "/artwork/icons/servicios-general.svg",
+      "catalogKey": "servicios-general",
+      "seed": "commission-v2-8"
+    },
+    {
+      "commission": "Staff",
+      "source": "/artwork/icons/tradiciones-13.svg",
+      "catalogKey": "tradiciones-13",
+      "seed": "commission-v2-9"
+    }
+  ],
+  "proof": "Static export coherence only; does not execute permissions or task updates."
+}

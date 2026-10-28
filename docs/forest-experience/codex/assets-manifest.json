@@ -1,0 +1,112 @@
+{
+  "renderer": "platform",
+  "selection": "not approved yet",
+  "source": "Codex static board generated in this task",
+  "sceneCount": 31,
+  "requiredSceneCount": 27,
+  "assets": [
+    {
+      "id": "B-FOR-CANOPY",
+      "provenance": "Canopy SVG authored from approved geometry",
+      "sourceOrExport": "screens/*.html .canopy-edge",
+      "format": "inline SVG",
+      "variant": "mobile, simulated safe area",
+      "intendedTarget": "header",
+      "implementationReference": "Existing asset/import preserved; production integration not started",
+      "requiredForProposal": true,
+      "mobileRenderProof": "loaded in captured static scenes",
+      "desktopRenderProof": "brand/font/icons verified in F01 1440px; mobile-specific art not part of desktop login",
+      "productionRenderProof": "not implemented"
+    },
+    {
+      "id": "B-BRAND",
+      "provenance": "Existing Bandarlog official image",
+      "sourceOrExport": "../../../../public/brand-mark.webp",
+      "format": "WebP alpha",
+      "variant": "all",
+      "intendedTarget": "header",
+      "implementationReference": "Existing asset/import preserved; production integration not started",
+      "requiredForProposal": true,
+      "mobileRenderProof": "loaded in captured static scenes",
+      "desktopRenderProof": "brand/font/icons verified in F01 1440px; mobile-specific art not part of desktop login",
+      "productionRenderProof": "not implemented"
+    },
+    {
+      "id": "B-MONKEY",
+      "provenance": "Existing original Bandarlog mascot",
+      "sourceOrExport": "../../../../public/monkey.webp",
+      "format": "WebP alpha",
+      "variant": "F10,F21",
+      "intendedTarget": "empty/clear state",
+      "implementationReference": "Existing asset/import preserved; production integration not started",
+      "requiredForProposal": true,
+      "mobileRenderProof": "loaded in captured static scenes",
+      "desktopRenderProof": "brand/font/icons verified in F01 1440px; mobile-specific art not part of desktop login",
+      "productionRenderProof": "not implemented"
+    },
+    {
+      "id": "B-VINE",
+      "provenance": "Existing original completion asset",
+      "sourceOrExport": "../../../../public/monkey-vine.webp",
+      "format": "WebP alpha",
+      "variant": "F07",
+      "intendedTarget": "completion feedback",
+      "implementationReference": "Existing asset/import preserved; production integration not started",
+      "requiredForProposal": true,
+      "mobileRenderProof": "loaded in captured static scenes",
+      "desktopRenderProof": "brand/font/icons verified in F01 1440px; mobile-specific art not part of desktop login",
+      "productionRenderProof": "not implemented"
+    },
+    {
+      "id": "B-SERVICIOS",
+      "provenance": "Existing original independent mascot",
+      "sourceOrExport": "../../../../public/artwork/mascots/servicios.webp",
+      "format": "WebP alpha",
+      "variant": "F14",
+      "intendedTarget": "commission identity",
+      "implementationReference": "Existing asset/import preserved; production integration not started",
+      "requiredForProposal": true,
+      "mobileRenderProof": "loaded in captured static scenes",
+      "desktopRenderProof": "brand/font/icons verified in F01 1440px; mobile-specific art not part of desktop login",
+      "productionRenderProof": "not implemented"
+    },
+    {
+      "id": "B-FONT",
+      "provenance": "@fontsource/nunito-sans, SIL OFL",
+      "sourceOrExport": "assets/nunito-{400,600,800}.woff2",
+      "format": "WOFF2",
+      "variant": "all",
+      "intendedTarget": "typography",
+      "implementationReference": "Existing asset/import preserved; production integration not started",
+      "requiredForProposal": true,
+      "mobileRenderProof": "loaded in captured static scenes",
+      "desktopRenderProof": "brand/font/icons verified in F01 1440px; mobile-specific art not part of desktop login",
+      "productionRenderProof": "not implemented"
+    },
+    {
+      "id": "B-ICONS",
+      "provenance": "lucide-react, ISC",
+      "sourceOrExport": "assets/icons.json and embedded SVG",
+      "format": "SVG",
+      "variant": "all",
+      "intendedTarget": "semantic control decoration",
+      "implementationReference": "Existing asset/import preserved; production integration not started",
+      "requiredForProposal": true,
+      "mobileRenderProof": "loaded in captured static scenes",
+      "desktopRenderProof": "brand/font/icons verified in F01 1440px; mobile-specific art not part of desktop login",
+      "productionRenderProof": "not implemented"
+    }
+  ],
+  "blockedFutureWork": [
+    {
+      "id": "B-CATALOG-INDIVIDUALS",
+      "description": "Export and inspect all 338 catalog mascot pairs as independent images. This proposal reuses existing individual images only. No collection-wide completion claim.",
+      "status": "implementation pending after proposal approval"
+    },
+    {
+      "id": "B-PERSONAL-PHOTO",
+      "description": "Real user-selected photo is not provided. F05 demonstrates crop geometry with initials and is not a verified photo-edit preview.",
+      "status": "user selection / runtime proof pending"
+    }
+  ]
+}

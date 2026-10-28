@@ -1,0 +1,69 @@
+{
+  "inspection": "2026-10-28",
+  "readOnly": true,
+  "assets": [
+    {
+      "id": "brand-mark.webp",
+      "source": "https://bandarlog-production.up.railway.app/brand-mark.webp",
+      "httpStatus": 200,
+      "matchesRepository": true,
+      "sha256": "019e0eda5439fcf2a24b18c91c78abba376c0d91e1fab6638bba673424b84240"
+    },
+    {
+      "id": "monkey.webp",
+      "source": "https://bandarlog-production.up.railway.app/monkey.webp",
+      "httpStatus": 200,
+      "matchesRepository": true,
+      "sha256": "3c5efc2f9e166bf01603863821337f57a0d626a0b364153443d35c30b4f94463"
+    },
+    {
+      "id": "monkey-vine.webp",
+      "source": "https://bandarlog-production.up.railway.app/monkey-vine.webp",
+      "httpStatus": 200,
+      "matchesRepository": true,
+      "sha256": "9034d9f11aa5c0c3df20d6447564c491885ac3caedde3b8c7c334d063a930150"
+    },
+    {
+      "id": "artwork/mascots/servicios.webp",
+      "source": "https://bandarlog-production.up.railway.app/artwork/mascots/servicios.webp",
+      "httpStatus": 200,
+      "matchesRepository": true,
+      "sha256": "bc0566a4acc730ce9d1bdf4f4d54aa7bb0d0b79c3743cf56c299a65cccce4614"
+    },
+    {
+      "id": "artwork/mascots/animacion.webp",
+      "source": "https://bandarlog-production.up.railway.app/artwork/mascots/animacion.webp",
+      "httpStatus": 200,
+      "matchesRepository": true,
+      "sha256": "2bfb8016136217e5e34862061add13e4f557c42801ade1ba88472de5147da4cf"
+    }
+  ],
+  "paletteContrast": [
+    {
+      "foreground": "#FAF8F2",
+      "background": "#124D38",
+      "ratio": 9.22
+    },
+    {
+      "foreground": "#24352B",
+      "background": "#FAF8F2",
+      "ratio": 12.21
+    },
+    {
+      "foreground": "#52675A",
+      "background": "#FAF8F2",
+      "ratio": 5.74
+    },
+    {
+      "foreground": "#A52D26",
+      "background": "#FAF8F2",
+      "ratio": 6.58
+    },
+    {
+      "foreground": "#805006",
+      "background": "#FAF8F2",
+      "ratio": 6.45
+    }
+  ],
+  "contrastLimit": "Cálculo sRGB de los pares propuestos; no certifica todas las combinaciones ni el resultado renderizado."
+}

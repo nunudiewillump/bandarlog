@@ -1,0 +1,49 @@
+{
+  "reviewId": "forest-experience-20261028",
+  "initialRendererScope": "both",
+  "refinementScope": "platform",
+  "correctionRoundsUsed": 1,
+  "commonBriefSha256": "e601cd44ec047bffbd39a6a69d867c4f3dc80adab32f0d4e0692e2aa68dbed38",
+  "stitchProject": "projects/9157822480698906524",
+  "stitchVisibility": "PRIVATE",
+  "stitchConnectionVerified": true,
+  "credentialsStoredInRepository": false,
+  "appImplementationStarted": true,
+  "initialRendererResults": {
+    "platform": {
+      "verdict": "meets with corrections",
+      "review": "codex/initial-review.md",
+      "scenes": 27,
+      "variants": 4,
+      "captures": 56,
+      "measuredCases": 52
+    },
+    "stitch": {
+      "verdict": "does not meet",
+      "review": "stitch/initial-review.md",
+      "screen": "75e24a11fa2e431ba93fbfd68859e025",
+      "actualScreenshotWidth": 2560,
+      "actualScreenshotHeight": 3006,
+      "export": "stitch/original.html"
+    }
+  },
+  "userFeedback": "La propuesta de Stitch es extremadamente básica",
+  "selectedDesign": "platform",
+  "refinementAuthorization": "Perfecto, refina la propuesta de Codex y continuamos con el flujo",
+  "refinementCheckpoint": "452183a",
+  "refinementStatus": "round-1-reviewed",
+  "refinedRendererResult": {
+    "renderer": "platform",
+    "verdict": "meets direction",
+    "review": "codex/revision-1/independent-review.md",
+    "scenes": 43,
+    "captures": 251,
+    "measurements": 187,
+    "correctionsResolved": 15,
+    "correctionsPartial": 0,
+    "materialCorrectionsUnresolved": 0
+  },
+  "visualProposalGate": "approved-by-user",
+  "approvedAmendment": "Retirar monos 3D estáticos; conservar marca y guiños solo 2D, incluida liana 2D.",
+  "implementationReference": "implementacion.md"
+}
