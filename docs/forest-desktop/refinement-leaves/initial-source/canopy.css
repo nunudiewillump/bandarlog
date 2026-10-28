@@ -1,0 +1,29 @@
+/* Botanical amendment only. Original desktop components remain authoritative. */
+.leaf-refinement .topbar{height:120px;background:transparent;isolation:isolate;overflow:visible}
+.leaf-refinement .topbar::before{content:"";position:absolute;inset:0 0 54px;background:#103b2d;z-index:-1}
+.leaf-refinement .header-content{height:67px;position:relative;z-index:2}
+.botanical-canopy{position:absolute;inset:0 0 auto;width:100%;height:145px;overflow:visible;pointer-events:none;z-index:0}
+.tree-bough{transform-box:fill-box;transform-origin:50% 12%;transform:translate3d(var(--leaf-x,0px),var(--leaf-y,0px),0) rotate(var(--leaf-r,0deg));transition:transform 750ms cubic-bezier(.2,.7,.2,1);will-change:auto}
+.leaf-refinement .main{padding-top:40px}
+.leaf-refinement .header-context{color:#e3ebde}
+.leaf-refinement .header-actions{color:#e3ebde}
+.leaf-refinement .header-content a:focus-visible{outline:3px solid #efc16f;outline-offset:4px}
+.canopy-loose-leaf{position:fixed;top:var(--fall-top,120px);left:var(--fall-left,12px);width:13px;height:23px;z-index:12;pointer-events:none;user-select:none;animation:canopy-fall 6.5s linear both;transform-origin:50% 45%}
+.canopy-loose-leaf svg{display:block;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 1px 1px #163e2326)}
+@keyframes canopy-fall{0%{opacity:0;transform:translate3d(0,-12px,0) rotate(-18deg)}8%{opacity:.68}35%{transform:translate3d(4px,28vh,0) rotate(32deg)}70%{opacity:.58;transform:translate3d(-3px,63vh,0) rotate(105deg)}100%{opacity:0;transform:translate3d(2px,calc(100vh + 40px),0) rotate(160deg)}}
+.leaf-refinement.canopy-paused .canopy-loose-leaf{animation-play-state:paused}
+.mobile-leaf-brand{display:inline-flex;gap:8px;align-items:center;min-height:44px;color:#faf8f2;font-size:24px;font-weight:800}
+.mobile-reference .topbar{height:112px}
+.mobile-reference .header-content{padding:0 20px}
+.mobile-reference .botanical-canopy{height:137px}
+.mobile-leaf-reference{padding:36px 20px;max-width:540px;margin:auto}
+.mobile-leaf-reference h1{font-size:26px;margin-bottom:32px}
+.mobile-leaf-reference h2{font-size:19px;margin-bottom:20px}
+.mobile-reference-task{padding:18px 0;border-bottom:1px solid #dfe5da}
+.mobile-reference-task>strong{font-size:16px;display:block;margin-bottom:6px}
+.mobile-reference-task>p{font-size:14px;color:#52675a;margin-bottom:12px}
+.mobile-reference-task>.button{display:flex;margin-top:18px}
+.prototype-note{font-size:13px;color:#52675a;margin-top:30px}
+@media(min-width:1600px){.leaf-refinement .topbar{height:126px}.leaf-refinement .botanical-canopy{height:151px}}
+@media(max-width:1279px){.leaf-refinement .topbar{height:112px}.leaf-refinement .botanical-canopy{height:137px}.leaf-refinement .main{padding-top:38px}}
+@media(prefers-reduced-motion:reduce){.tree-bough{transform:none!important;transition:none!important}.canopy-loose-leaf{display:none!important}}

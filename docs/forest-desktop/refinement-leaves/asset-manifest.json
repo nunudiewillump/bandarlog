@@ -1,0 +1,26 @@
+{
+  "scope": "Canopy-only desktop visual amendment, not an implemented product change",
+  "originalScenes": [
+    "codex/screens/d07.html",
+    "codex/screens/d01.html"
+  ],
+  "protected": "Existing UI actions, originalicons, roles, data, cards and content stayunchanged outsidecanopy/layoutspacing. Userexplicitlyretainedoriginaliconset; complexiconstudyrejectedandnotapplied.",
+  "canopy": {
+    "source": "build.py purpose-drawn beech/oak leaf vectors",
+    "planes": 3,
+    "branchlets": 54,
+    "format": "inline SVG, no raster sprites, no 3D",
+    "colorFamilies": [
+      "#103b2d",
+      "#133e2b",
+      "#1c5135",
+      "#2b6642",
+      "#87a36c"
+    ]
+  },
+  "brand": "public/brand-mark.webp unchanged",
+  "icons": "Existing catalogue untouched; not an icon-set decision",
+  "fonts": "Existing Codex Nunito Sans local font files",
+  "interaction": "canopy.js pointer-only presentation, no app/API data calls",
+  "motion": "motion-contract.json"
+}

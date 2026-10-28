@@ -1,0 +1,105 @@
+{
+  "scope": "Post-contrast/gutter correctness confirmation; scoped presentation prototype only",
+  "records": [
+    {
+      "file": "comms",
+      "width": 1440,
+      "height": 1000,
+      "overflow": false,
+      "brokenImages": [],
+      "boughs": 54,
+      "headerTargets": [
+        {
+          "label": "Ver alertas",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "label": "Mi perfil",
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "file": "comms",
+      "width": 1024,
+      "height": 768,
+      "overflow": false,
+      "brokenImages": [],
+      "boughs": 54,
+      "headerTargets": [
+        {
+          "label": "Ver alertas",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "label": "Mi perfil",
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "file": "comms",
+      "width": 1920,
+      "height": 1080,
+      "overflow": false,
+      "brokenImages": [],
+      "boughs": 54,
+      "headerTargets": [
+        {
+          "label": "Ver alertas",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "label": "Mi perfil",
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "file": "home",
+      "width": 1280,
+      "height": 900,
+      "overflow": false,
+      "brokenImages": [],
+      "boughs": 54,
+      "headerTargets": [
+        {
+          "label": "Ver alertas",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "label": "Mi perfil",
+          "width": 44,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "file": "mobile-header",
+      "width": 390,
+      "height": 844,
+      "overflow": false,
+      "brokenImages": [],
+      "boughs": 54,
+      "headerTargets": [
+        {
+          "label": "Bandarlog",
+          "width": 159,
+          "height": 44
+        },
+        {
+          "label": "Mi perfil",
+          "width": 44,
+          "height": 44
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+[
+  {
+    "file": "comms.html",
+    "width": 1440,
+    "height": 1000,
+    "overflow": false,
+    "images": [],
+    "boughs": 57
+  },
+  {
+    "file": "comms.html",
+    "width": 1024,
+    "height": 768,
+    "overflow": false,
+    "images": [],
+    "boughs": 57
+  },
+  {
+    "file": "comms.html",
+    "width": 1920,
+    "height": 1080,
+    "overflow": false,
+    "images": [],
+    "boughs": 57
+  },
+  {
+    "file": "home.html",
+    "width": 1280,
+    "height": 900,
+    "overflow": false,
+    "images": [],
+    "boughs": 57
+  },
+  {
+    "file": "mobile-header.html",
+    "width": 390,
+    "height": 844,
+    "overflow": false,
+    "images": [],
+    "boughs": 57
+  },
+  {
+    "reduced": {
+      "spawned": false,
+      "visibleLooseLeaves": 0,
+      "boughTransforms": 0
+    }
+  }
+]

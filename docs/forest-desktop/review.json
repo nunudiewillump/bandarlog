@@ -1,7 +1,7 @@
 {
   "reviewId": "forest-desktop-20261028",
   "runtime": "codex",
-  "phase": "visual-proposal-awaiting-user-approval",
+  "phase": "canopy-amendment-ready-for-user-visual-review",
   "baseCommit": "65dc0a0363150778618b2f62bb82d28af30915cd",
   "evidenceMode": "guidelines",
   "approvalMode": "follow-recommendation",
@@ -10,7 +10,7 @@
   "direction": "Forest operativo con foco y contexto por rol",
   "directionGate": "selected-by-follow-recommendation",
   "rendererScope": "platform",
-  "visualProposalGate": "awaiting-user-approval",
+  "visualProposalGate": "awaiting-canopy-amendment-approval",
   "implementationAuthorized": false,
   "deploymentAuthorized": false,
   "correctionRoundsUsed": 2,
@@ -33,6 +33,22 @@
       "instruction": "No, la liana se tiene que mover de lado a lado al acabar una tarea siempre",
       "scope": "Each confirmed task completion;2D on desktop and mobile; preserve undo and nonblocking overlay",
       "status": "bound in design only; application unchanged"
+    },
+    {
+      "instruction": "Los iconos no me acaban de cuadrar, me recuerdan mucho a Inventar.io",
+      "scope": "Explore own2Dcommissioniconidentity, preserve existing assets until selection"
+    },
+    {
+      "instruction": "El borde de hojas superiores le falta profundidad y calidad; hojas ocasionales y reacción al ratón",
+      "scope": "Layeredrecognizablecanopy, restraineddecorativemotionandreducedmotionstaticfoliage"
+    },
+    {
+      "instruction": "Simple en acciones y tarjetas; diseño con más complejidad",
+      "scope": "Visualcraftcanincreasewithoutaddinginteractionburden"
+    },
+    {
+      "instruction": "deja los anteriores de momento y sigue con el resto del proyecto",
+      "scope": "Retain originaliconset; rejectcomplexiconstudies; continuecanopyanddesktopdesignwork"
     }
   ],
   "visualVerdict": "meets direction",
@@ -44,5 +60,17 @@
   "assetAudit": "qa/asset-audit.json",
   "remainingMaterialDrift": 0,
   "authority": "Design only; implementation and deployment remain unauthorized.",
-  "publicationBranch": "design/forest-desktop"
+  "publicationBranch": "design/forest-desktop",
+  "priorVisualVerdict": "meets direction for original78-sceneproposal; userrequested directionamendmentpending",
+  "correctionBudgetNote": "Original2correctionrounds retained; focusedamendmentstudies do not reset or imply complete78-scene revalidation.",
+  "iconSelection": "Originalcatalogueiconsretained; noillustratedorpatchalternativesapplied",
+  "canopyAmendment": {
+    "verdict": "meets direction",
+    "scope": "Canopy only, five viewports and pointer/fall/reduced-motion presentation behavior; original78-scenebodyreview retained, no claim of completeboardrevalidation",
+    "source": "refinement-leaves/",
+    "review": "refinement-leaves/qa.md",
+    "matrix": "refinement-leaves/qa.json",
+    "originalIcons": "retained unchanged by explicituserinstruction",
+    "appImplementationStarted": false
+  }
 }

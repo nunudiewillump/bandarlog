@@ -1,0 +1,76 @@
+{
+  "kind": "Illustrative recording of the working presentation prototype",
+  "frameRate": 12,
+  "simulatedFallMs": 7000,
+  "observations": [
+    {
+      "simulatedTimeMs": 0,
+      "leafPresent": true,
+      "leafX": 1420.1197509765625,
+      "leafRight": 1439.5909423828125,
+      "leafY": 98.49795532226562,
+      "respondingBoughs": 14
+    },
+    {
+      "simulatedTimeMs": 1000,
+      "leafPresent": true,
+      "leafX": 1423.8963623046875,
+      "leafRight": 1438.4605712890625,
+      "leafY": 227.92564392089844,
+      "respondingBoughs": 13
+    },
+    {
+      "simulatedTimeMs": 2000,
+      "leafPresent": true,
+      "leafX": 1421.635498046875,
+      "leafRight": 1443.390869140625,
+      "leafY": 354.9023742675781,
+      "respondingBoughs": 15
+    },
+    {
+      "simulatedTimeMs": 3000,
+      "leafPresent": true,
+      "leafX": 1417.169921875,
+      "leafRight": 1443.4783935546875,
+      "leafY": 502.6494445800781,
+      "respondingBoughs": 14
+    },
+    {
+      "simulatedTimeMs": 4000,
+      "leafPresent": true,
+      "leafX": 1415.2554931640625,
+      "leafRight": 1438.83154296875,
+      "leafY": 660.7633056640625,
+      "respondingBoughs": 14
+    },
+    {
+      "simulatedTimeMs": 5000,
+      "leafPresent": true,
+      "leafX": 1413.43212890625,
+      "leafRight": 1439.8389892578125,
+      "leafY": 835.3311157226562,
+      "respondingBoughs": 15
+    },
+    {
+      "simulatedTimeMs": 6000,
+      "leafPresent": true,
+      "leafX": 1417.7431640625,
+      "leafRight": 1441.4031982421875,
+      "leafY": 1043.1026611328125,
+      "respondingBoughs": 13
+    },
+    {
+      "simulatedTimeMs": 7000,
+      "leafPresent": false,
+      "leafX": null,
+      "leafRight": null,
+      "leafY": null,
+      "respondingBoughs": 14
+    }
+  ],
+  "limitations": [
+    "Cursor is intentionally swept for demonstration; looseleaf triggered through previewhook rather than waiting26–40s.",
+    "Falltimeline stepped deterministically; GIF timing is authored preview timing, not an application performance measurement.",
+    "No task/API event or physical device comfort claim."
+  ]
+}
