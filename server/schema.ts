@@ -1,4 +1,5 @@
-import { pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { pgTable, text, timestamp, integer, uniqueIndex } from 'drizzle-orm/pg-core';
 export const users = pgTable('users', {
   id: text().primaryKey(),
   name: text().notNull(),
@@ -6,6 +7,10 @@ export const users = pgTable('users', {
   role: text().notNull(),
   preferences: text().notNull().default('{}'),
   avatarUrl: text('avatar_url'),
+  onboardingCompletedAt: timestamp('onboarding_completed_at', {
+    withTimezone: true,
+    mode: 'string',
+  }),
 });
 export const projects = pgTable('projects', {
   id: text().primaryKey(),
@@ -95,6 +100,11 @@ export const sessions = pgTable('sessions', {
     .notNull()
     .references(() => users.id),
   csrf: text().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  renewedAt: timestamp('renewed_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  absoluteExpiresAt: timestamp('absolute_expires_at', { withTimezone: true, mode: 'string' })
+    .notNull()
+    .default(sql`now() + interval '90 days'`),
   expires: timestamp({ withTimezone: true, mode: 'string' }).notNull(),
 });
 export const tokens = pgTable('tokens', {
@@ -150,4 +160,36 @@ export const artworkEntries = pgTable('artwork_entries', {
     .notNull()
     .references(() => users.id),
   createdAt: text('created_at').notNull(),
+});
+
+export const authChallenges = pgTable('auth_challenges', {
+  email: text().primaryKey(),
+  id: text().notNull().unique(),
+  verifier: text().notNull(),
+  expires: timestamp({ withTimezone: true, mode: 'string' }).notNull(),
+  attempts: integer().notNull().default(0),
+  requestedAt: timestamp('requested_at', { withTimezone: true, mode: 'string' }).notNull(),
+  windowStartedAt: timestamp('window_started_at', { withTimezone: true, mode: 'string' }).notNull(),
+  requests: integer().notNull().default(0),
+  consumedAt: timestamp('consumed_at', { withTimezone: true, mode: 'string' }),
+  googleLinkId: text('google_link_id'),
+});
+export const googleIdentities = pgTable('google_identities', {
+  subject: text().primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id),
+});
+export const googleStates = pgTable('google_states', {
+  id: text().primaryKey(),
+  browser: text().notNull(),
+  nonce: text().notNull(),
+  verifier: text().notNull(),
+  expires: timestamp({ withTimezone: true, mode: 'string' }).notNull(),
+});
+export const googleLinks = pgTable('google_links', {
+  id: text().primaryKey(),
+  subject: text().notNull(),
+  email: text().notNull(),
+  expires: timestamp({ withTimezone: true, mode: 'string' }).notNull(),
 });

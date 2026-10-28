@@ -50,6 +50,13 @@
       "when": 1793119955254,
       "tag": "0006_illegal_daimon_hellstrom",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793188800000,
+      "tag": "0007_forest_access",
+      "breakpoints": true
     }
   ]
 }

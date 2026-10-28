@@ -8,7 +8,7 @@
   "stitchVisibility": "PRIVATE",
   "stitchConnectionVerified": true,
   "credentialsStoredInRepository": false,
-  "appImplementationStarted": false,
+  "appImplementationStarted": true,
   "initialRendererResults": {
     "platform": {
       "verdict": "meets with corrections",
@@ -28,7 +28,7 @@
     }
   },
   "userFeedback": "La propuesta de Stitch es extremadamente básica",
-  "selectedDesign": null,
+  "selectedDesign": "platform",
   "refinementAuthorization": "Perfecto, refina la propuesta de Codex y continuamos con el flujo",
   "refinementCheckpoint": "452183a",
   "refinementStatus": "round-1-reviewed",
@@ -43,5 +43,7 @@
     "correctionsPartial": 0,
     "materialCorrectionsUnresolved": 0
   },
-  "visualProposalGate": "awaiting-user-approval"
+  "visualProposalGate": "approved-by-user",
+  "approvedAmendment": "Retirar monos 3D estáticos; conservar marca y guiños solo 2D, incluida liana 2D.",
+  "implementationReference": "implementacion.md"
 }

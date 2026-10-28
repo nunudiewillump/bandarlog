@@ -1,5 +1,8 @@
 # Estado de revisión · Forest Experience
 
+**Actualización de implementación:** el usuario aprobó la propuesta refinada y ajustó todos los guiños a 2D, incluida la liana. Los recursos 3D de estas láminas quedan sustituidos por esa decisión. Estado actual y comprobaciones: [implementación](implementacion.md).
+
+
 28 de octubre de 2026. Revisión `forest-experience-20261028`, runtime Codex, metodología Design Arc 0.3.0.
 
 | Paso | Estado y evidencia |

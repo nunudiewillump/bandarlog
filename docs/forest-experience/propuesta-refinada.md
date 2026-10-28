@@ -1,5 +1,8 @@
 # Forest Experience · propuesta Codex refinada
 
+**Actualización de implementación:** el usuario aprobó la propuesta refinada y ajustó todos los guiños a 2D, incluida la liana. Los recursos 3D de estas láminas quedan sustituidos por esa decisión. Estado actual y comprobaciones: [implementación](implementacion.md).
+
+
 **Veredicto independiente: `meets direction`.** Ronda 1 completada: quince correcciones resueltas, ninguna parcial ni pendiente material en la propuesta estática revisada. La aprobación visual del usuario sigue pendiente; la aplicación no se ha modificado.
 
 ## Pantallas para aprobar

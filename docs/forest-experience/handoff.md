@@ -1,5 +1,8 @@
 # Handoff canónico · Forest Experience
 
+**Actualización de implementación:** el usuario aprobó la propuesta refinada y ajustó todos los guiños a 2D, incluida la liana. Los recursos 3D de estas láminas quedan sustituidos por esa decisión. Estado actual y comprobaciones: [implementación](implementacion.md).
+
+
 Estado: preparado para revisión; **pendiente de aprobación visual de la propuesta Codex refinada**. No crea un segundo encargo ni autoriza desplegar. La autorización original para implementar se ejecutará después de cumplir el flujo de diseño elegido por el usuario.
 
 ## Diseño y recursos seleccionables

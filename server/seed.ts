@@ -12,11 +12,41 @@ export async function seed(storage: Database) {
       return;
     }
     await db.insert(s.users).values([
-      { id: 'alex', name: 'Álex Martín', email: 'alex@example.test', role: 'admin' },
-      { id: 'laura', name: 'Laura Martín', email: 'laura@example.test', role: 'member' },
-      { id: 'carlos', name: 'Carlos López', email: 'carlos@example.test', role: 'member' },
-      { id: 'ana', name: 'Ana García', email: 'ana@example.test', role: 'member' },
-      { id: 'miguel', name: 'Miguel Santos', email: 'miguel@example.test', role: 'member' },
+      {
+        id: 'alex',
+        name: 'Álex Martín',
+        email: 'alex@example.test',
+        role: 'admin',
+        onboardingCompletedAt: new Date().toISOString(),
+      },
+      {
+        id: 'laura',
+        name: 'Laura Martín',
+        email: 'laura@example.test',
+        role: 'member',
+        onboardingCompletedAt: new Date().toISOString(),
+      },
+      {
+        id: 'carlos',
+        name: 'Carlos López',
+        email: 'carlos@example.test',
+        role: 'member',
+        onboardingCompletedAt: new Date().toISOString(),
+      },
+      {
+        id: 'ana',
+        name: 'Ana García',
+        email: 'ana@example.test',
+        role: 'member',
+        onboardingCompletedAt: new Date().toISOString(),
+      },
+      {
+        id: 'miguel',
+        name: 'Miguel Santos',
+        email: 'miguel@example.test',
+        role: 'member',
+        onboardingCompletedAt: new Date().toISOString(),
+      },
     ]);
     const year = new Date().getFullYear();
     await db.insert(s.projects).values([

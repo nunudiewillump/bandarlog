@@ -11,8 +11,21 @@ test('production refuses incomplete settings, insecure Neon and URL paths before
     SMTP_USER: 'example',
     SMTP_PASS: 'test-only-placeholder',
     MAIL_FROM: 'Bandarlog <grupo@example.org>',
+    AUTH_CHALLENGE_SECRET: 'test-only-auth-challenge-secret-at-least-32',
   };
   assert.equal(validateEnvironment(valid).production, true);
+  assert.throws(
+    () => validateEnvironment({ ...valid, AUTH_CHALLENGE_SECRET: '' }),
+    /AUTH_CHALLENGE_SECRET/,
+  );
+  assert.throws(
+    () => validateEnvironment({ ...valid, AUTH_CHALLENGE_SECRET: 'too-short' }),
+    /AUTH_CHALLENGE_SECRET/,
+  );
+  assert.throws(
+    () => validateEnvironment({ ...valid, GOOGLE_LOGIN_CLIENT_ID: 'test-client' }),
+    /GOOGLE_LOGIN_CLIENT_SECRET/,
+  );
   assert.throws(() => validateEnvironment({ ...valid, SMTP_PASS: '' }), /SMTP_PASS/);
   assert.throws(
     () =>

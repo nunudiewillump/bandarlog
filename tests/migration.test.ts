@@ -29,6 +29,14 @@ test('existing memberships and pending invitations survive the migration to comm
     );
     assert.equal(invites.rows[0].role, 'scouter');
     assert.equal(invites.rows[0].status, 'pending');
+    const configured = await client.query<{ name: string; onboarding_completed_at: string | null }>(
+      `select name,onboarding_completed_at from users where id='u'`,
+    );
+    assert.equal(configured.rows[0].name, 'Persona');
+    assert.ok(
+      configured.rows[0].onboarding_completed_at,
+      'existing users stay configured after migration',
+    );
   } finally {
     await client.close();
     await rm(folder, { recursive: true, force: true });

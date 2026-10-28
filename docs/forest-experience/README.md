@@ -1,5 +1,8 @@
 # Bandarlog · Forest Experience
 
+**Actualización de implementación:** el usuario aprobó la propuesta refinada y ajustó todos los guiños a 2D, incluida la liana. Los recursos 3D de estas láminas quedan sustituidos por esa decisión. Estado actual y comprobaciones: [implementación](implementacion.md).
+
+
 Propuesta de diseño, no implementación. Rama `feat/forest-experience`, basada en `main` tras el PR #8 (`6f91e25`). No cambia la aplicación, la base de datos ni Railway. Fecha de revisión: 28 de octubre de 2026.
 
 ## Decisiones confirmadas

@@ -1,4 +1,5 @@
 export type User = {
+  onboardingCompletedAt?: string | null;
   id: string;
   name: string;
   email: string;

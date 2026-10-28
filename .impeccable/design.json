@@ -1,0 +1,433 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-28T16:21:08.569613+00:00",
+  "title": "Design System: Bandarlog · Forest Experience",
+  "extensions": {
+    "colorMeta": {
+      "green": {
+        "role": "primary",
+        "displayName": "Bosque",
+        "tonalRamp": [
+          "oklch(15% 0.0699 164.88)",
+          "oklch(26% 0.0699 164.88)",
+          "oklch(38% 0.0699 164.88)",
+          "oklch(49% 0.0699 164.88)",
+          "oklch(61% 0.0699 164.88)",
+          "oklch(72% 0.0699 164.88)",
+          "oklch(84% 0.0699 164.88)",
+          "oklch(95% 0.0699 164.88)"
+        ]
+      },
+      "deep": {
+        "role": "primary",
+        "displayName": "Bosque profundo",
+        "tonalRamp": [
+          "oklch(15% 0.0536 167.90)",
+          "oklch(26% 0.0536 167.90)",
+          "oklch(38% 0.0536 167.90)",
+          "oklch(49% 0.0536 167.90)",
+          "oklch(61% 0.0536 167.90)",
+          "oklch(72% 0.0536 167.90)",
+          "oklch(84% 0.0536 167.90)",
+          "oklch(95% 0.0536 167.90)"
+        ]
+      },
+      "cream": {
+        "role": "neutral",
+        "displayName": "Crema",
+        "tonalRamp": [
+          "oklch(15% 0.0082 91.48)",
+          "oklch(26% 0.0082 91.48)",
+          "oklch(38% 0.0082 91.48)",
+          "oklch(49% 0.0082 91.48)",
+          "oklch(61% 0.0082 91.48)",
+          "oklch(72% 0.0082 91.48)",
+          "oklch(84% 0.0082 91.48)",
+          "oklch(95% 0.0082 91.48)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Tinta vegetal",
+        "tonalRamp": [
+          "oklch(15% 0.0287 158.40)",
+          "oklch(26% 0.0287 158.40)",
+          "oklch(38% 0.0287 158.40)",
+          "oklch(49% 0.0287 158.40)",
+          "oklch(61% 0.0287 158.40)",
+          "oklch(72% 0.0287 158.40)",
+          "oklch(84% 0.0287 158.40)",
+          "oklch(95% 0.0287 158.40)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Verde gris legible",
+        "tonalRamp": [
+          "oklch(15% 0.0326 157.80)",
+          "oklch(26% 0.0326 157.80)",
+          "oklch(38% 0.0326 157.80)",
+          "oklch(49% 0.0326 157.80)",
+          "oklch(61% 0.0326 157.80)",
+          "oklch(72% 0.0326 157.80)",
+          "oklch(84% 0.0326 157.80)",
+          "oklch(95% 0.0326 157.80)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Línea de bosque",
+        "tonalRamp": [
+          "oklch(15% 0.0161 130.43)",
+          "oklch(26% 0.0161 130.43)",
+          "oklch(38% 0.0161 130.43)",
+          "oklch(49% 0.0161 130.43)",
+          "oklch(61% 0.0161 130.43)",
+          "oklch(72% 0.0161 130.43)",
+          "oklch(84% 0.0161 130.43)",
+          "oklch(95% 0.0161 130.43)"
+        ]
+      },
+      "muted-desktop": {
+        "role": "neutral",
+        "displayName": "Contexto desktop",
+        "tonalRamp": [
+          "oklch(15% 0.0208 155.44)",
+          "oklch(26% 0.0208 155.44)",
+          "oklch(38% 0.0208 155.44)",
+          "oklch(49% 0.0208 155.44)",
+          "oklch(61% 0.0208 155.44)",
+          "oklch(72% 0.0208 155.44)",
+          "oklch(84% 0.0208 155.44)",
+          "oklch(95% 0.0208 155.44)"
+        ]
+      },
+      "line-desktop": {
+        "role": "neutral",
+        "displayName": "Línea desktop",
+        "tonalRamp": [
+          "oklch(15% 0.0122 116.82)",
+          "oklch(26% 0.0122 116.82)",
+          "oklch(38% 0.0122 116.82)",
+          "oklch(49% 0.0122 116.82)",
+          "oklch(61% 0.0122 116.82)",
+          "oklch(72% 0.0122 116.82)",
+          "oklch(84% 0.0122 116.82)",
+          "oklch(95% 0.0122 116.82)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Papel de superficie",
+        "tonalRamp": [
+          "oklch(15% 0.0054 95.10)",
+          "oklch(26% 0.0054 95.10)",
+          "oklch(38% 0.0054 95.10)",
+          "oklch(49% 0.0054 95.10)",
+          "oklch(61% 0.0054 95.10)",
+          "oklch(72% 0.0054 95.10)",
+          "oklch(84% 0.0054 95.10)",
+          "oklch(95% 0.0054 95.10)"
+        ]
+      },
+      "field": {
+        "role": "neutral",
+        "displayName": "Papel de campo",
+        "tonalRamp": [
+          "oklch(15% 0.0041 91.45)",
+          "oklch(26% 0.0041 91.45)",
+          "oklch(38% 0.0041 91.45)",
+          "oklch(49% 0.0041 91.45)",
+          "oklch(61% 0.0041 91.45)",
+          "oklch(72% 0.0041 91.45)",
+          "oklch(84% 0.0041 91.45)",
+          "oklch(95% 0.0041 91.45)"
+        ]
+      },
+      "field-border": {
+        "role": "neutral",
+        "displayName": "Borde vegetal",
+        "tonalRamp": [
+          "oklch(15% 0.0402 137.87)",
+          "oklch(26% 0.0402 137.87)",
+          "oklch(38% 0.0402 137.87)",
+          "oklch(49% 0.0402 137.87)",
+          "oklch(61% 0.0402 137.87)",
+          "oklch(72% 0.0402 137.87)",
+          "oklch(84% 0.0402 137.87)",
+          "oklch(95% 0.0402 137.87)"
+        ]
+      },
+      "avatar": {
+        "role": "neutral",
+        "displayName": "Hoja pálida",
+        "tonalRamp": [
+          "oklch(15% 0.0191 119.76)",
+          "oklch(26% 0.0191 119.76)",
+          "oklch(38% 0.0191 119.76)",
+          "oklch(49% 0.0191 119.76)",
+          "oklch(61% 0.0191 119.76)",
+          "oklch(72% 0.0191 119.76)",
+          "oklch(84% 0.0191 119.76)",
+          "oklch(95% 0.0191 119.76)"
+        ]
+      },
+      "green-hover": {
+        "role": "primary",
+        "displayName": "Bosque de respuesta",
+        "tonalRamp": [
+          "oklch(15% 0.0864 164.07)",
+          "oklch(26% 0.0864 164.07)",
+          "oklch(38% 0.0864 164.07)",
+          "oklch(49% 0.0864 164.07)",
+          "oklch(61% 0.0864 164.07)",
+          "oklch(72% 0.0864 164.07)",
+          "oklch(84% 0.0864 164.07)",
+          "oklch(95% 0.0864 164.07)"
+        ]
+      },
+      "amber": {
+        "role": "secondary",
+        "displayName": "Ámbar de contexto",
+        "tonalRamp": [
+          "oklch(15% 0.1008 69.25)",
+          "oklch(26% 0.1008 69.25)",
+          "oklch(38% 0.1008 69.25)",
+          "oklch(49% 0.1008 69.25)",
+          "oklch(61% 0.1008 69.25)",
+          "oklch(72% 0.1008 69.25)",
+          "oklch(84% 0.1008 69.25)",
+          "oklch(95% 0.1008 69.25)"
+        ]
+      },
+      "red": {
+        "role": "secondary",
+        "displayName": "Rojo funcional",
+        "tonalRamp": [
+          "oklch(15% 0.1739 27.31)",
+          "oklch(26% 0.1739 27.31)",
+          "oklch(38% 0.1739 27.31)",
+          "oklch(49% 0.1739 27.31)",
+          "oklch(61% 0.1739 27.31)",
+          "oklch(72% 0.1739 27.31)",
+          "oklch(84% 0.1739 27.31)",
+          "oklch(95% 0.1739 27.31)"
+        ]
+      },
+      "blue": {
+        "role": "secondary",
+        "displayName": "Azul funcional",
+        "tonalRamp": [
+          "oklch(15% 0.1246 250.76)",
+          "oklch(26% 0.1246 250.76)",
+          "oklch(38% 0.1246 250.76)",
+          "oklch(49% 0.1246 250.76)",
+          "oklch(61% 0.1246 250.76)",
+          "oklch(72% 0.1246 250.76)",
+          "oklch(84% 0.1246 250.76)",
+          "oklch(95% 0.1246 250.76)"
+        ]
+      },
+      "focus-control": {
+        "role": "neutral",
+        "displayName": "Foco ámbar",
+        "tonalRamp": [
+          "oklch(15% 0.1404 73.13)",
+          "oklch(26% 0.1404 73.13)",
+          "oklch(38% 0.1404 73.13)",
+          "oklch(49% 0.1404 73.13)",
+          "oklch(61% 0.1404 73.13)",
+          "oklch(72% 0.1404 73.13)",
+          "oklch(84% 0.1404 73.13)",
+          "oklch(95% 0.1404 73.13)"
+        ]
+      },
+      "focus-field": {
+        "role": "neutral",
+        "displayName": "Foco verde",
+        "tonalRamp": [
+          "oklch(15% 0.1120 160.64)",
+          "oklch(26% 0.1120 160.64)",
+          "oklch(38% 0.1120 160.64)",
+          "oklch(49% 0.1120 160.64)",
+          "oklch(61% 0.1120 160.64)",
+          "oklch(72% 0.1120 160.64)",
+          "oklch(84% 0.1120 160.64)",
+          "oklch(95% 0.1120 160.64)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Pantalla",
+        "purpose": "Título de pantalla móvil y acceso/onboarding."
+      },
+      "task": {
+        "displayName": "Tarea",
+        "purpose": "Título envolvente en la fila de trabajo."
+      },
+      "navigation": {
+        "displayName": "Navegación",
+        "purpose": "Etiqueta bajo icono de los cuatro destinos."
+      }
+    },
+    "shadows": [
+      {
+        "name": "primary-global",
+        "value": "0 2px 3px #103b2d13",
+        "purpose": "Acción primaria global; acceso la elimina."
+      },
+      {
+        "name": "panel-desktop",
+        "value": "0 3px 9px #39412d02",
+        "purpose": "Panel desktop; paneles móviles eliminan sombra."
+      },
+      {
+        "name": "dialog",
+        "value": "0 20px 90px #00180c35",
+        "purpose": "Separación del diálogo sobre el contenido."
+      },
+      {
+        "name": "select-menu",
+        "value": "0 8px 28px #103b2d20",
+        "purpose": "Elevación del menú de selector."
+      }
+    ],
+    "motion": [
+      {
+        "name": "vine-cross",
+        "value": "2.2s cubic-bezier(0.28, 0.1, 0.44, 1) forwards",
+        "purpose": "Liana 2D tras confirmar finalización; oculta en movimiento reducido."
+      },
+      {
+        "name": "completion-label",
+        "value": "2.5s both",
+        "purpose": "Etiqueta de confirmación; sin animación con movimiento reducido."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "forest-operative",
+        "value": "(max-width: 767px), (orientation: landscape) and (max-height: 599px) and (max-width: 1023px)"
+      },
+      {
+        "name": "compact-gutter",
+        "value": "(max-width: 389px)"
+      },
+      {
+        "name": "wide-auth",
+        "value": "(min-width: 768px)"
+      },
+      {
+        "name": "tablet-operative",
+        "value": "(min-width: 768px) and (max-width: 1023px), outside forest-operative"
+      },
+      {
+        "name": "desktop-compact-sidebar",
+        "value": "(max-width: 1250px), outside tablet/forest overrides"
+      },
+      {
+        "name": "desktop-wide",
+        "value": "(min-width: 1600px)"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Acción primaria móvil",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción operativa principal; altura táctil mínima de 48px.",
+      "html": "<button class=\"ds-primary\">Guardar cambios</button>",
+      "css": ".ds-primary{font-family:'Nunito Sans',system-ui,sans-serif;background:var(--green,#124d38);color:white;border:0;border-radius:8px;padding:12px 16px;min-height:48px;font-size:16px;line-height:24px;font-weight:750;cursor:pointer;box-shadow:0 2px 3px #103b2d13;}.ds-primary:hover{background:#1b674b;}.ds-primary:disabled{opacity:.55;cursor:wait;}.ds-primary:focus-visible,.ds-secondary:focus-visible,.ds-auth:focus-visible,.ds-nav button:focus-visible{outline:3px solid #e8a33c;outline-offset:3px;}"
+    },
+    {
+      "name": "Acción secundaria móvil",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Acción alternativa operativa con borde discreto.",
+      "html": "<button class=\"ds-secondary\">Cancelar</button>",
+      "css": ".ds-secondary{font-family:'Nunito Sans',system-ui,sans-serif;background:#fffefa;color:#24352b;border:1px solid var(--line,#dfe5da);border-radius:8px;padding:12px 16px;min-height:48px;font-size:16px;line-height:24px;font-weight:750;cursor:pointer;}.ds-secondary:hover{background:#efeee6;}.ds-secondary:disabled{opacity:.55;cursor:wait;}.ds-primary:focus-visible,.ds-secondary:focus-visible,.ds-auth:focus-visible,.ds-nav button:focus-visible{outline:3px solid #e8a33c;outline-offset:3px;}"
+    },
+    {
+      "name": "Acceso · acción primaria",
+      "kind": "button",
+      "refersTo": "auth-button-primary",
+      "description": "Acción de acceso a ancho completo, sin sombra.",
+      "html": "<button class=\"ds-auth\">Recibir código</button>",
+      "css": ".ds-auth{font-family:'Nunito Sans',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;padding:12px 18px;border:0;border-radius:8px;background:#124d38;color:#faf8f2;font-size:16px;line-height:24px;font-weight:750;box-shadow:none;cursor:pointer;}.ds-auth:hover{background:#124d38;}.ds-auth:disabled{opacity:.55;cursor:wait;}.ds-primary:focus-visible,.ds-secondary:focus-visible,.ds-auth:focus-visible,.ds-nav button:focus-visible{outline:3px solid #e8a33c;outline-offset:3px;}"
+    },
+    {
+      "name": "Campo de acceso",
+      "kind": "input",
+      "refersTo": "auth-field",
+      "description": "Etiqueta visible y campo de 48px; anillo de foco verde.",
+      "html": "<label class=\"ds-label\" for=\"ds-email\">Tu correo electrónico<input class=\"ds-field\" id=\"ds-email\" type=\"email\" autocomplete=\"email\" placeholder=\"nombre@ejemplo.com\"></label>",
+      "css": ".ds-label{font-family:'Nunito Sans',system-ui,sans-serif;display:flex;flex-direction:column;gap:12px;color:#24352b;font-size:16px;font-weight:700;}.ds-field{font-family:'Nunito Sans',system-ui,sans-serif;width:100%;min-width:0;min-height:48px;padding:12px 14px;border:1px solid #8b9d85;border-radius:8px;background:#fffefb;color:#24352b;font-size:16px;}.ds-field:focus{outline:2px solid #21865c;outline-offset:1px;}"
+    },
+    {
+      "name": "Navegación móvil",
+      "kind": "nav",
+      "description": "Muestra autocontenida del destino seleccionado y sus tres pares; en aplicación la barra es fija y respeta safe areas.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Navegación principal\"><button class=\"ds-active\" aria-current=\"page\"><svg viewBox=\"0 0 24 24\" width=\"23\" height=\"23\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"M3 10 12 3l9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z\"/></svg><span>Inicio</span></button><button><svg viewBox=\"0 0 24 24\" width=\"23\" height=\"23\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"M9 3h6v4H9z M9 5H6a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3 M9 15l2 2 4-4\"/></svg><span>Mis tareas</span></button><button><svg viewBox=\"0 0 24 24\" width=\"23\" height=\"23\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M16 3a4 4 0 0 1 0 8 M22 21v-2a4 4 0 0 0-3-3.87 M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0\"/></svg><span>Comisiones</span></button><button><svg viewBox=\"0 0 24 24\" width=\"23\" height=\"23\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"M20 21a8 8 0 0 0-16 0 M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0\"/></svg><span>Perfil</span></button></nav>",
+      "css": ".ds-nav{font-family:'Nunito Sans',system-ui,sans-serif;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:#faf8f2;border-top:1px solid #dfe5da;min-height:72px;padding:8px;}.ds-nav button{font-family:'Nunito Sans',system-ui,sans-serif;position:relative;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px;min-width:44px;min-height:52px;padding:4px 0;border:0;background:none;color:#52675a;font-size:12px;line-height:16px;cursor:pointer;}.ds-nav .ds-active{color:#124d38;font-weight:800;}.ds-active:before{content:\"\";position:absolute;top:0;width:22px;height:3px;border-radius:2px;background:#124d38;}.ds-primary:focus-visible,.ds-secondary:focus-visible,.ds-auth:focus-visible,.ds-nav button:focus-visible{outline:3px solid #e8a33c;outline-offset:3px;}"
+    },
+    {
+      "name": "Estado de tarea en fila",
+      "kind": "chip",
+      "description": "Estado textual móvil sin fondo ni padding dentro de metadatos.",
+      "html": "<span class=\"ds-status\">Bloqueada</span>",
+      "css": ".ds-status{font-family:'Nunito Sans',system-ui,sans-serif;font-size:14px;line-height:20px;background:none;padding:0;color:#805006;}"
+    },
+    {
+      "name": "Panel desktop",
+      "kind": "card",
+      "refersTo": "desktop-panel",
+      "description": "Contenedor operativo conservado de escritorio; no representa las filas abiertas móviles.",
+      "html": "<section class=\"ds-panel\"><h2>Resumen de comisión</h2><p>Trabajo y avance del equipo</p></section>",
+      "css": ".ds-panel{font-family:'Nunito Sans',system-ui,sans-serif;background:#fffefa;color:#24352b;border:1px solid #e9e8de;border-radius:12px;padding:20px;box-shadow:0 3px 9px #39412d02;}.ds-panel h2{font-size:16px;font-weight:800;letter-spacing:-.3px;margin:0;}.ds-panel p{font-size:14px;line-height:1.65;margin:12px 0 0;}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Copa compacta, trabajo al frente",
+    "overview": "Forest Experience hace reconocible la coordinación scout con una copa verde de borde orgánico, marca pequeña y fondo crema. El tono es cercano y sereno; la densidad sirve a personas voluntarias que necesitan localizar trabajo y actuar con claridad. Las listas continuas y los estados textuales llevan la jerarquía; la identidad acompaña sin ocupar el centro operativo.\n\nLa autoridad visual es la propuesta refinada Codex aprobada en `7088637`, actualizada por la decisión posterior del usuario de retirar todos los monos 3D estáticos y permitir solo marca, liana y guiños discretos 2D. La implementación vigente, leída después de esa decisión, determina los tokens. Las láminas antiguas y los recursos Stitch conservados como evidencia no deben sustituirla.",
+    "keyCharacteristics": [
+      "Copa orgánica compacta en flujo normal y navegación móvil estable.",
+      "Verde bosque, crema y contraste de texto funcional.",
+      "Nunito Sans local, nombres que envuelven y listas continuas.",
+      "Identidad 2D discreta y celebración breve tras guardar.",
+      "Desktop operativo conservado; acceso y onboarding compartidos."
+    ],
+    "rules": [
+      {
+        "name": "Estado Legible",
+        "body": "Un estado debe conservar texto o forma además de color; el activo de navegación tiene peso y una marca superior.",
+        "section": "colors"
+      },
+      {
+        "name": "Texto Completo",
+        "body": "Permitir que nombres de tareas, proyectos y comisiones envuelvan; no reducir la fuente para encajar una altura fija. El mínimo de 44px se refiere al área táctil, no al tamaño tipográfico de las etiquetas.",
+        "section": "typography"
+      },
+      {
+        "name": "Celebración Confirmada",
+        "body": "La liana 2D aparece solo tras confirmar guardado. El recorrido dura 2.2s y la etiqueta 2.5s; con movimiento reducido se oculta la liana y la etiqueta pierde animación. No hay decoración animada continua.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** mantener copa compacta, trabajo legible y cuatro destinos móviles estables.",
+      "**Do** respetar los dos supuestos del breakpoint móvil y las áreas seguras.",
+      "**Do** conservar etiquetas visibles, foco, estados textuales y objetivos táctiles de al menos 44px en la experiencia móvil.",
+      "**Do** preservar desktop operativo y ofrecer acceso/onboarding coherentes en ancho amplio.",
+      "**Do** utilizar recursos oficiales 2D y mostrar celebración solo después del guardado confirmado."
+    ],
+    "donts": [
+      "**Don't** reintroducir monos 3D estáticos, sprites de mascotas ni recursos del diseño Stitch.",
+      "**Don't** reducir tipografía para impedir que los nombres envuelvan.",
+      "**Don't** cubrir la última fila o el foco con la navegación inferior.",
+      "**Don't** convertir cada fila móvil en una tarjeta elevada ni añadir decoración animada continua.",
+      "**Don't** atribuir pruebas de OAuth real, sesión en PWA física o accesibilidad completa a una lámina, este documento o un build correcto."
+    ]
+  }
+}
