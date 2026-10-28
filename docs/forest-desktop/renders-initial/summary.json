@@ -1,0 +1,1899 @@
+{
+  "scenes": 72,
+  "captures": 164,
+  "pageErrors": [],
+  "horizontalOverflow": [],
+  "brokenImages": [],
+  "smallTargets": [
+    {
+      "scene": "D08",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 612,
+      "height": 22
+    },
+    {
+      "scene": "D08",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 685,
+      "height": 22
+    },
+    {
+      "scene": "D08",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 758,
+      "height": 22
+    },
+    {
+      "scene": "D08",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 831,
+      "height": 22
+    },
+    {
+      "scene": "D08",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 612,
+      "height": 22
+    },
+    {
+      "scene": "D08",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 685,
+      "height": 22
+    },
+    {
+      "scene": "D08",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 758,
+      "height": 22
+    },
+    {
+      "scene": "D08",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 831,
+      "height": 22
+    },
+    {
+      "scene": "D08",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 200,
+      "y": 698,
+      "height": 22
+    },
+    {
+      "scene": "D08",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 200,
+      "y": 771,
+      "height": 22
+    },
+    {
+      "scene": "D08",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 200,
+      "y": 844,
+      "height": 22
+    },
+    {
+      "scene": "D08",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 200,
+      "y": 917,
+      "height": 22
+    },
+    {
+      "scene": "D08",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 385,
+      "y": 624,
+      "height": 22
+    },
+    {
+      "scene": "D08",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 385,
+      "y": 697,
+      "height": 22
+    },
+    {
+      "scene": "D08",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 385,
+      "y": 770,
+      "height": 22
+    },
+    {
+      "scene": "D08",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 385,
+      "y": 843,
+      "height": 22
+    },
+    {
+      "scene": "D09",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 612,
+      "height": 22
+    },
+    {
+      "scene": "D09",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 685,
+      "height": 22
+    },
+    {
+      "scene": "D09",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 758,
+      "height": 22
+    },
+    {
+      "scene": "D09",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 831,
+      "height": 22
+    },
+    {
+      "scene": "D09",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 612,
+      "height": 22
+    },
+    {
+      "scene": "D09",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 685,
+      "height": 22
+    },
+    {
+      "scene": "D09",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 758,
+      "height": 22
+    },
+    {
+      "scene": "D09",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 831,
+      "height": 22
+    },
+    {
+      "scene": "D12",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 360,
+      "height": 22
+    },
+    {
+      "scene": "D12",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 434,
+      "height": 22
+    },
+    {
+      "scene": "D12",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 508,
+      "height": 22
+    },
+    {
+      "scene": "D12",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 582,
+      "height": 22
+    },
+    {
+      "scene": "D12",
+      "width": 196.1875,
+      "tag": "A",
+      "label": "Cerrar inventario del almacén",
+      "x": 254,
+      "y": 656,
+      "height": 22
+    },
+    {
+      "scene": "D12",
+      "width": 194.90625,
+      "tag": "A",
+      "label": "Preparar el rincón de cuentos",
+      "x": 254,
+      "y": 730,
+      "height": 22
+    },
+    {
+      "scene": "D12",
+      "width": 187.34375,
+      "tag": "A",
+      "label": "Revisar material de limpieza",
+      "x": 254,
+      "y": 804,
+      "height": 22
+    },
+    {
+      "scene": "D12",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 360,
+      "height": 22
+    },
+    {
+      "scene": "D12",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 434,
+      "height": 22
+    },
+    {
+      "scene": "D12",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 508,
+      "height": 22
+    },
+    {
+      "scene": "D12",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 582,
+      "height": 22
+    },
+    {
+      "scene": "D12",
+      "width": 196.1875,
+      "tag": "A",
+      "label": "Cerrar inventario del almacén",
+      "x": 254,
+      "y": 656,
+      "height": 22
+    },
+    {
+      "scene": "D12",
+      "width": 194.90625,
+      "tag": "A",
+      "label": "Preparar el rincón de cuentos",
+      "x": 254,
+      "y": 730,
+      "height": 22
+    },
+    {
+      "scene": "D12",
+      "width": 187.34375,
+      "tag": "A",
+      "label": "Revisar material de limpieza",
+      "x": 254,
+      "y": 804,
+      "height": 22
+    },
+    {
+      "scene": "D13",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 612,
+      "height": 22
+    },
+    {
+      "scene": "D13",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 685,
+      "height": 22
+    },
+    {
+      "scene": "D13",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 758,
+      "height": 22
+    },
+    {
+      "scene": "D13",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 831,
+      "height": 22
+    },
+    {
+      "scene": "D13",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 612,
+      "height": 22
+    },
+    {
+      "scene": "D13",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 685,
+      "height": 22
+    },
+    {
+      "scene": "D13",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 758,
+      "height": 22
+    },
+    {
+      "scene": "D13",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 831,
+      "height": 22
+    },
+    {
+      "scene": "D14",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 496,
+      "height": 22
+    },
+    {
+      "scene": "D14",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 569,
+      "height": 22
+    },
+    {
+      "scene": "D14",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 642,
+      "height": 22
+    },
+    {
+      "scene": "D14",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 715,
+      "height": 22
+    },
+    {
+      "scene": "D14",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 496,
+      "height": 22
+    },
+    {
+      "scene": "D14",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 569,
+      "height": 22
+    },
+    {
+      "scene": "D14",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 642,
+      "height": 22
+    },
+    {
+      "scene": "D14",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 715,
+      "height": 22
+    },
+    {
+      "scene": "D15",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 496,
+      "height": 22
+    },
+    {
+      "scene": "D15",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 569,
+      "height": 22
+    },
+    {
+      "scene": "D15",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 642,
+      "height": 22
+    },
+    {
+      "scene": "D15",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 715,
+      "height": 22
+    },
+    {
+      "scene": "D15",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 496,
+      "height": 22
+    },
+    {
+      "scene": "D15",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 569,
+      "height": 22
+    },
+    {
+      "scene": "D15",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 642,
+      "height": 22
+    },
+    {
+      "scene": "D15",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 715,
+      "height": 22
+    },
+    {
+      "scene": "D16",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 496,
+      "height": 22
+    },
+    {
+      "scene": "D16",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 569,
+      "height": 22
+    },
+    {
+      "scene": "D16",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 642,
+      "height": 22
+    },
+    {
+      "scene": "D16",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 715,
+      "height": 22
+    },
+    {
+      "scene": "D16",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 496,
+      "height": 22
+    },
+    {
+      "scene": "D16",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 569,
+      "height": 22
+    },
+    {
+      "scene": "D16",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 642,
+      "height": 22
+    },
+    {
+      "scene": "D16",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 715,
+      "height": 22
+    },
+    {
+      "scene": "D17",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 496,
+      "height": 22
+    },
+    {
+      "scene": "D17",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 569,
+      "height": 22
+    },
+    {
+      "scene": "D17",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 642,
+      "height": 22
+    },
+    {
+      "scene": "D17",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 715,
+      "height": 22
+    },
+    {
+      "scene": "D17",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 496,
+      "height": 22
+    },
+    {
+      "scene": "D17",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 569,
+      "height": 22
+    },
+    {
+      "scene": "D17",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 642,
+      "height": 22
+    },
+    {
+      "scene": "D17",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 715,
+      "height": 22
+    },
+    {
+      "scene": "D18",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 352,
+      "height": 22
+    },
+    {
+      "scene": "D18",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 426,
+      "height": 22
+    },
+    {
+      "scene": "D18",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 500,
+      "height": 22
+    },
+    {
+      "scene": "D18",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 352,
+      "height": 22
+    },
+    {
+      "scene": "D18",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 426,
+      "height": 22
+    },
+    {
+      "scene": "D18",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 500,
+      "height": 22
+    },
+    {
+      "scene": "D19",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 426,
+      "height": 22
+    },
+    {
+      "scene": "D19",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 500,
+      "height": 22
+    },
+    {
+      "scene": "D19",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 574,
+      "height": 22
+    },
+    {
+      "scene": "D19",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 426,
+      "height": 22
+    },
+    {
+      "scene": "D19",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 500,
+      "height": 22
+    },
+    {
+      "scene": "D19",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 574,
+      "height": 22
+    },
+    {
+      "scene": "D25",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 508.5,
+      "height": 22
+    },
+    {
+      "scene": "D25",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 582.5,
+      "height": 22
+    },
+    {
+      "scene": "D25",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 656.5,
+      "height": 22
+    },
+    {
+      "scene": "D25",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 730.5,
+      "height": 22
+    },
+    {
+      "scene": "D25",
+      "width": 196.1875,
+      "tag": "A",
+      "label": "Cerrar inventario del almacén",
+      "x": 254,
+      "y": 804.5,
+      "height": 22
+    },
+    {
+      "scene": "D25",
+      "width": 194.90625,
+      "tag": "A",
+      "label": "Preparar el rincón de cuentos",
+      "x": 254,
+      "y": 878.5,
+      "height": 22
+    },
+    {
+      "scene": "D25",
+      "width": 187.34375,
+      "tag": "A",
+      "label": "Revisar material de limpieza",
+      "x": 254,
+      "y": 952.5,
+      "height": 22
+    },
+    {
+      "scene": "D25",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 508.5,
+      "height": 22
+    },
+    {
+      "scene": "D25",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 582.5,
+      "height": 22
+    },
+    {
+      "scene": "D25",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 656.5,
+      "height": 22
+    },
+    {
+      "scene": "D25",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 730.5,
+      "height": 22
+    },
+    {
+      "scene": "D25",
+      "width": 196.1875,
+      "tag": "A",
+      "label": "Cerrar inventario del almacén",
+      "x": 254,
+      "y": 804.5,
+      "height": 22
+    },
+    {
+      "scene": "D25",
+      "width": 194.90625,
+      "tag": "A",
+      "label": "Preparar el rincón de cuentos",
+      "x": 254,
+      "y": 878.5,
+      "height": 22
+    },
+    {
+      "scene": "D25",
+      "width": 187.34375,
+      "tag": "A",
+      "label": "Revisar material de limpieza",
+      "x": 254,
+      "y": 952.5,
+      "height": 22
+    },
+    {
+      "scene": "D34",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 496,
+      "height": 22
+    },
+    {
+      "scene": "D34",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 569,
+      "height": 22
+    },
+    {
+      "scene": "D34",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 642,
+      "height": 22
+    },
+    {
+      "scene": "D34",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 715,
+      "height": 22
+    },
+    {
+      "scene": "D34",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 496,
+      "height": 22
+    },
+    {
+      "scene": "D34",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 569,
+      "height": 22
+    },
+    {
+      "scene": "D34",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 642,
+      "height": 22
+    },
+    {
+      "scene": "D34",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 715,
+      "height": 22
+    },
+    {
+      "scene": "D36",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 484,
+      "y": 428.5,
+      "height": 19
+    },
+    {
+      "scene": "D36",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 484,
+      "y": 490.5,
+      "height": 19
+    },
+    {
+      "scene": "D36",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 484,
+      "y": 552.5,
+      "height": 19
+    },
+    {
+      "scene": "D36",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 404,
+      "y": 378.5,
+      "height": 19
+    },
+    {
+      "scene": "D36",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 404,
+      "y": 440.5,
+      "height": 19
+    },
+    {
+      "scene": "D36",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 404,
+      "y": 502.5,
+      "height": 19
+    },
+    {
+      "scene": "D39",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 484,
+      "y": 465,
+      "height": 19
+    },
+    {
+      "scene": "D39",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 484,
+      "y": 527,
+      "height": 19
+    },
+    {
+      "scene": "D39",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 404,
+      "y": 415,
+      "height": 19
+    },
+    {
+      "scene": "D39",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 404,
+      "y": 477,
+      "height": 19
+    },
+    {
+      "scene": "D45",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 283.640625,
+      "height": 19
+    },
+    {
+      "scene": "D45",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 334.640625,
+      "height": 19
+    },
+    {
+      "scene": "D45",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 385.640625,
+      "height": 19
+    },
+    {
+      "scene": "D45",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 436.640625,
+      "height": 19
+    },
+    {
+      "scene": "D45",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 487.640625,
+      "height": 19
+    },
+    {
+      "scene": "D45",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 283.640625,
+      "height": 19
+    },
+    {
+      "scene": "D45",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 334.640625,
+      "height": 19
+    },
+    {
+      "scene": "D45",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 385.640625,
+      "height": 19
+    },
+    {
+      "scene": "D45",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 436.640625,
+      "height": 19
+    },
+    {
+      "scene": "D45",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 487.640625,
+      "height": 19
+    },
+    {
+      "scene": "D45",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 642,
+      "y": 277.640625,
+      "height": 19
+    },
+    {
+      "scene": "D45",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 642,
+      "y": 328.640625,
+      "height": 19
+    },
+    {
+      "scene": "D45",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 642,
+      "y": 379.640625,
+      "height": 19
+    },
+    {
+      "scene": "D45",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 642,
+      "y": 430.640625,
+      "height": 19
+    },
+    {
+      "scene": "D45",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 642,
+      "y": 481.640625,
+      "height": 19
+    },
+    {
+      "scene": "D45",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 985,
+      "y": 295.640625,
+      "height": 19
+    },
+    {
+      "scene": "D45",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 985,
+      "y": 346.640625,
+      "height": 19
+    },
+    {
+      "scene": "D45",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 985,
+      "y": 397.640625,
+      "height": 19
+    },
+    {
+      "scene": "D45",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 985,
+      "y": 448.640625,
+      "height": 19
+    },
+    {
+      "scene": "D45",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 985,
+      "y": 499.640625,
+      "height": 19
+    },
+    {
+      "scene": "D46",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 283.640625,
+      "height": 19
+    },
+    {
+      "scene": "D46",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 334.640625,
+      "height": 19
+    },
+    {
+      "scene": "D46",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 385.640625,
+      "height": 19
+    },
+    {
+      "scene": "D46",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 436.640625,
+      "height": 19
+    },
+    {
+      "scene": "D46",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 487.640625,
+      "height": 19
+    },
+    {
+      "scene": "D46",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 283.640625,
+      "height": 19
+    },
+    {
+      "scene": "D46",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 334.640625,
+      "height": 19
+    },
+    {
+      "scene": "D46",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 385.640625,
+      "height": 19
+    },
+    {
+      "scene": "D46",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 436.640625,
+      "height": 19
+    },
+    {
+      "scene": "D46",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 487.640625,
+      "height": 19
+    },
+    {
+      "scene": "D47",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 283.640625,
+      "height": 19
+    },
+    {
+      "scene": "D47",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 334.640625,
+      "height": 19
+    },
+    {
+      "scene": "D47",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 385.640625,
+      "height": 19
+    },
+    {
+      "scene": "D47",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 436.640625,
+      "height": 19
+    },
+    {
+      "scene": "D47",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 487.640625,
+      "height": 19
+    },
+    {
+      "scene": "D47",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 283.640625,
+      "height": 19
+    },
+    {
+      "scene": "D47",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 334.640625,
+      "height": 19
+    },
+    {
+      "scene": "D47",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 385.640625,
+      "height": 19
+    },
+    {
+      "scene": "D47",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 436.640625,
+      "height": 19
+    },
+    {
+      "scene": "D47",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 487.640625,
+      "height": 19
+    },
+    {
+      "scene": "D48",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 283.640625,
+      "height": 19
+    },
+    {
+      "scene": "D48",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 334.640625,
+      "height": 19
+    },
+    {
+      "scene": "D48",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 385.640625,
+      "height": 19
+    },
+    {
+      "scene": "D48",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 436.640625,
+      "height": 19
+    },
+    {
+      "scene": "D48",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 487.640625,
+      "height": 19
+    },
+    {
+      "scene": "D48",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 283.640625,
+      "height": 19
+    },
+    {
+      "scene": "D48",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 334.640625,
+      "height": 19
+    },
+    {
+      "scene": "D48",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 385.640625,
+      "height": 19
+    },
+    {
+      "scene": "D48",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 436.640625,
+      "height": 19
+    },
+    {
+      "scene": "D48",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 487.640625,
+      "height": 19
+    },
+    {
+      "scene": "D49",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 283.640625,
+      "height": 19
+    },
+    {
+      "scene": "D49",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 334.640625,
+      "height": 19
+    },
+    {
+      "scene": "D49",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 385.640625,
+      "height": 19
+    },
+    {
+      "scene": "D49",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 436.640625,
+      "height": 19
+    },
+    {
+      "scene": "D49",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 854,
+      "y": 487.640625,
+      "height": 19
+    },
+    {
+      "scene": "D49",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 283.640625,
+      "height": 19
+    },
+    {
+      "scene": "D49",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 334.640625,
+      "height": 19
+    },
+    {
+      "scene": "D49",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 385.640625,
+      "height": 19
+    },
+    {
+      "scene": "D49",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 436.640625,
+      "height": 19
+    },
+    {
+      "scene": "D49",
+      "width": 19,
+      "tag": "INPUT",
+      "label": "",
+      "x": 824,
+      "y": 487.640625,
+      "height": 19
+    },
+    {
+      "scene": "D52",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 496,
+      "height": 22
+    },
+    {
+      "scene": "D52",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 569,
+      "height": 22
+    },
+    {
+      "scene": "D52",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 642,
+      "height": 22
+    },
+    {
+      "scene": "D52",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 715,
+      "height": 22
+    },
+    {
+      "scene": "D52",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 496,
+      "height": 22
+    },
+    {
+      "scene": "D52",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 569,
+      "height": 22
+    },
+    {
+      "scene": "D52",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 642,
+      "height": 22
+    },
+    {
+      "scene": "D52",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 715,
+      "height": 22
+    },
+    {
+      "scene": "D55",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 496,
+      "height": 22
+    },
+    {
+      "scene": "D55",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 569,
+      "height": 22
+    },
+    {
+      "scene": "D55",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 642,
+      "height": 22
+    },
+    {
+      "scene": "D55",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 715,
+      "height": 22
+    },
+    {
+      "scene": "D55",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 496,
+      "height": 22
+    },
+    {
+      "scene": "D55",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 569,
+      "height": 22
+    },
+    {
+      "scene": "D55",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 642,
+      "height": 22
+    },
+    {
+      "scene": "D55",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 715,
+      "height": 22
+    },
+    {
+      "scene": "D64",
+      "width": 152.828125,
+      "tag": "A",
+      "label": "Revisar zonas comunes",
+      "x": 254,
+      "y": 686,
+      "height": 22
+    },
+    {
+      "scene": "D64",
+      "width": 105.140625,
+      "tag": "A",
+      "label": "Preparar turnos",
+      "x": 254,
+      "y": 759,
+      "height": 22
+    },
+    {
+      "scene": "D64",
+      "width": 152.828125,
+      "tag": "A",
+      "label": "Revisar zonas comunes",
+      "x": 254,
+      "y": 686,
+      "height": 22
+    },
+    {
+      "scene": "D64",
+      "width": 105.140625,
+      "tag": "A",
+      "label": "Preparar turnos",
+      "x": 254,
+      "y": 759,
+      "height": 22
+    },
+    {
+      "scene": "D65",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 496,
+      "height": 22
+    },
+    {
+      "scene": "D65",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 569,
+      "height": 22
+    },
+    {
+      "scene": "D65",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 642,
+      "height": 22
+    },
+    {
+      "scene": "D65",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 715,
+      "height": 22
+    },
+    {
+      "scene": "D65",
+      "width": 177.671875,
+      "tag": "A",
+      "label": "Revisar listado de material",
+      "x": 254,
+      "y": 496,
+      "height": 22
+    },
+    {
+      "scene": "D65",
+      "width": 195.046875,
+      "tag": "A",
+      "label": "Confirmar turnos de servicios",
+      "x": 254,
+      "y": 569,
+      "height": 22
+    },
+    {
+      "scene": "D65",
+      "width": 217.796875,
+      "tag": "A",
+      "label": "Preparar la velada de bienvenida",
+      "x": 254,
+      "y": 642,
+      "height": 22
+    },
+    {
+      "scene": "D65",
+      "width": 147.78125,
+      "tag": "A",
+      "label": "Comprobar botiquines",
+      "x": 254,
+      "y": 715,
+      "height": 22
+    }
+  ]
+}

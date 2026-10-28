@@ -1,0 +1,15 @@
+{
+  "round":2,
+  "scope":"Correctness only; preserve Forest direction and round1 styling",
+  "sourceProposal":"Round1source and renders preserved by integrator",
+  "changes":[
+    {"case":"Annual incident context","screens":["D19"],"correction":"Two annual Logística incidents explicitly show Proyecto anual2026–2027, with annuallinks; ChristmasLogística remains unmodified and inplazo."},
+    {"case":"Scoped Todas completeness","screens":["D08","D09","D13","D14","D15","D16","D17","D34","D52","D55","D65"],"correction":"ServiciosTodas includes all8rows,6open+2done; natural page scrolling reveals final rows."},
+    {"case":"Complete annual journey","screens":["D73","D74","D75","D76","D77","D78"],"correction":"Annualproject exposes Resumen/Comisiones/Tareas/Personas and Añadirpersonas;10tasks=7done+3open,1overdue+1blocked; invitation and result alwaystargetannualproject, no commissionrole or Christmascontext."},
+    {"case":"Supported icon upload formats","screens":["D44"],"correction":"Accept only image/png,image/jpeg,image/webp; remove unsupportedSVG."}
+  ],
+  "sceneCount":78,
+  "renderVerification":"pending capture and independent reinspection",
+  "sourceChecks":{"servicesRows":8,"annualTaskRows":10,"annualInviteChristmasReferences":0,"brokenImagePaths":0},
+  "implementationChanges":false
+}

@@ -1,0 +1,81 @@
+{
+  "fictional": true,
+  "asOf": "2026-10-28T19:00:00+01:00 Europe/Madrid",
+  "winterCamp": {
+    "name": "Campamento de Navidad",
+    "total": 40,
+    "done": 18,
+    "open": 22,
+    "overdue": 4,
+    "blocked": 2,
+    "commissions": [
+      {
+        "name": "Servicios",
+        "total": 8,
+        "done": 2,
+        "open": 6,
+        "overdue": 2,
+        "blocked": 1
+      },
+      {
+        "name": "Animación",
+        "total": 6,
+        "done": 3,
+        "open": 3,
+        "overdue": 1,
+        "blocked": 0
+      },
+      {
+        "name": "Material",
+        "total": 7,
+        "done": 2,
+        "open": 5,
+        "overdue": 1,
+        "blocked": 1
+      },
+      {
+        "name": "Menú",
+        "total": 8,
+        "done": 4,
+        "open": 4,
+        "overdue": 0,
+        "blocked": 0
+      },
+      {
+        "name": "Logística",
+        "total": 6,
+        "done": 3,
+        "open": 3,
+        "overdue": 0,
+        "blocked": 0
+      },
+      {
+        "name": "Lugar",
+        "total": 5,
+        "done": 4,
+        "open": 1,
+        "overdue": 0,
+        "blocked": 0
+      }
+    ]
+  },
+  "annualProject": {
+    "total": 10,
+    "done": 7,
+    "open": 3,
+    "overdue": 1,
+    "blocked": 1
+  },
+  "global": {
+    "total": 50,
+    "done": 25,
+    "open": 25,
+    "overdue": 5,
+    "blocked": 3
+  },
+  "personal": {
+    "open": 7,
+    "featured": 3
+  },
+  "variants": "All-clear scenes represent a later end state. Empty/initial scenes are independent fixtures, not simultaneous with active dataset."
+}

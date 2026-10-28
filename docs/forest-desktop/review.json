@@ -1,0 +1,48 @@
+{
+  "reviewId": "forest-desktop-20261028",
+  "runtime": "codex",
+  "phase": "visual-proposal-awaiting-user-approval",
+  "baseCommit": "65dc0a0363150778618b2f62bb82d28af30915cd",
+  "evidenceMode": "guidelines",
+  "approvalMode": "follow-recommendation",
+  "provenance": "User requested same design flow and confirmed desktop scope using mobile core guidelines. Prior session choices retained for this review only; no saved preferences found or rewritten.",
+  "objectiveConfirmed": true,
+  "direction": "Forest operativo con foco y contexto por rol",
+  "directionGate": "selected-by-follow-recommendation",
+  "rendererScope": "platform",
+  "visualProposalGate": "awaiting-user-approval",
+  "implementationAuthorized": false,
+  "deploymentAuthorized": false,
+  "correctionRoundsUsed": 2,
+  "motion": {
+    "completion": "User amendment: every successfully saved task completion must show the2Dmonkey crossing the screen from one side to theother with vine and Tarea completada. No static replacement.",
+    "reducedMotion": "User keeps lateral crossing always. Proposed least-motion variant removes rotation/bobbing but retains crossing; existing CSS hides vine and must change only after implementation authorization.",
+    "loading": "Reuse green-outline yellow banana with3brownspots. Reduced motion retains static status; runtime verification required.",
+    "other": "No new decorative motion or entrance choreography proposed."
+  },
+  "evidenceLimitations": [
+    "Synthetic isolated local data only",
+    "No physical device, assistive technology or full accessibility compliance claim",
+    "Static prototype geometry and independently inspected renders; application APIs, permissions and persistence are not proved by this board",
+    "Animated GIF demonstrates authored crossing only, not application event triggering",
+    "Minor nonblocking date/singular copy retained as disclosed in independent review"
+  ],
+  "rendererSelection": "solo Codex",
+  "userAmendments": [
+    {
+      "instruction": "No, la liana se tiene que mover de lado a lado al acabar una tarea siempre",
+      "scope": "Each confirmed task completion;2D on desktop and mobile; preserve undo and nonblocking overlay",
+      "status": "bound in design only; application unchanged"
+    }
+  ],
+  "visualVerdict": "meets direction",
+  "finalSceneCount": 78,
+  "finalGeometryRecords": 176,
+  "finalScreenshotCount": 216,
+  "independentReview": "qa/final-review.md",
+  "independentMatrix": "qa/final-matrix.json",
+  "assetAudit": "qa/asset-audit.json",
+  "remainingMaterialDrift": 0,
+  "authority": "Design only; implementation and deployment remain unauthorized.",
+  "publicationBranch": "design/forest-desktop"
+}

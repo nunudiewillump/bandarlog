@@ -1,0 +1,63 @@
+{
+  "renderer": "Codex",
+  "status": "correction-round1-awaiting-independent-review",
+  "sceneCount": 73,
+  "assets": [
+    {
+      "id": "BRAND2D",
+      "source": "public/brand-mark.webp",
+      "target": "sidebar",
+      "type": "official existing asset"
+    },
+    {
+      "id": "CANOPY",
+      "source": "src/ForestHeader.tsx exact two path geometry",
+      "target": "desktop header",
+      "type": "same approved mobile geometry, layout adapted"
+    },
+    {
+      "id": "FONT",
+      "source": "@fontsource/nunito-sans Latin400/600/800",
+      "target": "all text",
+      "type": "WOFF2 copied locally"
+    },
+    {
+      "id": "ICONS",
+      "source": "docs/forest-experience/codex/assets/icons.json, lucide-react ISC",
+      "target": "interface controls",
+      "type": "inline SVG"
+    },
+    {
+      "id": "CHRISTMAS",
+      "source": "public/artwork/icons/navidad-{servicios,animacion,material,menu,logistica,lugar}.svg",
+      "target": "commissions in Campamento de Navidad",
+      "type": "existing catalogue, names remain normal"
+    },
+    {
+      "id": "GENERAL",
+      "source": "public/artwork/icons/*.svg",
+      "target": "icon catalogue expansion example",
+      "type": "existing catalogue"
+    },
+    {
+      "id": "VINE2D",
+      "source": "public/monkey-vine-2d.webp",
+      "target": "D53/D54 crossing retained; D54 no secondary rotation",
+      "type": "existing approved2D completion asset"
+    },
+    {
+      "id": "CROP2D",
+      "source": "public/brand-mark.png",
+      "target": "D46 synthetic crop example only",
+      "type": "existing2D brand reference, not invented user photo"
+    },
+    {
+      "id": "BANANA",
+      "source": "src/BananaLoader.tsx shape and colors",
+      "target": "D50/D52",
+      "type": "static frame of existing user-required loader"
+    }
+  ],
+  "prohibited": "No3Dresource appears in proposal",
+  "runtimeProof": "No APIs, app logic or data writes. No runtime compliance or motion timing validation from static frames."
+}

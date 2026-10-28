@@ -1,0 +1,40 @@
+{
+  "canopyExactPaths": true,
+  "pathCount": 2,
+  "fontCopies": [
+    {
+      "weight": 400,
+      "sameBytes": true,
+      "sha256": "d9976dd1dc9c0d65046b52810e7cc69cfc229ee9939628ffe637e17efe4ef1ed"
+    },
+    {
+      "weight": 600,
+      "sameBytes": true,
+      "sha256": "e03e312b8b7abd8b69ecef4060ded626f80e45723becd13676ad8273cf568a6e"
+    },
+    {
+      "weight": 800,
+      "sameBytes": true,
+      "sha256": "4c839e56cbef1bbdfd509670f523730e24298aaf9a7791e0151031b023c12e4c"
+    }
+  ],
+  "required2DAssets": [
+    {
+      "path": "public/brand-mark.webp",
+      "sha256": "019e0eda5439fcf2a24b18c91c78abba376c0d91e1fab6638bba673424b84240",
+      "changedByProposal": false
+    },
+    {
+      "path": "public/monkey-vine-2d.webp",
+      "sha256": "39581475feb3430c1e70daa4e7a170846dc65e145d34420282440a64100638cc",
+      "changedByProposal": false
+    },
+    {
+      "path": "public/brand-mark.png",
+      "sha256": "414002e4e4ddf8462391a2c93e10e65d94c0566638263fff1c501cf14795bb24",
+      "changedByProposal": false
+    }
+  ],
+  "static3DReferences": [],
+  "limitations": "Sourceassetidentity/provenance only. Layout,rolebindingandmotionevents requireseparateevidence."
+}
