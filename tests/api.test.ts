@@ -229,6 +229,105 @@ test('invitations can be accepted, revoked, and reject reuse', async () => {
   );
 });
 
+test('bulk invitations and resends use valid personal access links and admit the invited recipient', async () => {
+  const recipients = ['personal+one@example.test', 'personal-two@example.test'];
+  const created = await request('/invitations', 'POST', {
+    commissionId: 'cocina',
+    emails: recipients,
+    role: 'scouter',
+  });
+  assert.equal(created.status, 201);
+  const assertLink = (message: any, recipient: string) => {
+    const plainLink = message.body.match(/^https?:\/\/\S+$/m)?.[0];
+    assert.ok(plainLink);
+    const button = message.html.match(/href="([^"]+)"/)?.[1].replaceAll('&amp;', '&');
+    assert.equal(button, plainLink);
+    const url = new URL(button);
+    assert.equal(url.origin, 'http://localhost:5173');
+    assert.match(url.searchParams.get('token') || '', /^invite\.[a-f0-9-]{36}\.[a-f0-9]{64}$/);
+    assert.ok(message.body.includes(recipient));
+    return url.searchParams.get('token')!;
+    assert.equal(url.hostname.endsWith('.'), false);
+  };
+  let mails = (await request('/dev/mail')).body;
+  for (const recipient of recipients) {
+    const message = mails.find(
+      (m: any) => m.email === recipient && m.subject === 'Te invitan a Bandarlog',
+    );
+    assertLink(message, recipient);
+  }
+  const invitation = (await request('/data')).body.invitations.find(
+    (i: any) => i.email === recipients[0],
+  );
+  assert.equal(
+    (await request(`/invitations/${invitation.id}`, 'PATCH', { action: 'resend' })).status,
+    200,
+  );
+  mails = (await request('/dev/mail')).body;
+  const token = assertLink(
+    mails.find(
+      (m: any) => m.email === recipients[0] && m.subject.startsWith('Recordatorio de invitación'),
+    ),
+    recipients[0],
+  );
+  const accepted = await request('/auth/verify', 'POST', { token });
+  assert.equal(accepted.status, 200);
+  assert.equal((await request('/auth/verify', 'POST', { token })).status, 400);
+  assert.equal((await request('/dev/mail')).body.length, mails.length);
+  const personal = { cookie: accepted.cookie, csrf: '' };
+  const me = (await request('/me', 'GET', undefined, personal)).body.user;
+  assert.equal(me.email, recipients[0]);
+  assert.equal(me.role, 'member');
+  const data = (await request('/data', 'GET', undefined, personal)).body;
+  assert.deepEqual(
+    data.commissions.map((c: any) => c.id),
+    ['cocina'],
+  );
+  assert.equal(data.members.find((m: any) => m.userId === me.id).role, 'scouter');
+});
+
+test('direct invitation tokens are bound to the invitation, including for existing users', async () => {
+  const recipient = 'bound-invite@example.test';
+  await request('/invitations', 'POST', { email: recipient, commissionId: 'cocina' });
+  await request('/invitations', 'POST', { email: recipient, projectId: 'camp' });
+  const messages = (await request('/dev/mail')).body.filter((m: any) => m.email === recipient);
+  const tokens = messages.map((m: any) =>
+    new URL(m.body.match(/^https?:\/\/\S+$/m)[0]).searchParams.get('token'),
+  );
+  const invites = (await request('/data')).body.invitations.filter(
+    (i: any) => i.email === recipient,
+  );
+  const commission = invites.find((i: any) => i.commissionId === 'cocina');
+  const revokedToken = tokens.find((token: string) => token.includes(commission.id));
+  await request(`/invitations/${commission.id}`, 'PATCH', { action: 'revoke' });
+  assert.equal((await request('/auth/verify', 'POST', { token: revokedToken })).status, 403);
+  assert.equal(
+    (await request('/auth/verify', 'POST', { token: revokedToken.slice('invite.'.length) })).status,
+    400,
+  );
+  assert.ok(!(await request('/data')).body.users.some((u: any) => u.email === recipient));
+  const projectToken = tokens.find((token: string) => token !== revokedToken);
+  const accepted = await request('/auth/verify', 'POST', { token: projectToken });
+  assert.equal(accepted.status, 200);
+  const personal = { cookie: accepted.cookie, csrf: '' };
+  const data = (await request('/data', 'GET', undefined, personal)).body;
+  assert.equal(data.commissions.length, 0);
+  assert.deepEqual(
+    data.projects.map((p: any) => p.id),
+    ['camp'],
+  );
+  await request('/invitations', 'POST', { email: recipient, commissionId: 'logistica' });
+  const latest = (await request('/dev/mail')).body.filter((m: any) => m.email === recipient).at(-1);
+  const existingToken = new URL(latest.body.match(/^https?:\/\/\S+$/m)[0]).searchParams.get(
+    'token',
+  );
+  const pending = (await request('/data')).body.invitations.find(
+    (i: any) => i.email === recipient && i.status === 'pending',
+  );
+  await request(`/invitations/${pending.id}`, 'PATCH', { action: 'revoke' });
+  assert.equal((await request('/auth/verify', 'POST', { token: existingToken })).status, 403);
+});
+
 test('reminders deduplicate previews and preserve contextual links without sending', async () => {
   assert.equal((await request('/notifications/process', 'POST', {}, member)).status, 403);
   assert.equal((await request('/notifications/process', 'POST', {})).status, 200);
@@ -497,6 +596,7 @@ test('project invitations stay in their project and do not grant access to its c
 });
 
 test('profile saves name, safe photos and reminder preferences without resetting omitted fields', async () => {
+  assert.equal((await request('/profile', 'PATCH', {})).status, 400);
   const photo = await (
     await import('sharp')
   )
@@ -525,6 +625,11 @@ test('profile saves name, safe photos and reminder preferences without resetting
   profile = (await request('/me')).body.user;
   assert.deepEqual(JSON.parse(profile.preferences).reminderDays, [10, 2]);
   assert.equal(JSON.parse(profile.preferences).creation, false);
+  const preferencesBeforePhoto = profile.preferences;
+  assert.equal((await request('/profile', 'PATCH', { avatarUrl: avatar })).status, 200);
+  profile = (await request('/me')).body.user;
+  assert.equal(profile.name, 'Álex actualizado');
+  assert.equal(profile.preferences, preferencesBeforePhoto);
   assert.equal(
     (
       await request('/profile', 'PATCH', {

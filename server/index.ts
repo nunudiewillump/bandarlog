@@ -73,6 +73,14 @@ const commissionRole = z
   );
 const email = z.email().transform((v) => v.toLowerCase());
 const mailTransport = createMailTransport();
+async function invitationLink(recipient: string, invitationId: string, expires: string, tx: any) {
+  // Hashing the complete token binds its invitation ID to the secret without a schema change.
+  const token = `invite.${invitationId}.${secret()}`;
+  await tx.insert(s.tokens).values({ id: hash(token), email: recipient, expires });
+  const url = new URL(appUrl);
+  url.searchParams.set('token', token);
+  return url.toString();
+}
 async function queue(
   email: string,
   subject: string,
@@ -180,6 +188,7 @@ app.post('/api/auth/request', async (q, r) => {
 });
 app.post('/api/auth/verify', async (q, r) => {
   const { token } = parse(z.object({ token: z.string().min(32).max(128) }), q.body);
+  const invitationId = token.match(/^invite\.([a-f0-9-]{36})\.[a-f0-9]{64}$/)?.[1];
   const result = await db.transaction(async (tx: any) => {
     const [t] = await tx
       .delete(s.tokens)
@@ -196,7 +205,10 @@ app.post('/api/auth/verify', async (q, r) => {
           eq(s.invitations.status, 'pending'),
           sql`${s.invitations.expires}>now()`,
         ),
-      );
+      )
+      .for('update');
+    if (invitationId && !invites.some((i: any) => i.id === invitationId))
+      fail(403, 'La invitación ha caducado, se ha revocado o ya se ha aceptado.');
     if (!u && !invites.length) fail(403, 'La invitación ya no está disponible.');
     if (!u) {
       [u] = await tx
@@ -402,17 +414,22 @@ app.post('/api/logout', async (_q, r) => {
 });
 app.patch('/api/profile', async (q, r) => {
   const input = parse(
-    z.object({
-      name: text,
-      avatarUrl: z.string().nullable().optional(),
-      notifications: z.boolean().optional(),
-      weekly: z.boolean().optional(),
-      creation: z.boolean().optional(),
-      updates: z.boolean().optional(),
-      reminderDays: z.array(z.number().int().min(1).max(90)).max(10).optional(),
-      onDue: z.boolean().optional(),
-      overdueWeekly: z.boolean().optional(),
-    }),
+    z
+      .object({
+        name: text.optional(),
+        avatarUrl: z.string().nullable().optional(),
+        notifications: z.boolean().optional(),
+        weekly: z.boolean().optional(),
+        creation: z.boolean().optional(),
+        updates: z.boolean().optional(),
+        reminderDays: z.array(z.number().int().min(1).max(90)).max(10).optional(),
+        onDue: z.boolean().optional(),
+        overdueWeekly: z.boolean().optional(),
+      })
+      .refine(
+        (value) => Object.values(value).some((field) => field !== undefined),
+        'Indica un cambio en tu perfil.',
+      ),
     q.body,
   );
   const { name, avatarUrl, ...changes } = input;
@@ -429,8 +446,8 @@ app.patch('/api/profile', async (q, r) => {
   await db
     .update(s.users)
     .set({
-      name,
-      preferences: JSON.stringify(merged),
+      ...(name !== undefined ? { name } : {}),
+      ...(Object.keys(changes).length ? { preferences: JSON.stringify(merged) } : {}),
       ...(photo !== undefined ? { avatarUrl: photo } : {}),
     })
     .where(eq(s.users.id, r.locals.user.id));
@@ -989,7 +1006,8 @@ async function createInvitations(q: express.Request, r: express.Response) {
         continue;
       }
       const iid = id(),
-        name = input.name || user?.name || recipient;
+        name = input.name || user?.name || recipient,
+        expires = new Date(Date.now() + 7 * 86400000).toISOString();
       await tx.insert(s.invitations).values({
         id: iid,
         commissionId: cid,
@@ -998,12 +1016,12 @@ async function createInvitations(q: express.Request, r: express.Response) {
         name,
         role: input.role,
         status: 'pending',
-        expires: new Date(Date.now() + 7 * 86400000).toISOString(),
+        expires,
       });
       await queue(
         recipient,
         'Te invitan a Bandarlog',
-        `Hola ${name}, te han invitado a ${commissionName}${cid ? ' como ' + (input.role === 'responsible' ? 'Responsable' : 'Scouter') : ''}. Solicita un enlace de acceso con este correo en ${appUrl}. La invitación caduca en 7 días.`,
+        `Hola ${name}, te han invitado a ${commissionName}${cid ? ' como ' + (input.role === 'responsible' ? 'Responsable' : 'Scouter') : ''}.\nAcepta la invitación para entrar con ${recipient}.\n\n${await invitationLink(recipient, iid, expires, tx)}\n\nLa invitación caduca en 7 días.`,
         `invite-${iid}`,
         tx,
       );
@@ -1039,28 +1057,34 @@ app.post(
 );
 app.patch('/api/invitations/:id', async (q, r) => {
   const { action } = parse(z.object({ action: z.enum(['resend', 'revoke']) }), q.body);
-  const [i] = await db
-    .select()
-    .from(s.invitations)
-    .where(eq(s.invitations.id, String(q.params.id)));
-  if (!i) fail(404, 'Invitación no encontrada.');
-  if (i.commissionId) await authorize(r.locals.user, i.commissionId, true);
-  else if (!globalManage(r.locals.user))
-    fail(403, 'Solo coordinación puede gestionar invitaciones al grupo.');
-  if (i.status === 'accepted') fail(409, 'La invitación ya se aceptó.');
-  await db
-    .update(s.invitations)
-    .set({
-      status: action === 'revoke' ? 'revoked' : 'pending',
-      expires: new Date(Date.now() + 7 * 86400000).toISOString(),
-    })
-    .where(eq(s.invitations.id, i.id));
-  if (action === 'resend')
-    await queue(
-      i.email,
-      'Recordatorio de invitación a Bandarlog',
-      `Solicita acceso con tu correo en ${appUrl}. Tu invitación está disponible durante 7 días.`,
-    );
+  await db.transaction(async (tx: any) => {
+    const [i] = await tx
+      .select()
+      .from(s.invitations)
+      .where(eq(s.invitations.id, String(q.params.id)))
+      .for('update');
+    if (!i) fail(404, 'Invitación no encontrada.');
+    if (i.commissionId) await authorize(r.locals.user, i.commissionId, true, tx);
+    else if (!globalManage(r.locals.user))
+      fail(403, 'Solo coordinación puede gestionar invitaciones al grupo.');
+    if (i.status === 'accepted') fail(409, 'La invitación ya se aceptó.');
+    const expires = new Date(Date.now() + 7 * 86400000).toISOString();
+    await tx
+      .update(s.invitations)
+      .set({
+        status: action === 'revoke' ? 'revoked' : 'pending',
+        expires,
+      })
+      .where(eq(s.invitations.id, i.id));
+    if (action === 'resend')
+      await queue(
+        i.email,
+        'Recordatorio de invitación a Bandarlog',
+        `Acepta la invitación para entrar con ${i.email}.\n\n${await invitationLink(i.email, i.id, expires, tx)}\n\nTu invitación está disponible durante 7 días.`,
+        id(),
+        tx,
+      );
+  });
   void deliver();
   r.json({ ok: true });
 });

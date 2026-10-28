@@ -1,6 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AnimatedCounter } from './AnimatedCounter';
-import { MobileHome, MobileTasks, ProjectIdentity, CampOverview, TaskSummary } from './MobileUX';
+import {
+  MobileHome,
+  MobileTasks,
+  MobileEmpty,
+  ProjectIdentity,
+  CampOverview,
+  TaskSummary,
+} from './MobileUX';
 import { MascotArt, ArtworkPicker } from './Artwork';
 import { artworkThemes, inferArtworkTheme } from '../shared/scout-catalog';
 import { createRoot } from 'react-dom/client';
@@ -140,7 +147,9 @@ function App() {
     [satisfaction, setSatisfaction] = useState(false),
     [pendingTasks, setPendingTasks] = useState(new Set<string>()),
     [undo, setUndo] = useState<{ task: Task; expected: string; last: boolean } | null>(null),
-    [emailInput, setEmailInput] = useState(''),
+    [emailInput, setEmailInput] = useState(() =>
+      (new URLSearchParams(location.search).get('email') || '').slice(0, 254),
+    ),
     [sent, setSent] = useState(false),
     [outbox, setOutbox] = useState<any[]>([]);
   const dataRef = useRef(data),
@@ -178,6 +187,7 @@ function App() {
   }, []);
   const params = new URLSearchParams(location.search);
   const [loginToken, setLoginToken] = useState(params.get('token') || '');
+  const invitationAccess = loginToken.startsWith('invite.');
   const manage = me?.role === 'admin' || me?.role === 'coordination';
   const canManage = (cid: string) =>
     manage ||
@@ -408,7 +418,9 @@ function App() {
   const metric = (ts: Task[], status: string) =>
     status === 'overdue' ? ts.filter(overdue).length : ts.filter((t) => t.status === status).length;
   const metricCards = (ts: Task[]) => (
-    <div className="metrics">
+    <div
+      className={`metrics ${ts.length && ts.every((task) => task.status === 'done') ? 'all-set' : ''} ${!ts.length ? 'no-tasks' : ''}`}
+    >
       {['pending', 'in_progress', 'blocked', 'overdue', 'done'].map((status, i) => {
         const Icon = [ClipboardCheck, FileText, LockKeyhole, AlertCircle, CheckCheck][i];
         return (
@@ -673,7 +685,7 @@ function App() {
         <BananaLoader label="Cargando Bandarlog…" />
       </div>
     );
-  if (!me)
+  if (!me || invitationAccess)
     return (
       <div className="login">
         <div className="login-art">
@@ -686,14 +698,22 @@ function App() {
         </div>
         <main className="login-form">
           <h1>
-            {loginToken ? '¡Ya casi estás!' : sent ? 'Revisa tu correo' : 'Bienvenido a Bandarlog'}
+            {invitationAccess
+              ? 'Te han invitado a Bandarlog'
+              : loginToken
+                ? '¡Ya casi estás!'
+                : sent
+                  ? 'Revisa tu correo'
+                  : 'Bienvenido a Bandarlog'}
           </h1>
           <p>
-            {loginToken
-              ? 'Confirma el acceso para entrar de forma segura.'
-              : sent
-                ? 'Si tu correo está registrado o tiene una invitación, recibirás un enlace para entrar.'
-                : 'Accede con el correo de tu grupo.'}
+            {invitationAccess
+              ? 'Acepta para entrar con el correo de la invitación.'
+              : loginToken
+                ? 'Confirma el acceso para entrar de forma segura.'
+                : sent
+                  ? 'Si tu correo está registrado o tiene una invitación, recibirás un enlace para entrar.'
+                  : 'Accede con tu correo. Si has recibido una invitación, usa esa misma dirección.'}
           </p>
           {error && (
             <div role="alert" className="error">
@@ -708,9 +728,14 @@ function App() {
                 setBusy(true);
                 try {
                   await api('/auth/verify', 'POST', { token: loginToken });
+                  setBoot(true);
+                  setMe(null);
+                  setData(initial);
+                  dataRef.current = initial;
                   setLoginToken('');
                   const next = new URL(location.href);
                   next.searchParams.delete('token');
+                  next.searchParams.delete('email');
                   history.replaceState({}, '', next);
                   await bootup();
                 } catch (e) {
@@ -720,7 +745,8 @@ function App() {
                 }
               }}
             >
-              Confirmar inicio de sesión <ArrowRight size={18} />
+              {invitationAccess ? 'Aceptar invitación y entrar' : 'Confirmar inicio de sesión'}{' '}
+              <ArrowRight size={18} />
             </button>
           ) : (
             <form onSubmit={requestLogin}>
@@ -730,7 +756,7 @@ function App() {
                   type="email"
                   required
                   autoComplete="email"
-                  placeholder="nombre@tugrupo.org"
+                  placeholder="nombre@ejemplo.com"
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
                 />
@@ -1092,11 +1118,6 @@ function App() {
             )}
             {['tasks', 'alerts'].includes(view) && (
               <>
-                {view === 'tasks' && (
-                  <div className="mobile-only">
-                    <TaskSummary tasks={myTasks} />
-                  </div>
-                )}
                 <div className="page-heading">
                   <div>
                     <h1>
@@ -1122,6 +1143,11 @@ function App() {
                     </button>
                   )}
                 </div>
+                {view === 'tasks' && (
+                  <div className="mobile-only">
+                    <TaskSummary tasks={myTasks} />
+                  </div>
+                )}
                 <section className="panel">
                   {filters()}
                   {taskTable(shown)}
@@ -1217,6 +1243,18 @@ function App() {
                       ) : null;
                     })}
                 </div>
+                {!data.commissions.some((c) => !project || c.projectId === project) && (
+                  <div className="mobile-only">
+                    <MobileEmpty
+                      title="Sin comisiones en esta vista"
+                      detail={
+                        manage
+                          ? 'Crea una comisión o selecciona otro proyecto.'
+                          : 'Tus comisiones aparecerán aquí cuando te añadan.'
+                      }
+                    />
+                  </div>
+                )}
                 <div className="commissions-grid desktop-only">
                   {data.commissions
                     .filter((c) => !project || c.projectId === project)
@@ -1293,35 +1331,33 @@ function App() {
                   <img src="/monkey.webp" alt="" />
                 </div>
                 {manage && activeProject.archived !== 'true' && (
-                  <label className="project-artwork-theme">
-                    Colección de ilustraciones
-                    <Select
-                      value={activeProject.artworkTheme || 'scout'}
-                      disabled={busy || inferArtworkTheme(activeProject.name) === 'christmas'}
-                      onChange={(event) =>
-                        void run(async () => {
-                          await api(`/projects/${project}`, 'PATCH', {
-                            artworkTheme: event.target.value,
-                          });
-                        }, 'Colección actualizada')
-                      }
-                    >
-                      {artworkThemes.map((theme) => (
-                        <option key={theme.id} value={theme.id}>
-                          {theme.name}
-                        </option>
-                      ))}
-                    </Select>
-                    <span className="hint">
-                      Se aplica a todas las comisiones de este{' '}
-                      {activeProject.type === 'camp' ? 'campamento' : 'proyecto'}.
-                    </span>
-                  </label>
-                )}
-                {data.campSummaries?.find((camp) => camp.id === project) && (
-                  <div className="mobile-only">
-                    <CampOverview camp={data.campSummaries.find((camp) => camp.id === project)!} />
-                  </div>
+                  <details className="project-appearance">
+                    <summary>Ilustraciones del proyecto</summary>
+                    <label className="project-artwork-theme">
+                      Colección de ilustraciones
+                      <Select
+                        value={activeProject.artworkTheme || 'scout'}
+                        disabled={busy || inferArtworkTheme(activeProject.name) === 'christmas'}
+                        onChange={(event) =>
+                          void run(async () => {
+                            await api(`/projects/${project}`, 'PATCH', {
+                              artworkTheme: event.target.value,
+                            });
+                          }, 'Colección actualizada')
+                        }
+                      >
+                        {artworkThemes.map((theme) => (
+                          <option key={theme.id} value={theme.id}>
+                            {theme.name}
+                          </option>
+                        ))}
+                      </Select>
+                      <span className="hint">
+                        Se aplica a todas las comisiones de este{' '}
+                        {activeProject.type === 'camp' ? 'campamento' : 'proyecto'}.
+                      </span>
+                    </label>
+                  </details>
                 )}
                 <div className="page-tabs">
                   {[
@@ -1337,14 +1373,30 @@ function App() {
                 </div>
                 {tab === 'tasks' && (
                   <>
+                    {data.campSummaries?.find((camp) => camp.id === project) && (
+                      <section className="mobile-only project-camp-overview">
+                        <h2>Avance del campamento</h2>
+                        <CampOverview
+                          camp={data.campSummaries.find((camp) => camp.id === project)!}
+                        />
+                      </section>
+                    )}
                     {!manage && activeProject.type === 'camp' && (
                       <h2 className="mobile-only">Tareas de tus comisiones</h2>
                     )}
-                    {metricCards(scoped)}
-                    <section className="panel general-progress">
-                      <strong>Progreso general</strong>
-                      {bar(scoped)}
-                    </section>
+                    <div
+                      className={
+                        manage && data.campSummaries?.some((camp) => camp.id === project)
+                          ? 'desktop-only'
+                          : ''
+                      }
+                    >
+                      {metricCards(scoped)}
+                      <section className="panel general-progress">
+                        <strong>Progreso general</strong>
+                        {bar(scoped)}
+                      </section>
+                    </div>
                     <section className="panel">
                       <div className="section-heading">
                         <h2>Comisiones</h2>
@@ -1454,26 +1506,28 @@ function App() {
                       <strong>Progreso de la comisión</strong>
                       {bar(scoped)}
                     </section>
-                    <div className="responsible-attention">
-                      <button
-                        className="secondary"
-                        onClick={() => {
-                          setTab('tasks');
-                          setFilter('overdue');
-                        }}
-                      >
-                        Revisar tareas vencidas
-                      </button>
-                      <button
-                        className="secondary"
-                        onClick={() => {
-                          setTab('tasks');
-                          setFilter('blocked');
-                        }}
-                      >
-                        Resolver bloqueos
-                      </button>
-                    </div>
+                    {(scoped.some(overdue) || scoped.some((task) => task.status === 'blocked')) && (
+                      <div className="responsible-attention">
+                        <button
+                          className="secondary"
+                          onClick={() => {
+                            setTab('tasks');
+                            setFilter('overdue');
+                          }}
+                        >
+                          Revisar tareas vencidas
+                        </button>
+                        <button
+                          className="secondary"
+                          onClick={() => {
+                            setTab('tasks');
+                            setFilter('blocked');
+                          }}
+                        >
+                          Resolver bloqueos
+                        </button>
+                      </div>
+                    )}
                   </section>
                 )}
                 <section className="panel commission-work">
@@ -1501,6 +1555,12 @@ function App() {
                   {tab === 'people' && <People />}
                   {tab === 'activity' && (
                     <div className="activity-list">
+                      {!data.activity.some((a) => scoped.some((t) => t.id === a.taskId)) && (
+                        <MobileEmpty
+                          title="Sin actividad todavía"
+                          detail="Aquí aparecerán las actualizaciones y comentarios de las tareas."
+                        />
+                      )}
                       {data.activity
                         .filter((a) => scoped.some((t) => t.id === a.taskId))
                         .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -2075,6 +2135,16 @@ function People() {
           </button>
         )}
       </div>
+      {!us.length && (
+        <MobileEmpty
+          title="Todavía no hay personas"
+          detail={
+            canInvite
+              ? 'Invita al equipo para empezar.'
+              : 'Las personas de este equipo aparecerán aquí.'
+          }
+        />
+      )}
       {us.map((u) => {
         const tasks = scoped.filter((t) => usersOf(t).some((x) => x.id === u.id));
         const member = members.find((m) => m.userId === u.id);
@@ -2108,7 +2178,6 @@ function People() {
                 aria-label={`Rol global de ${u.name}`}
                 value={u.role}
                 disabled={busy || u.id === me.id}
-                style={{ width: 145, fontSize: 11 }}
                 onChange={(e) =>
                   void run(async () => {
                     await api(`/users/${u.id}/role`, 'PATCH', { role: e.target.value });

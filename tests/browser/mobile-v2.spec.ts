@@ -1,10 +1,13 @@
 import { test, expect, type Page } from '@playwright/test';
 import { mobileFixture } from '../fixtures/mobile';
+import { artworkCatalog } from '../../shared/scout-catalog';
 import { mkdir } from 'node:fs/promises';
 async function setup(
   page: Page,
   options: {
     count?: 1 | 5 | 10;
+    role?: string;
+    empty?: boolean;
     width?: number;
     level?: 'personal' | 'commissions' | 'camps' | 'clear';
     fail?: boolean;
@@ -12,6 +15,19 @@ async function setup(
   } = {},
 ) {
   const fixture = mobileFixture(options.count || 10);
+  if (options.role) fixture.user.role = options.role;
+  if (options.empty)
+    Object.assign(fixture.data, {
+      projects: [],
+      commissions: [],
+      tasks: [],
+      members: [],
+      assignments: [],
+      projectMembers: [],
+      activity: [],
+      users: [fixture.user],
+      campSummaries: [],
+    });
   const own = new Set(
     fixture.data.assignments.filter((a) => a.userId === fixture.user.id).map((a) => a.taskId),
   );
@@ -25,11 +41,15 @@ async function setup(
   await page.route('**/api/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path === '/api/health') return route.fulfill({ json: { ok: true, mail: 'development' } });
+    if (path === '/api/artwork/catalog') return route.fulfill({ json: artworkCatalog });
     if (path === '/api/me')
       return route.fulfill({
         json: { user: fixture.user, csrf: 'test-only-csrf', development: true },
       });
-    if (path === '/api/data') return route.fulfill({ json: structuredClone(fixture.summary()) });
+    if (path === '/api/data')
+      return route.fulfill({
+        json: structuredClone(options.empty ? fixture.data : fixture.summary()),
+      });
     if (path.startsWith('/api/tasks/') && route.request().method() === 'PATCH') {
       const id = path.split('/').at(-1)!;
       calls.push(id);
@@ -237,3 +257,136 @@ test('simultaneous quick actions animate once and ignore duplicate submissions',
   await expect(page.locator('.mobile-list .mobile-task-row')).toHaveCount(15);
   await expect(page.locator('.animated-counter[data-animating="true"]:visible')).toHaveCount(0);
 });
+
+for (const width of [320, 390, 430])
+  for (const clear of [false, true])
+    test(`mobile screen review ${width}px, ${clear ? 'all clear' : 'active tasks'}`, async ({
+      page,
+    }) => {
+      test.setTimeout(60000);
+      await setup(page, { width, role: 'admin', level: clear ? 'clear' : 'personal' });
+      await mkdir('artifacts/revision-movil', { recursive: true });
+      const views = [
+        ['home', ''],
+        ['tasks', '?view=tasks'],
+        ['commissions', '?view=commissions'],
+        ['camps', '?view=camps'],
+        ['projects', '?view=rounds'],
+        ['project', '?view=project&project=camp-v2'],
+        ['commission', '?view=commission&project=camp-v2&commission=commission-v2-5'],
+        ['people', '?view=people'],
+        ['profile', '?view=profile'],
+        ['settings', '?view=settings'],
+        ['alerts', '?view=alerts'],
+      ];
+      for (const [name, query] of views) {
+        await page.goto('/' + query);
+        await expect(page.getByRole('main')).toBeVisible();
+        await expect(page.locator('.loading')).toHaveCount(0);
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+          name,
+        ).toBe(true);
+        if (name === 'people') {
+          for (const element of await page.locator('.person-row strong').all()) {
+            const box = await element.boundingBox();
+            expect((await element.locator('..').boundingBox())!.width).toBeGreaterThan(140);
+            expect(box!.height).toBeLessThan(60);
+          }
+        }
+        await page.screenshot({
+          path: `artifacts/revision-movil/${name}-${clear ? 'clear' : 'active'}-${width}.png`,
+          fullPage: true,
+          animations: 'disabled',
+        });
+      }
+      for (const [query, tabs] of [
+        ['?view=commission&project=camp-v2&commission=commission-v2-5', ['Personas', 'Actividad']],
+        ['?view=project&project=camp-v2', ['Comisiones', 'Tareas', 'Personas']],
+      ] as const) {
+        await page.goto('/' + query);
+        for (const tab of tabs) {
+          await page.locator('.page-tabs').getByRole('button', { name: tab, exact: true }).click();
+          expect(
+            await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+            query + tab,
+          ).toBe(true);
+          await page.screenshot({
+            path: `artifacts/revision-movil/tab-${query.includes('commission&') ? 'commission' : 'project'}-${tab}-${clear ? 'clear' : 'active'}-${width}.png`,
+            fullPage: true,
+            animations: 'disabled',
+          });
+        }
+      }
+      await page.goto('/?view=tasks');
+      await page.locator('.mobile-list .mobile-task-open').first().click();
+      await expect(page.getByRole('dialog')).toBeVisible();
+      await page.screenshot({
+        path: `artifacts/revision-movil/task-detail-${clear ? 'clear' : 'active'}-${width}.png`,
+        animations: 'disabled',
+      });
+      await page.getByRole('dialog').getByRole('button', { name: 'Cerrar', exact: true }).click();
+      await page.goto('/?view=commission&project=camp-v2&commission=commission-v2-9');
+      await page.getByRole('button', { name: 'Elegir ilustraciones', exact: true }).click();
+      const catalogue = page.getByRole('dialog');
+      await expect(catalogue).toBeVisible();
+      expect(
+        await catalogue.evaluate((element) => element.scrollWidth <= element.clientWidth),
+      ).toBe(true);
+      await page.screenshot({
+        path: `artifacts/revision-movil/artwork-${clear ? 'clear' : 'active'}-${width}.png`,
+        animations: 'disabled',
+      });
+      await catalogue.getByRole('button', { name: 'Cerrar', exact: true }).click();
+      for (const [view, action] of [
+        ['commissions', 'Nueva comisión'],
+        ['tasks', 'Nueva tarea'],
+        ['camps', 'Nuevo campamento'],
+        ['people', 'Invitar personas'],
+      ]) {
+        await page.goto('/?view=' + view);
+        await page.getByRole('button', { name: action, exact: true }).click();
+        const dialog = page.getByRole('dialog');
+        await expect(dialog).toBeVisible();
+        expect(
+          await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth),
+          action,
+        ).toBe(true);
+        await page.screenshot({
+          path: `artifacts/revision-movil/form-${view}-${clear ? 'clear' : 'active'}-${width}.png`,
+          animations: 'disabled',
+        });
+        await dialog.getByRole('button', { name: 'Cerrar', exact: true }).click();
+      }
+    });
+
+for (const width of [320, 430])
+  test(`new member empty screens are readable at ${width}px`, async ({ page }) => {
+    await setup(page, { width, empty: true });
+    for (const view of [
+      'home',
+      'tasks',
+      'commissions',
+      'camps',
+      'rounds',
+      'people',
+      'profile',
+      'alerts',
+    ]) {
+      await page.goto('/?view=' + view);
+      await expect(page.getByRole('main')).toBeVisible();
+      await expect(page.locator('.loading')).toHaveCount(0);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      );
+      if (view === 'home') {
+        await expect(page.getByRole('heading', { name: 'Sin tareas asignadas' })).toBeVisible();
+        await expect(page.locator('.clear-summary')).toHaveCount(0);
+      }
+      await page.screenshot({
+        path: `artifacts/revision-movil/empty-${view}-${width}.png`,
+        fullPage: true,
+        animations: 'disabled',
+      });
+    }
+  });
