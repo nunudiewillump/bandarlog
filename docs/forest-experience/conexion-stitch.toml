@@ -1,0 +1,9 @@
+# Propuesta de configuración, NO aplicada al perfil de Codex.
+# Sin valores secretos. La clave se introduce únicamente en una interfaz segura.
+# Referencia oficial: plugins/design-arc/.codex-plugin/plugin.json de Design Arc.
+
+[mcp_servers.stitch]
+url = "https://stitch.googleapis.com/mcp"
+
+[mcp_servers.stitch.env_http_headers]
+X-Goog-Api-Key = "STITCH_API_KEY"
