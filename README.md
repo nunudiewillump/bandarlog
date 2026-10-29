@@ -126,3 +126,7 @@ La [guía de correcciones Forest](docs/forest-desktop/workflow-corrections.md) d
 ### Edición y pasos de tareas
 
 Consulta [edición completa y checklist opcional](docs/task-editing-checklists.md) para permisos, límites, conservación de datos y funcionamiento sin cobertura. La migración 0010 se aplica al arrancar, sin nuevas variables de entorno.
+
+### Proyectos independientes
+
+Campamentos y proyectos anuales comparten ahora una sección **Proyectos**, con tipo opcional y sin padre obligatorio. La [guía de compatibilidad](docs/unified-projects.md) explica los datos históricos, las URLs antiguas y las migraciones aditivas. Se mantienen IDs, permisos e historial, sin nuevas variables de entorno.

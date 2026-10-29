@@ -24,7 +24,8 @@ import { checklistChangeSchema, changeChecklist, ChecklistError } from './task-c
 import { artworkImage } from './artwork.js';
 import { renderMail } from './mail-template.js';
 import { pushService, validPushEndpoint } from './push.js';
-import { campSummaries } from './camp-summaries.js';
+import { projectSummaries } from './project-summaries.js';
+import { projectTypeInput } from './project-input.js';
 import {
   codeVerifier,
   equalSecret,
@@ -1111,8 +1112,12 @@ app.get('/api/data', async (_q, r) => {
   const us = (await db.select().from(s.users))
     .filter((x) => globalManage(u) || uids.has(x.id))
     .map(({ preferences, ...x }) => x);
+  const summaries = await projectSummaries(db, visibleProjects);
   r.json({
-    campSummaries: await campSummaries(db, visibleProjects),
+    projectSummaries: summaries,
+    campSummaries: summaries.filter((summary) =>
+      visibleProjects.some((p) => p.id === summary.id && p.type === 'camp'),
+    ),
     artworkEnabled: true,
     artworkThemes,
     projects: visibleProjects.map((p) => ({ ...p, artworkTheme: projectArtworkTheme(p) })),
@@ -1169,22 +1174,20 @@ app.post('/api/projects', async (q, r) => {
   const input = parse(
     z.object({
       name: text,
-      type: z.enum(['ronda', 'camp']),
+      type: projectTypeInput.default('general'),
       artworkTheme: z.enum(['scout', 'christmas']).optional(),
-      parentId: z.string().optional(),
+      parentId: z.string().trim().max(200).nullable().optional(),
       starts: z.iso.date(),
       ends: z.iso.date(),
     }),
     q.body,
   );
   if (input.ends < input.starts) fail(400, 'La fecha final debe ser posterior al inicio.');
-  if (input.type === 'camp') {
-    const [parent] = await db
-      .select()
-      .from(s.projects)
-      .where(eq(s.projects.id, input.parentId || ''));
-    if (!parent || parent.type !== 'ronda' || parent.archived === 'true')
-      fail(400, 'Selecciona un proyecto anual activo.');
+  // Retained only for old API clients and historical imports, never inherited.
+  const parentId = input.parentId || null;
+  if (parentId) {
+    const [parent] = await db.select().from(s.projects).where(eq(s.projects.id, parentId));
+    if (!parent) fail(400, 'La referencia histórica de proyecto no existe.');
   }
   const [p] = await db
     .insert(s.projects)
@@ -1192,37 +1195,43 @@ app.post('/api/projects', async (q, r) => {
       ...input,
       artworkTheme: projectArtworkTheme(input),
       id: id(),
-      parentId: input.type === 'camp' ? input.parentId : null,
+      parentId,
     })
     .returning();
   r.status(201).json(p);
 });
 app.patch('/api/projects/:id', async (q, r) => {
   if (!globalManage(r.locals.user)) fail(403, 'Solo coordinación puede modificar proyectos.');
-  const { archived, artworkTheme } = parse(
+  const { archived, artworkTheme, type } = parse(
     z
       .object({
         archived: z.boolean().optional(),
+        type: projectTypeInput.optional(),
         artworkTheme: z.enum(['scout', 'christmas']).optional(),
       })
-      .refine((v) => v.archived !== undefined || v.artworkTheme !== undefined, 'Indica un cambio.'),
+      .refine(
+        (v) => v.archived !== undefined || v.artworkTheme !== undefined || v.type !== undefined,
+        'Indica un cambio.',
+      ),
     q.body,
   );
   const [existingProject] = await db
     .select()
     .from(s.projects)
     .where(eq(s.projects.id, String(q.params.id)));
+  if (!existingProject) fail(404, 'Proyecto no encontrado.');
   if (
     existingProject &&
     artworkTheme === 'scout' &&
     inferArtworkTheme(existingProject.name) === 'christmas'
   )
-    fail(409, 'El nombre del campamento tiene asociada la colección de Navidad.');
+    fail(409, 'El nombre del proyecto tiene asociada la colección de Navidad.');
   await db
     .update(s.projects)
     .set({
       ...(archived !== undefined ? { archived: String(archived) } : {}),
       ...(artworkTheme ? { artworkTheme } : {}),
+      ...(type !== undefined ? { type } : {}),
     })
     .where(eq(s.projects.id, String(q.params.id)));
   r.json({ ok: true });

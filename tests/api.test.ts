@@ -1206,3 +1206,109 @@ test('checklist input validation and archived task restrictions leave existing d
   ])
     assert.equal((await request(`/tasks/${tid}`, 'PATCH', body)).status, 409);
 });
+
+test('all project types are independent, optional metadata and keep the legacy API compatible', async () => {
+  for (const type of [undefined, null, 'general', 'camp', 'event', 'other', 'ronda']) {
+    const created = await request('/projects', 'POST', {
+      name: `Proyecto independiente ${type ?? 'sin tipo'}`,
+      ...(type !== undefined ? { type } : {}),
+      starts: '2028-01-01',
+      ends: '2028-01-03',
+    });
+    assert.equal(created.status, 201);
+    assert.equal(created.body.parentId, null);
+    assert.equal(created.body.type, type ?? 'general');
+    const commission = await request('/commissions', 'POST', {
+      name: 'Comisión común',
+      projectId: created.body.id,
+      members: [{ userId: 'alex', role: 'responsible' }],
+    });
+    assert.equal(commission.status, 201);
+    const task = await request('/tasks', 'POST', {
+      title: 'La misma función para todos',
+      commissionId: commission.body.id,
+      due: '2028-01-02T21:59:59Z',
+      responsibleIds: ['alex'],
+    });
+    assert.equal(task.status, 201);
+    const snapshot = (await request('/data')).body;
+    assert.equal(snapshot.projectSummaries.find((p: any) => p.id === created.body.id).open, 1);
+    assert.equal(
+      (await request(`/projects/${created.body.id}`, 'PATCH', { archived: true })).status,
+      200,
+    );
+    assert.equal(
+      (await request(`/tasks/${task.body.id}`, 'PATCH', { title: 'Archivada' })).status,
+      409,
+    );
+  }
+  const legacy = await request('/projects', 'POST', {
+    name: 'Referencia histórica',
+    type: 'camp',
+    parentId: 'ronda',
+    starts: '2028-01-01',
+    ends: '2028-01-03',
+  });
+  assert.equal(legacy.status, 201);
+  assert.equal(legacy.body.parentId, 'ronda');
+  await request(`/projects/${legacy.body.id}`, 'PATCH', { type: 'event' });
+  const saved = (await request('/data')).body.projects.find((p: any) => p.id === legacy.body.id);
+  assert.equal(saved.type, 'event');
+  assert.equal(saved.parentId, 'ronda');
+  for (const body of [
+    { type: 'invalid' },
+    { starts: '2028-02-03', ends: '2028-01-01' },
+    { parentId: 'missing' },
+  ]) {
+    const result = await request('/projects', 'POST', {
+      name: 'Inválido',
+      starts: '2028-01-01',
+      ends: '2028-01-03',
+      ...body,
+    });
+    assert.equal(result.status, 400);
+  }
+  assert.equal(
+    (
+      await request(
+        '/projects',
+        'POST',
+        { name: 'Sin permiso', type: 'event', starts: '2028-01-01', ends: '2028-01-03' },
+        member,
+      )
+    ).status,
+    403,
+  );
+});
+
+test('General and Event summaries preserve scoped aggregates without exposing hidden task details', async () => {
+  for (const type of ['general', 'event']) {
+    const project = await request('/projects', 'POST', {
+      name: `Resumen privado ${type}`,
+      type,
+      starts: '2028-01-01',
+      ends: '2028-01-03',
+    });
+    await request(`/projects/${project.body.id}/members`, 'POST', { userIds: ['laura'] });
+    const commission = await request('/commissions', 'POST', {
+      name: `Comisión privada ${type}`,
+      projectId: project.body.id,
+      members: [{ userId: 'carlos', role: 'responsible' }],
+    });
+    const task = await request('/tasks', 'POST', {
+      title: `SECRETO ${type}`,
+      description: 'Descripción reservada',
+      commissionId: commission.body.id,
+      due: '2028-01-02T21:59:59Z',
+      responsibleIds: ['carlos'],
+    });
+    const data = (await request('/data', 'GET', undefined, member)).body;
+    assert.equal(data.projectSummaries.find((p: any) => p.id === project.body.id).open, 1);
+    assert.ok(!JSON.stringify(data).includes(`SECRETO ${type}`));
+    assert.ok(!data.commissions.some((c: any) => c.id === commission.body.id));
+    assert.equal(
+      (await request(`/tasks/${task.body.id}`, 'PATCH', { status: 'done' }, member)).status,
+      403,
+    );
+  }
+});

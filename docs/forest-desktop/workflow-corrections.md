@@ -1,5 +1,7 @@
 # Correcciones de uso después del PR11
 
+> Enmienda posterior del usuario: el lienzo desktop vuelve al verde oscuro y conserva superficies blancas y contraste. La sección Proyectos se ha unificado y el zoom se limita a la PWA móvil instalada. La definición actual está en [Proyectos independientes](../unified-projects.md); las referencias a lienzo crema a todos los anchos de este documento describen la fase anterior.
+
 La revisión del usuario señaló un lienzo verde detrás de texto oscuro, un indicador móvil que ocupaba casi toda la altura y cambios que no aparecían en otras vistas. Esta entrega conserva Forest, sus hojas y sus iconos, y corrige esas situaciones.
 
 - El lienzo de trabajo es crema en todos los tamaños. Encabezados y listados desktop tienen superficies claras. El verde del sistema queda separado mediante `theme-color`, fondo raíz y área segura; en PWA instalada se reserva la altura del notch fuera del contenido.

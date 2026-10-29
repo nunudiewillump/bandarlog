@@ -5,7 +5,7 @@ import {
   MobileTasks,
   MobileEmpty,
   ProjectIdentity,
-  CampOverview,
+  ProjectOverview,
   TaskSummary,
 } from './MobileUX';
 import { ArtworkPicker } from './Artwork';
@@ -15,6 +15,8 @@ import { smartFocus } from './focus';
 import { AuthScreen } from './AuthScreen';
 import { Onboarding } from './Onboarding';
 import { artworkThemes, inferArtworkTheme } from '../shared/scout-catalog';
+import { projectTypes, projectType, projectTypeName, projectView } from '../shared/project-types';
+import { installMobilePwaZoom } from './pwa';
 import { createRoot } from 'react-dom/client';
 import {
   Home,
@@ -55,6 +57,7 @@ import {
 } from 'lucide-react';
 import { api, setCSRF, ApiError } from './api';
 import {
+  projectSummariesOf,
   type Data,
   type Task,
   type User,
@@ -73,6 +76,7 @@ import './styles.css';
 import './forest.css';
 import './desktop-forest.css';
 import './workflow-fixes.css';
+import './project-experience.css';
 import { DeviceNotifications } from './DeviceNotifications';
 import { Workload } from './Workload';
 import { SyncStatus } from './SyncStatus';
@@ -143,6 +147,7 @@ function App() {
     [bootError, setBootError] = useState(''),
     [data, setData] = useState<Data>(initial),
     [view, setView] = useState('home'),
+    [projectKindFilter, setProjectKindFilter] = useState('all'),
     [project, setProject] = useState(''),
     [commission, setCommission] = useState(''),
     [selected, setSelected] = useState(''),
@@ -294,7 +299,15 @@ function App() {
         setCommission(p.get('commission')!);
         setView('commission');
       }
-      if (p.get('view')) setView(p.get('view')!);
+      if (p.get('view')) {
+        const nextView = projectView(p.get('view')!);
+        setView(nextView);
+        if (nextView !== p.get('view')) {
+          const route = new URL(location.href);
+          route.searchParams.set('view', nextView);
+          history.replaceState({}, '', route);
+        }
+      }
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         setMe(null);
@@ -349,6 +362,7 @@ function App() {
     }
   }
   const navigate = (v: string, p = '', c = '') => {
+    v = projectView(v);
     setView(v);
     setProject(p);
     setCommission(c);
@@ -847,7 +861,7 @@ function App() {
           commissions,
           tasks: data.tasks.filter((t) => ids.has(t.commissionId)),
           members: data.members.filter((m) => ids.has(m.commissionId)),
-          campSummaries: data.campSummaries?.filter((c) => c.id === project),
+          projectSummaries: projectSummariesOf(data).filter((c) => c.id === project),
         }
       : data;
     const focus = smartFocus(focusData, me!);
@@ -895,7 +909,7 @@ function App() {
                     ? 'Tus tareas primero'
                     : focus.level === 'commissions'
                       ? 'Tareas del equipo'
-                      : focus.level === 'camps'
+                      : focus.level === 'projects'
                         ? 'Tus comisiones están al día'
                         : context
                           ? 'Todo al día'
@@ -989,13 +1003,13 @@ function App() {
                   <ChevronRight size={17} />
                 </button>
               </>
-            ) : focus.level === 'camps' ? (
-              <div className="desktop-authorized-camps">
-                {focus.camps.slice(0, 2).map((camp) => (
+            ) : focus.level === 'projects' ? (
+              <div className="desktop-authorized-projects">
+                {focus.projects.slice(0, 2).map((camp) => (
                   <section key={camp.id}>
-                    <CampOverview camp={camp} />
+                    <ProjectOverview project={camp} />
                     <button className="text-link" onClick={() => navigate('project', camp.id)}>
-                      Ver campamento
+                      Ver proyecto
                       <ChevronRight size={16} />
                     </button>
                   </section>
@@ -1007,7 +1021,7 @@ function App() {
                 <h3>{context ? 'No hay tareas pendientes' : 'Tu trabajo aparecerá aquí'}</h3>
                 <p>
                   {context
-                    ? 'Tus comisiones y campamentos están al día.'
+                    ? 'Tus comisiones y proyectos están al día.'
                     : 'Aquí verás tus tareas y comisiones cuando te añadan al equipo.'}
                 </p>
                 {context && (
@@ -1030,11 +1044,11 @@ function App() {
                 <button
                   className="text-link"
                   onClick={() => {
-                    navigate(context ? 'tasks' : 'camps');
+                    navigate(context ? 'tasks' : 'projects');
                     if (context) setFilter('done');
                   }}
                 >
-                  {context ? 'Ver tareas terminadas' : 'Ver campamentos'}
+                  {context ? 'Ver tareas terminadas' : 'Ver proyectos'}
                   <ChevronRight size={16} />
                 </button>
               </div>
@@ -1042,10 +1056,10 @@ function App() {
           </section>
           <aside className="desktop-home-context">
             <div className="section-heading">
-              <h2>{manage ? 'Campamentos y proyectos' : 'Mis comisiones'}</h2>
+              <h2>{manage ? 'Proyectos' : 'Mis comisiones'}</h2>
               <button
                 className="text-link"
-                onClick={() => navigate(manage ? 'camps' : 'commissions')}
+                onClick={() => navigate(manage ? 'projects' : 'commissions')}
               >
                 Ver todos
                 <ChevronRight size={16} />
@@ -1100,7 +1114,7 @@ function App() {
             {(manage ? !data.projects.length : !ownCommissions.length) && (
               <p className="muted">
                 {manage
-                  ? 'Todavía no hay proyectos ni campamentos.'
+                  ? 'Todavía no hay proyectos.'
                   : 'Tus comisiones aparecerán aquí cuando te añadan.'}
               </p>
             )}
@@ -1214,33 +1228,28 @@ function App() {
               ['home', 'Inicio', Home],
               ['tasks', manage ? 'Tareas' : 'Mis tareas', ClipboardCheck],
               ['commissions', 'Comisiones', Users],
-              ['camps', 'Campamentos', Tent],
-              ['rounds', 'Proyectos', Flag],
+              ['projects', 'Proyectos', Flag],
               ['people', 'Personas', UserRound],
               ['alerts', 'Alertas', Bell],
-            ]
-              .filter(([v]) => manage || !['camps', 'rounds'].includes(String(v)))
-              .map(([v, label, Icon]: any) => (
-                <button key={v} onClick={() => navigate(v)} className={view === v ? 'active' : ''}>
-                  <Icon size={19} />
-                  {label}
-                  {v === 'alerts' && (
-                    <b
-                      className={
-                        data.tasks.some((t) => overdue(t) || t.status === 'blocked')
-                          ? 'nav-count'
-                          : 'nav-count zero'
-                      }
-                    >
-                      <AnimatedCounter
-                        value={
-                          data.tasks.filter((t) => overdue(t) || t.status === 'blocked').length
-                        }
-                      />
-                    </b>
-                  )}
-                </button>
-              ))}
+            ].map(([v, label, Icon]: any) => (
+              <button key={v} onClick={() => navigate(v)} className={view === v ? 'active' : ''}>
+                <Icon size={19} />
+                {label}
+                {v === 'alerts' && (
+                  <b
+                    className={
+                      data.tasks.some((t) => overdue(t) || t.status === 'blocked')
+                        ? 'nav-count'
+                        : 'nav-count zero'
+                    }
+                  >
+                    <AnimatedCounter
+                      value={data.tasks.filter((t) => overdue(t) || t.status === 'blocked').length}
+                    />
+                  </b>
+                )}
+              </button>
+            ))}
           </nav>
 
           <button className="sidebar-profile" onClick={() => navigate('profile')}>
@@ -1292,8 +1301,7 @@ function App() {
                         home: 'Inicio',
                         tasks: manage ? 'Tareas' : 'Mis tareas',
                         commissions: 'Comisiones',
-                        camps: 'Campamentos',
-                        rounds: 'Proyectos',
+                        projects: 'Proyectos',
                         people: 'Personas',
                         alerts: 'Alertas',
                         profile: 'Mi perfil',
@@ -1415,22 +1423,40 @@ function App() {
                 </section>
               </>
             )}
-            {['rounds', 'camps'].includes(view) && (
+            {view === 'projects' && (
               <>
                 <div className="page-heading">
                   <div>
-                    <h1>{view === 'rounds' ? 'Proyectos' : 'Campamentos'}</h1>
+                    <h1>Proyectos</h1>
                     <p></p>
                   </div>
                   {manage && (
                     <button className="primary" onClick={() => setModal('project')}>
-                      <Plus size={18} /> {view === 'camps' ? 'Nuevo campamento' : 'Nuevo proyecto'}
+                      <Plus size={18} /> Nuevo proyecto
                     </button>
                   )}
                 </div>
+                <label className="project-kind-filter">
+                  Tipo de proyecto
+                  <Select
+                    aria-label="Filtrar proyectos por tipo"
+                    value={projectKindFilter}
+                    onChange={(e) => setProjectKindFilter(e.target.value)}
+                  >
+                    <option value="all">Todos los tipos</option>
+                    {projectTypes.map((type) => (
+                      <option key={type.id} value={type.id}>
+                        {type.name}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
                 <div className="project-grid">
                   {data.projects
-                    .filter((p) => p.type === (view === 'rounds' ? 'ronda' : 'camp'))
+                    .filter(
+                      (p) =>
+                        projectKindFilter === 'all' || projectType(p.type) === projectKindFilter,
+                    )
                     .map((p) => (
                       <button
                         className="panel project-card"
@@ -1438,12 +1464,18 @@ function App() {
                         onClick={() => navigate('project', p.id)}
                       >
                         <span className="project-art">
-                          <Tent size={54} />
+                          {projectType(p.type) === 'camp' ? (
+                            <Tent size={54} />
+                          ) : (
+                            <CalendarDays size={54} />
+                          )}
                           <Leaf size={22} />
                         </span>
                         <h2>{p.name}</h2>
                         <p>
                           {date(p.starts)} – {date(p.ends)}
+                          {' · '}
+                          {projectTypeName(p.type)}
                           {p.archived === 'true' ? ' · Archivado' : ''}
                         </p>
                         {bar(data.tasks.filter((t) => cOf(t)?.projectId === p.id))}
@@ -1454,14 +1486,14 @@ function App() {
                       </button>
                     ))}
                 </div>
-                {!data.projects.some((p) => p.type === (view === 'rounds' ? 'ronda' : 'camp')) && (
+                {!data.projects.some(
+                  (p) => projectKindFilter === 'all' || projectType(p.type) === projectKindFilter,
+                ) && (
                   <Empty
-                    text={view === 'camps' ? 'No hay campamentos' : 'No hay proyectos'}
-                    sub={
-                      view === 'camps'
-                        ? 'Crea el primero para organizar sus comisiones y tareas.'
-                        : 'Crea un proyecto para organizar sus comisiones.'
+                    text={
+                      data.projects.length ? 'No hay proyectos de este tipo' : 'No hay proyectos'
                     }
+                    sub="Los proyectos organizan sus comisiones, personas y tareas."
                   />
                 )}
               </>
@@ -1559,20 +1591,20 @@ function App() {
             )}
             {view === 'project' && activeProject && (
               <>
-                <button
-                  className="back text-link"
-                  onClick={() => navigate(activeProject.type === 'camp' ? 'camps' : 'rounds')}
-                >
-                  <ArrowLeft size={16} />{' '}
-                  {activeProject.type === 'camp' ? 'Volver a campamentos' : 'Volver a proyectos'}
+                <button className="back text-link" onClick={() => navigate('projects')}>
+                  <ArrowLeft size={16} /> Volver a proyectos
                 </button>
                 <div className="project-banner">
                   <span className="project-art">
-                    <Tent size={58} />
+                    {projectType(activeProject.type) === 'camp' ? (
+                      <Tent size={58} />
+                    ) : (
+                      <CalendarDays size={58} />
+                    )}
                   </span>
                   <div>
                     <span className="eyebrow">
-                      {activeProject.type === 'camp' ? 'CAMPAMENTO' : 'PROYECTO ANUAL'}{' '}
+                      {projectTypeName(activeProject.type)}{' '}
                       {activeProject.archived === 'true' ? '· ARCHIVADO' : ''}
                     </span>
                     <h1>{activeProject.name}</h1>
@@ -1583,7 +1615,26 @@ function App() {
                 </div>
                 {manage && activeProject.archived !== 'true' && (
                   <details className="project-appearance">
-                    <summary>Iconos del proyecto</summary>
+                    <summary>Ajustes del proyecto</summary>
+                    <label>
+                      Tipo (opcional)
+                      <Select
+                        aria-label="Tipo de proyecto"
+                        value={projectType(activeProject.type)}
+                        disabled={busy}
+                        onChange={(e) =>
+                          void run(async () => {
+                            await api(`/projects/${project}`, 'PATCH', { type: e.target.value });
+                          })
+                        }
+                      >
+                        {projectTypes.map((type) => (
+                          <option key={type.id} value={type.id}>
+                            {type.name}
+                          </option>
+                        ))}
+                      </Select>
+                    </label>
                     <label className="project-artwork-theme">
                       Colección de iconos
                       <Select
@@ -1604,8 +1655,7 @@ function App() {
                         ))}
                       </Select>
                       <span className="hint">
-                        Se aplica a todas las comisiones de este{' '}
-                        {activeProject.type === 'camp' ? 'campamento' : 'proyecto'}.
+                        Se aplica a todas las comisiones de este proyecto.
                       </span>
                     </label>
                   </details>
@@ -1624,20 +1674,18 @@ function App() {
                 </div>
                 {tab === 'tasks' && (
                   <>
-                    {data.campSummaries?.find((camp) => camp.id === project) && (
-                      <section className="mobile-only project-camp-overview">
-                        <h2>Avance del campamento</h2>
-                        <CampOverview
-                          camp={data.campSummaries.find((camp) => camp.id === project)!}
+                    {projectSummariesOf(data).find((camp) => camp.id === project) && (
+                      <section className="mobile-only project-overview-panel">
+                        <h2>Avance del proyecto</h2>
+                        <ProjectOverview
+                          project={projectSummariesOf(data).find((camp) => camp.id === project)!}
                         />
                       </section>
                     )}
-                    {!manage && activeProject.type === 'camp' && (
-                      <h2 className="mobile-only">Tareas de tus comisiones</h2>
-                    )}
+                    {!manage && <h2 className="mobile-only">Tareas de tus comisiones</h2>}
                     <div
                       className={
-                        manage && data.campSummaries?.some((camp) => camp.id === project)
+                        manage && projectSummariesOf(data).some((camp) => camp.id === project)
                           ? 'desktop-only'
                           : ''
                       }
@@ -1899,6 +1947,7 @@ function App() {
           {[
             ['home', 'Inicio', Home],
             ['tasks', 'Mis tareas', ClipboardCheck],
+            ['projects', 'Proyectos', Flag],
             ['commissions', 'Comisiones', Users],
             ['profile', 'Perfil', UserRound],
           ].map(([v, label, Icon]: any) => (
@@ -1906,8 +1955,8 @@ function App() {
               key={v}
               className={
                 view === v ||
-                (v === 'commissions' &&
-                  ['commission', 'project', 'rounds', 'camps', 'people'].includes(view))
+                (v === 'projects' && view === 'project') ||
+                (v === 'commissions' && ['commission', 'people'].includes(view))
                   ? 'active'
                   : ''
               }
@@ -2249,7 +2298,7 @@ function App() {
                   commission: 'Nueva comisión',
                   members: 'Añadir personas',
                   invite: 'Invitar personas',
-                  project: view === 'camps' ? 'Nuevo campamento' : 'Nuevo proyecto',
+                  project: 'Nuevo proyecto',
                   artwork: 'Elegir icono',
                   mail: 'Bandeja de desarrollo',
                 } as any
@@ -2633,9 +2682,9 @@ function TaskForm() {
       ) : (
         <>
           <label>
-            Campamento o proyecto
+            Proyecto
             <Select
-              aria-label="Campamento o proyecto"
+              aria-label="Proyecto"
               value={pid}
               onChange={(e) => {
                 setPid(e.target.value);
@@ -2643,7 +2692,7 @@ function TaskForm() {
               }}
               required
             >
-              <option value="">Selecciona un campamento o proyecto</option>
+              <option value="">Selecciona un proyecto</option>
               {data.projects
                 .filter((p) => p.archived !== 'true' && available.some((c) => c.projectId === p.id))
                 .map((p) => (
@@ -2663,7 +2712,7 @@ function TaskForm() {
               disabled={!pid}
             >
               <option value="">
-                {pid ? 'Selecciona una comisión' : 'Elige primero un campamento o proyecto'}
+                {pid ? 'Selecciona una comisión' : 'Elige primero un proyecto'}
               </option>
               {available
                 .filter((c) => c.projectId === pid)
@@ -3231,7 +3280,7 @@ function ProjectForm() {
     setSelected,
     pOf,
   } = React.useContext(FormState);
-  const [kind, setKind] = useState(view === 'rounds' ? 'ronda' : 'camp');
+  const [kind, setKind] = useState('general');
   const [artworkTheme, setArtworkTheme] = useState('scout');
   const [projectName, setProjectName] = useState('');
   const automaticChristmas = inferArtworkTheme(projectName) === 'christmas';
@@ -3242,20 +3291,16 @@ function ProjectForm() {
         e.preventDefault();
         const f = new FormData(e.currentTarget);
         if (
-          await run(
-            async () => {
-              const p = await api('/projects', 'POST', {
-                name: f.get('name'),
-                type: kind,
-                artworkTheme: automaticChristmas ? 'christmas' : artworkTheme,
-                parentId: f.get('parentId') || undefined,
-                starts: f.get('starts'),
-                ends: f.get('ends'),
-              });
-              navigate('project', p.id);
-            },
-            kind === 'camp' ? 'Campamento creado' : 'Proyecto creado',
-          )
+          await run(async () => {
+            const p = await api('/projects', 'POST', {
+              name: f.get('name'),
+              type: kind,
+              artworkTheme: automaticChristmas ? 'christmas' : artworkTheme,
+              starts: f.get('starts'),
+              ends: f.get('ends'),
+            });
+            navigate('project', p.id);
+          }, 'Proyecto creado')
         )
           setModal('');
       }}
@@ -3273,27 +3318,19 @@ function ProjectForm() {
         />
       </label>
       <label>
-        Tipo
-        <Select value={kind} onChange={(e) => setKind(e.target.value)}>
-          <option value="ronda">Proyecto anual</option>
-          <option value="camp">Campamento</option>
+        Tipo (opcional)
+        <Select
+          aria-label="Tipo de proyecto"
+          value={kind}
+          onChange={(e) => setKind(e.target.value)}
+        >
+          {projectTypes.map((type) => (
+            <option key={type.id} value={type.id}>
+              {type.name}
+            </option>
+          ))}
         </Select>
       </label>
-      {kind === 'camp' && (
-        <label>
-          Proyecto anual
-          <Select name="parentId" required>
-            <option value="">Selecciona un proyecto anual</option>
-            {data.projects
-              .filter((p) => p.type === 'ronda' && p.archived === 'false')
-              .map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-          </Select>
-        </label>
-      )}
       <label>
         Colección de iconos
         <Select
@@ -3322,7 +3359,7 @@ function ProjectForm() {
         </label>
       </div>
       <button className="primary" disabled={busy}>
-        {kind === 'camp' ? 'Crear campamento' : 'Crear proyecto'}
+        Crear proyecto
       </button>
     </form>
   );
@@ -3398,6 +3435,7 @@ function Dialog({
     </div>
   );
 }
+installMobilePwaZoom();
 createRoot(document.getElementById('root')!).render(<App />);
 if ('serviceWorker' in navigator && import.meta.env.PROD)
   navigator.serviceWorker.register('/sw.js').catch(() => {});

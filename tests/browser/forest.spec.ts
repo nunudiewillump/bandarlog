@@ -99,7 +99,7 @@ test('a failed boot offers retry instead of claiming the session expired, and re
     ),
   ).toHaveCount(0);
 });
-test('phone landscape retains the canopy and four destinations while scrolling commission rows', async ({
+test('phone landscape retains the canopy and five destinations while scrolling commission rows', async ({
   page,
 }) => {
   await forest(page);

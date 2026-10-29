@@ -46,7 +46,8 @@ export type Task = {
   updatedAt: string;
 };
 export type Member = { id: string; commissionId: string; userId: string; role: string };
-export type CampSummary = {
+export type ProjectSummary = {
+  type?: string;
   id: string;
   name: string;
   total: number;
@@ -66,7 +67,9 @@ export type CampSummary = {
     nextDue: string | null;
   }[];
 };
+export type CampSummary = ProjectSummary;
 export type Data = {
+  projectSummaries?: ProjectSummary[];
   campSummaries?: CampSummary[];
   artworkEnabled: boolean;
   users: User[];
@@ -111,3 +114,6 @@ export function date(v: string, full = false) {
     ...(full ? { hour: '2-digit', minute: '2-digit' } : {}),
   });
 }
+
+export const projectSummariesOf = (data: Data): ProjectSummary[] =>
+  data.projectSummaries ?? data.campSummaries ?? [];

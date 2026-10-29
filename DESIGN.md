@@ -163,7 +163,7 @@ La paleta combina bosque profundo con crema cálida; los colores de estado conse
 
 La familia se empaqueta localmente mediante `@fontsource/nunito-sans`, con archivos latinos de pesos 400, 600, 700, 800 y 900. El código declara algunos pesos intermedios, como 750 u 850, que el navegador resuelve contra esos archivos; no se afirma una fuente variable cargada.
 
-La jerarquía normativa del frontmatter describe el sistema móvil/acceso: `headline` para pantalla, `title` para sección, `task` para fila, `body` para contenido/campos, `context` para proyecto/fecha/ayuda y `navigation` para los cuatro destinos. `label` describe las etiquetas visibles de formulario. En desktop se mantiene raíz de 14px y la jerarquía operativa existente; `headline-desktop` registra su título global. En móvil la raíz pasa a 16px. El resumen principal de Inicio usa cifra de 38px con línea de 44px; es un acento informativo, no un estilo display general.
+La jerarquía normativa del frontmatter describe el sistema móvil/acceso: `headline` para pantalla, `title` para sección, `task` para fila, `body` para contenido/campos, `context` para proyecto/fecha/ayuda y `navigation` para los cinco destinos. `label` describe las etiquetas visibles de formulario. En desktop se mantiene raíz de 14px y la jerarquía operativa existente; `headline-desktop` registra su título global. En móvil la raíz pasa a 16px. El resumen principal de Inicio usa cifra de 38px con línea de 44px; es un acento informativo, no un estilo display general.
 
 **The Texto Completo Rule.** Permitir que nombres de tareas, proyectos y comisiones envuelvan; no reducir la fuente para encajar una altura fija. El mínimo de 44px se refiere al área táctil, no al tamaño tipográfico de las etiquetas.
 
@@ -173,7 +173,7 @@ El ámbito Forest operativo se activa con `(max-width: 767px)` **o** `(orientati
 
 En móvil el contenido usa padding superior de 28px, laterales de 20px y reserva inferior de `calc(110px + env(safe-area-inset-bottom))`. Hasta 389px de ancho, los laterales bajan a 16px. La cabecera usa un interior flexible de al menos 64px, ancho máximo de 1180px y borde inferior SVG de 17px; permanece en flujo normal y puede salir del viewport al desplazar. La marca tiene icono de 32px y el acceso a Perfil un objetivo de 44×44px.
 
-La navegación inferior es fija, cuatro columnas iguales, altura mínima de 72px, objetivos de al menos 44px de ancho y 52px de alto, más padding y área segura inferior. En landscape bajo la misma condición móvil: cabecera interior de 52px, navegación mínima de 64px, botones con icono y etiqueta en fila, y reserva inferior del contenido de 100px. Toast y Deshacer se colocan por encima de la barra con área segura.
+La navegación inferior es fija, cinco columnas iguales, altura mínima de 72px, objetivos de al menos 44px de ancho y 52px de alto, más padding y área segura inferior. En landscape bajo la misma condición móvil: cabecera interior de 52px, navegación mínima de 64px, botones con icono y etiqueta en fila, y reserva inferior del contenido de 100px. Toast y Deshacer se colocan por encima de la barra con área segura.
 
 Las filas de tarea usan divisores y padding vertical de 14px; las filas de comisión y personas usan 16px. Tareas y comisiones permiten contenido variable. Los campos y acciones principales móviles miden al menos 48px de alto; controles de icono, completar y enlaces operativos tienen objetivos de al menos 44px. No extrapolar esa garantía a cada control legacy desktop sin medirlo.
 
@@ -215,7 +215,7 @@ Etiquetas visibles y campos al menos de 48px en móvil/acceso. Acceso usa `auth-
 
 ### Navigation
 
-Inicio, Mis tareas, Comisiones y Perfil son los cuatro destinos móviles. La selección usa bosque, peso 800 y una raya superior de 22×3px; base crema opaca sin backdrop blur. Los iconos son de 23px. En desktop se mantiene sidebar y topbar; no mostrar simultáneamente la topbar anterior y la copa móvil.
+Inicio, Mis tareas, Proyectos, Comisiones y Perfil son los cinco destinos móviles. La selección usa bosque, peso 800 y una raya superior de 22×3px; base crema opaca sin backdrop blur. Los iconos son de 23px. En desktop se mantiene sidebar y topbar; no mostrar simultáneamente la topbar anterior y la copa móvil.
 
 ### Copa, iconos y confirmación
 
@@ -249,4 +249,10 @@ ProfilePanel abre como información personal, con una única foto/nombre/correo/
 
 ## Correcciones de uso posteriores al PR11
 
-El lienzo de trabajo permanece crema a todos los anchos, independientemente del verde del área de sistema. Los encabezados/listados desktop usan superficies claras. Formularios conservan sus acciones en el flujo y separadas del borde y la barra de desplazamiento. El indicador móvil fijo ocupa solo su contenido. Perfil muestra una pañoleta de rayas rosas y moradas. En detalle móvil la actividad precede a acciones de estado iguales, con gestión al final. La liana no repite el mensaje de Deshacer. Consulta [correcciones y validación](docs/forest-desktop/workflow-corrections.md).
+Esta corrección histórica usó crema a todos los anchos; la decisión posterior de Proyectos unificados, recogida debajo, restaura el verde oscuro en escritorio. Los encabezados/listados desktop usan superficies claras. Formularios conservan sus acciones en el flujo y separadas del borde y la barra de desplazamiento. El indicador móvil fijo ocupa solo su contenido. Perfil muestra una pañoleta de rayas rosas y moradas. En detalle móvil la actividad precede a acciones de estado iguales, con gestión al final. La liana no repite el mensaje de Deshacer. Consulta [correcciones y validación](docs/forest-desktop/workflow-corrections.md).
+
+## Enmienda vigente: Proyectos y superficies desktop
+
+El lienzo operativo desktop es verde oscuro #103b2d. Las superficies de lectura y acción siguen siendo blancas #fffefa con tinta #24352b: paneles, encabezados, listados, comisiones, proyectos, perfil, pestañas y vacíos. Solo los elementos que estén directamente sobre el lienzo llevan texto claro. El móvil conserva crema. Esta decisión del usuario sustituye la instrucción anterior de lienzo crema a todos los tamaños.
+
+Proyectos es una única sección, con clasificación opcional y filtro. El tipo no cambia las funciones ni crea una jerarquía visual. La barra móvil incluye Proyectos y mantiene objetivos táctiles de al menos 44 px. El zoom de página se limita únicamente en la PWA móvil instalada; los controles de recorte de foto siguen funcionando. Ver [Proyectos independientes](docs/unified-projects.md).

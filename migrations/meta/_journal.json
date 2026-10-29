@@ -78,6 +78,13 @@
       "when": 1793280789180,
       "tag": "0010_nosy_black_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793283299134,
+      "tag": "0011_clean_eternity",
+      "breakpoints": true
     }
   ]
 }

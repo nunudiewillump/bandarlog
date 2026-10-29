@@ -129,7 +129,7 @@
           createdAt: job.createdAt,
         });
     }
-    for (const summary of data.campSummaries || []) {
+    for (const summary of [...(data.projectSummaries || []), ...(data.campSummaries || [])]) {
       for (const commission of summary.commissions) {
         if (!data.commissions.some((c) => c.id === commission.id)) continue;
         const tasks = data.tasks.filter((t) => t.commissionId === commission.id);

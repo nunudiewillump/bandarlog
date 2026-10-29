@@ -61,3 +61,59 @@ test('import dry run does not write; apply is idempotent; changed source reports
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('independent and legacy projects import in any type order and remain idempotent', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'bandarlog-import-projects-'));
+  process.env.DATA_DIR = dir;
+  process.env.DATABASE_URL = '';
+  process.env.NODE_ENV = 'test';
+  const { db, close } = await connect();
+  try {
+    const input = {
+      projects: [
+        {
+          id: 'camp',
+          name: 'Campamento histórico',
+          type: 'camp',
+          parentId: 'year',
+          starts: '2026-01-01',
+          ends: '2026-01-02',
+        },
+        {
+          id: 'new-camp',
+          name: 'Campamento independiente',
+          type: 'camp',
+          starts: '2026-01-01',
+          ends: '2026-01-02',
+        },
+        { id: 'event', name: 'Evento', type: 'event', starts: '2026-01-01', ends: '2026-01-02' },
+        { id: 'general', name: 'General sin tipo', starts: '2026-01-01', ends: '2026-01-02' },
+        {
+          id: 'year',
+          name: 'Anual histórico',
+          type: 'ronda',
+          starts: '2026-01-01',
+          ends: '2026-12-31',
+        },
+      ],
+    };
+    assert.equal(((await importBundle(db, input, true)) as any).ok, true);
+    const repeated = (await importBundle(db, input, true)) as any;
+    assert.equal(repeated.ok, true);
+    assert.equal(repeated.created.projects, 0);
+    const { projects } = await import('../server/schema');
+    const rows = await db.select().from(projects);
+    assert.equal(rows.find((p) => p.id === 'import-camp')?.parentId, 'import-year');
+    assert.equal(rows.find((p) => p.id === 'import-year')?.type, 'ronda');
+    assert.equal(rows.find((p) => p.id === 'import-new-camp')?.parentId, null);
+    const invalid = (await importBundle(
+      db,
+      { projects: [{ ...input.projects[0], parentId: 'missing' }] },
+      true,
+    )) as any;
+    assert.equal(invalid.ok, false);
+  } finally {
+    await close();
+    await rm(dir, { recursive: true, force: true });
+  }
+});

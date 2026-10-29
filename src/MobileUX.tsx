@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { CalendarDays, Tent, Check, LockKeyhole, ChevronRight, Leaf } from 'lucide-react';
 import { AnimatedCounter } from './AnimatedCounter';
 import { BananaLoader } from './BananaLoader';
+import { projectType } from '../shared/project-types';
 import { smartFocus } from './focus';
 import {
   date,
@@ -11,7 +12,7 @@ import {
   type Task,
   type User,
   type Project,
-  type CampSummary,
+  type ProjectSummary,
 } from './types';
 export function MobileEmpty({ title, detail }: { title: string; detail: string }) {
   return (
@@ -30,9 +31,11 @@ export function ProjectIdentity({
   project?: Project;
   commission?: string;
 }) {
-  const Icon = project?.type === 'camp' ? Tent : CalendarDays;
+  const Icon = projectType(project?.type) === 'camp' ? Tent : CalendarDays;
   return (
-    <span className={`project-identity ${project?.type === 'camp' ? 'camp' : 'round'}`}>
+    <span
+      className={`project-identity ${projectType(project?.type) === 'camp' ? 'camp' : 'round'}`}
+    >
       <Icon size={14} aria-hidden="true" />
       <span>
         {project?.name || 'Proyecto'}
@@ -143,23 +146,25 @@ export function MobileProgress({ total, done }: { total: number; done: number })
     </div>
   );
 }
-export function CampOverview({ camp }: { camp: CampSummary }) {
+export function ProjectOverview({ project }: { project: ProjectSummary }) {
   return (
-    <div className="camp-overview">
-      <ProjectIdentity project={{ id: camp.id, name: camp.name, type: 'camp' } as Project} />
-      <MobileProgress total={camp.total} done={camp.done} />
+    <div className="project-overview">
+      <ProjectIdentity
+        project={{ id: project.id, name: project.name, type: project.type || 'camp' } as Project}
+      />
+      <MobileProgress total={project.total} done={project.done} />
       <p>
-        <AnimatedCounter value={camp.open} /> pendientes ·{' '}
-        <AnimatedCounter value={camp.commissions.length} /> comisiones
+        <AnimatedCounter value={project.open} /> pendientes ·{' '}
+        <AnimatedCounter value={project.commissions.length} /> comisiones
       </p>
-      <CountMetric value={camp.blocked} label="bloqueadas" />
-      <CountMetric value={camp.overdue} label="vencidas" />
-      {camp.nextDue && <p>Próximo plazo: {date(camp.nextDue, true)}</p>}
-      {camp.commissions.length > 0 && (
-        <details className="camp-commission-summary">
+      <CountMetric value={project.blocked} label="bloqueadas" />
+      <CountMetric value={project.overdue} label="vencidas" />
+      {project.nextDue && <p>Próximo plazo: {date(project.nextDue, true)}</p>}
+      {project.commissions.length > 0 && (
+        <details className="project-commission-summary">
           <summary>Ver comisiones</summary>
           <ul>
-            {camp.commissions.map((commission) => (
+            {project.commissions.map((commission) => (
               <li key={commission.id}>
                 <strong>{commission.name}</strong>
                 <span>
@@ -256,8 +261,8 @@ export function MobileHome(props: {
               ? 'Mis tareas'
               : focus.level === 'commissions'
                 ? 'Mis comisiones'
-                : focus.level === 'camps'
-                  ? 'Campamento'
+                : focus.level === 'projects'
+                  ? 'Proyectos'
                   : hasContext
                     ? 'Todo al día'
                     : 'Sin tareas asignadas'}
@@ -297,22 +302,22 @@ export function MobileHome(props: {
               <MobileTasks {...props} tasks={focus.featured} />
             </section>
           )}
-          {focus.level === 'camps' && (
+          {focus.level === 'projects' && (
             <section className="focus-primary">
               <h2>Tus comisiones están al día</h2>
-              <p>Así avanzan tus campamentos.</p>
-              {focus.camps.slice(0, 2).map((camp) => (
+              <p>Así avanzan tus proyectos.</p>
+              {focus.projects.slice(0, 2).map((camp) => (
                 <section key={camp.id}>
-                  <CampOverview camp={camp} />
+                  <ProjectOverview project={camp} />
                   <button className="text-link" onClick={() => navigate('project', camp.id)}>
-                    Ver campamento
+                    Ver proyecto
                     <ChevronRight size={16} />
                   </button>
                 </section>
               ))}
-              {focus.camps.length > 2 && (
-                <button className="secondary" onClick={() => navigate('camps')}>
-                  Ver todos los campamentos
+              {focus.projects.length > 2 && (
+                <button className="secondary" onClick={() => navigate('projects')}>
+                  Ver todos los proyectos
                 </button>
               )}
             </section>
@@ -332,7 +337,7 @@ export function MobileHome(props: {
                 )}
                 <p>
                   {hasContext
-                    ? 'No quedan tareas abiertas en tus comisiones ni campamentos.'
+                    ? 'No quedan tareas abiertas en tus comisiones ni proyectos.'
                     : 'Aquí verás tus tareas y comisiones cuando te añadan al equipo.'}
                 </p>
                 {(finished.length > 0 || focus.ownCommissions.size > 0) && (

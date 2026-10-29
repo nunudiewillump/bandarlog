@@ -219,7 +219,7 @@ test('responsive screenshots and no horizontal overflow', async ({ page }) => {
     fullPage: true,
     animations: 'disabled',
   });
-  await page.getByRole('navigation').first().getByRole('button', { name: 'Campamentos' }).click();
+  await page.getByRole('navigation').first().getByRole('button', { name: 'Proyectos' }).click();
   await page.getByRole('button', { name: /Campamento de verano/ }).click();
   await page.screenshot({
     path: 'artifacts/proyecto-desktop.png',
@@ -684,15 +684,15 @@ test('Servicios, Animación and Logística automatically use their pair and hide
   }
 });
 
-test('camp creation uses camp labels and the project controls its Christmas collection', async ({
+test('unified project creation reuses the Christmas collection inferred from its name', async ({
   page,
 }) => {
   await login(page);
-  await page.getByRole('navigation').first().getByRole('button', { name: 'Campamentos' }).click();
-  await page.getByRole('button', { name: 'Nuevo campamento', exact: true }).click();
+  await page.getByRole('navigation').first().getByRole('button', { name: 'Proyectos' }).click();
+  await page.getByRole('button', { name: 'Nuevo proyecto', exact: true }).click();
   const dialog = page.getByRole('dialog');
-  await expect(page.getByRole('dialog', { name: 'Nuevo campamento', exact: true })).toBeVisible();
-  await expect(dialog.getByRole('button', { name: 'Crear campamento', exact: true })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Nuevo proyecto', exact: true })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Crear proyecto', exact: true })).toBeVisible();
   await dialog.getByLabel('Nombre', { exact: true }).fill('Campamento de Navidad');
   await expect(dialog.getByRole('combobox', { name: 'Colección de iconos' })).toHaveText('Navidad');
   await dialog.getByRole('button', { name: 'Cerrar', exact: true }).click();

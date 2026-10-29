@@ -38,8 +38,8 @@ for (const role of ['scouter', 'responsible', 'coordination', 'admin']) {
     if (role === 'admin') await expect(deletion.first()).toBeVisible();
     else await expect(deletion).toHaveCount(0);
     await expect(
-      page.locator('.sidebar nav').getByRole('button', { name: 'Campamentos', exact: true }),
-    ).toHaveCount(['admin', 'coordination'].includes(role) ? 1 : 0);
+      page.locator('.sidebar nav').getByRole('button', { name: 'Proyectos', exact: true }),
+    ).toHaveCount(1);
     await page.goto(
       `/?view=commission&commission=${cid}&project=${data.commissions[0].projectId}&task=${tasks[1].id}`,
     );

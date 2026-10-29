@@ -3578,30 +3578,30 @@ input[type='file']::file-selector-button {
 .mobile-progress > span:last-child {
   white-space: nowrap;
 }
-.camp-commission-summary summary {
+.project-commission-summary summary {
   cursor: pointer;
   padding: 12px 0;
   min-height: 44px;
   color: #124d38;
   font-weight: 700;
 }
-.camp-commission-summary ul {
+.project-commission-summary ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
-.camp-commission-summary li {
+.project-commission-summary li {
   display: grid;
   gap: 8px;
   padding: 12px 0;
   border-top: 1px solid #e7e4d9;
 }
-.camp-overview {
+.project-overview {
   display: grid;
   gap: 10px;
   margin: 12px 0;
 }
-.camp-overview .project-identity {
+.project-overview .project-identity {
   font-size: 15px;
   font-weight: 750;
 }
@@ -4075,22 +4075,22 @@ input[type='file']::file-selector-button {
   font-size: 13px;
   font-weight: 700;
 }
-.project-camp-overview {
+.project-overview-panel {
   padding: 18px 16px;
   margin-bottom: 20px;
   background: #f2f4e9;
   border: 1px solid #e0e5d6;
   border-radius: 16px;
 }
-.project-camp-overview h2 {
+.project-overview-panel h2 {
   font-size: 17px;
 }
-.project-camp-overview .camp-overview > .project-identity {
+.project-overview-panel .project-overview > .project-identity {
   display: none;
 }
 @media (max-width: 767px),
   (orientation: landscape) and (max-height: 599px) and (max-width: 1023px) {
-  .project-camp-overview.mobile-only {
+  .project-overview-panel.mobile-only {
     display: block;
   }
   .main > .panel:has(.mobile-list) {

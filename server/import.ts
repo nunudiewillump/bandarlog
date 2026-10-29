@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { connect, type Database } from './db.js';
 import * as s from './schema.js';
+import { projectTypeInput } from './project-input.js';
 const key = z.string().trim().min(1).max(100);
 const bundle = z.object({
   users: z
@@ -21,7 +22,7 @@ const bundle = z.object({
       z.object({
         id: key,
         name: key,
-        type: z.enum(['ronda', 'camp']),
+        type: projectTypeInput.default('general'),
         parentId: key.nullable().default(null),
         starts: z.iso.date(),
         ends: z.iso.date(),
@@ -98,9 +99,28 @@ export async function importBundle(db: Database, input: unknown, apply = false) 
     cs = new Map(b.commissions.map((c) => [c.id, c]));
   for (const p of b.projects) {
     if (p.ends < p.starts) conflicts.push(`Proyecto ${p.id}: fechas invertidas`);
-    if (p.type === 'camp' && (!p.parentId || projects.get(p.parentId)?.type !== 'ronda'))
-      conflicts.push(`Proyecto ${p.id}: falta una ronda solar válida`);
+    if (p.parentId && !projects.has(p.parentId))
+      conflicts.push(`Proyecto ${p.id}: referencia histórica desconocida`);
   }
+  // Only order optional historical FK references; all types remain independent.
+  const orderedProjects: typeof b.projects = [],
+    visited = new Set<string>(),
+    visiting = new Set<string>();
+  function visitProject(id: string) {
+    if (visited.has(id)) return;
+    if (visiting.has(id)) {
+      conflicts.push(`Proyecto ${id}: referencia histórica circular`);
+      return;
+    }
+    const project = projects.get(id);
+    if (!project) return;
+    visiting.add(id);
+    if (project.parentId) visitProject(project.parentId);
+    visiting.delete(id);
+    visited.add(id);
+    orderedProjects.push(project);
+  }
+  b.projects.forEach((project) => visitProject(project.id));
   for (const c of b.commissions)
     if (!projects.has(c.projectId)) conflicts.push(`Comisión ${c.id}: proyecto desconocido`);
   for (const m of b.members)
@@ -126,9 +146,11 @@ export async function importBundle(db: Database, input: unknown, apply = false) 
     {
       name: 'projects',
       table: s.projects,
-      values: [...b.projects]
-        .sort((a, b) => Number(a.type === 'camp') - Number(b.type === 'camp'))
-        .map((p) => ({ ...p, id: prefix(p.id), parentId: p.parentId ? prefix(p.parentId) : null })),
+      values: orderedProjects.map((p) => ({
+        ...p,
+        id: prefix(p.id),
+        parentId: p.parentId ? prefix(p.parentId) : null,
+      })),
     },
     {
       name: 'commissions',

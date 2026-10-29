@@ -17,7 +17,7 @@ export const users = pgTable('users', {
 export const projects = pgTable('projects', {
   id: text().primaryKey(),
   name: text().notNull(),
-  type: text().notNull(),
+  type: text().notNull().default('general'),
   parentId: text('parent_id'),
   starts: text(),
   ends: text(),

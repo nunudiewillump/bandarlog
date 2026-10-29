@@ -21,7 +21,7 @@ Inicio aplica Smart Focus: trabajo personal pendiente, trabajo de las comisiones
 
 Completar requiere confirmación del guardado; se mantienen control de concurrencia, recuperación de errores y Deshacer. Borrar retira la tarea de listados y avisos, conservando su historial. Las acciones de gestión se muestran según permiso y se autorizan de nuevo en servidor.
 
-Los cuatro destinos móviles estables son Inicio, Mis tareas, Comisiones y Perfil. Desktop comparte Forest Experience con navegación lateral clara, tareas prioritarias por rol, comisiones agrupadas y resumen compacto de Responsable. Tablet y móvil conservan su navegación operativa. Acceso y primer acceso comparten las superficies también en ancho amplio.
+Los cinco destinos móviles son Inicio, Mis tareas, Proyectos, Comisiones y Perfil. Desktop comparte Forest Experience con navegación lateral clara, tareas prioritarias por rol, comisiones agrupadas y resumen compacto de Responsable. Tablet y móvil conservan su navegación operativa. Acceso y primer acceso comparten las superficies también en ancho amplio.
 
 ## Entrada e identidad
 
@@ -68,3 +68,7 @@ Los controles sin permiso se ocultan. Scouter actúa únicamente sobre sus tarea
 ## Edición de contenido y checklist
 
 El lápiz del detalle permite gestionar título, descripción, fecha y responsables con los mismos permisos de gestión. La checklist es opcional: responsables gestionan sus pasos y scouters asignados pueden marcarlos. No condiciona la finalización ni modifica automáticamente el estado de la tarea. La migración conserva los datos anteriores. Reglas, sincronización y validación en [edición de tareas y checklist](docs/task-editing-checklists.md). No se incorporan adjuntos.
+
+## Proyectos unificados
+
+Todos los proyectos son independientes y comparten las mismas funciones; Campamento y Evento son clasificaciones opcionales, junto a General y Otro. Se conservan tipos y referencias históricas sin convertirlas en jerarquías funcionales. Campamentos y Proyectos anuales se consultan en una única sección Proyectos. La API y la importación conservan compatibilidad con `ronda`, `camp` y `parentId` antiguos. Forest usa lienzo verde oscuro con superficies blancas en escritorio y crema en móvil. El zoom de página se restringe solo en la PWA móvil instalada. Detalles y validación en [Proyectos independientes](docs/unified-projects.md).

@@ -1,17 +1,23 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page, type BrowserContext } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
+const sessions = new Map<string, Awaited<ReturnType<BrowserContext['cookies']>>>();
 async function login(page: Page, origin = 'http://127.0.0.1:5174') {
-  const requested = await page.request.post('/api/auth/request', {
-    data: { email: 'alex@example.test' },
-  });
-  expect(requested.ok()).toBeTruthy();
-  const mail = (await (await page.request.get('/api/dev/mail')).json())
-    .filter((m: any) => m.email === 'alex@example.test' && m.body.includes('token='))
-    .at(-1);
-  const verified = await page.request.post('/api/auth/verify', {
-    data: { token: mail.body.match(/token=([a-f0-9]+)/)[1] },
-  });
-  expect(verified.ok()).toBeTruthy();
+  const cached = sessions.get('alex');
+  if (cached) await page.context().addCookies(cached);
+  if (!cached) {
+    const requested = await page.request.post('/api/auth/request', {
+      data: { email: 'alex@example.test' },
+    });
+    expect(requested.ok()).toBeTruthy();
+    const mail = (await (await page.request.get('/api/dev/mail')).json())
+      .filter((m: any) => m.email === 'alex@example.test' && m.body.includes('token='))
+      .at(-1);
+    const verified = await page.request.post('/api/auth/verify', {
+      data: { token: mail.body.match(/token=([a-f0-9]+)/)[1] },
+    });
+    expect(verified.ok()).toBeTruthy();
+    sessions.set('alex', await page.context().cookies());
+  }
   await page.goto(origin + '/?view=tasks');
   await expect(
     page.getByRole('heading', { name: /^(Todas las tareas|Mis tareas)$/ }),
@@ -39,7 +45,7 @@ test('task creation chooses project then commission and updates another open vie
   await page.getByRole('button', { name: 'Nueva tarea', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByLabel('Comisión', { exact: true })).toBeDisabled();
-  await choose(page, 'Campamento o proyecto', /Campamento de verano/);
+  await choose(page, 'Proyecto', /Campamento de verano/);
   await choose(page, 'Comisión', /^Cocina$/);
   await dialog.getByLabel('Título', { exact: true }).fill(name);
   await dialog.getByLabel('Fecha límite', { exact: true }).fill('2027-06-14');
@@ -74,7 +80,7 @@ test('mobile save indicator stays compact and task controls remain below activit
   await page.getByRole('button', { name: 'Nueva tarea', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog.locator('.task-destination')).toContainText('Cocina');
-  await expect(dialog.getByLabel('Campamento o proyecto', { exact: true })).toHaveCount(0);
+  await expect(dialog.getByLabel('Proyecto', { exact: true })).toHaveCount(0);
   await dialog.getByLabel('Título', { exact: true }).fill(`Carga móvil ${Date.now()}`);
   await dialog.getByLabel('Fecha límite', { exact: true }).fill('2027-07-01');
   await dialog.getByText('Álex Martín', { exact: true }).click();
@@ -127,7 +133,7 @@ test('installed build reads offline, queues a task and syncs exactly once after 
   ).toBeVisible();
   const title = `Offline ${Date.now()}`;
   await page.getByRole('button', { name: 'Nueva tarea', exact: true }).click();
-  await choose(page, 'Campamento o proyecto', /Campamento de verano/);
+  await choose(page, 'Proyecto', /Campamento de verano/);
   await choose(page, 'Comisión', /^Cocina$/);
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Título', { exact: true }).fill(title);
@@ -156,15 +162,15 @@ test('desktop surfaces and profile use readable cream containers and striped sco
   await page.setViewportSize({ width: 1440, height: 1000 });
   await login(page);
   await mkdir('artifacts/workflow-fixes', { recursive: true });
-  for (const view of ['tasks', 'commissions', 'camps', 'rounds', 'people', 'profile']) {
+  for (const view of ['tasks', 'commissions', 'projects', 'people', 'profile']) {
     await page.goto(`/?view=${view}`);
     await expect(page.locator('.main')).toBeVisible();
     const colours = await page.locator('.main').evaluate((el) => ({
       background: getComputedStyle(el).backgroundColor,
       body: getComputedStyle(document.body).backgroundColor,
     }));
-    expect(colours.background).toBe('rgb(250, 248, 242)');
-    expect(colours.body).toBe('rgb(250, 248, 242)');
+    expect(colours.background).toBe('rgb(16, 59, 45)');
+    expect(colours.body).toBe('rgb(16, 59, 45)');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );

@@ -52,8 +52,8 @@ export async function seed(storage: Database) {
     await db.insert(s.projects).values([
       {
         id: 'ronda',
-        name: `Ronda solar ${year}–${year + 1}`,
-        type: 'ronda',
+        name: `Proyecto ${year}–${year + 1}`,
+        type: 'general',
         starts: `${year}-09-01`,
         ends: `${year + 1}-08-31`,
       },
@@ -61,7 +61,7 @@ export async function seed(storage: Database) {
         id: 'camp',
         name: `Campamento de verano ${year + 1}`,
         type: 'camp',
-        parentId: 'ronda',
+        parentId: null,
         starts: `${year + 1}-07-15`,
         ends: `${year + 1}-07-30`,
       },
