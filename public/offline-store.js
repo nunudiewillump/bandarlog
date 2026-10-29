@@ -78,7 +78,26 @@
       } else if (job.method === 'PATCH') {
         const task = data.tasks.find((t) => t.id === taskId);
         if (!task) continue;
-        Object.assign(task, body, { updatedAt: job.createdAt });
+        const { checklistChange, ...fields } = body;
+        Object.assign(task, fields, { updatedAt: job.createdAt });
+        if (checklistChange) {
+          const items = task.checklist || [],
+            change = checklistChange;
+          task.checklist =
+            change.action === 'add'
+              ? items.some((item) => item.id === change.id)
+                ? items
+                : [...items, { id: change.id, title: change.title, done: false }]
+              : change.action === 'remove'
+                ? items.filter((item) => item.id !== change.id)
+                : items.map((item) =>
+                    item.id !== change.id
+                      ? item
+                      : change.action === 'edit'
+                        ? { ...item, title: change.title }
+                        : { ...item, done: change.done },
+                  );
+        }
         if (body.status) {
           task.completedAt = body.status === 'done' ? job.createdAt : null;
           task.completedBy = body.status === 'done' ? user?.id : null;

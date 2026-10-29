@@ -64,3 +64,7 @@ Las correcciones posteriores al PR11, las notificaciones del dispositivo, el an�
 ## Ámbito de acciones por rol
 
 Los controles sin permiso se ocultan. Scouter actúa únicamente sobre sus tareas asignadas; Responsable gestiona tareas y personas existentes dentro de sus propias comisiones; Coordinación incluye las acciones anteriores y la gestión de proyectos y campamentos. Solo Administración puede dar de alta usuarios mediante invitaciones, eliminar su acceso y cambiar roles globales. La baja revoca sesiones y avisos, conserva el historial y exige reasignar antes las tareas pendientes; no permite eliminar la propia cuenta. Las consultas de tareas de una comisión conservan su alcance autorizado.
+
+## Edición de contenido y checklist
+
+El lápiz del detalle permite gestionar título, descripción, fecha y responsables con los mismos permisos de gestión. La checklist es opcional: responsables gestionan sus pasos y scouters asignados pueden marcarlos. No condiciona la finalización ni modifica automáticamente el estado de la tarea. La migración conserva los datos anteriores. Reglas, sincronización y validación en [edición de tareas y checklist](docs/task-editing-checklists.md). No se incorporan adjuntos.

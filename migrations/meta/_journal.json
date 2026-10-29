@@ -71,6 +71,13 @@
       "when": 1793273012857,
       "tag": "0009_loving_starhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793280789180,
+      "tag": "0010_nosy_black_tarantula",
+      "breakpoints": true
     }
   ]
 }

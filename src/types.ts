@@ -31,7 +31,9 @@ export type Commission = {
   artworkMode?: 'automatic' | 'manual';
   artworkLocked?: boolean;
 };
+export type ChecklistItem = { id: string; title: string; done: boolean };
 export type Task = {
+  checklist?: ChecklistItem[];
   id: string;
   title: string;
   commissionId: string;

@@ -19,9 +19,19 @@ test('existing memberships and pending invitations survive the migration to comm
       await copyFile(`migrations/${entry.tag}.sql`, join(folder, entry.tag + '.sql'));
     await migrate(db, { migrationsFolder: folder });
     await client.exec(
-      `INSERT INTO users(id,name,email,role) VALUES ('u','Persona','u@example.test','member'); INSERT INTO projects(id,name,type) VALUES ('p','Ronda','ronda'); INSERT INTO commissions(id,project_id,name,description,icon) VALUES ('c','p','Cocina','','chef'); INSERT INTO members(id,commission_id,user_id,role) VALUES ('m','c','u','coordinator'); INSERT INTO invitations(id,commission_id,email,name,status,expires) VALUES ('i','c','new@example.test','Nueva','pending',now()+interval '7 days');`,
+      `INSERT INTO users(id,name,email,role) VALUES ('u','Persona','u@example.test','member'); INSERT INTO projects(id,name,type) VALUES ('p','Ronda','ronda'); INSERT INTO commissions(id,project_id,name,description,icon) VALUES ('c','p','Cocina','','chef'); INSERT INTO members(id,commission_id,user_id,role) VALUES ('m','c','u','coordinator'); INSERT INTO tasks(id,commission_id,title,description,due,status,updated_at) VALUES ('old-task','c','Título conservado','Descripción conservada','2027-07-01T12:00:00Z','pending',now()); INSERT INTO assignments(id,task_id,user_id) VALUES ('old-assignment','old-task','u'); INSERT INTO invitations(id,commission_id,email,name,status,expires) VALUES ('i','c','new@example.test','Nueva','pending',now()+interval '7 days');`,
     );
     await migrate(db, { migrationsFolder: 'migrations' });
+    const oldTask = await client.query<{ title: string; description: string; checklist: unknown }>(
+      `select title,description,checklist from tasks where id='old-task'`,
+    );
+    assert.equal(oldTask.rows[0].title, 'Título conservado');
+    assert.equal(oldTask.rows[0].description, 'Descripción conservada');
+    assert.deepEqual(oldTask.rows[0].checklist, []);
+    assert.equal(
+      (await client.query(`select id from assignments where id='old-assignment'`)).rows.length,
+      1,
+    );
     const roles = await client.query<{ role: string }>(`select role from members where id='m'`);
     assert.equal(roles.rows[0].role, 'responsible');
     const invites = await client.query<{ role: string; status: string }>(

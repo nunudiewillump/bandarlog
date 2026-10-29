@@ -386,7 +386,7 @@ test('Responsible has a scoped panel and can create, reschedule and delete an un
   await expect(dialog.getByRole('heading', { name: title })).toBeVisible();
   await dialog.getByText('Editar tarea', { exact: true }).click();
   await dialog.getByLabel('Fecha límite', { exact: true }).fill('2027-06-14');
-  await dialog.getByRole('button', { name: 'Guardar asignación' }).click();
+  await dialog.getByRole('button', { name: 'Guardar cambios' }).click();
   await expect(dialog.getByText(/14 jun/).first()).toBeVisible();
   await dialog.getByRole('button', { name: 'Completar', exact: true }).click();
   await expect(dialog.getByText('Terminada', { exact: true })).toBeVisible();

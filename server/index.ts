@@ -20,6 +20,7 @@ import {
   type ArtworkTheme,
 } from '../shared/scout-catalog.js';
 import { normalizePhoto } from './photos.js';
+import { checklistChangeSchema, changeChecklist, ChecklistError } from './task-checklist.js';
 import { artworkImage } from './artwork.js';
 import { renderMail } from './mail-template.js';
 import { pushService, validPushEndpoint } from './push.js';
@@ -1383,18 +1384,39 @@ app.post('/api/tasks', async (q, r) => {
 app.patch('/api/tasks/:id', async (q, r) => {
   const tid = String(q.params.id);
   const input = parse(
-    z.object({
-      status: statuses.optional(),
-      expectedUpdatedAt: z.string().optional(),
-      blockedReason: z.string().trim().max(1000).optional(),
-      responsibleIds: z.array(text).min(1).optional(),
-      due: z.iso.datetime({ offset: true }).optional(),
-    }),
+    z
+      .object({
+        title: text.optional(),
+        description: z.string().trim().max(5000).optional(),
+        checklistChange: checklistChangeSchema.optional(),
+        status: statuses.optional(),
+        expectedUpdatedAt: z.string().optional(),
+        blockedReason: z.string().trim().max(1000).optional(),
+        responsibleIds: z.array(text).min(1).optional(),
+        due: z.iso.datetime({ offset: true }).optional(),
+      })
+      .strict()
+      .refine(
+        (value) =>
+          Object.keys(value).some((key) => key !== 'expectedUpdatedAt' && key !== 'blockedReason'),
+        'Indica un cambio.',
+      ),
     q.body,
   );
   const changedTask = await withReceipt(q, r, async (tx: any) => {
     await tx.execute(sql`select commission_id from tasks where id=${tid} for update`);
-    const t = await editableTask(r.locals.user, tid, tx, !!(input.responsibleIds || input.due));
+    const t = await editableTask(
+      r.locals.user,
+      tid,
+      tx,
+      !!(
+        input.responsibleIds ||
+        input.due ||
+        input.title !== undefined ||
+        input.description !== undefined ||
+        (input.checklistChange && input.checklistChange.action !== 'toggle')
+      ),
+    );
     if (input.expectedUpdatedAt && +new Date(input.expectedUpdatedAt) !== +new Date(t.updatedAt))
       fail(409, 'La tarea ha cambiado. Actualiza la vista antes de modificarla.');
     await tx.execute(sql`select id from commissions where id=${t.commissionId} for update`);
@@ -1415,6 +1437,16 @@ app.patch('/api/tasks/:id', async (q, r) => {
     const update: any = {
       updatedAt: new Date(Math.max(Date.now(), +new Date(t.updatedAt) + 1)).toISOString(),
     };
+    if (input.title !== undefined) update.title = input.title;
+    if (input.description !== undefined) update.description = input.description;
+    if (input.checklistChange) {
+      try {
+        update.checklist = changeChecklist(t.checklist, input.checklistChange);
+      } catch (error) {
+        if (error instanceof ChecklistError) fail(error.status, error.message);
+        throw error;
+      }
+    }
     if (input.due) update.due = input.due;
     if (input.status) {
       Object.assign(update, {
@@ -1432,20 +1464,43 @@ app.patch('/api/tasks/:id', async (q, r) => {
       'updated',
       input.status
         ? `Estado: ${input.status}${input.blockedReason ? ` · ${input.blockedReason}` : ''}`
-        : input.responsibleIds
-          ? 'Ha reasignado responsables.'
-          : 'Ha cambiado la fecha límite.',
+        : input.checklistChange
+          ? {
+              add: 'Ha añadido un paso.',
+              edit: 'Ha editado un paso.',
+              toggle:
+                input.checklistChange.action === 'toggle' && input.checklistChange.done
+                  ? 'Ha marcado un paso.'
+                  : 'Ha desmarcado un paso.',
+              remove: 'Ha eliminado un paso.',
+            }[input.checklistChange.action]
+          : [
+              input.title !== undefined && 'Ha actualizado el título.',
+              input.description !== undefined && 'Ha actualizado la descripción.',
+              input.responsibleIds && 'Ha reasignado responsables.',
+              input.due && 'Ha cambiado la fecha límite.',
+            ]
+              .filter(Boolean)
+              .join(' '),
     );
-    await taskMail(
-      tx,
-      changed,
-      input.responsibleIds
-        ? 'Reasignación'
-        : input.due
-          ? 'Cambio de fecha'
-          : 'Actualización de tarea',
-      `updated-${tid}-${id()}`,
-    );
+    if (
+      !input.checklistChange ||
+      input.title !== undefined ||
+      input.description !== undefined ||
+      input.due ||
+      input.responsibleIds ||
+      input.status
+    )
+      await taskMail(
+        tx,
+        changed,
+        input.responsibleIds
+          ? 'Reasignación'
+          : input.due
+            ? 'Cambio de fecha'
+            : 'Actualización de tarea',
+        `updated-${tid}-${id()}`,
+      );
     return changed;
   });
   void deliver();

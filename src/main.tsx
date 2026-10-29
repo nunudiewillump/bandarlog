@@ -78,6 +78,8 @@ import { Workload } from './Workload';
 import { SyncStatus } from './SyncStatus';
 import { deadlineISO, deadlineDay } from './deadline';
 import { offline, clearOffline, notifyDataChanged } from './offline';
+import { TaskEditor } from './TaskEditor';
+import { TaskChecklist } from './TaskChecklist';
 import { ProfilePanel } from './ProfilePanel';
 import { BananaLoader } from './BananaLoader';
 import { Select } from './Select';
@@ -2028,6 +2030,20 @@ function App() {
                     {date(detail.completedAt, true)}
                   </p>
                 )}
+                <TaskChecklist
+                  key={detail.id}
+                  task={detail}
+                  busy={busy}
+                  run={run}
+                  canManage={
+                    canManage(detail.commissionId) && pOf(cOf(detail))?.archived !== 'true'
+                  }
+                  canAct={
+                    (canManage(detail.commissionId) ||
+                      usersOf(detail).some((u) => u.id === me.id)) &&
+                    pOf(cOf(detail))?.archived !== 'true'
+                  }
+                />
                 <h3>Actividad reciente</h3>
                 <div className="activity-list">
                   {data.activity
@@ -2176,56 +2192,25 @@ function App() {
                 <div className="task-management">
                   {' '}
                   {canManage(detail.commissionId) && pOf(cOf(detail))?.archived !== 'true' && (
-                    <details className="reassign">
-                      <summary>
-                        <Pencil size={18} aria-hidden="true" />
-                        <span>Editar tarea</span>
-                      </summary>
-                      <form
-                        onSubmit={async (e) => {
-                          e.preventDefault();
-                          const f = new FormData(e.currentTarget);
-                          await run(async () => {
-                            await api(`/tasks/${detail.id}`, 'PATCH', {
-                              responsibleIds: f.getAll('responsibleIds'),
-                              due: deadlineISO(String(f.get('due'))),
-                            });
-                          });
-                        }}
-                      >
-                        <label>
-                          Fecha límite
-                          <input
-                            type="date"
-                            required
-                            name="due"
-                            defaultValue={deadlineDay(detail.due)}
-                          />
-                        </label>
-                        <fieldset>
-                          <legend>Responsables · al menos uno</legend>
-                          {data.members
-                            .filter((m) => m.commissionId === detail.commissionId)
-                            .map((m) => {
-                              const u = data.users.find((u) => u.id === m.userId)!;
-                              return (
-                                <label className="checkbox-line" key={u.id}>
-                                  <input
-                                    type="checkbox"
-                                    name="responsibleIds"
-                                    value={u.id}
-                                    defaultChecked={usersOf(detail).some((x) => x.id === u.id)}
-                                  />
-                                  {u.name}
-                                </label>
-                              );
-                            })}
-                        </fieldset>
-                        <button className="secondary" disabled={busy}>
-                          Guardar asignación
-                        </button>
-                      </form>
-                    </details>
+                    <TaskEditor
+                      key={detail.id}
+                      task={detail}
+                      members={[
+                        ...new Map(
+                          [
+                            ...data.members
+                              .filter((m) => m.commissionId === detail.commissionId)
+                              .map((m) => data.users.find((u) => u.id === m.userId)!),
+                            ...usersOf(detail),
+                          ]
+                            .filter(Boolean)
+                            .map((user) => [user.id, user]),
+                        ).values(),
+                      ]}
+                      responsibleIds={usersOf(detail).map((u) => u.id)}
+                      busy={busy}
+                      run={run}
+                    />
                   )}
                   {canManage(detail.commissionId) && pOf(cOf(detail))?.archived !== 'true' && (
                     <details className="delete-task">

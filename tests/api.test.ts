@@ -985,3 +985,224 @@ test('only administrators add or remove users and removal revokes access while p
   );
   await request('/users/ana/role', 'PATCH', { role: 'member' });
 });
+
+test('full task edits preserve permissions and update title, description, deadline and assignments atomically', async () => {
+  const created = await request('/tasks', 'POST', {
+    title: 'Antes',
+    description: 'Descripción original',
+    commissionId: 'cocina',
+    due: '2027-06-01T21:59:59Z',
+    responsibleIds: ['carlos'],
+  });
+  const tid = created.body.id;
+  const scouter = await login('carlos@example.test'),
+    responsible = await login('laura@example.test');
+  assert.deepEqual(created.body.task.checklist, []);
+  for (const change of [
+    { title: 'No autorizado' },
+    { description: '' },
+    { title: 'No', status: 'done' },
+  ])
+    assert.equal((await request(`/tasks/${tid}`, 'PATCH', change, scouter)).status, 403);
+  const updated = await request(
+    `/tasks/${tid}`,
+    'PATCH',
+    {
+      title: 'Después',
+      description: 'Descripción nueva',
+      due: '2027-06-02T21:59:59Z',
+      responsibleIds: ['alex', 'carlos'],
+      expectedUpdatedAt: created.body.task.updatedAt,
+    },
+    responsible,
+  );
+  assert.equal(updated.status, 200);
+  assert.equal(updated.body.task.title, 'Después');
+  assert.equal(updated.body.task.description, 'Descripción nueva');
+  const data = (await request('/data')).body;
+  assert.deepEqual(
+    data.assignments
+      .filter((a: any) => a.taskId === tid)
+      .map((a: any) => a.userId)
+      .sort(),
+    ['alex', 'carlos'],
+  );
+  assert.equal(
+    (
+      await request(
+        `/tasks/${tid}`,
+        'PATCH',
+        { title: 'Antiguo', expectedUpdatedAt: created.body.task.updatedAt },
+        responsible,
+      )
+    ).status,
+    409,
+  );
+  assert.equal(
+    (await request(`/tasks/${tid}`, 'PATCH', { description: '' }, responsible)).status,
+    200,
+  );
+  for (const change of [
+    { title: ' ' },
+    { title: 'x'.repeat(201) },
+    { description: 'x'.repeat(5001) },
+  ])
+    assert.equal((await request(`/tasks/${tid}`, 'PATCH', change)).status, 400);
+  const isolated = await request('/commissions', 'POST', {
+    name: 'Edición aislada',
+    projectId: 'ronda',
+    members: [{ userId: 'alex', role: 'responsible' }],
+  });
+  const unrelated = await request('/tasks', 'POST', {
+    title: 'Otra comisión',
+    commissionId: isolated.body.id,
+    due: '2027-06-02T21:59:59Z',
+    responsibleIds: ['alex'],
+  });
+  assert.equal(
+    (
+      await request(
+        `/tasks/${unrelated.body.id}`,
+        'PATCH',
+        { title: 'Fuera de ámbito' },
+        responsible,
+      )
+    ).status,
+    403,
+  );
+  await request(`/tasks/${unrelated.body.id}`, 'DELETE');
+  await request(`/tasks/${tid}`, 'DELETE');
+});
+
+test('optional checklist enforces structural and assignment permissions, audit, replay and nonblocking completion', async () => {
+  const created = await request('/tasks', 'POST', {
+    title: 'Con pasos opcionales',
+    commissionId: 'cocina',
+    due: '2027-07-01T21:59:59Z',
+    responsibleIds: ['carlos'],
+  });
+  const tid = created.body.id,
+    step = crypto.randomUUID(),
+    otherStep = crypto.randomUUID();
+  const scouter = await login('carlos@example.test'),
+    outsider = await login('ana@example.test'),
+    responsible = await login('laura@example.test');
+  const change = (checklistChange: unknown, auth = admin, mutation?: string) =>
+    request(`/tasks/${tid}`, 'PATCH', { checklistChange }, auth, mutation);
+  assert.equal(
+    (await change({ action: 'add', id: step, title: 'No puede crear' }, scouter)).status,
+    403,
+  );
+  const replay = crypto.randomUUID();
+  const added = await change(
+    { action: 'add', id: step, title: 'Preparar la lista' },
+    responsible,
+    replay,
+  );
+  assert.equal(added.status, 200);
+  assert.deepEqual(
+    (await change({ action: 'add', id: step, title: 'Preparar la lista' }, responsible, replay))
+      .body,
+    added.body,
+  );
+  assert.equal((await change({ action: 'add', id: step, title: 'Duplicado' })).status, 409);
+  await change({ action: 'add', id: otherStep, title: 'Paso pendiente' }, responsible);
+  assert.equal((await change({ action: 'toggle', id: step, done: true }, outsider)).status, 403);
+  assert.equal((await change({ action: 'edit', id: step, title: 'No' }, scouter)).status, 403);
+  assert.equal((await change({ action: 'remove', id: step }, scouter)).status, 403);
+  assert.equal(
+    (
+      await request(
+        `/tasks/${tid}`,
+        'PATCH',
+        { checklistChange: { action: 'toggle', id: step, done: true }, title: 'No' },
+        scouter,
+      )
+    ).status,
+    403,
+  );
+  const marked = await change({ action: 'toggle', id: step, done: true }, scouter);
+  assert.equal(marked.body.task.checklist[0].done, true);
+  const edited = await change({ action: 'edit', id: step, title: 'Revisar la lista' }, responsible);
+  assert.equal(edited.body.task.checklist[0].done, true);
+  assert.equal(
+    (
+      await request(
+        `/tasks/${tid}`,
+        'PATCH',
+        {
+          checklistChange: { action: 'toggle', id: step, done: false },
+          expectedUpdatedAt: marked.body.task.updatedAt,
+        },
+        scouter,
+      )
+    ).status,
+    409,
+  );
+  const finished = await request(`/tasks/${tid}`, 'PATCH', { status: 'done' }, scouter);
+  assert.equal(finished.status, 200);
+  assert.equal(finished.body.task.checklist[1].done, false);
+  const removed = await change({ action: 'remove', id: step }, responsible);
+  assert.equal(removed.body.task.status, 'done');
+  assert.deepEqual(
+    removed.body.task.checklist.map((s: any) => s.id),
+    [otherStep],
+  );
+  assert.equal((await change({ action: 'remove', id: step }, responsible)).status, 404);
+  const data = (await request('/data')).body;
+  assert.equal(
+    data.activity.filter((a: any) => a.taskId === tid && a.body === 'Ha añadido un paso.').length,
+    2,
+  );
+  await request(`/tasks/${tid}`, 'DELETE');
+  assert.equal(
+    (await change({ action: 'toggle', id: otherStep, done: true }, responsible)).status,
+    404,
+  );
+});
+
+test('checklist input validation and archived task restrictions leave existing data intact', async () => {
+  const project = await request('/projects', 'POST', {
+    name: 'Pasos archivados',
+    type: 'ronda',
+    starts: '2026-01-01',
+    ends: '2027-12-31',
+  });
+  const commission = await request('/commissions', 'POST', {
+    name: 'Equipo pasos',
+    projectId: project.body.id,
+    members: [{ userId: 'alex', role: 'responsible' }],
+  });
+  const created = await request('/tasks', 'POST', {
+    title: 'Validación pasos',
+    commissionId: commission.body.id,
+    due: '2027-07-01T21:59:59Z',
+    responsibleIds: ['alex'],
+  });
+  const tid = created.body.id,
+    id = crypto.randomUUID();
+  for (const checklistChange of [
+    { action: 'add', id, title: ' ' },
+    { action: 'add', id, title: 'x'.repeat(241) },
+    { action: 'add', id: '../task', title: 'No' },
+    { action: 'toggle', id, done: 'true' },
+    { action: 'add', id, title: 'No', done: true },
+  ])
+    assert.equal((await request(`/tasks/${tid}`, 'PATCH', { checklistChange })).status, 400);
+  assert.equal(
+    (await request(`/tasks/${tid}`, 'PATCH', { checklist: [{ id, title: 'Bypass', done: true }] }))
+      .status,
+    400,
+  );
+  assert.deepEqual(
+    (await request('/data')).body.tasks.find((t: any) => t.id === tid).checklist,
+    [],
+  );
+  await request(`/projects/${project.body.id}`, 'PATCH', { archived: true });
+  for (const body of [
+    { title: 'Archivada' },
+    { checklistChange: { action: 'add', id, title: 'No' } },
+    { checklistChange: { action: 'toggle', id, done: true } },
+  ])
+    assert.equal((await request(`/tasks/${tid}`, 'PATCH', body)).status, 409);
+});

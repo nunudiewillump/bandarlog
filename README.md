@@ -122,3 +122,7 @@ Perfil abre como información personal y del grupo Rosales del Canal 702; Editar
 ### Sin cobertura, notificaciones y carga de trabajo
 
 La [guía de correcciones Forest](docs/forest-desktop/workflow-corrections.md) describe la cola offline por cuenta, conflictos, activación de avisos en el móvil y panel de carga en Personas desktop. La migración 0008 se aplica al arrancar; no requiere nuevas variables de Railway. Las claves Web Push se generan y guardan en la base de datos, nunca en el cliente ni en Git.
+
+### Edición y pasos de tareas
+
+Consulta [edición completa y checklist opcional](docs/task-editing-checklists.md) para permisos, límites, conservación de datos y funcionamiento sin cobertura. La migración 0010 se aplica al arrancar, sin nuevas variables de entorno.
