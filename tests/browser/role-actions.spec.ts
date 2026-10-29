@@ -49,6 +49,11 @@ for (const role of ['scouter', 'responsible', 'coordination', 'admin']) {
     await expect(dialog.getByRole('button', { name: 'Completar', exact: true })).toHaveCount(
       manages ? 1 : 0,
     );
+    await expect(
+      dialog.getByRole('button', { name: 'Ajustes de la tarea', exact: true }),
+    ).toHaveCount(manages ? 1 : 0);
+    if (manages)
+      await dialog.getByRole('button', { name: 'Ajustes de la tarea', exact: true }).click();
     await expect(dialog.locator('.reassign')).toHaveCount(manages ? 1 : 0);
     if (role === 'scouter') {
       await page.goto(`/?task=${tasks[0].id}`);

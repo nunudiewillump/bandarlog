@@ -75,7 +75,7 @@ export function Select({
             <ChevronDown size={16} />
           </SelectUI.Icon>
         </SelectUI.Trigger>
-        <SelectUI.Portal>
+        <SelectUI.Portal container={ref.current?.closest<HTMLElement>('[popover]') || undefined}>
           <SelectUI.Content
             className="select-menu"
             position="popper"

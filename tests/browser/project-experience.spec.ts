@@ -164,8 +164,14 @@ for (const clear of [false, true])
           'background-color',
           'rgb(255, 254, 250)',
         );
-      if (query === 'view=project&project=camp-v2')
-        await expect(page.locator('.main > .archive')).toHaveCSS('color', 'rgb(250, 248, 242)');
+      if (query === 'view=project&project=camp-v2') {
+        await page.getByRole('button', { name: 'Ajustes del proyecto', exact: true }).click();
+        await expect(page.locator('.entity-settings-panel .archive')).toHaveCSS(
+          'color',
+          'rgb(18, 77, 56)',
+        );
+        await page.getByRole('button', { name: 'Cerrar ajustes', exact: true }).click();
+      }
       await page.screenshot({
         path: `artifacts/project-experience/${query.replace(/[=&]/g, '-')}-${clear ? 'clear' : 'active'}.png`,
         fullPage: true,

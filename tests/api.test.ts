@@ -1312,3 +1312,159 @@ test('General and Event summaries preserve scoped aggregates without exposing hi
     );
   }
 });
+
+test('commission managers edit and delete only their commission; history and names survive logical deletion', async () => {
+  const responsible = await login('carlos@example.test');
+  const project = (
+    await request('/projects', 'POST', {
+      name: 'Gestión de comisiones',
+      starts: '2028-01-01',
+      ends: '2028-12-31',
+    })
+  ).body;
+  const created = await request('/commissions', 'POST', {
+    name: 'Comisión editable',
+    description: 'Original',
+    projectId: project.id,
+    members: [
+      { userId: 'carlos', role: 'responsible' },
+      { userId: 'laura', role: 'scouter' },
+    ],
+  });
+  assert.equal(created.status, 201);
+  const cid = created.body.id;
+  const task = (
+    await request('/tasks', 'POST', {
+      commissionId: cid,
+      title: 'Historia de comisión',
+      description: 'Conservar',
+      due: '2028-02-01T12:00:00Z',
+      responsibleIds: ['laura'],
+    })
+  ).body;
+  const version = task.task.updatedAt;
+  assert.equal(
+    (await request(`/commissions/${cid}`, 'PATCH', { name: 'No permitido' }, member)).status,
+    403,
+  );
+  assert.equal(
+    (await request('/commissions/cocina', 'PATCH', { name: 'Ajena' }, responsible)).status,
+    403,
+  );
+  assert.equal((await request(`/commissions/${cid}`, 'DELETE', undefined, member)).status, 403);
+  assert.equal(
+    (
+      await request(
+        `/commissions/${cid}`,
+        'PATCH',
+        { name: '  ', description: 'Inválida' },
+        responsible,
+      )
+    ).status,
+    400,
+  );
+  assert.equal(
+    (await request(`/commissions/${cid}`, 'PATCH', { projectId: 'ronda' }, responsible)).status,
+    400,
+  );
+  assert.equal(
+    (
+      await request(
+        `/commissions/${cid}`,
+        'PATCH',
+        {
+          name: 'Servicios',
+          description: 'Nueva descripción',
+          expected: { name: 'Comisión editable', description: 'Original' },
+        },
+        responsible,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await request(
+        `/commissions/${cid}`,
+        'PATCH',
+        {
+          description: 'Sobrescribir',
+          expected: { name: 'Comisión editable', description: 'Original' },
+        },
+        responsible,
+      )
+    ).status,
+    409,
+  );
+  let data = (await request('/data')).body;
+  const edited = data.commissions.find((c: any) => c.id === cid);
+  assert.equal(edited.name, 'Servicios');
+  assert.equal(edited.description, 'Nueva descripción');
+  assert.equal(edited.artworkLocked, true);
+  assert.equal(data.tasks.find((t: any) => t.id === task.id).updatedAt, version);
+  assert.equal(
+    (
+      await request(
+        `/commissions/${cid}/invitations`,
+        'POST',
+        { email: 'cancelled-commission@example.test', name: 'Invitada', role: 'scouter' },
+        admin,
+      )
+    ).status,
+    201,
+  );
+  await request(`/projects/${project.id}`, 'PATCH', { archived: true });
+  assert.equal(
+    (await request(`/commissions/${cid}`, 'PATCH', { name: 'Archivada' }, responsible)).status,
+    409,
+  );
+  assert.equal(
+    (await request(`/commissions/${cid}`, 'DELETE', undefined, responsible)).status,
+    409,
+  );
+  await request(`/projects/${project.id}`, 'PATCH', { archived: false });
+  assert.equal(
+    (await request(`/commissions/${cid}`, 'DELETE', undefined, responsible)).status,
+    200,
+  );
+  data = (await request('/data')).body;
+  assert.ok(!data.commissions.some((c: any) => c.id === cid));
+  assert.ok(!data.tasks.some((t: any) => t.id === task.id));
+  assert.ok(
+    !data.projectSummaries
+      .find((p: any) => p.id === project.id)
+      .commissions.some((c: any) => c.id === cid),
+  );
+  assert.equal(
+    data.invitations.find((i: any) => i.email === 'cancelled-commission@example.test').status,
+    'cancelled',
+  );
+  for (const [path, method, body] of [
+    [`/commissions/${cid}`, 'PATCH', { name: 'Reaparece' }],
+    [`/commissions/${cid}/members`, 'POST', { userIds: ['ana'] }],
+    [`/commissions/${cid}/artwork`, 'POST', {}],
+    [`/tasks/${task.id}`, 'PATCH', { status: 'done' }],
+    [`/tasks/${task.id}/comments`, 'POST', { body: 'Invisible' }],
+    [
+      `/tasks`,
+      'POST',
+      {
+        commissionId: cid,
+        title: 'No crear',
+        due: '2028-02-01T12:00:00Z',
+        responsibleIds: ['laura'],
+      },
+    ],
+  ] as const)
+    assert.equal((await request(path, method, body)).status, 404, path);
+  assert.equal(
+    (
+      await request('/commissions', 'POST', {
+        name: 'Servicios',
+        projectId: project.id,
+        members: [{ userId: 'carlos', role: 'responsible' }],
+      })
+    ).status,
+    201,
+  );
+});

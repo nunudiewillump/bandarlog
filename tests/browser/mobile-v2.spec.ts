@@ -375,6 +375,12 @@ for (const width of [320, 390, 430])
       });
       await page.getByRole('dialog').getByRole('button', { name: 'Cerrar', exact: true }).click();
       await page.goto('/?view=commission&project=camp-v2&commission=commission-v2-9');
+      if (
+        (await page
+          .getByRole('button', { name: 'Ajustes de la comisión', exact: true })
+          .getAttribute('aria-expanded')) !== 'true'
+      )
+        await page.getByRole('button', { name: 'Ajustes de la comisión', exact: true }).click();
       await page.getByRole('button', { name: 'Elegir icono', exact: true }).click();
       const catalogue = page.getByRole('dialog');
       await expect(catalogue).toBeVisible();

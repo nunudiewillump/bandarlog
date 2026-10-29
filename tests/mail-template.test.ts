@@ -20,3 +20,33 @@ test('Bandarlog email HTML escapes untrusted values, preserves text and renders 
   assert.ok(html.includes('Abrir tarea'));
   assert.ok(html.includes('Bandarlog'));
 });
+
+test('every branded email includes the lightweight public waving mascot and remains readable without images', async () => {
+  const { default: sharp } = await import('sharp');
+  const { readFile } = await import('node:fs/promises');
+  const asset = await readFile('public/monkey-wave-2d.png');
+  const image = await sharp(asset).metadata();
+  assert.equal(image.format, 'png');
+  assert.equal(image.hasAlpha, true);
+  assert.ok(image.height! <= 240 && asset.length < 50000);
+  for (const title of [
+    'Tu enlace de acceso',
+    'Te invitan a Bandarlog',
+    'Nueva asignación',
+    'Recordatorio de tarea',
+    'Resumen semanal',
+  ]) {
+    const html = renderMail({
+      title,
+      body: 'Consulta tus tareas.',
+      appUrl: 'https://bandarlog.example.org',
+      actions: [{ label: 'Entrar', url: 'https://bandarlog.example.org/' }],
+    });
+    assert.ok(html.includes('src="https://bandarlog.example.org/monkey-wave-2d.png"'));
+    assert.ok(html.includes('alt="Un mono de Bandarlog saludando"'));
+    assert.ok(html.includes('width="84" height="96"'));
+    assert.ok(html.includes('<h1'));
+    assert.ok(html.includes('Consulta tus tareas.'));
+    assert.ok(html.includes('>Entrar</a>'));
+  }
+});

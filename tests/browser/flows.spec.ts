@@ -384,12 +384,14 @@ test('Responsible has a scoped panel and can create, reschedule and delete an un
   await dialog.getByText('Carlos López', { exact: true }).click();
   await dialog.getByRole('button', { name: 'Crear tarea', exact: true }).click();
   await expect(dialog.getByRole('heading', { name: title })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Ajustes de la tarea', exact: true }).click();
   await dialog.getByText('Editar tarea', { exact: true }).click();
   await dialog.getByLabel('Fecha límite', { exact: true }).fill('2027-06-14');
   await dialog.getByRole('button', { name: 'Guardar cambios' }).click();
   await expect(dialog.getByText(/14 jun/).first()).toBeVisible();
   await dialog.getByRole('button', { name: 'Completar', exact: true }).click();
   await expect(dialog.getByText('Terminada', { exact: true })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Ajustes de la tarea', exact: true }).click();
   await dialog.getByText('Eliminar tarea', { exact: true }).click();
   await dialog.getByRole('button', { name: 'Confirmar eliminación' }).click();
   await expect(dialog).not.toBeVisible();
@@ -631,14 +633,32 @@ test('catalogue artwork is immediate and can be selected on mobile', async ({ pa
   await login(page);
   await page.setViewportSize({ width: 390, height: 900 });
   await openUnmatchedCommission(page);
+  if (
+    (await page
+      .getByRole('button', { name: 'Ajustes de la comisión', exact: true })
+      .getAttribute('aria-expanded')) !== 'true'
+  )
+    await page.getByRole('button', { name: 'Ajustes de la comisión', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Elegir icono', exact: true })).toBeVisible();
   await expect(page.getByRole('status', { name: 'Preparando ilustraciones…' })).not.toBeVisible();
+  if (
+    (await page
+      .getByRole('button', { name: 'Ajustes de la comisión', exact: true })
+      .getAttribute('aria-expanded')) !== 'true'
+  )
+    await page.getByRole('button', { name: 'Ajustes de la comisión', exact: true }).click();
   await page.getByRole('button', { name: 'Elegir icono', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Buscar icono').fill('Desayunos');
   await dialog.getByRole('button', { name: 'Desayunos', exact: true }).click();
   await expect(dialog).not.toBeVisible();
   await page.reload();
+  if (
+    (await page
+      .getByRole('button', { name: 'Ajustes de la comisión', exact: true })
+      .getAttribute('aria-expanded')) !== 'true'
+  )
+    await page.getByRole('button', { name: 'Ajustes de la comisión', exact: true }).click();
   await page.getByRole('button', { name: 'Elegir icono', exact: true }).click();
   await dialog.getByLabel('Buscar icono').fill('Desayunos');
   await expect(dialog.getByRole('button', { name: 'Desayunos', exact: true })).toHaveAttribute(
@@ -697,7 +717,7 @@ test('unified project creation reuses the Christmas collection inferred from its
   await expect(dialog.getByRole('combobox', { name: 'Colección de iconos' })).toHaveText('Navidad');
   await dialog.getByRole('button', { name: 'Cerrar', exact: true }).click();
   await page.goto('/?view=project&project=camp');
-  await page.locator('.project-appearance > summary').click();
+  await page.getByRole('button', { name: 'Ajustes del proyecto', exact: true }).click();
   await page.getByRole('combobox', { name: 'Colección de iconos' }).click();
   await page.getByRole('option', { name: 'Navidad', exact: true }).click();
   await expect(page.getByRole('combobox', { name: 'Colección de iconos' })).toHaveText('Navidad');
@@ -711,12 +731,18 @@ test('unified project creation reuses the Christmas collection inferred from its
   await page.screenshot({ path: 'artifacts/comision-navidad.png', animations: 'disabled' });
   await expect(page.getByRole('button', { name: 'Elegir icono', exact: true })).toHaveCount(0);
   await openUnmatchedCommission(page);
+  if (
+    (await page
+      .getByRole('button', { name: 'Ajustes de la comisión', exact: true })
+      .getAttribute('aria-expanded')) !== 'true'
+  )
+    await page.getByRole('button', { name: 'Ajustes de la comisión', exact: true }).click();
   await page.getByRole('button', { name: 'Elegir icono', exact: true }).click();
   await expect(page.getByRole('dialog').getByText('Colección:')).toContainText('Navidad');
   await page.screenshot({ path: 'artifacts/catalogo-navidad.png', animations: 'disabled' });
   await page.getByRole('dialog').getByRole('button', { name: 'Cerrar', exact: true }).click();
   await page.goto('/?view=project&project=camp');
-  await page.locator('.project-appearance > summary').click();
+  await page.getByRole('button', { name: 'Ajustes del proyecto', exact: true }).click();
   await page.getByRole('combobox', { name: 'Colección de iconos' }).click();
   await page.getByRole('option', { name: 'Scouts', exact: true }).click();
   await expect(page.getByRole('combobox', { name: 'Colección de iconos' })).toHaveText('Scouts');
@@ -743,7 +769,7 @@ test('Campamento de Navidad assigns all six Christmas pairs without manual contr
   const project = await response.json();
   expect(project.artworkTheme).toBe('christmas');
   await page.goto(`/?view=project&project=${project.id}`);
-  await page.locator('.project-appearance > summary').click();
+  await page.getByRole('button', { name: 'Ajustes del proyecto', exact: true }).click();
   await expect(page.getByRole('combobox', { name: 'Colección de iconos' })).toBeDisabled();
   for (const [name, key] of [
     ['Servicios', 'servicios'],
@@ -777,6 +803,12 @@ test('coordination uploads a new matching pair and can use it after reloading', 
 }) => {
   await login(page);
   await openUnmatchedCommission(page);
+  if (
+    (await page
+      .getByRole('button', { name: 'Ajustes de la comisión', exact: true })
+      .getAttribute('aria-expanded')) !== 'true'
+  )
+    await page.getByRole('button', { name: 'Ajustes de la comisión', exact: true }).click();
   await page.getByRole('button', { name: 'Elegir icono', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('button', { name: 'Añadir icono al catálogo' }).click();
@@ -792,6 +824,12 @@ test('coordination uploads a new matching pair and can use it after reloading', 
   );
   await expect(page.locator('.commission-mascot')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: /^Equipo QA/ })).toBeVisible();
+  if (
+    (await page
+      .getByRole('button', { name: 'Ajustes de la comisión', exact: true })
+      .getAttribute('aria-expanded')) !== 'true'
+  )
+    await page.getByRole('button', { name: 'Ajustes de la comisión', exact: true }).click();
   await page.getByRole('button', { name: 'Elegir icono', exact: true }).click();
   await dialog.getByRole('button', { name: 'Elegir automáticamente' }).click();
 });

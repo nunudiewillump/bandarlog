@@ -130,3 +130,7 @@ Consulta [edición completa y checklist opcional](docs/task-editing-checklists.m
 ### Proyectos independientes
 
 Campamentos y proyectos anuales comparten ahora una sección **Proyectos**, con tipo opcional y sin padre obligatorio. La [guía de compatibilidad](docs/unified-projects.md) explica los datos históricos, las URLs antiguas y las migraciones aditivas. Se mantienen IDs, permisos e historial, sin nuevas variables de entorno.
+
+### Ajustes de entidades
+
+Proyecto, comisión y tarea reúnen sus ajustes en el engranaje de la cabecera. Consulta [gestión de comisiones y ajustes](docs/entity-settings.md) para permisos, conservación del historial y detalles de la copa. La migración 0012 se aplica al arrancar; no requiere nuevas variables.

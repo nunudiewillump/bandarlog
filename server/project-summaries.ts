@@ -10,9 +10,12 @@ export async function projectSummaries(
     .select({ id: commissions.id, name: commissions.name, projectId: commissions.projectId })
     .from(commissions)
     .where(
-      inArray(
-        commissions.projectId,
-        projects.map((project) => project.id),
+      and(
+        sql`${commissions.deletedAt} is null`,
+        inArray(
+          commissions.projectId,
+          projects.map((project) => project.id),
+        ),
       ),
     );
   const rows = groups.length

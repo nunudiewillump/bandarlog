@@ -772,6 +772,8 @@ async function membership(uid: string, cid: string, tx: any = db) {
   return m;
 }
 async function authorize(u: any, cid: string, manage = false, tx: any = db) {
+  const [commission] = await tx.select().from(s.commissions).where(eq(s.commissions.id, cid));
+  if (!commission || commission.deletedAt) fail(404, 'Comisión no encontrada.');
   if (globalManage(u)) return;
   const m = await membership(u.id, cid, tx);
   if (!m || (manage && m.role !== 'responsible'))
@@ -816,6 +818,7 @@ async function taskMail(
     .innerJoin(s.users, eq(s.users.id, s.assignments.userId))
     .where(eq(s.assignments.taskId, t.id));
   const [c] = await tx.select().from(s.commissions).where(eq(s.commissions.id, t.commissionId));
+  if (!c || c.deletedAt) return;
   const [p] = await tx.select().from(s.projects).where(eq(s.projects.id, c.projectId));
   for (const { user } of rows) {
     if (user.disabledAt) continue;
@@ -1083,7 +1086,9 @@ app.get('/api/data', async (_q, r) => {
   const u = r.locals.user;
   const memberships = await db.select().from(s.members);
   const cs = (await db.select().from(s.commissions)).filter(
-    (c) => globalManage(u) || memberships.some((m) => m.userId === u.id && m.commissionId === c.id),
+    (c) =>
+      !c.deletedAt &&
+      (globalManage(u) || memberships.some((m) => m.userId === u.id && m.commissionId === c.id)),
   );
   const cids = cs.map((c) => c.id);
   const ts = cids.length
@@ -1267,6 +1272,64 @@ app.post('/api/commissions', async (q, r) => {
   });
   r.status(201).json(result);
 });
+// Commission deletion is logical: tasks, memberships and activity remain for history.
+async function managedCommission(tx: any, user: any, cid: string) {
+  await tx.execute(sql`select id from commissions where id=${cid} for update`);
+  await authorize(user, cid, true, tx);
+  const [commission] = await tx.select().from(s.commissions).where(eq(s.commissions.id, cid));
+  const [project] = await tx
+    .select()
+    .from(s.projects)
+    .where(eq(s.projects.id, commission.projectId));
+  if (project?.archived === 'true') fail(409, 'El proyecto está archivado.');
+  return commission;
+}
+app.patch('/api/commissions/:id', async (q, r) => {
+  const cid = String(q.params.id);
+  const input = parse(
+    z
+      .object({
+        name: text.optional(),
+        description: z.string().trim().max(3000).optional(),
+        expected: z.object({ name: z.string(), description: z.string() }).strict().optional(),
+      })
+      .strict()
+      .refine((v) => v.name !== undefined || v.description !== undefined, 'Indica un cambio.'),
+    q.body,
+  );
+  await db.transaction(async (tx: any) => {
+    const commission = await managedCommission(tx, r.locals.user, cid);
+    if (
+      input.expected &&
+      (input.expected.name !== commission.name ||
+        input.expected.description !== commission.description)
+    )
+      fail(409, 'La comisión ha cambiado. Cierra los ajustes y vuelve a abrirlos antes de editar.');
+    await tx
+      .update(s.commissions)
+      .set({
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.description !== undefined ? { description: input.description } : {}),
+      })
+      .where(eq(s.commissions.id, cid));
+  });
+  r.json({ ok: true });
+});
+app.delete('/api/commissions/:id', async (q, r) => {
+  const cid = String(q.params.id);
+  await db.transaction(async (tx: any) => {
+    await managedCommission(tx, r.locals.user, cid);
+    await tx
+      .update(s.commissions)
+      .set({ deletedAt: now(), deletedBy: r.locals.user.id })
+      .where(eq(s.commissions.id, cid));
+    await tx
+      .update(s.invitations)
+      .set({ status: 'cancelled' })
+      .where(and(eq(s.invitations.commissionId, cid), eq(s.invitations.status, 'pending')));
+  });
+  r.json({ ok: true });
+});
 app.post('/api/commissions/:id/artwork', async (q, r) => {
   const cid = String(q.params.id);
   await authorize(r.locals.user, cid, true);
@@ -1429,6 +1492,7 @@ app.patch('/api/tasks/:id', async (q, r) => {
     if (input.expectedUpdatedAt && +new Date(input.expectedUpdatedAt) !== +new Date(t.updatedAt))
       fail(409, 'La tarea ha cambiado. Actualiza la vista antes de modificarla.');
     await tx.execute(sql`select id from commissions where id=${t.commissionId} for update`);
+    await authorize(r.locals.user, t.commissionId, false, tx);
     if (input.status === 'blocked' && !input.blockedReason)
       fail(400, 'Indica un motivo de bloqueo.');
     if (input.responsibleIds) {
@@ -1581,11 +1645,15 @@ async function createInvitations(q: express.Request, r: express.Response) {
     }
     if (cid) {
       const [c] = await tx
-        .select({ name: s.commissions.name, archived: s.projects.archived })
+        .select({
+          name: s.commissions.name,
+          deletedAt: s.commissions.deletedAt,
+          archived: s.projects.archived,
+        })
         .from(s.commissions)
         .innerJoin(s.projects, eq(s.projects.id, s.commissions.projectId))
         .where(eq(s.commissions.id, cid));
-      if (!c) fail(404, 'Comisión no encontrada.');
+      if (!c || c.deletedAt) fail(404, 'Comisión no encontrada.');
       if (c.archived === 'true') fail(409, 'El proyecto está archivado.');
       commissionName = c.name;
     }
@@ -1836,7 +1904,7 @@ async function reminders() {
       .select({ id: s.commissions.id })
       .from(s.commissions)
       .innerJoin(s.projects, eq(s.projects.id, s.commissions.projectId))
-      .where(eq(s.projects.archived, 'false'));
+      .where(and(eq(s.projects.archived, 'false'), sql`${s.commissions.deletedAt} is null`));
     const ts = allTasks.filter((t) => activeCommissions.some((c) => c.id === t.commissionId));
     const assigned = await db.select().from(s.assignments),
       recipients = await db.select().from(s.users);
