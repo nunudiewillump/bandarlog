@@ -1,0 +1,126 @@
+/* The installed PWA's status area shares the canopy's darkest green. */
+html:root {
+  background: #103b2d;
+}
+html::before {
+  content: '';
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  background: #103b2d;
+  z-index: 500;
+  pointer-events: none;
+}
+.forest-canopy.botanical-header {
+  background: #103b2d;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: 36px;
+  color: #fff;
+}
+.forest-canopy.botanical-header.has-foliage {
+  background: linear-gradient(
+    to bottom,
+    #103b2d 0,
+    #103b2d calc(env(safe-area-inset-top, 0px) + 67px),
+    transparent calc(env(safe-area-inset-top, 0px) + 67px)
+  );
+}
+.botanical-header .forest-canopy-inner {
+  z-index: 2;
+  min-height: 68px;
+}
+.botanical-header .forest-brand {
+  color: #fff;
+}
+.botanical-decoration {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 140px;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.botanical-decoration::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 80px;
+  background: linear-gradient(to bottom, #103b2d80 0%, #103b2d55 70%, #103b2d00 100%);
+  pointer-events: none;
+}
+.botanical-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.botanical-bough {
+  transform-box: fill-box;
+  transform-origin: 50% 12%;
+  transform: translate3d(var(--bough-x, 0px), var(--bough-y, 0px), 0) rotate(var(--bough-r, 0deg));
+  transition: transform 500ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.botanical-header .botanical-decoration {
+  top: env(safe-area-inset-top, 0px);
+  height: 137px;
+}
+.ambient-leaf-layer {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 70;
+  user-select: none;
+}
+.ambient-leaf {
+  display: block;
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+  transform-origin: 50% 45%;
+  animation: botanical-leaf-fall 7s linear both;
+}
+.ambient-leaf svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 1px 1px #163e2326);
+}
+@keyframes botanical-leaf-fall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -12px, 0) rotate(var(--fall-rotation));
+  }
+  8% {
+    opacity: 0.62;
+  }
+  35% {
+    transform: translate3d(calc(var(--fall-drift) * 0.55), 28vh, 0)
+      rotate(calc(var(--fall-rotation) + 42deg));
+  }
+  70% {
+    opacity: 0.52;
+    transform: translate3d(calc(var(--fall-drift) * -0.3), 63vh, 0)
+      rotate(calc(var(--fall-rotation) + 106deg));
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--fall-drift), calc(100vh + 40px), 0)
+      rotate(calc(var(--fall-rotation) + 165deg));
+  }
+}
+@media (min-width: 1600px) {
+  .botanical-decoration {
+    height: 151px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .botanical-bough {
+    transform: none !important;
+    transition: none !important;
+  }
+  .ambient-leaf-layer {
+    display: none !important;
+  }
+}

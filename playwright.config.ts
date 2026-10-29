@@ -25,10 +25,11 @@ export default defineConfig({
     {
       command: 'npm start',
       url: 'http://127.0.0.1:3100/api/health',
-      timeout: 30000,
+      // A fresh isolated PGlite database can take longer on a cold cloud executor.
+      timeout: 120000,
       env: {
         PORT: '3100',
-        DATA_DIR: '.data/e2e',
+        DATA_DIR: process.env.E2E_DATA_DIR || '.data/e2e',
         APP_URL: 'http://127.0.0.1:5174',
         NODE_ENV: 'test',
         DATABASE_URL: '',

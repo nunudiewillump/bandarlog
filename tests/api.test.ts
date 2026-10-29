@@ -630,6 +630,15 @@ test('profile saves name, safe photos and reminder preferences without resetting
   profile = (await request('/me')).body.user;
   assert.equal(profile.name, 'Álex actualizado');
   assert.equal(profile.preferences, preferencesBeforePhoto);
+  assert.equal((await request('/profile', 'PATCH', { forestEffects: false })).status, 200);
+  profile = (await request('/me')).body.user;
+  assert.equal(JSON.parse(profile.preferences).forestEffects, false);
+  assert.deepEqual(JSON.parse(profile.preferences).reminderDays, [10, 2]);
+  assert.equal(JSON.parse(profile.preferences).creation, false);
+  assert.equal(profile.name, 'Álex actualizado');
+  assert.equal((await request('/profile', 'PATCH', { name: 'Álex actualizado' })).status, 200);
+  assert.equal(JSON.parse((await request('/me')).body.user.preferences).forestEffects, false);
+  assert.equal((await request('/profile', 'PATCH', { forestEffects: 'false' })).status, 400);
   assert.equal(
     (
       await request('/profile', 'PATCH', {
@@ -652,6 +661,7 @@ test('profile saves name, safe photos and reminder preferences without resetting
         reminderDays: [7, 3],
         onDue: true,
         overdueWeekly: true,
+        forestEffects: true,
       })
     ).status,
     200,

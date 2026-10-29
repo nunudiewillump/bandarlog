@@ -1,4 +1,6 @@
-# Integración propuesta · pendiente de aprobación visual
+**Actualización:** el usuario autorizó la implementación con sus enmiendas finales. Este documento conserva el handoff previo; [implementacion.md](implementacion.md) recoge el resultado y las comprobaciones actuales.
+
+# Integración propuesta · historial aprobado
 
 Este documento pertenece a la revisión desktop. La selección de Codex y la aprobación del alcance autorizan diseñar y revisar; todavía no autorizan implementar ni desplegar. No sustituye la propuesta móvil aprobada: la extiende al escritorio. El código base de esta revisión es `65dc0a0`; comprobar la integración de PR #9 y el estado actual de main antes de abrir una rama de implementación posterior.
 

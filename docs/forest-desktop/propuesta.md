@@ -1,5 +1,7 @@
 # Forest Experience · propuesta desktop
 
+**Implementación autorizada:** el usuario aprobó esta propuesta y la copa con ajustes finales de movimiento, hojas centrales, móvil, perfil de lectura y PWA. Estado actual de código y comprobaciones: [implementación](implementacion.md). Las láminas siguientes son el historial de diseño.
+
 **Enmienda posterior del usuario:** se conservan los iconos anteriores. La copa con hojas reconocibles, profundidad y respuesta al ratón se revisa en [la enmienda botánica](refinement-leaves/README.md), con [captura actual](refinement-leaves/captures/comms-1440.png) y [demostración de movimiento](refinement-leaves/canopy-motion.gif). Veredicto independiente acotado: meets direction; aprobación visual pendiente. Las imágenes siguientes conservan la propuesta original del cuerpo de las pantallas.
 
 Propuesta Codex con 78 escenas de diseño. Extiende la identidad móvil aprobada al escritorio: navegación lateral, copa compacta, verde y crema, Nunito, iconos del catálogo y recursos exclusivamente 2D. Veredicto independiente: **meets direction**, sin pendientes materiales. La aprobación visual del usuario está pendiente. La aplicación no se ha cambiado.

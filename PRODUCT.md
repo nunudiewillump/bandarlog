@@ -21,7 +21,7 @@ Inicio aplica Smart Focus: trabajo personal pendiente, trabajo de las comisiones
 
 Completar requiere confirmación del guardado; se mantienen control de concurrencia, recuperación de errores y Deshacer. Borrar retira la tarea de listados y avisos, conservando su historial. Las acciones de gestión se muestran según permiso y se autorizan de nuevo en servidor.
 
-Los cuatro destinos móviles estables son Inicio, Mis tareas, Comisiones y Perfil. La composición operativa de tablet y desktop se conserva. Acceso y primer acceso comparten las superficies nuevas también en ancho amplio.
+Los cuatro destinos móviles estables son Inicio, Mis tareas, Comisiones y Perfil. Desktop comparte Forest Experience con navegación lateral clara, tareas prioritarias por rol, comisiones agrupadas y resumen compacto de Responsable. Tablet y móvil conservan su navegación operativa. Acceso y primer acceso comparten las superficies también en ancho amplio.
 
 ## Entrada e identidad
 
@@ -35,7 +35,7 @@ Los fallos de red ofrecen recuperación sin fingir cierre de sesión o guardado 
 
 La dirección vigente es Forest Experience, propuesta refinada Codex aprobada en `7088637`, con una modificación posterior vinculante del usuario: eliminar todos los monos 3D estáticos y mantener únicamente la marca pequeña 2D, la liana 2D y guiños discretos 2D. Los originales e identificadores históricos se conservan por compatibilidad; no constituyen recursos que deban volver a mostrarse. El sistema visual actual está en [DESIGN.md](DESIGN.md).
 
-El trabajo tiene prioridad sobre la decoración: copa compacta, crema, verde bosque, listas legibles y confirmaciones breves. La marca oficial y los iconos asociados a las comisiones se conservan. La liana aparece únicamente tras guardar una finalización y respeta movimiento reducido.
+El trabajo tiene prioridad sobre la decoración: copa compacta, crema, verde bosque, listas legibles y confirmaciones breves. La marca oficial y los iconos asociados a las comisiones se conservan. La liana cruza lateralmente en cada finalización guardada, incluso con movimiento reducido; las finalizaciones consecutivas se encolan. La copa responde al cursor con mayor recorrido y una hoja de sus mismas siluetas puede caer por el centro sin interceptar clics. El follaje ambiental queda estático con movimiento reducido y puede ocultarse por completo mediante la preferencia personal persistente forestEffects.
 
 Accesos, invitaciones, tareas, recordatorios y resúmenes comparten el branding Bandarlog en HTML y alternativa de texto. El remitente usa el nombre Bandarlog con una dirección autorizada del grupo. Los enlaces conservan contexto, exigen autenticación y confirmación para modificar datos y no ejecutan cambios mediante GET. No se presupone envío ni compatibilidad verificada en clientes de correo reales.
 
@@ -52,3 +52,9 @@ Fuentes: [README.md](README.md), confirmación del objetivo y propuesta por el u
 Esta captura de contexto se hizo por lectura directa de instrucciones y repositorio: el launcher/motor local de Impeccable no se ejecutó por un fallo de permisos ya comunicado en la conversación. No se atribuye a ese motor la extracción ni una validación automática.
 
 Estado comunicado por la integración de esta rama: build y 47 pruebas unitarias/API aprobados; 42 recorridos funcionales base de navegador y tres pruebas Forest aprobados localmente (un título de prueba ajustado y reejecutado con resultado correcto). La ejecución conjunta de las 45 pruebas en CI sigue pendiente. La [revisión independiente de la implementación](docs/forest-experience/revision-implementacion.md) registra `ship` y cero defectos materiales; se distingue de la revisión de la propuesta estática. No se ha validado una cuenta Google real, retorno OAuth o persistencia de sesión en PWA instalada en iOS/Android físicos, accesibilidad asistida completa ni envío externo. No se declara terminado el producto ni desplegada la rama. Consultar la evidencia de la rama antes de actualizar estos estados.
+
+## Perfil y PWA · implementación desktop aprobada
+
+El perfil muestra por defecto nombre, correo, foto y el grupo Rosales del Canal 702, con una pequeña pañoleta rosa y morada. Editar perfil es una acción explícita; la configuración de avisos y apariencia se despliega por separado. Los guardados parciales de nombre, foto, avisos y forestEffects conservan los demás valores. La instalación PWA declara tema y fondo #103b2d, área segura superior y barra iOS translúcida; el estado de sistema en hardware físico queda pendiente de comprobación.
+
+Esta enmienda sigue la aprobación explícita del usuario de la propuesta desktop/copa y sus ajustes finales. La fuente de la implementación es src/main.tsx, BotanicalCanopy, ForestHeader, ProfilePanel/ProfileForm y sus CSS; la propuesta estática anterior no sustituye la evidencia de aplicación real. Estado actual de pruebas y revisión en docs/forest-desktop/implementacion.md; las cifras históricas anteriores describen el PR9 y no la validación de esta nueva rama.

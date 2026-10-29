@@ -1,3 +1,5 @@
+**Actualización de implementación:** copa aprobada por el usuario con mayor movimiento, hojas del mismo arte que también caen por el centro, uso móvil y preferencia de ocultación. La implementación real y el perfil/PWA están en [../implementacion.md](../implementacion.md). Las capturas y parámetros de este directorio son el prototipo histórico.
+
 # Copa botánica · enmienda visual
 
 El usuario pidió más profundidad y calidad en el borde superior para reconocer una copa de árbol, con hojas sueltas ocasionales y respuesta al pasar el ratón. Después aclaró que la complejidad puede estar en la dirección artística mientras las acciones y tarjetas siguen siendo sencillas. La última indicación conserva los iconos anteriores; esta propuesta no introduce iconos nuevos.

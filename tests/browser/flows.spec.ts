@@ -7,7 +7,7 @@ async function login(page: Page, email = 'alex@example.test') {
   if (cached) {
     await page.context().addCookies(cached);
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'Resumen general' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Inicio', exact: true })).toBeVisible();
     return;
   }
   await page.goto('/');
@@ -19,7 +19,7 @@ async function login(page: Page, email = 'alex@example.test') {
   expect(message).toBeTruthy();
   await page.getByLabel('Código de acceso').fill(message.body.match(/\b(\d{6})\b/)[1]);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Resumen general' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Inicio', exact: true })).toBeVisible();
   loginCookies.set(email, await page.context().cookies());
 }
 
@@ -113,7 +113,7 @@ test('accepting an invitation while another account is signed in enters as the i
   expect((await (await page.request.get('/api/me')).json()).user.email).toBe('alex@example.test');
   await page.getByRole('button', { name: 'Aceptar invitación y entrar' }).click();
   await finishFirstAccess(page);
-  await expect(page.getByRole('heading', { name: 'Resumen general' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Inicio', exact: true })).toBeVisible();
   expect((await (await page.request.get('/api/me')).json()).user.email).toBe(recipient);
   const data = await (await page.request.get('/api/data')).json();
   expect(data.commissions.map((c: any) => c.id)).toEqual(['cocina']);
@@ -289,7 +289,7 @@ test('People sends single and bulk invitations, reports duplicates, and previews
   await dialog.getByRole('button', { name: 'Enviar invitación', exact: true }).click();
   await expect(dialog.locator('.invitation-result')).toContainText('1 invitaciones preparadas');
   await dialog.getByRole('button', { name: 'Cerrar', exact: true }).click();
-  await page.getByRole('navigation').first().getByRole('button', { name: 'Ajustes' }).click();
+  await page.locator('.sidebar-profile').click();
   await page.getByRole('button', { name: 'Ver correos de prueba' }).click();
   const frame = page.locator('.email-preview').first();
   await expect(frame).toBeVisible();
@@ -310,12 +310,30 @@ test('People sends single and bulk invitations, reports duplicates, and previews
     fullPage: true,
     animations: 'disabled',
   });
+  // Create this preview's notification instead of relying on a task from a
+  // previous test; this case must also work in an isolated fresh database.
+  const session = await (await page.request.get('/api/me')).json();
+  const taskTitle = `Correo de tarea QA ${stamp}`;
+  const taskCreated = await page.request.post('/api/tasks', {
+    headers: { 'X-CSRF-Token': session.csrf, Origin: 'http://127.0.0.1:5174' },
+    data: {
+      title: taskTitle,
+      commissionId: 'cocina',
+      due: new Date(Date.now() + 7 * 86400000).toISOString(),
+      responsibleIds: [session.user.id],
+    },
+  });
+  expect(taskCreated.status()).toBe(201);
+  const previewTaskId = (await taskCreated.json()).id;
   const messages = await (await page.request.get('/api/dev/mail')).json();
   const taskMessage = messages
     .slice()
     .reverse()
     .find(
-      (m: any) => m.subject.includes('Nueva asignación') && m.html?.includes('Completar tarea'),
+      (m: any) =>
+        m.subject.includes('Nueva asignación') &&
+        m.html?.includes(taskTitle) &&
+        m.html?.includes('Completar tarea'),
     );
   expect(taskMessage).toBeTruthy();
   await preview.setContent(
@@ -336,6 +354,13 @@ test('People sends single and bulk invitations, reports duplicates, and previews
     animations: 'disabled',
   });
   await preview.close();
+  expect(
+    (
+      await page.request.delete(`/api/tasks/${previewTaskId}`, {
+        headers: { 'X-CSRF-Token': session.csrf, Origin: 'http://127.0.0.1:5174' },
+      })
+    ).ok(),
+  ).toBe(true);
 });
 
 test('Responsible has a scoped panel and can create, reschedule and delete an unassigned task', async ({
@@ -343,7 +368,9 @@ test('Responsible has a scoped panel and can create, reschedule and delete an un
 }) => {
   await login(page, 'laura@example.test');
   await page.goto('/?view=commission&project=camp&commission=cocina');
-  await expect(page.getByRole('heading', { name: 'Panel de Responsable' })).toBeVisible();
+  await expect(
+    page.getByRole('region', { name: 'Panel de Responsable', exact: true }),
+  ).toBeVisible();
   await page.screenshot({
     path: 'artifacts/panel-responsable.png',
     fullPage: true,
@@ -413,34 +440,47 @@ test('invitation destinations are locked to their commission or project and radi
   await page.screenshot({ path: 'artifacts/invitacion-proyecto.png', animations: 'disabled' });
 });
 
-test('users save a profile photo and custom reminder schedule across reloads', async ({ page }) => {
+test('users explicitly edit a profile photo and custom reminder schedule across reloads', async ({
+  page,
+}) => {
   await login(page);
-  await page.getByRole('button', { name: 'Mi perfil', exact: true }).click();
+  await page.goto('/?view=profile');
+  await expect(page.getByRole('textbox')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Editar perfil', exact: true }).click();
   await page.getByLabel('Nombre', { exact: true }).fill('Álex Perfil');
   await page.getByLabel('Foto de perfil').setInputFiles('public/icon-192.png');
   await page.getByRole('button', { name: 'Guardar foto', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Ajustar foto' })).not.toBeVisible();
+  await page.getByRole('button', { name: 'Guardar perfil', exact: true }).click();
+  await expect(page.locator('.profile-information')).toContainText('Álex Perfil');
+  await page.locator('.profile-preferences > summary').click();
+  await page.getByRole('button', { name: 'Configurar avisos', exact: true }).click();
   await page.getByLabel('Días antes del vencimiento').fill('10, 2');
   await page.getByLabel('Al vencer la tarea', { exact: true }).uncheck();
-  await page.getByRole('button', { name: 'Guardar perfil y avisos' }).click();
-  await expect(page.getByRole('heading', { name: 'Álex Perfil', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Guardar avisos', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Configurar avisos', exact: true })).toBeVisible();
   await page.reload();
-  await page.getByRole('button', { name: 'Mi perfil', exact: true }).click();
-  await expect(page.getByLabel('Nombre', { exact: true })).toHaveValue('Álex Perfil');
+  await expect(page.locator('.profile-information')).toContainText('Álex Perfil');
+  await expect(page.getByAltText('Tu foto de perfil')).toBeVisible();
+  await expect(page.getByRole('textbox')).toHaveCount(0);
+  await page.locator('.profile-preferences > summary').click();
+  await page.getByRole('button', { name: 'Configurar avisos', exact: true }).click();
   await expect(page.getByLabel('Días antes del vencimiento')).toHaveValue('10, 2');
   await expect(page.getByLabel('Al vencer la tarea', { exact: true })).not.toBeChecked();
-  await expect(page.getByAltText('Vista previa de tu foto')).toBeVisible();
   await page.screenshot({
     path: 'artifacts/perfil-avisos.png',
     fullPage: true,
     animations: 'disabled',
   });
-  await page.getByLabel('Nombre', { exact: true }).fill('Álex Martín');
   await page.getByLabel('Días antes del vencimiento').fill('7, 3');
   await page.getByLabel('Al vencer la tarea', { exact: true }).check();
-  await page.getByRole('button', { name: 'Quitar foto' }).click();
-  await page.getByRole('button', { name: 'Guardar perfil y avisos' }).click();
-  await expect(page.getByRole('heading', { name: 'Álex Martín', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Guardar avisos', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Configurar avisos', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Editar perfil', exact: true }).click();
+  await page.getByLabel('Nombre', { exact: true }).fill('Álex Martín');
+  await page.getByRole('button', { name: 'Quitar foto', exact: true }).click();
+  await page.getByRole('button', { name: 'Guardar perfil', exact: true }).click();
+  await expect(page.locator('.profile-information')).toContainText('Álex Martín');
 });
 
 test('mobile photo crop accepts a JPEG over 5 MB under the production image policy and saves the selected area', async ({
@@ -459,6 +499,7 @@ test('mobile photo crop accepts a JPEG over 5 MB under the production image poli
   await login(page);
   await page.setViewportSize({ width: 320, height: 900 });
   await page.goto('/?view=profile');
+  await page.getByRole('button', { name: 'Editar perfil', exact: true }).click();
   const before = await (await page.request.get('/api/me')).json();
   const image = await sharp({
     create: { width: 1200, height: 600, channels: 3, background: '#00cc00' },
@@ -517,6 +558,8 @@ test('mobile photo crop accepts a JPEG over 5 MB under the production image poli
     .toBuffer();
   expect(center[2]).toBeGreaterThan(center[0] + 100);
   await page.reload();
+  await expect(page.getByAltText('Tu foto de perfil')).toBeVisible();
+  await page.getByRole('button', { name: 'Editar perfil', exact: true }).click();
   await expect(page.getByAltText('Vista previa de tu foto')).toBeVisible();
   await page.getByLabel('Foto de perfil').setInputFiles('public/icon-192.png');
   await page.getByRole('button', { name: 'Cancelar recorte' }).click();
@@ -574,7 +617,11 @@ test('completing a task confirms persistence before showing the vine animation',
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await dialog.getByRole('button', { name: 'Completar', exact: true }).click();
   await expect(page.locator('.task-celebration')).toBeVisible();
-  await expect(page.locator('.vine-swing')).toHaveCSS('display', 'none');
+  await expect(page.locator('.vine-swing')).not.toHaveCSS('display', 'none');
+  const start = await page.locator('.vine-swing').boundingBox();
+  await page.waitForTimeout(350);
+  const moved = await page.locator('.vine-swing').boundingBox();
+  expect(moved!.x).toBeGreaterThan(start!.x + 20);
   await expect(dialog.getByText('Terminada', { exact: true })).toBeVisible();
   await dialog.getByRole('button', { name: 'Reabrir tarea' }).click();
 });

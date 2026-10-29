@@ -1,7 +1,7 @@
 {
   "reviewId": "forest-desktop-20261028",
   "runtime": "codex",
-  "phase": "canopy-amendment-ready-for-user-visual-review",
+  "phase": "implementation-ready-for-pr",
   "baseCommit": "65dc0a0363150778618b2f62bb82d28af30915cd",
   "evidenceMode": "guidelines",
   "approvalMode": "follow-recommendation",
@@ -10,8 +10,8 @@
   "direction": "Forest operativo con foco y contexto por rol",
   "directionGate": "selected-by-follow-recommendation",
   "rendererScope": "platform",
-  "visualProposalGate": "awaiting-canopy-amendment-approval",
-  "implementationAuthorized": false,
+  "visualProposalGate": "approved-by-user-with-amendments",
+  "implementationAuthorized": true,
   "deploymentAuthorized": false,
   "correctionRoundsUsed": 2,
   "motion": {
@@ -59,7 +59,7 @@
   "independentMatrix": "qa/final-matrix.json",
   "assetAudit": "qa/asset-audit.json",
   "remainingMaterialDrift": 0,
-  "authority": "Design only; implementation and deployment remain unauthorized.",
+  "authority": "Implementation explicitly approved by user; merge and deployment are separate and not performed.",
   "publicationBranch": "design/forest-desktop",
   "priorVisualVerdict": "meets direction for original78-sceneproposal; userrequested directionamendmentpending",
   "correctionBudgetNote": "Original2correctionrounds retained; focusedamendmentstudies do not reset or imply complete78-scene revalidation.",
@@ -71,6 +71,27 @@
     "review": "refinement-leaves/qa.md",
     "matrix": "refinement-leaves/qa.json",
     "originalIcons": "retained unchanged by explicituserinstruction",
-    "appImplementationStarted": false
-  }
+    "appImplementationStarted": true
+  },
+  "implementationBranch": "feat/desktop-forest",
+  "implementationReference": "implementacion.md",
+  "implementationApproval": "La apruebo ... con todo esto, pasa a la implementación final",
+  "finalAmendments": [
+    "Hover más perceptible",
+    "Hojas sueltas reutilizan exactamente el arte de la copa y pueden cruzar el centro",
+    "Copa compartida en móvil y desktop, ocultable por preferencia personal",
+    "Perfil de lectura por defecto; edición explícita",
+    "Grupo Rosales del Canal 702 con pequeña pañoleta rosa/morada",
+    "Zona superior/notch PWA integrada en verde #103b2d"
+  ],
+  "localValidation": {
+    "apiTests": 47,
+    "browserFullRunPassed": 49,
+    "browserFullRunTotal": 50,
+    "pwaCorrectedTargetedPassed": 1,
+    "productionBuild": "passed",
+    "combinedCI": "check PR for final commit execution"
+  },
+  "independentImplementationVerdict": "ship",
+  "independentImplementationReview": "implementation-review.md"
 }

@@ -114,11 +114,40 @@ test('mobile completion animates 7→6, done and progress, then undo restores au
 }) => {
   await setup(page);
   const box = await metric(page, 'Por completar').boundingBox();
+  // Observe the real CSS animation before the save. Sequential assertions can
+  // outlive its 350ms duration on a busy renderer.
+  await page.locator('.mobile-focus').evaluate((focus) => {
+    (window as any).__counterAnimations = [];
+    focus.addEventListener('animationstart', (event) => {
+      const animation = event as AnimationEvent;
+      const target = animation.target as HTMLElement;
+      if (!target.classList.contains('counter-current')) return;
+      const counter = target.closest('.animated-counter');
+      const text = target.closest('.focus-counts > span')?.textContent || '';
+      const label = text.includes('Por completar')
+        ? 'Por completar'
+        : text.includes('Terminadas')
+          ? 'Terminadas'
+          : '';
+      if (label)
+        (window as any).__counterAnimations.push({
+          label,
+          animation: animation.animationName,
+          value: counter?.getAttribute('data-value'),
+        });
+    });
+  });
   await page.getByRole('checkbox', { name: 'Completar Mi tarea 1', exact: true }).click();
   await expect(metric(page, 'Por completar')).toHaveAttribute('data-value', '6');
-  await expect(metric(page, 'Por completar')).toHaveClass(/counter-down/);
   await expect(metric(page, 'Terminadas')).toHaveAttribute('data-value', '9');
-  await expect(metric(page, 'Terminadas')).toHaveClass(/counter-up/);
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__counterAnimations))
+    .toEqual(
+      expect.arrayContaining([
+        { label: 'Por completar', animation: 'counter-enter-down', value: '6' },
+        { label: 'Terminadas', animation: 'counter-enter-up', value: '9' },
+      ]),
+    );
   await expect(page.locator('.mobile-focus .mobile-progress .animated-counter')).toHaveAttribute(
     'data-value',
     '60',
@@ -180,8 +209,10 @@ for (const level of ['camps', 'clear'] as const)
       await expect(
         page.getByRole('heading', { name: 'Tus comisiones están al día' }),
       ).toBeVisible();
-      await expect(page.locator('.camp-overview')).toHaveCount(1);
-      await expect(page.locator('.camp-overview > p [data-value="14"]')).toHaveCount(1);
+      await expect(page.locator('.mobile-focus .camp-overview')).toHaveCount(1);
+      await expect(page.locator('.mobile-focus .camp-overview > p [data-value="14"]')).toHaveCount(
+        1,
+      );
     } else await expect(page.getByRole('heading', { name: 'Todo al día' })).toBeVisible();
     await page.screenshot({
       path: `artifacts/mobile-v2/${level}.png`,
@@ -202,6 +233,12 @@ test('quick consecutive actions stay synchronised and reduced motion updates dir
 }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const fixture = await setup(page, { delay: 120 });
+  await page.evaluate(() => {
+    (window as any).__vineStarts = 0;
+    document.addEventListener('animationstart', (event) => {
+      if ((event.target as Element).matches('.vine-swing')) (window as any).__vineStarts++;
+    });
+  });
   await page.getByRole('checkbox', { name: 'Completar Mi tarea 1', exact: true }).click();
   await page.getByRole('checkbox', { name: 'Completar Mi tarea 7', exact: true }).click();
   await expect(metric(page, 'Por completar')).toHaveAttribute('data-value', '5');
@@ -209,6 +246,13 @@ test('quick consecutive actions stay synchronised and reduced motion updates dir
   await expect(metric(page, 'Por completar')).toHaveAttribute('data-animating', 'false');
   expect(fixture.calls.length).toBe(2);
   expect(new Set(fixture.calls).size).toBe(2);
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__vineStarts), { timeout: 6500 })
+    .toBe(2);
+  const beforeCross = await page.locator('.vine-swing').boundingBox();
+  await page.waitForTimeout(350);
+  const afterCross = await page.locator('.vine-swing').boundingBox();
+  expect(afterCross!.x).toBeGreaterThan(beforeCross!.x + 20);
   await expect(
     page.locator('.mobile-focus .focus-counts > span').filter({ hasText: 'Bloqueadas' }),
   ).toHaveCount(0);

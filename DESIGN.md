@@ -123,7 +123,7 @@ La autoridad visual es la propuesta refinada Codex aprobada en `7088637`, actual
 - Verde bosque, crema y contraste de texto funcional.
 - Nunito Sans local, nombres que envuelven y listas continuas.
 - Identidad 2D discreta y celebración breve tras guardar.
-- Desktop operativo conservado; acceso y onboarding compartidos.
+- Desktop Forest con foco por rol y comisiones agrupadas; acceso y onboarding compartidos.
 
 Extracción por lectura de `src/styles.css`, `src/forest.css`, `src/ForestHeader.tsx`, `src/AuthScreen.tsx`, `src/Onboarding.tsx`, `src/MobileUX.tsx`, `src/Artwork.tsx` y `src/main.tsx`, con [PRODUCT.md](PRODUCT.md), [implementación](docs/forest-experience/implementacion.md), [handoff](docs/forest-experience/handoff.md) y [recursos](docs/forest-experience/implementation-assets.json). `forest.css` se importa después de `styles.css`; prevalece en su ámbito. El motor local Impeccable no se ejecutó: el launcher falló por permisos, ya comunicado en conversación. Este documento registra código y decisiones, sin atribuir validación al motor. La [revisión independiente de la implementación](docs/forest-experience/revision-implementacion.md) registra `ship` y cero defectos materiales; sus límites externos siguen vigentes.
 
@@ -179,7 +179,7 @@ Las filas de tarea usan divisores y padding vertical de 14px; las filas de comis
 
 Acceso y onboarding usan el nuevo mundo a todos los anchos: columna centrada de máximo 540px, padding 36px 24px 48px; a partir de 768px, 48px 40px. La copa de esas superficies pasa a laterales de 36px en ancho amplio. El corte de 389px reduce sus laterales a 16px; landscape reduce el padding superior a 24px.
 
-La estructura desktop conserva sidebar de 218px, de 190px hasta 1250px y rail de 72px entre 768px y 1023px cuando no prevalece el ámbito landscape móvil. Mantiene paneles y grids existentes; desde 1600px crecen algunos espacios y el padding de panel pasa a 24px. No convertir estas pantallas en una ampliación de la composición móvil.
+La estructura desktop conserva sidebar de 218px, de 190px hasta 1250px y rail de 72px entre 768px y 1023px cuando no prevalece el ámbito landscape móvil. La implementación desktop añade lateral claro, foco por rol, listas de comisión comparables y un resumen compacto que deja ver las tareas. Los ajustes concretos de anchura viven en desktop-forest.css. No convertir estas pantallas en una ampliación de la composición móvil.
 
 ## Elevation & Depth
 
@@ -187,7 +187,7 @@ La profundidad es híbrida y contenida: copa con una capa SVG oscura translúcid
 
 Las sombras exactas, anillos de foco y duraciones viven en el sidecar, porque no caben en los tokens de componentes del frontmatter. El botón primario global conserva una sombra leve; acceso elimina la sombra de primarios y secundarios. No confundir esa sombra CSS con permiso para reintroducir ilustración 3D.
 
-**The Celebración Confirmada Rule.** La liana 2D aparece solo tras confirmar guardado. El recorrido dura 2.2s y la etiqueta 2.5s; con movimiento reducido se oculta la liana y la etiqueta pierde animación. No hay decoración animada continua.
+**The Celebración Confirmada Rule.** La liana 2D cruza siempre tras confirmar cada guardado. El recorrido dura 2.2s y la etiqueta 2.5s; las finalizaciones consecutivas se encolan. Con movimiento reducido se conserva el cruce sin giro accesorio. El follaje ambiental respeta movimiento reducido y la preferencia forestEffects; es independiente de la liana.
 
 ## Shapes
 
@@ -238,3 +238,11 @@ Reutilizar la geometría de `ForestHeader`, el archivo oficial `public/brand-mar
 - **Don't** cubrir la última fila o el foco con la navegación inferior.
 - **Don't** convertir cada fila móvil en una tarjeta elevada ni añadir decoración animada continua.
 - **Don't** atribuir pruebas de OAuth real, sesión en PWA física o accesibilidad completa a una lámina, este documento o un build correcto.
+
+## Enmienda aprobada · copa, perfil y escritorio
+
+La aprobación del usuario incorpora la copa botánica 2D a desktop y móvil, conservando los iconos originales. BotanicalCanopy comparte exactamente las siluetas, nervios y paleta de haya/roble entre hojas de copa y hojas sueltas. Tres planos, escalas variadas y sombras de solape dan profundidad. El cursor mueve solo ramillas cercanas: límite nominal12px/5px/3grados, recorrido ponderado observable de alrededor de7px. La caída central es ocasional (26–40segundos de espera,7segundos de recorrido), como máximo una hoja y sin interceptar acciones. Esos tiempos son parámetros de producto, no una prescripción de plataforma.
+
+La preferencia forestEffects oculta copa, hover y caída en ambos formatos. Movimiento reducido detiene solo estos efectos ambientales; la liana de confirmación continúa cruzando por decisión expresa del usuario. Los recursos3D y el estudio rechazado de iconos ilustrados no se incorporan. La base superior y la zona segura de la PWA usan #103b2d. Con follaje, la base oscura ocupa la zona de controles y deja transparentar el borde orgánico hacia el fondo crema.
+
+ProfilePanel abre como información personal, con una única foto/nombre/correo/grupo y pañoleta rosa-morada. Editar perfil revela el formulario y permite cancelar; avisos y apariencia están en Preferencias. El correo y el grupo no son editables. La edición no es el estado inicial de la pantalla. Fuentes actuales: src/BotanicalCanopy.tsx, botanical-canopy.css, ForestHeader.tsx, ProfilePanel.tsx, profile-panel.css, ProfileForm.tsx, main.tsx y desktop-forest.css. Esta actualización es manual por lectura de fuente; no se atribuye al motor de Impeccable.

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 export const preferenceSchema = z.object({
+  forestEffects: z.boolean().default(true),
   notifications: z.boolean().default(true),
   weekly: z.boolean().default(true),
   creation: z.boolean().default(true),
