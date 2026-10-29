@@ -57,6 +57,13 @@
       "when": 1793188800000,
       "tag": "0007_forest_access",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793267875331,
+      "tag": "0008_polite_the_twelve",
+      "breakpoints": true
     }
   ]
 }

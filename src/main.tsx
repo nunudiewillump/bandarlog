@@ -50,6 +50,8 @@ import {
   FileText,
   Leaf,
   MoreHorizontal,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 import { api, setCSRF, ApiError } from './api';
 import {
@@ -70,6 +72,12 @@ import '@fontsource/nunito-sans/latin-900.css';
 import './styles.css';
 import './forest.css';
 import './desktop-forest.css';
+import './workflow-fixes.css';
+import { DeviceNotifications } from './DeviceNotifications';
+import { Workload } from './Workload';
+import { SyncStatus } from './SyncStatus';
+import { deadlineISO, deadlineDay } from './deadline';
+import { offline, clearOffline, notifyDataChanged } from './offline';
 import { ProfilePanel } from './ProfilePanel';
 import { BananaLoader } from './BananaLoader';
 import { Select } from './Select';
@@ -215,6 +223,39 @@ function App() {
     }
     return dataRef.current;
   };
+  useEffect(() => {
+    if (!me) return;
+    let active = true;
+    const refresh = () => {
+      if (
+        active &&
+        navigator.onLine &&
+        document.visibilityState === 'visible' &&
+        !operations.current
+      )
+        void load().catch(() => {});
+    };
+    const channel =
+      typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('bandarlog-data') : null;
+    if (channel) channel.onmessage = refresh;
+    const stream = typeof EventSource !== 'undefined' ? new EventSource('/api/events') : null;
+    stream?.addEventListener('changed', refresh);
+    const timer = setInterval(refresh, 15000);
+    window.addEventListener('focus', refresh);
+    window.addEventListener('online', refresh);
+    window.addEventListener('bandarlog:data', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      active = false;
+      clearInterval(timer);
+      channel?.close();
+      stream?.close();
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('online', refresh);
+      window.removeEventListener('bandarlog:data', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [me?.id]);
   const bootup = async () => {
     setBootError('');
     try {
@@ -277,7 +318,12 @@ function App() {
     try {
       await fn();
       await load();
-      setToast(message);
+      notifyDataChanged();
+      setToast(
+        (await offline.status()).pending
+          ? 'Guardado en este dispositivo. Pendiente de sincronizar.'
+          : message,
+      );
       return true;
     } catch (e) {
       setError((e as Error).message);
@@ -386,7 +432,7 @@ function App() {
             blockedReason,
             expectedUpdatedAt: t.updatedAt,
           });
-          saved = result.task;
+          saved = result.queued ? undefined : result.task;
         },
         status === 'done' ? '' : 'Estado actualizado',
       );
@@ -498,7 +544,7 @@ function App() {
               </small>
               <span className={overdue(t) ? 'due late-text' : 'due'}>
                 <Clock size={12} />
-                {date(t.due, true)}
+                {date(t.due)}
                 {overdue(t) ? ' · Vencida' : ''}
               </span>
             </span>
@@ -624,7 +670,7 @@ function App() {
                   </div>
                 </td>
                 <td className={overdue(t) ? 'late-text' : ''}>
-                  {date(t.due, true)}
+                  {date(t.due)}
                   {overdue(t) && <AlertCircle size={12} />}
                 </td>
                 <td>
@@ -877,7 +923,7 @@ function App() {
                           <div className="desktop-task-meta">
                             <span className={overdue(t) ? 'late-text' : ''}>
                               <CalendarDays size={14} />
-                              {date(t.due, true)}
+                              {date(t.due)}
                             </span>
                             <Badge task={t} />
                             {overdue(t) && <span className="badge overdue">Vencida</span>}
@@ -1141,6 +1187,7 @@ function App() {
       }}
     >
       <div className="app-shell">
+        <SyncStatus onSynced={load} />
         <aside className={`sidebar ${sidebar ? 'open' : ''}`}>
           <button className="brand sidebar-brand" onClick={() => navigate('home')}>
             <img src="/brand-mark.webp" alt="" />
@@ -1261,6 +1308,9 @@ function App() {
             </div>
           </header>
           <main className="main">
+            {!['profile', 'settings'].includes(view) && (
+              <DeviceNotifications userId={me.id} firstVisit />
+            )}
             <div className="mobile-page-title">
               {
                 (
@@ -1781,7 +1831,18 @@ function App() {
                   run={run}
                   onSaved={setMe}
                   onLogout={async () => {
+                    const subscription = await (
+                      await navigator.serviceWorker?.getRegistration()
+                    )?.pushManager.getSubscription();
+                    if (subscription) {
+                      await api('/push/subscriptions', 'DELETE', {
+                        endpoint: subscription.endpoint,
+                      });
+                      await subscription.unsubscribe();
+                    }
                     await api('/logout', 'POST');
+                    await clearOffline();
+                    setCSRF('');
                     setCelebrations([]);
                     setMe(null);
                     setData(initial);
@@ -1839,7 +1900,6 @@ function App() {
             <div className="vine-swing">
               <img src="/monkey-vine-2d.webp" alt="" />
             </div>
-            <strong>Tarea completada</strong>
           </div>
         )}
         {busy && (
@@ -1858,7 +1918,7 @@ function App() {
             </button>
           </div>
         )}
-        {toast && (
+        {toast && !selected && (
           <div className="toast" role="status">
             <Check size={19} />
             {toast}
@@ -1883,13 +1943,18 @@ function App() {
                     {error}
                   </div>
                 )}
+                {toast && (
+                  <p className="inline-notice" role="status">
+                    {toast}
+                  </p>
+                )}
                 <dl className="detail-fields">
                   <div>
                     <dt>
                       <CalendarDays size={17} />
                       Fecha límite
                     </dt>
-                    <dd className={overdue(detail) ? 'late-text' : ''}>{date(detail.due, true)}</dd>
+                    <dd className={overdue(detail) ? 'late-text' : ''}>{date(detail.due)}</dd>
                   </div>
                   <div>
                     <dt>
@@ -1936,73 +2001,6 @@ function App() {
                     Terminada por {data.users.find((u) => u.id === detail.completedBy)?.name} ·{' '}
                     {date(detail.completedAt, true)}
                   </p>
-                )}
-                {canManage(detail.commissionId) && (
-                  <details className="reassign">
-                    <summary>Editar fecha y responsables</summary>
-                    <form
-                      onSubmit={async (e) => {
-                        e.preventDefault();
-                        const f = new FormData(e.currentTarget);
-                        await run(async () => {
-                          await api(`/tasks/${detail.id}`, 'PATCH', {
-                            responsibleIds: f.getAll('responsibleIds'),
-                            due: new Date(String(f.get('due'))).toISOString(),
-                          });
-                        });
-                      }}
-                    >
-                      <label>
-                        Fecha límite (hora de este dispositivo)
-                        <input
-                          type="datetime-local"
-                          required
-                          name="due"
-                          defaultValue={localInput(detail.due)}
-                        />
-                      </label>
-                      <fieldset>
-                        <legend>Responsables · al menos uno</legend>
-                        {data.members
-                          .filter((m) => m.commissionId === detail.commissionId)
-                          .map((m) => {
-                            const u = data.users.find((u) => u.id === m.userId)!;
-                            return (
-                              <label className="checkbox-line" key={u.id}>
-                                <input
-                                  type="checkbox"
-                                  name="responsibleIds"
-                                  value={u.id}
-                                  defaultChecked={usersOf(detail).some((x) => x.id === u.id)}
-                                />
-                                {u.name}
-                              </label>
-                            );
-                          })}
-                      </fieldset>
-                      <button className="secondary" disabled={busy}>
-                        Guardar asignación
-                      </button>
-                    </form>
-                  </details>
-                )}
-                {canManage(detail.commissionId) && pOf(cOf(detail))?.archived !== 'true' && (
-                  <details className="delete-task">
-                    <summary>Eliminar tarea</summary>
-                    <p>Se quitará de los listados y del progreso. Conservaremos el historial.</p>
-                    <button
-                      className="secondary danger"
-                      disabled={busy}
-                      onClick={() =>
-                        void run(async () => {
-                          await api(`/tasks/${detail.id}`, 'DELETE');
-                          setSelected('');
-                        }, 'Tarea eliminada')
-                      }
-                    >
-                      Confirmar eliminación
-                    </button>
-                  </details>
                 )}
                 <h3>Actividad reciente</h3>
                 <div className="activity-list">
@@ -2149,6 +2147,82 @@ function App() {
                       )}
                     </div>
                   )}
+                <div className="task-management">
+                  {' '}
+                  {canManage(detail.commissionId) && (
+                    <details className="reassign">
+                      <summary>
+                        <Pencil size={18} aria-hidden="true" />
+                        <span>Editar tarea</span>
+                      </summary>
+                      <form
+                        onSubmit={async (e) => {
+                          e.preventDefault();
+                          const f = new FormData(e.currentTarget);
+                          await run(async () => {
+                            await api(`/tasks/${detail.id}`, 'PATCH', {
+                              responsibleIds: f.getAll('responsibleIds'),
+                              due: deadlineISO(String(f.get('due'))),
+                            });
+                          });
+                        }}
+                      >
+                        <label>
+                          Fecha límite
+                          <input
+                            type="date"
+                            required
+                            name="due"
+                            defaultValue={deadlineDay(detail.due)}
+                          />
+                        </label>
+                        <fieldset>
+                          <legend>Responsables · al menos uno</legend>
+                          {data.members
+                            .filter((m) => m.commissionId === detail.commissionId)
+                            .map((m) => {
+                              const u = data.users.find((u) => u.id === m.userId)!;
+                              return (
+                                <label className="checkbox-line" key={u.id}>
+                                  <input
+                                    type="checkbox"
+                                    name="responsibleIds"
+                                    value={u.id}
+                                    defaultChecked={usersOf(detail).some((x) => x.id === u.id)}
+                                  />
+                                  {u.name}
+                                </label>
+                              );
+                            })}
+                        </fieldset>
+                        <button className="secondary" disabled={busy}>
+                          Guardar asignación
+                        </button>
+                      </form>
+                    </details>
+                  )}
+                  {canManage(detail.commissionId) && pOf(cOf(detail))?.archived !== 'true' && (
+                    <details className="delete-task">
+                      <summary>
+                        <Trash2 size={18} aria-hidden="true" />
+                        <span>Eliminar tarea</span>
+                      </summary>
+                      <p>Se quitará de los listados y del progreso. Conservaremos el historial.</p>
+                      <button
+                        className="secondary danger"
+                        disabled={busy}
+                        onClick={() =>
+                          void run(async () => {
+                            await api(`/tasks/${detail.id}`, 'DELETE');
+                            setSelected('');
+                          }, 'Tarea eliminada')
+                        }
+                      >
+                        Confirmar eliminación
+                      </button>
+                    </details>
+                  )}
+                </div>
               </>
             ) : (
               <Empty text="Tarea no disponible" sub="Puede que no tengas acceso a esta comisión." />
@@ -2312,6 +2386,9 @@ function People() {
           </button>
         )}
       </div>
+      {(global || data.commissions.some((c) => canManage(c.id))) && (
+        <Workload data={data} users={us} tasks={scoped.filter((t) => canManage(t.commissionId))} />
+      )}
       {!us.length && (
         <MobileEmpty
           title="Todavía no hay personas"
@@ -2488,11 +2565,14 @@ function TaskForm() {
     setSelected,
     pOf,
   } = React.useContext(FormState);
-  const [cid, setCid] = useState(
-    commission ||
-      data.commissions.find((c) => canManage(c.id) && (!project || c.projectId === project))?.id ||
-      '',
+  const fixedCommission = view === 'commission' ? commission : '';
+  const available = data.commissions.filter((c) => canManage(c.id) && pOf(c)?.archived !== 'true');
+  const [pid, setPid] = useState(
+    fixedCommission
+      ? data.commissions.find((c) => c.id === fixedCommission)?.projectId || ''
+      : project,
   );
+  const [cid, setCid] = useState(fixedCommission);
   return (
     <form
       onSubmit={async (e) => {
@@ -2504,7 +2584,7 @@ function TaskForm() {
               title: f.get('title'),
               commissionId: cid,
               description: f.get('description'),
-              due: new Date(String(f.get('due'))).toISOString(),
+              due: deadlineISO(String(f.get('due'))),
               responsibleIds: f.getAll('responsibleIds'),
             });
             setSelected(result.id);
@@ -2513,27 +2593,64 @@ function TaskForm() {
           setModal('');
       }}
     >
-      <p className="muted"></p>
       <label>
         Título
         <input name="title" required maxLength={200} placeholder="¿Qué hay que hacer?" />
       </label>
-      <label>
-        Comisión
-        <Select value={cid} onChange={(e) => setCid(e.target.value)} required>
-          <option value="">Selecciona una comisión</option>
-          {data.commissions
-            .filter((c) => canManage(c.id) && pOf(c)?.archived !== 'true')
-            .map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} · {pOf(c)?.name}
+      {fixedCommission ? (
+        <p className="task-destination">
+          Comisión: <strong>{available.find((c) => c.id === fixedCommission)?.name}</strong> ·{' '}
+          {data.projects.find((p) => p.id === pid)?.name}
+        </p>
+      ) : (
+        <>
+          <label>
+            Campamento o proyecto
+            <Select
+              aria-label="Campamento o proyecto"
+              value={pid}
+              onChange={(e) => {
+                setPid(e.target.value);
+                setCid('');
+              }}
+              required
+            >
+              <option value="">Selecciona un campamento o proyecto</option>
+              {data.projects
+                .filter((p) => p.archived !== 'true' && available.some((c) => c.projectId === p.id))
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+            </Select>
+          </label>
+          <label>
+            Comisión
+            <Select
+              aria-label="Comisión"
+              value={cid}
+              onChange={(e) => setCid(e.target.value)}
+              required
+              disabled={!pid}
+            >
+              <option value="">
+                {pid ? 'Selecciona una comisión' : 'Elige primero un campamento o proyecto'}
               </option>
-            ))}
-        </Select>
-      </label>
+              {available
+                .filter((c) => c.projectId === pid)
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+            </Select>
+          </label>
+        </>
+      )}
       <label>
-        Fecha y hora límite (hora de este dispositivo)
-        <input type="datetime-local" name="due" required />
+        Fecha límite
+        <input type="date" name="due" required />
       </label>
       <label>
         Descripción opcional
@@ -3175,10 +3292,6 @@ function ProjectForm() {
       </button>
     </form>
   );
-}
-function localInput(value: string) {
-  const d = new Date(value);
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
 function Empty({ text, sub }: { text: string; sub: string }) {
   return (

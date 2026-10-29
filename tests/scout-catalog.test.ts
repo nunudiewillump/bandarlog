@@ -88,3 +88,21 @@ test('Christmas has six named pairs and names determine whether manual selection
     'christmas',
   );
 });
+
+test('automatic icons prioritize the nearest name, independent of seed and misleading descriptions', () => {
+  for (const name of ['Servicios', 'Logística', 'Animacion', 'Menús', 'Material']) {
+    const first = selectArtwork({ name, theme: 'christmas', seed: 'first' });
+    const second = selectArtwork({
+      name,
+      theme: 'christmas',
+      seed: 'other',
+      description: 'Botiquín, salud, enfermería',
+    });
+    assert.equal(first.id, second.id);
+  }
+  assert.equal(
+    selectArtwork({ name: 'Comisión de animación', theme: 'scout' }).id,
+    'animacion-general',
+  );
+  assert.equal(selectArtwork({ name: 'Logistca', theme: 'scout' }).family, 'logistica');
+});

@@ -72,7 +72,7 @@ export type Data = {
   tasks: Task[];
   members: Member[];
   projectMembers: { id: string; projectId: string; userId: string }[];
-  assignments: { id: string; taskId: string; userId: string }[];
+  assignments: { id: string; taskId: string; userId: string; assignedAt?: string | null }[];
   activity: {
     id: string;
     taskId: string;

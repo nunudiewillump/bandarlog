@@ -7,11 +7,18 @@ import { join } from 'node:path';
 let server: ChildProcess, dir: string;
 const base = 'http://127.0.0.1:3099/api';
 let admin: { cookie: string; csrf: string }, member: { cookie: string; csrf: string };
-async function request(path: string, method = 'GET', body?: unknown, auth = admin) {
+async function request(
+  path: string,
+  method = 'GET',
+  body?: unknown,
+  auth = admin,
+  mutation?: string,
+) {
   const r = await fetch(base + path, {
     method,
     headers: {
       'Content-Type': 'application/json',
+      ...(mutation ? { 'X-Mutation-ID': mutation } : {}),
       ...(auth ? { cookie: auth.cookie, 'x-csrf-token': auth.csrf } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
@@ -882,4 +889,62 @@ test('completion versions allow undo but reject restoring over a concurrent edit
   const saved = (await request('/data')).body.tasks.find((t: any) => t.id === task.id);
   assert.equal(saved.status, 'blocked');
   assert.equal(saved.due, latest.body.task.due);
+});
+
+test('offline retries are idempotent and retained assignments keep their original timestamps', async () => {
+  const mutation = crypto.randomUUID();
+  const input = {
+    title: 'Sin cobertura',
+    commissionId: 'cocina',
+    responsibleIds: ['alex'],
+    due: '2026-12-31T22:59:59Z',
+  };
+  const created = await request('/tasks', 'POST', input, admin, mutation);
+  assert.equal(created.status, 201);
+  const again = await request('/tasks', 'POST', input, admin, mutation);
+  assert.deepEqual(again.body, created.body);
+  assert.equal(
+    (await request('/tasks', 'POST', { ...input, title: 'Otro' }, admin, mutation)).status,
+    409,
+  );
+  const data = (await request('/data')).body;
+  assert.equal(data.tasks.filter((t: any) => t.title === input.title).length, 1);
+  const assignedAt = data.assignments.find((a: any) => a.taskId === created.body.id).assignedAt;
+  assert.ok(assignedAt);
+  await request(`/tasks/${created.body.id}`, 'PATCH', {
+    responsibleIds: ['alex'],
+    due: '2027-01-01T22:59:59Z',
+  });
+  const next = (await request('/data')).body;
+  assert.equal(
+    next.assignments.find((a: any) => a.taskId === created.body.id).assignedAt,
+    assignedAt,
+  );
+  const change = crypto.randomUUID(),
+    task = next.tasks.find((t: any) => t.id === created.body.id);
+  const patch = { status: 'done', expectedUpdatedAt: task.updatedAt };
+  const done = await request(`/tasks/${task.id}`, 'PATCH', patch, admin, change);
+  assert.equal(done.status, 200);
+  assert.deepEqual(
+    (await request(`/tasks/${task.id}`, 'PATCH', patch, admin, change)).body,
+    done.body,
+  );
+  await request(`/tasks/${task.id}`, 'DELETE');
+});
+test('device push config exposes only the public key and subscriptions require valid providers', async () => {
+  const config = await request('/push/config');
+  assert.equal(config.status, 200);
+  assert.ok(config.body.publicKey);
+  assert.equal(config.body.privateKey, undefined);
+  const subscription = {
+    endpoint: 'https://127.0.0.1/private',
+    keys: { p256dh: 'a'.repeat(87), auth: 'a'.repeat(22) },
+  };
+  assert.equal((await request('/push/subscriptions', 'POST', subscription)).status, 400);
+  const real = { ...subscription, endpoint: 'https://fcm.googleapis.com/fcm/send/test-only' };
+  assert.equal((await request('/push/subscriptions', 'POST', real)).status, 200);
+  assert.equal(
+    (await request('/push/subscriptions', 'DELETE', { endpoint: real.endpoint })).status,
+    200,
+  );
 });

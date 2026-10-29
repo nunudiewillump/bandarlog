@@ -118,3 +118,7 @@ El acceso por código permanece dentro de la PWA. La sesión local admite hasta 
 Inicio prioriza tareas según el rol; las comisiones se agrupan por proyecto y el panel de Responsable es compacto. La copa botánica comparte las hojas de la caída ocasional, responde al cursor y se puede ocultar en Perfil → Preferencias → Mostrar copa y hojas. La elección se guarda para la cuenta.
 
 Perfil abre como información personal y del grupo Rosales del Canal 702; Editar perfil activa el formulario. Los avisos se configuran por separado. La PWA usa #103b2d en su tema y zona superior segura. Esta versión no necesita variables ni migraciones adicionales. Evidencia y límites: [implementación desktop](docs/forest-desktop/implementacion.md).
+
+### Sin cobertura, notificaciones y carga de trabajo
+
+La [guía de correcciones Forest](docs/forest-desktop/workflow-corrections.md) describe la cola offline por cuenta, conflictos, activación de avisos en el móvil y panel de carga en Personas desktop. La migración 0008 se aplica al arrancar; no requiere nuevas variables de Railway. Las claves Web Push se generan y guardan en la base de datos, nunca en el cliente ni en Git.

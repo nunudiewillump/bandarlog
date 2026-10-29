@@ -1,0 +1,242 @@
+/* Keep the system bar dark without letting the root canvas bleed into content. */
+body,
+#root,
+.app-shell,
+.workspace {
+  background: #faf8f2;
+  color: #24352b;
+  min-height: 100dvh;
+}
+.main {
+  background: #faf8f2;
+}
+.dialog-body {
+  padding-bottom: max(28px, env(safe-area-inset-bottom, 0px));
+  scrollbar-gutter: stable;
+}
+.dialog-body > form:not(.comment-form) {
+  display: flow-root;
+  padding-bottom: 12px;
+}
+.dialog form > .primary {
+  float: none;
+  display: flex;
+  margin-left: auto;
+  margin-bottom: 8px;
+}
+.section-heading,
+.page-heading,
+.action-pair {
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.task-destination {
+  margin-bottom: 20px;
+  padding: 12px;
+  background: #edf0e5;
+  border-radius: 8px;
+}
+.task-management {
+  margin-top: 28px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.task-management details {
+  flex: 1 1 180px;
+  margin: 0;
+  min-width: 0;
+}
+.task-management summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  cursor: pointer;
+}
+.task-management details[open] {
+  flex-basis: 100%;
+}
+.task-management .delete-task summary {
+  color: #a82e29;
+}
+.detail-actions {
+  position: static;
+}
+.detail-actions .action-pair {
+  display: contents;
+}
+.dialog-body .detail-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 20px 0;
+}
+.detail-actions button {
+  width: 100%;
+  min-height: 48px;
+  margin: 0;
+}
+.detail-actions form,
+.detail-actions .action-confirm {
+  grid-column: 1 / -1;
+}
+.device-notifications {
+  margin-block: 20px;
+  padding: 20px;
+  background: #fffefa;
+  border: 1px solid #dfe5da;
+  border-radius: 12px;
+}
+.device-notifications h2 {
+  margin-bottom: 8px;
+}
+.device-notifications p {
+  margin-bottom: 12px;
+  max-width: 65ch;
+}
+.device-notifications .notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.notification-prompt {
+  width: 100%;
+  margin: 0 0 24px;
+}
+.sync-status {
+  position: sticky;
+  top: 0;
+  z-index: 160;
+  padding: 10px 20px;
+  background: #fff0c9;
+  color: #654007;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.sync-status button {
+  min-height: 44px;
+  text-decoration: underline;
+}
+.workload {
+  margin-block: 24px;
+  padding: 20px;
+  background: #fffefa;
+  border: 1px solid #dfe5da;
+  border-radius: 12px;
+}
+.workload h2 {
+  margin-bottom: 12px;
+}
+.workload p {
+  max-width: 75ch;
+  margin-bottom: 16px;
+  color: #52675a;
+}
+.workload-scroll {
+  overflow-x: auto;
+}
+.workload table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.workload th,
+.workload td {
+  padding: 14px 12px;
+  text-align: left;
+  border-bottom: 1px solid #dfe5da;
+  vertical-align: top;
+}
+.workload small {
+  display: block;
+  color: #52675a;
+}
+.workload progress {
+  width: 90px;
+  accent-color: #124d38;
+}
+@media (min-width: 768px) {
+  .main > .page-heading,
+  .main > .panel,
+  .main > .project-hero,
+  .main > .commission-hero {
+    background: #fffefa;
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .main > .page-heading {
+    margin-bottom: 20px;
+  }
+  .main > .panel {
+    border: 1px solid #dfe5da;
+  }
+}
+@media (max-width: 767px),
+  (orientation: landscape) and (max-height: 599px) and (max-width: 1023px) {
+  .operation-loading {
+    top: auto;
+    bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+    left: auto;
+    right: 16px;
+    width: max-content;
+    max-width: calc(100vw - 32px);
+    height: auto;
+    padding: 6px 12px;
+  }
+  .operation-loading .banana-loader {
+    width: auto;
+    min-height: 0;
+  }
+  .banana-loader.compact > svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .workload {
+    display: none;
+  }
+  .dialog form > .primary {
+    margin-top: 20px;
+    width: 100%;
+  }
+  .task-management summary {
+    justify-content: center;
+  }
+  .task-management summary > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+@media (display-mode: standalone) {
+  html:root {
+    background: #103b2d;
+  }
+  body {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .forest-canopy.botanical-header {
+    padding-top: 0;
+  }
+  .forest-canopy.botanical-header.has-foliage {
+    background: linear-gradient(to bottom, #103b2d 0, #103b2d 67px, transparent 67px);
+  }
+}
+
+.loading {
+  background: #faf8f2;
+  color: #24352b;
+}
+
+.inline-notice {
+  background: #edf2e8;
+  color: #124d38;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-block: 12px;
+}
