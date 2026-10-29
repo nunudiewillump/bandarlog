@@ -206,7 +206,7 @@ app.post('/api/auth/request', async (q, r) => {
     .select()
     .from(s.invitations)
     .where(and(eq(s.invitations.email, input.email), eq(s.invitations.status, 'pending')));
-  if (user || invites.some((i) => new Date(i.expires) > new Date())) {
+  if ((user && !user.disabledAt) || invites.some((i) => new Date(i.expires) > new Date())) {
     const token = secret();
     await db.insert(s.tokens).values({
       id: hash(token),
@@ -228,6 +228,7 @@ app.post('/api/auth/request', async (q, r) => {
 });
 async function authenticatedUser(tx: any, recipient: string, invitationId?: string) {
   let [u] = await tx.select().from(s.users).where(eq(s.users.email, recipient));
+  if (u?.disabledAt) fail(403, 'Esta cuenta no tiene acceso.');
   const invites = await tx
     .select()
     .from(s.invitations)
@@ -264,6 +265,8 @@ async function authenticatedUser(tx: any, recipient: string, invitationId?: stri
   return u;
 }
 async function createSession(tx: any, userId: string) {
+  const [account] = await tx.select().from(s.users).where(eq(s.users.id, userId));
+  if (!account || account.disabledAt) fail(403, 'Esta cuenta no tiene acceso.');
   const raw = secret(),
     csrf = secret(),
     stamp = now();
@@ -398,7 +401,7 @@ app.post('/api/auth/code/request', async (q, r) => {
           sql`${s.invitations.expires}>now()`,
         ),
       );
-    if (user || invites.length)
+    if ((user && !user.disabledAt) || invites.length)
       await queue(
         input.email,
         'Tu código de acceso a Bandarlog',
@@ -663,7 +666,7 @@ app.use('/api', async (q, r, n) => {
     );
   if (!session) return r.status(401).json({ error: 'Tu sesión ha caducado.' });
   const [user] = await db.select().from(s.users).where(eq(s.users.id, session.userId));
-  if (!user) return r.sendStatus(401);
+  if (!user || user.disabledAt) return r.sendStatus(401);
   r.locals.user = user;
   r.locals.session = session;
   if (!['GET', 'HEAD'].includes(q.method)) {
@@ -755,6 +758,10 @@ app.use('/api', (q, r, next) => {
   next();
 });
 const globalManage = (u: any) => u.role === 'admin' || u.role === 'coordination';
+async function activeAccount(tx: any, uid: string) {
+  const [user] = await tx.select().from(s.users).where(eq(s.users.id, uid)).for('update');
+  if (!user || user.disabledAt) fail(400, 'Selecciona una persona con acceso activo.');
+}
 async function membership(uid: string, cid: string, tx: any = db) {
   const [m] = await tx
     .select()
@@ -809,6 +816,7 @@ async function taskMail(
   const [c] = await tx.select().from(s.commissions).where(eq(s.commissions.id, t.commissionId));
   const [p] = await tx.select().from(s.projects).where(eq(s.projects.id, c.projectId));
   for (const { user } of rows) {
+    if (user.disabledAt) continue;
     const pref = preferences(user.preferences);
     if (
       !pref.notifications ||
@@ -1241,8 +1249,10 @@ app.post('/api/commissions', async (q, r) => {
       description: input.description,
       icon: input.icon,
     });
-    for (const m of input.members)
+    for (const m of input.members) {
+      await activeAccount(tx, m.userId);
       await tx.insert(s.members).values({ id: id(), commissionId: cid, ...m });
+    }
     return { id: cid };
   });
   r.status(201).json(result);
@@ -1274,11 +1284,13 @@ app.post('/api/projects/:id/members', async (q, r) => {
   const [p] = await db.select().from(s.projects).where(eq(s.projects.id, pid));
   if (!p || p.archived === 'true') fail(409, 'El proyecto no está disponible.');
   await db.transaction(async (tx: any) => {
-    for (const userId of new Set(userIds))
+    for (const userId of new Set(userIds)) {
+      await activeAccount(tx, userId);
       await tx
         .insert(s.projectMembers)
         .values({ id: id(), projectId: pid, userId })
         .onConflictDoNothing();
+    }
   });
   r.json({ ok: true });
 });
@@ -1287,11 +1299,13 @@ app.post('/api/commissions/:id/members', async (q, r) => {
   await authorize(r.locals.user, cid, true);
   const input = parse(z.object({ userIds: z.array(text).min(1) }), q.body);
   await db.transaction(async (tx: any) => {
-    for (const userId of new Set(input.userIds))
+    for (const userId of new Set(input.userIds)) {
+      await activeAccount(tx, userId);
       await tx
         .insert(s.members)
         .values({ id: id(), commissionId: cid, userId, role: 'scouter' })
         .onConflictDoNothing();
+    }
   });
   r.json({ ok: true });
 });
@@ -1467,6 +1481,7 @@ app.post('/api/tasks/:id/comments', async (q, r) => {
   r.status(201).json(result);
 });
 async function createInvitations(q: express.Request, r: express.Response) {
+  if (r.locals.user.role !== 'admin') fail(403, 'Solo administración puede dar de alta usuarios.');
   const input = parse(
     z
       .object({
@@ -1516,8 +1531,11 @@ async function createInvitations(q: express.Request, r: express.Response) {
       .where(and(eq(s.invitations.status, 'pending'), sql`${s.invitations.expires}<=now()`));
     for (const recipient of recipients) {
       const [user] = await tx.select().from(s.users).where(eq(s.users.email, recipient));
+      if (user?.disabledAt)
+        await tx.update(s.users).set({ disabledAt: null }).where(eq(s.users.id, user.id));
       if (
         user &&
+        !user.disabledAt &&
         (cid
           ? await membership(user.id, cid, tx)
           : pid
@@ -1614,6 +1632,8 @@ app.post(
   createInvitations,
 );
 app.patch('/api/invitations/:id', async (q, r) => {
+  if (r.locals.user.role !== 'admin')
+    fail(403, 'Solo administración puede gestionar invitaciones.');
   const { action } = parse(z.object({ action: z.enum(['resend', 'revoke']) }), q.body);
   await db.transaction(async (tx: any) => {
     const [i] = await tx
@@ -1651,9 +1671,63 @@ app.get('/api/directory', async (q, r) => {
   await authorize(r.locals.user, cid, true);
   const search = parse(z.string().trim().min(2).max(100), q.query.q).toLowerCase();
   const users = await db
-    .select({ id: s.users.id, name: s.users.name, email: s.users.email, role: s.users.role })
+    .select({
+      id: s.users.id,
+      name: s.users.name,
+      email: s.users.email,
+      role: s.users.role,
+      disabledAt: s.users.disabledAt,
+    })
     .from(s.users);
-  r.json(users.filter((u) => `${u.name} ${u.email}`.toLowerCase().includes(search)).slice(0, 20));
+  r.json(
+    users
+      .filter((u) => !u.disabledAt && `${u.name} ${u.email}`.toLowerCase().includes(search))
+      .slice(0, 20),
+  );
+});
+app.delete('/api/users/:id', async (q, r) => {
+  if (r.locals.user.role !== 'admin') fail(403, 'Solo administración puede eliminar usuarios.');
+  const uid = String(q.params.id);
+  if (uid === r.locals.user.id) fail(400, 'No puedes eliminar tu propia cuenta.');
+  await db.transaction(async (tx: any) => {
+    await tx.execute(sql`lock table users in share row exclusive mode`);
+    const [actor] = await tx.select().from(s.users).where(eq(s.users.id, r.locals.user.id));
+    if (actor?.role !== 'admin') fail(403, 'Tu rol ha cambiado.');
+    const [target] = await tx.select().from(s.users).where(eq(s.users.id, uid));
+    if (!target || target.disabledAt) fail(404, 'Persona no encontrada.');
+    await tx.execute(
+      sql`select id from commissions where id in (select commission_id from members where user_id=${uid}) order by id for update`,
+    );
+    const open = await tx
+      .select({ id: s.tasks.id })
+      .from(s.tasks)
+      .innerJoin(s.assignments, eq(s.assignments.taskId, s.tasks.id))
+      .where(
+        and(
+          eq(s.assignments.userId, uid),
+          sql`${s.tasks.deletedAt} is null`,
+          sql`${s.tasks.status} <> 'done'`,
+        ),
+      );
+    if (open.length) fail(409, 'Reasigna sus tareas pendientes antes de eliminar a esta persona.');
+    await tx.update(s.users).set({ disabledAt: now() }).where(eq(s.users.id, uid));
+    await tx.delete(s.sessions).where(eq(s.sessions.userId, uid));
+    await tx.delete(s.tokens).where(eq(s.tokens.email, target.email));
+    await tx.delete(s.authChallenges).where(eq(s.authChallenges.email, target.email));
+    await tx.delete(s.members).where(eq(s.members.userId, uid));
+    await tx.delete(s.projectMembers).where(eq(s.projectMembers.userId, uid));
+    await tx.delete(s.pushSubscriptions).where(eq(s.pushSubscriptions.userId, uid));
+    await tx.update(s.pushOutbox).set({ sentAt: now() }).where(eq(s.pushOutbox.userId, uid));
+    await tx
+      .update(s.notifications)
+      .set({ status: 'cancelled' })
+      .where(and(eq(s.notifications.email, target.email), eq(s.notifications.status, 'pending')));
+    await tx
+      .update(s.invitations)
+      .set({ status: 'revoked' })
+      .where(and(eq(s.invitations.email, target.email), eq(s.invitations.status, 'pending')));
+  });
+  r.json({ ok: true });
 });
 app.patch('/api/users/:id/role', async (q, r) => {
   const input = parse(z.object({ role: z.enum(['admin', 'coordination', 'member']) }), q.body);

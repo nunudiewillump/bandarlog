@@ -60,3 +60,7 @@ El perfil muestra por defecto nombre, correo, foto y el grupo Rosales del Canal 
 Esta enmienda sigue la aprobación explícita del usuario de la propuesta desktop/copa y sus ajustes finales. La fuente de la implementación es src/main.tsx, BotanicalCanopy, ForestHeader, ProfilePanel/ProfileForm y sus CSS; la propuesta estática anterior no sustituye la evidencia de aplicación real. Estado actual de pruebas y revisión en docs/forest-desktop/implementacion.md; las cifras históricas anteriores describen el PR9 y no la validación de esta nueva rama.
 
 Las correcciones posteriores al PR11, las notificaciones del dispositivo, el análisis de carga y los límites de sincronización están documentados en [workflow-corrections](docs/forest-desktop/workflow-corrections.md).
+
+## Ámbito de acciones por rol
+
+Los controles sin permiso se ocultan. Scouter actúa únicamente sobre sus tareas asignadas; Responsable gestiona tareas y personas existentes dentro de sus propias comisiones; Coordinación incluye las acciones anteriores y la gestión de proyectos y campamentos. Solo Administración puede dar de alta usuarios mediante invitaciones, eliminar su acceso y cambiar roles globales. La baja revoca sesiones y avisos, conserva el historial y exige reasignar antes las tareas pendientes; no permite eliminar la propia cuenta. Las consultas de tareas de una comisión conservan su alcance autorizado.

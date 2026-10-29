@@ -216,10 +216,23 @@ function App() {
     );
   const load = async () => {
     const sequence = ++loadSequence.current;
-    const next = await api('/data');
+    let next: Data;
+    try {
+      next = await api('/data');
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        setMe(null);
+        setCSRF('');
+      }
+      throw error;
+    }
     if (sequence === loadSequence.current) {
       dataRef.current = next;
       setData(next);
+      setMe((current) => {
+        const visible = next.users.find((user) => user.id === current?.id);
+        return current && visible ? { ...current, ...visible } : current;
+      });
     }
     return dataRef.current;
   };
@@ -363,7 +376,8 @@ function App() {
     (t) =>
       (!project || cOf(t)?.projectId === project) && (!commission || t.commissionId === commission),
   );
-  if (view === 'tasks' && !manage) scoped = scoped.filter((t) => myTasks.includes(t));
+  if (['tasks', 'alerts'].includes(view) && !manage)
+    scoped = scoped.filter((t) => canManage(t.commissionId) || myTasks.includes(t));
   if (view === 'alerts')
     scoped = scoped.filter(
       (t) =>
@@ -1202,32 +1216,44 @@ function App() {
               ['rounds', 'Proyectos', Flag],
               ['people', 'Personas', UserRound],
               ['alerts', 'Alertas', Bell],
-            ].map(([v, label, Icon]: any) => (
-              <button key={v} onClick={() => navigate(v)} className={view === v ? 'active' : ''}>
-                <Icon size={19} />
-                {label}
-                {v === 'alerts' && (
-                  <b
-                    className={
-                      data.tasks.some((t) => overdue(t) || t.status === 'blocked')
-                        ? 'nav-count'
-                        : 'nav-count zero'
-                    }
-                  >
-                    <AnimatedCounter
-                      value={data.tasks.filter((t) => overdue(t) || t.status === 'blocked').length}
-                    />
-                  </b>
-                )}
-              </button>
-            ))}
+            ]
+              .filter(([v]) => manage || !['camps', 'rounds'].includes(String(v)))
+              .map(([v, label, Icon]: any) => (
+                <button key={v} onClick={() => navigate(v)} className={view === v ? 'active' : ''}>
+                  <Icon size={19} />
+                  {label}
+                  {v === 'alerts' && (
+                    <b
+                      className={
+                        data.tasks.some((t) => overdue(t) || t.status === 'blocked')
+                          ? 'nav-count'
+                          : 'nav-count zero'
+                      }
+                    >
+                      <AnimatedCounter
+                        value={
+                          data.tasks.filter((t) => overdue(t) || t.status === 'blocked').length
+                        }
+                      />
+                    </b>
+                  )}
+                </button>
+              ))}
           </nav>
 
           <button className="sidebar-profile" onClick={() => navigate('profile')}>
             <Avatar user={me} />
             <span>
               <strong>{me.name}</strong>
-              <small>{manage ? 'Coordinación' : 'Miembro'}</small>
+              <small>
+                {me.role === 'admin'
+                  ? 'Administración'
+                  : manage
+                    ? 'Coordinación'
+                    : data.members.some((m) => m.userId === me.id && m.role === 'responsible')
+                      ? 'Responsable'
+                      : 'Scouter'}
+              </small>
             </span>
             <MoreHorizontal size={18} />
           </button>
@@ -2149,7 +2175,7 @@ function App() {
                   )}
                 <div className="task-management">
                   {' '}
-                  {canManage(detail.commissionId) && (
+                  {canManage(detail.commissionId) && pOf(cOf(detail))?.archived !== 'true' && (
                     <details className="reassign">
                       <summary>
                         <Pencil size={18} aria-hidden="true" />
@@ -2359,17 +2385,14 @@ function People() {
       (!commission || m.commissionId === commission),
   );
   const global = me.role === 'admin' || me.role === 'coordination';
-  const canInvite = commission
-    ? canManage(commission)
-    : project
-      ? global
-      : global || data.commissions.some((c) => canManage(c.id));
+  const canInvite = me.role === 'admin';
   const us = data.users.filter(
     (u) =>
-      (!project && !commission && global) ||
-      members.some((m) => m.userId === u.id) ||
-      (!commission &&
-        data.projectMembers.some((m) => m.projectId === project && m.userId === u.id)),
+      !u.disabledAt &&
+      ((!project && !commission && global) ||
+        members.some((m) => m.userId === u.id) ||
+        (!commission &&
+          data.projectMembers.some((m) => m.projectId === project && m.userId === u.id))),
   );
   return (
     <section className="people panel">
@@ -2427,7 +2450,7 @@ function People() {
                   : ''}
               </button>
             </div>
-            {!commission && me.role === 'admin' && (
+            {!commission && me.role === 'admin' && u.id !== me.id && (
               <Select
                 aria-label={`Rol global de ${u.name}`}
                 value={u.role}
@@ -2442,6 +2465,26 @@ function People() {
                 <option value="coordination">Coordinación</option>
                 <option value="admin">Administrador</option>
               </Select>
+            )}
+            {!commission && me.role === 'admin' && u.id !== me.id && (
+              <details className="person-removal">
+                <summary className="text-link danger">Eliminar usuario</summary>
+                <p>
+                  Se retirará el acceso de {u.name}. Su historial se conserva. Reasigna antes sus
+                  tareas pendientes.
+                </p>
+                <button
+                  className="secondary danger"
+                  disabled={busy}
+                  onClick={() =>
+                    void run(async () => {
+                      await api(`/users/${u.id}`, 'DELETE');
+                    }, 'Usuario eliminado')
+                  }
+                >
+                  Confirmar eliminación de {u.name}
+                </button>
+              </details>
             )}
             {commission && (
               <span className={`badge ${member?.role === 'responsible' ? 'pending' : 'done'}`}>
@@ -2514,7 +2557,7 @@ function People() {
                 }
               </small>
             </div>
-            {i.status !== 'accepted' && (i.commissionId ? canManage(i.commissionId) : global) && (
+            {i.status !== 'accepted' && me.role === 'admin' && (
               <>
                 <button
                   className="text-link"
@@ -2792,7 +2835,11 @@ function CommissionForm() {
             />
           </label>
           {data.users
-            .filter((u) => `${u.name} ${u.email}`.toLowerCase().includes(search.toLowerCase()))
+            .filter(
+              (u) =>
+                !u.disabledAt &&
+                `${u.name} ${u.email}`.toLowerCase().includes(search.toLowerCase()),
+            )
             .map((u) => (
               <div className="select-person" key={u.id}>
                 <input
@@ -2907,7 +2954,9 @@ function MemberForm() {
       clearTimeout(timer);
     };
   }, [search, commission]);
-  const available = [...new Map([...data.users, ...directory].map((u) => [u.id, u])).values()];
+  const available = [
+    ...new Map([...data.users, ...directory].map((u) => [u.id, u])).values(),
+  ].filter((u) => !u.disabledAt);
   return (
     <>
       <form

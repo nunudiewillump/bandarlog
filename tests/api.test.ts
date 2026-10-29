@@ -499,7 +499,7 @@ test('individual and bulk invitations work from People, reject invalid recipient
     '/invitations',
     'POST',
     { commissionId: 'cocina', emails: ['new-responsible@example.test'], role: 'responsible' },
-    responsible,
+    admin,
   );
   assert.equal(memberInvite.status, 201);
   const newcomer = await login('new-responsible@example.test');
@@ -947,4 +947,41 @@ test('device push config exposes only the public key and subscriptions require v
     (await request('/push/subscriptions', 'DELETE', { endpoint: real.endpoint })).status,
     200,
   );
+});
+
+test('only administrators add or remove users and removal revokes access while preserving history', async () => {
+  const responsible = await login('laura@example.test');
+  await request('/users/ana/role', 'PATCH', { role: 'coordination' });
+  const coordination = await login('ana@example.test');
+  for (const actor of [responsible, coordination]) {
+    assert.equal(
+      (
+        await request(
+          '/invitations',
+          'POST',
+          { commissionId: 'cocina', emails: ['admin-only@example.test'] },
+          actor,
+        )
+      ).status,
+      403,
+    );
+    assert.equal((await request('/users/miguel', 'DELETE', undefined, actor)).status, 403);
+  }
+  assert.equal((await request('/users/alex', 'DELETE')).status, 400);
+  assert.equal((await request('/users/carlos', 'DELETE')).status, 409);
+  await request('/invitations', 'POST', { email: 'removed-user@example.test' });
+  const targetSession = await login('removed-user@example.test');
+  const target = (await request('/data')).body.users.find(
+    (u: any) => u.email === 'removed-user@example.test',
+  );
+  assert.equal((await request(`/users/${target.id}`, 'DELETE')).status, 200);
+  assert.equal((await request('/me', 'GET', undefined, targetSession)).status, 401);
+  const removed = (await request('/data')).body.users.find((u: any) => u.id === target.id);
+  assert.ok(removed.disabledAt);
+  assert.equal((await request('/invitations', 'POST', { email: target.email })).status, 201);
+  assert.equal(
+    (await request('/data')).body.users.find((u: any) => u.id === target.id).role,
+    'member',
+  );
+  await request('/users/ana/role', 'PATCH', { role: 'member' });
 });

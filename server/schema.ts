@@ -7,6 +7,7 @@ export const users = pgTable('users', {
   role: text().notNull(),
   preferences: text().notNull().default('{}'),
   avatarUrl: text('avatar_url'),
+  disabledAt: timestamp('disabled_at', { withTimezone: true, mode: 'string' }),
   onboardingCompletedAt: timestamp('onboarding_completed_at', {
     withTimezone: true,
     mode: 'string',
