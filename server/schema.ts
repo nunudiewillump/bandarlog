@@ -79,6 +79,7 @@ export const assignments = pgTable(
     userId: text('user_id')
       .notNull()
       .references(() => users.id),
+    assignedAt: timestamp('assigned_at', { withTimezone: true, mode: 'string' }).defaultNow(),
   },
   (t) => [uniqueIndex('assignment').on(t.taskId, t.userId)],
 );
@@ -192,4 +193,32 @@ export const googleLinks = pgTable('google_links', {
   subject: text().notNull(),
   email: text().notNull(),
   expires: timestamp({ withTimezone: true, mode: 'string' }).notNull(),
+});
+
+export const pushKeys = pgTable('push_keys', {
+  id: text().primaryKey(),
+  publicKey: text('public_key').notNull(),
+  privateKey: text('private_key').notNull(),
+});
+export const pushSubscriptions = pgTable('push_subscriptions', {
+  id: text().primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id),
+  subscription: text().notNull(),
+});
+export const mutationReceipts = pgTable('mutation_receipts', {
+  id: text().primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id),
+  response: text().notNull(),
+});
+export const pushOutbox = pgTable('push_outbox', {
+  id: text().primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id),
+  payload: text().notNull(),
+  sentAt: timestamp('sent_at', { withTimezone: true, mode: 'string' }),
 });

@@ -313,25 +313,54 @@ export function selectArtwork(
   );
   const selected = candidates.find((entry) => entry.id === input.key);
   if (selected) return selected;
-  const name = normalizeArtworkText(input.name);
-  const description = normalizeArtworkText(input.description || '');
+  const clean = (value: string) =>
+    normalizeArtworkText(value)
+      .replace(/\b(comision|de|del|la|el|los|las|equipo)\b/g, ' ')
+      .replace(/[^a-z0-9 ]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  const singular = (value: string) =>
+    value
+      .split(' ')
+      .map((word) => (word.length > 4 ? word.replace(/es$|s$/, '') : word))
+      .join(' ');
+  const name = clean(input.name);
+  function similarity(a: string, b: string) {
+    if (!a || !b) return 0;
+    if (a === b || singular(a) === singular(b)) return 1;
+    let row = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      const next = [i];
+      for (let j = 1; j <= b.length; j++)
+        next[j] = Math.min(next[j - 1] + 1, row[j] + 1, row[j - 1] + Number(a[i - 1] !== b[j - 1]));
+      row = next;
+    }
+    const distance = 1 - row[b.length] / Math.max(a.length, b.length);
+    const tokens = b.split(' '),
+      overlap =
+        tokens.filter((t) => a.split(' ').includes(t)).length /
+        Math.max(a.split(' ').length, tokens.length);
+    return Math.max(distance, overlap * 0.95);
+  }
   const scores = candidates.map((entry) => {
-    const words = aliases[entry.family] || [];
-    const topic = normalizeArtworkText(entry.name.split(' · ')[0]);
-    const score =
-      (name === normalizeArtworkText(entry.name) ? 50 : 0) +
-      (name === topic ? 30 : name.includes(topic) ? 20 : 0) +
-      words.reduce(
-        (n, word) => n + (name.includes(word) ? 10 : description.includes(word) ? 1 : 0),
-        0,
-      );
-    return { entry, score };
+    const topic = clean(entry.name.split(' · ')[0]);
+    const direct = similarity(name, clean(entry.name));
+    const topicMatch = similarity(name, topic);
+    const alias = Math.max(
+      0,
+      ...(aliases[entry.family] || []).map((word) => similarity(name, word)),
+    );
+    return {
+      entry,
+      score:
+        (direct === 1 ? 100000 : 0) +
+        (topicMatch === 1 ? 10000 : 0) +
+        (alias >= 0.8 ? alias * 1000 : 0) +
+        direct * 100 +
+        topicMatch * 10,
+    };
   });
-  const best = Math.max(...scores.map((item) => item.score));
-  const matches = scores.filter((item) => item.score === best).map((item) => item.entry);
-  const hash = [...(input.seed || input.name)].reduce(
-    (value, char) => (Math.imul(value, 31) + char.charCodeAt(0)) >>> 0,
-    0,
-  );
-  return matches[hash % matches.length];
+  // Names and collection determine identity; descriptions and commission IDs do not.
+  scores.sort((a, b) => b.score - a.score || a.entry.id.localeCompare(b.entry.id));
+  return scores[0].entry;
 }

@@ -134,7 +134,7 @@ test('desktop: commission, task, comments and persistent status', async ({ page 
   await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Nueva tarea', exact: true }).click();
   await dialog.getByLabel('Título', { exact: true }).fill('Revisar material de prueba');
-  await dialog.getByLabel('Fecha y hora límite').fill('2027-06-12T12:00');
+  await dialog.getByLabel('Fecha límite', { exact: true }).fill('2027-06-12');
   await dialog.getByText('Laura Martín', { exact: true }).click();
   await dialog.getByRole('button', { name: 'Crear tarea', exact: true }).click();
   await expect(dialog.getByRole('heading', { name: 'Revisar material de prueba' })).toBeVisible();
@@ -380,12 +380,12 @@ test('Responsible has a scoped panel and can create, reschedule and delete an un
   const dialog = page.getByRole('dialog');
   const title = `Tarea Responsable ${Date.now()}`;
   await dialog.getByLabel('Título', { exact: true }).fill(title);
-  await dialog.getByLabel('Fecha y hora límite').fill('2027-06-12T12:00');
+  await dialog.getByLabel('Fecha límite', { exact: true }).fill('2027-06-12');
   await dialog.getByText('Carlos López', { exact: true }).click();
   await dialog.getByRole('button', { name: 'Crear tarea', exact: true }).click();
   await expect(dialog.getByRole('heading', { name: title })).toBeVisible();
-  await dialog.getByText('Editar fecha y responsables', { exact: true }).click();
-  await dialog.getByLabel('Fecha límite (hora de este dispositivo)').fill('2027-06-14T12:00');
+  await dialog.getByText('Editar tarea', { exact: true }).click();
+  await dialog.getByLabel('Fecha límite', { exact: true }).fill('2027-06-14');
   await dialog.getByRole('button', { name: 'Guardar asignación' }).click();
   await expect(dialog.getByText(/14 jun/).first()).toBeVisible();
   await dialog.getByRole('button', { name: 'Completar', exact: true }).click();
@@ -606,7 +606,8 @@ test('completing a task confirms persistence before showing the vine animation',
   if (await complete.isVisible()) {
     await complete.click();
     await expect(page.locator('.task-celebration')).toBeVisible();
-    await expect(page.locator('.task-celebration')).toContainText('Tarea completada');
+    await expect(page.locator('.task-celebration > strong')).toHaveCount(0);
+    await expect(page.locator('.undo-toast')).toContainText('Deshacer');
     await expect(page.locator('.vine-swing img')).toHaveAttribute('src', '/monkey-vine-2d.webp');
     await page.waitForTimeout(900);
     await page.screenshot({ path: 'artifacts/tarea-completada.png' });

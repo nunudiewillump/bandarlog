@@ -29,7 +29,7 @@ El acceso principal usa un código de seis cifras dentro de la PWA, con caducida
 
 Las cuentas nuevas completan un nombre obligatorio y pueden añadir foto. La foto es opcional; omitirla permite continuar y conserva el nombre. Se reutiliza el editor de recorte y compresión. La finalización del onboarding se persiste en servidor; los perfiles existentes mantienen su configuración.
 
-Los fallos de red ofrecen recuperación sin fingir cierre de sesión o guardado correcto. La sesión utiliza cookie HttpOnly, Secure en producción, SameSite y CSRF; no se guardan tokens de acceso en localStorage. La PWA cachea recursos estáticos y una página sin conexión, sin cachear respuestas privadas de API ni simular escrituras offline.
+Los fallos de red ofrecen recuperación sin fingir cierre de sesión o guardado correcto. La sesión utiliza cookie HttpOnly, Secure en producción, SameSite y CSRF; no se guardan tokens de acceso en localStorage. La PWA cachea recursos estáticos y conserva en IndexedDB la última información autorizada por cuenta y una cola de cambios pendientes. Las escrituras sin cobertura se distinguen de las confirmadas, se envían con recibos idempotentes y se detienen ante conflictos. Cache Storage no contiene respuestas privadas de API.
 
 ## Identidad y comunicación
 
@@ -58,3 +58,5 @@ Estado comunicado por la integración de esta rama: build y 47 pruebas unitarias
 El perfil muestra por defecto nombre, correo, foto y el grupo Rosales del Canal 702, con una pequeña pañoleta rosa y morada. Editar perfil es una acción explícita; la configuración de avisos y apariencia se despliega por separado. Los guardados parciales de nombre, foto, avisos y forestEffects conservan los demás valores. La instalación PWA declara tema y fondo #103b2d, área segura superior y barra iOS translúcida; el estado de sistema en hardware físico queda pendiente de comprobación.
 
 Esta enmienda sigue la aprobación explícita del usuario de la propuesta desktop/copa y sus ajustes finales. La fuente de la implementación es src/main.tsx, BotanicalCanopy, ForestHeader, ProfilePanel/ProfileForm y sus CSS; la propuesta estática anterior no sustituye la evidencia de aplicación real. Estado actual de pruebas y revisión en docs/forest-desktop/implementacion.md; las cifras históricas anteriores describen el PR9 y no la validación de esta nueva rama.
+
+Las correcciones posteriores al PR11, las notificaciones del dispositivo, el análisis de carga y los límites de sincronización están documentados en [workflow-corrections](docs/forest-desktop/workflow-corrections.md).

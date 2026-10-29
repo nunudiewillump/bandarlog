@@ -22,6 +22,7 @@ import {
 import { normalizePhoto } from './photos.js';
 import { artworkImage } from './artwork.js';
 import { renderMail } from './mail-template.js';
+import { pushService, validPushEndpoint } from './push.js';
 import { campSummaries } from './camp-summaries.js';
 import {
   codeVerifier,
@@ -37,6 +38,7 @@ import {
 const { production: prod, appUrl } = validateEnvironment();
 const { db, close } = await connect();
 await seed(db);
+const push = await pushService(db, appUrl);
 const app = express();
 app.disable('x-powered-by');
 app.use(helmet({ contentSecurityPolicy: prod ? undefined : false }));
@@ -121,7 +123,28 @@ async function queue(
     .onConflictDoNothing();
 }
 let sending = false;
+let pushing = false;
+async function deliverPush() {
+  if (pushing) return;
+  pushing = true;
+  try {
+    const pending = await db
+      .select()
+      .from(s.pushOutbox)
+      .where(sql`${s.pushOutbox.sentAt} is null`)
+      .limit(100);
+    for (const entry of pending) {
+      if (await push.send(entry.userId, JSON.parse(entry.payload)))
+        await db.update(s.pushOutbox).set({ sentAt: now() }).where(eq(s.pushOutbox.id, entry.id));
+    }
+  } finally {
+    pushing = false;
+  }
+}
 async function deliver() {
+  await deliverPush().catch(() =>
+    console.error('No se pudieron enviar los avisos al dispositivo.'),
+  );
   if (!mailTransport || sending) return;
   sending = true;
   try {
@@ -653,7 +676,9 @@ app.use('/api', async (q, r, n) => {
       origin &&
       !new Set([
         new URL(appUrl).origin,
-        ...(!prod ? ['http://localhost:5173', 'http://127.0.0.1:5173'] : []),
+        ...(!prod
+          ? ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://127.0.0.1:4174']
+          : []),
       ]).has(origin)
     )
       return r.status(403).json({ error: 'Origen no permitido.' });
@@ -673,6 +698,61 @@ app.use('/api', async (q, r, n) => {
     if (renewed.length) sessionCookie(r, raw, +new Date(expires));
   }
   n();
+});
+async function withReceipt(q: express.Request, r: express.Response, fn: (tx: any) => Promise<any>) {
+  const mutation = q.get('X-Mutation-ID');
+  if (mutation && !z.uuid().safeParse(mutation).success)
+    fail(400, 'Identificador de cambio no válido.');
+  return db.transaction(async (tx: any) => {
+    if (!mutation) return fn(tx);
+    const key = hash(`${r.locals.user.id}:${q.method}:${q.path}:${mutation}`);
+    const fingerprint = hash(JSON.stringify(q.body));
+    await tx
+      .insert(s.mutationReceipts)
+      .values({ id: key, userId: r.locals.user.id, response: '' })
+      .onConflictDoNothing();
+    const rows = await tx.execute(
+      sql`select response from mutation_receipts where id=${key} for update`,
+    );
+    const saved = rows.rows[0]?.response;
+    if (saved) {
+      const previous = JSON.parse(String(saved));
+      if (previous.fingerprint !== fingerprint)
+        fail(409, 'El identificador de cambio ya se ha usado.');
+      return previous.result;
+    }
+    const result = await fn(tx);
+    await tx
+      .update(s.mutationReceipts)
+      .set({ response: JSON.stringify({ fingerprint, result }) })
+      .where(eq(s.mutationReceipts.id, key));
+    return result;
+  });
+}
+const liveViews = new Set<express.Response>();
+app.get('/api/events', (q, r) => {
+  r.set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-store',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+  r.flushHeaders();
+  r.write('event: ready\ndata: {}\n\n');
+  liveViews.add(r);
+  const timer = setInterval(() => r.write(': keepalive\n\n'), 25000);
+  q.on('close', () => {
+    clearInterval(timer);
+    liveViews.delete(r);
+  });
+});
+app.use('/api', (q, r, next) => {
+  if (!['GET', 'HEAD'].includes(q.method))
+    r.on('finish', () => {
+      if (r.statusCode < 400)
+        for (const view of liveViews) view.write('event: changed\ndata: {}\n\n');
+    });
+  next();
 });
 const globalManage = (u: any) => u.role === 'admin' || u.role === 'coordination';
 async function membership(uid: string, cid: string, tx: any = db) {
@@ -792,8 +872,57 @@ async function taskMail(
         ],
       }),
     );
+    await tx
+      .insert(s.pushOutbox)
+      .values({
+        id: hash(`${key}-${user.id}`),
+        userId: user.id,
+        payload: JSON.stringify({
+          title: subject,
+          body: `${t.title} · ${c.name}`,
+          url: `/?task=${t.id}`,
+          tag: `task-${t.id}`,
+        }),
+      })
+      .onConflictDoNothing();
   }
 }
+app.get('/api/push/config', (_q, r) => r.json({ publicKey: push.publicKey }));
+app.post('/api/push/subscriptions', async (q, r) => {
+  const input = parse(
+    z.object({
+      endpoint: z.url().max(2000),
+      expirationTime: z.number().nullable().optional(),
+      keys: z.object({
+        p256dh: z.string().regex(/^[A-Za-z0-9_-]{87}$/),
+        auth: z.string().regex(/^[A-Za-z0-9_-]{22}$/),
+      }),
+    }),
+    q.body,
+  );
+  if (!validPushEndpoint(input.endpoint)) fail(400, 'Proveedor de notificaciones no admitido.');
+  const key = hash(input.endpoint);
+  await db
+    .insert(s.pushSubscriptions)
+    .values({ id: key, userId: r.locals.user.id, subscription: JSON.stringify(input) })
+    .onConflictDoUpdate({
+      target: s.pushSubscriptions.id,
+      set: { userId: r.locals.user.id, subscription: JSON.stringify(input) },
+    });
+  r.json({ ok: true });
+});
+app.delete('/api/push/subscriptions', async (q, r) => {
+  const { endpoint } = parse(z.object({ endpoint: z.string().max(2000) }), q.body);
+  await db
+    .delete(s.pushSubscriptions)
+    .where(
+      and(
+        eq(s.pushSubscriptions.id, hash(endpoint)),
+        eq(s.pushSubscriptions.userId, r.locals.user.id),
+      ),
+    );
+  r.json({ ok: true });
+});
 app.get('/api/me', (_q, r) =>
   r.json({
     user: r.locals.user,
@@ -1103,8 +1232,8 @@ app.post('/api/commissions', async (q, r) => {
   );
   const [p] = await db.select().from(s.projects).where(eq(s.projects.id, input.projectId));
   if (!p || p.archived === 'true') fail(400, 'Selecciona un proyecto activo.');
-  const cid = id();
-  await db.transaction(async (tx: any) => {
+  const cid = q.body.clientId ? parse(z.uuid(), q.body.clientId) : id();
+  const result = await withReceipt(q, r, async (tx: any) => {
     await tx.insert(s.commissions).values({
       id: cid,
       name: input.name,
@@ -1114,8 +1243,9 @@ app.post('/api/commissions', async (q, r) => {
     });
     for (const m of input.members)
       await tx.insert(s.members).values({ id: id(), commissionId: cid, ...m });
+    return { id: cid };
   });
-  r.status(201).json({ id: cid });
+  r.status(201).json(result);
 });
 app.post('/api/commissions/:id/artwork', async (q, r) => {
   const cid = String(q.params.id);
@@ -1209,8 +1339,8 @@ const taskInput = z.object({
 });
 app.post('/api/tasks', async (q, r) => {
   const input = parse(taskInput, q.body);
-  const tid = id();
-  await db.transaction(async (tx: any) => {
+  const tid = q.body.clientId ? parse(z.uuid(), q.body.clientId) : id();
+  const result = await withReceipt(q, r, async (tx: any) => {
     await tx.execute(sql`select id from commissions where id=${input.commissionId} for update`);
     await authorize(r.locals.user, input.commissionId, true, tx);
     const [p] = await tx
@@ -1231,9 +1361,10 @@ app.post('/api/tasks', async (q, r) => {
       await tx.insert(s.assignments).values({ id: id(), taskId: tid, userId });
     await event(tx, tid, r.locals.user.id, 'created', 'Ha creado la tarea.');
     await taskMail(tx, t, 'Nueva asignación', `assigned-${tid}`, { event: 'creation' });
+    return { id: tid, task: t };
   });
   void deliver();
-  r.status(201).json({ id: tid });
+  r.status(201).json(result);
 });
 app.patch('/api/tasks/:id', async (q, r) => {
   const tid = String(q.params.id);
@@ -1247,7 +1378,7 @@ app.patch('/api/tasks/:id', async (q, r) => {
     }),
     q.body,
   );
-  const changedTask = await db.transaction(async (tx: any) => {
+  const changedTask = await withReceipt(q, r, async (tx: any) => {
     await tx.execute(sql`select commission_id from tasks where id=${tid} for update`);
     const t = await editableTask(r.locals.user, tid, tx, !!(input.responsibleIds || input.due));
     if (input.expectedUpdatedAt && +new Date(input.expectedUpdatedAt) !== +new Date(t.updatedAt))
@@ -1259,9 +1390,13 @@ app.patch('/api/tasks/:id', async (q, r) => {
       for (const uid of input.responsibleIds)
         if (!(await membership(uid, t.commissionId, tx)))
           fail(400, 'Los responsables deben ser miembros de la comisión.');
-      await tx.delete(s.assignments).where(eq(s.assignments.taskId, tid));
+      const previous = await tx.select().from(s.assignments).where(eq(s.assignments.taskId, tid));
+      for (const assignment of previous)
+        if (!input.responsibleIds.includes(assignment.userId))
+          await tx.delete(s.assignments).where(eq(s.assignments.id, assignment.id));
       for (const userId of new Set(input.responsibleIds))
-        await tx.insert(s.assignments).values({ id: id(), taskId: tid, userId });
+        if (!previous.some((a: any) => a.userId === userId))
+          await tx.insert(s.assignments).values({ id: id(), taskId: tid, userId });
     }
     const update: any = {
       updatedAt: new Date(Math.max(Date.now(), +new Date(t.updatedAt) + 1)).toISOString(),
@@ -1324,11 +1459,12 @@ app.delete('/api/tasks/:id', async (q, r) => {
 app.post('/api/tasks/:id/comments', async (q, r) => {
   const tid = String(q.params.id);
   const { body } = parse(z.object({ body: z.string().trim().min(1).max(3000) }), q.body);
-  await db.transaction(async (tx: any) => {
+  const result = await withReceipt(q, r, async (tx: any) => {
     await editableTask(r.locals.user, tid, tx);
     await event(tx, tid, r.locals.user.id, 'comment', body);
+    return { ok: true };
   });
-  r.status(201).json({ ok: true });
+  r.status(201).json(result);
 });
 async function createInvitations(q: express.Request, r: express.Response) {
   const input = parse(
@@ -1652,5 +1788,6 @@ const server = app.listen(Number(process.env.PORT || 3001), '0.0.0.0', () =>
 );
 process.on('SIGTERM', () => {
   clearInterval(timer);
+  for (const view of liveViews) view.end();
   server.close(() => void close().then(() => process.exit(0)));
 });

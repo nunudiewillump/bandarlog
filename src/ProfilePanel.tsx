@@ -4,6 +4,7 @@ import type { User } from './types';
 import { api } from './api';
 import { ProfileForm, profilePreferences } from './ProfileForm';
 import './profile-panel.css';
+import { DeviceNotifications } from './DeviceNotifications';
 
 type Props = {
   user: User;
@@ -15,19 +16,23 @@ type Props = {
 function Neckerchief() {
   return (
     <svg className="profile-neckerchief" viewBox="0 0 52 52" aria-hidden="true" focusable="false">
+      <defs>
+        <pattern
+          id="scout-stripes"
+          patternUnits="userSpaceOnUse"
+          width="12"
+          height="12"
+          patternTransform="rotate(35)"
+        >
+          <rect width="12" height="12" fill="#d75a9e" />
+          <rect width="6" height="12" fill="#7b3d93" />
+        </pattern>
+      </defs>
       <path
-        d="M5 9 26 34 47 9 36 12 26 25 16 12Z"
-        fill="#d75a9e"
-        stroke="#7b3d93"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      <path d="M26 25 36 12 47 9 26 34Z" fill="#7b3d93" />
-      <path
-        d="m23 31-6 14 9-5 8 5-5-14"
-        fill="#d75a9e"
-        stroke="#7b3d93"
-        strokeWidth="2"
+        d="M5 9 26 34 47 9 36 12 26 25 16 12Z M23 31 17 45 26 40 34 45 29 31Z"
+        fill="url(#scout-stripes)"
+        stroke="#633174"
+        strokeWidth="1.5"
         strokeLinejoin="round"
       />
       <rect x="21" y="27" width="10" height="9" rx="3" fill="#7b3d93" />
@@ -161,6 +166,7 @@ export function ProfilePanel({ user, busy, run, onSaved, onLogout }: Props) {
               </button>
             </section>
           )}
+          <DeviceNotifications userId={user.id} />
           <section className="profile-appearance">
             <h2>Apariencia</h2>
             <label className="checkbox-line">
