@@ -1,6 +1,12 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page, type BrowserContext } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
+const sessions = new Map<string, Awaited<ReturnType<BrowserContext['cookies']>>>();
 async function login(page: Page, email = 'laura@example.test') {
+  const cached = sessions.get(email);
+  if (cached) {
+    await page.context().addCookies(cached);
+    return page.request.get('/api/me').then((r) => r.json());
+  }
   const requested = await page.request.post('/api/auth/request', { data: { email } });
   expect(requested.ok()).toBeTruthy();
   const message = (await page.request.get('/api/dev/mail').then((r) => r.json()))
@@ -13,6 +19,7 @@ async function login(page: Page, email = 'laura@example.test') {
       })
     ).ok(),
   ).toBeTruthy();
+  sessions.set(email, await page.context().cookies());
   return page.request.get('/api/me').then((r) => r.json());
 }
 async function task(page: Page, title: string, responsibleIds = ['carlos']) {
