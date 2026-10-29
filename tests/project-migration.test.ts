@@ -30,6 +30,14 @@ test('unifying projects preserves legacy IDs, links, assignments, roles, task st
         .rows,
       before.rows,
     );
+    assert.deepEqual(
+      (
+        await client.query<any>(
+          `select id,name,deleted_at,deleted_by from commissions where id='c'`,
+        )
+      ).rows,
+      [{ id: 'c', name: 'Material', deleted_at: null, deleted_by: null }],
+    );
     assert.equal(
       (await client.query<any>(`select role from members where id='m'`)).rows[0].role,
       'responsible',

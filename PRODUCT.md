@@ -72,3 +72,5 @@ El lápiz del detalle permite gestionar título, descripción, fecha y responsab
 ## Proyectos unificados
 
 Todos los proyectos son independientes y comparten las mismas funciones; Campamento y Evento son clasificaciones opcionales, junto a General y Otro. Se conservan tipos y referencias históricas sin convertirlas en jerarquías funcionales. Campamentos y Proyectos anuales se consultan en una única sección Proyectos. La API y la importación conservan compatibilidad con `ronda`, `camp` y `parentId` antiguos. Forest usa lienzo verde oscuro con superficies blancas en escritorio y crema en móvil. El zoom de página se restringe solo en la PWA móvil instalada. Detalles y validación en [Proyectos independientes](docs/unified-projects.md).
+
+Los ajustes de proyecto, comisión y tarea se abren desde el engranaje de su tarjeta de título. Las comisiones pueden renombrarse, editar su descripción y eliminarse con confirmación, conservando el historial. Detalles en [ajustes de cabecera](docs/entity-settings.md).

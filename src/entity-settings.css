@@ -1,0 +1,160 @@
+.project-banner,
+.commission-banner,
+.detail-heading {
+  position: relative;
+  background: #fffefa;
+  border-radius: 12px;
+}
+.project-banner,
+.commission-banner {
+  padding-right: 76px !important;
+}
+.detail-heading {
+  padding: 16px 76px 16px 16px;
+}
+.commission-banner > div:nth-child(2) {
+  padding-right: 0;
+}
+.entity-settings {
+  display: contents;
+}
+.entity-settings-trigger {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  color: #124d38;
+  background: #edf1e6;
+  border-radius: 12px;
+}
+.entity-settings-trigger:hover,
+.entity-settings-trigger[aria-expanded='true'] {
+  background: #dce8d5;
+}
+.entity-settings-panel {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  width: min(380px, calc(100vw - 32px));
+  padding: 16px;
+  border: 0;
+  border-radius: 12px;
+  overflow: auto;
+  background: #fffefa;
+  color: #24352b;
+  font: inherit;
+  box-shadow: 0 8px 32px #08291d38;
+  --muted: #52675a;
+}
+.entity-settings-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.entity-settings-heading .icon-button {
+  min-width: 44px;
+  min-height: 44px;
+}
+.entity-settings-panel label {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.entity-settings-panel form {
+  display: grid;
+  gap: 12px;
+}
+.entity-settings-panel summary {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  cursor: pointer;
+  min-height: 48px;
+  font-weight: 700;
+}
+.entity-settings-panel details {
+  border-top: 1px solid #dce2d5;
+  padding: 8px 0;
+}
+.entity-settings-panel details[open] > summary {
+  margin-bottom: 12px;
+}
+.entity-settings-panel .archive {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  text-align: left;
+  min-height: 44px;
+  color: #124d38;
+  margin-top: 16px;
+}
+.entity-settings-panel .task-management {
+  display: contents;
+}
+.entity-settings-panel .task-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.entity-settings-panel .task-edit-actions button {
+  flex: 1;
+}
+.entity-settings-panel .checkbox-line {
+  display: flex;
+}
+.entity-settings-panel p {
+  line-height: 1.5;
+}
+@media (max-width: 767px),
+  (orientation: landscape) and (max-height: 599px) and (max-width: 1023px) {
+  .entity-settings-trigger {
+    top: 8px;
+    right: 8px;
+  }
+  .project-banner {
+    padding: 16px 68px 16px 16px !important;
+  }
+  .commission-banner {
+    padding: 16px !important;
+  }
+  .commission-banner > div:nth-child(2) {
+    padding-right: 44px;
+  }
+  .detail-heading {
+    padding: 16px 60px 16px 16px !important;
+  }
+  .detail-heading {
+    min-height: 52px;
+  }
+}
+.entity-settings-panel .task-management summary > span {
+  display: inline;
+}
+.entity-settings-panel .task-management details[open] {
+  grid-column: auto;
+}
+/* The old bottom-row icon treatment must not hide labels inside the settings menu. */
+.entity-settings-panel .task-management details {
+  flex: initial;
+  border: 0;
+  border-top: 1px solid #dce2d5;
+  border-radius: 0;
+  padding: 8px 0;
+  font-size: inherit;
+  color: inherit;
+}
+.entity-settings-panel .task-management summary {
+  justify-content: flex-start;
+  min-height: 48px;
+}
+.entity-settings-panel .task-management summary > span {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
+}

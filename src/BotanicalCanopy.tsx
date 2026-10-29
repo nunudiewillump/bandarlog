@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './botanical-canopy.css';
+import { BananaArtwork } from './BananaLoader';
 
 type LeafShape = 'beech' | 'oak';
 type LeafColors = readonly [string, string];
@@ -84,6 +85,7 @@ const BRANCHES = [19, 18, 17].map((count, depth) =>
   }),
 );
 type FallingLeaf = {
+  kind: 'leaf' | 'banana';
   shape: LeafShape;
   colors: LeafColors;
   x: number;
@@ -92,19 +94,19 @@ type FallingLeaf = {
   drift: number;
   rotation: number;
 };
-// Mobile and desktop headers coexist in the DOM; only one ambient leaf may exist.
+// Mobile and desktop headers coexist; only one ambient fall batch may exist.
 let activeLeafOwner: string | null = null;
 
 export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const surface = useRef<HTMLDivElement>(null);
-  const [falling, setFalling] = useState<FallingLeaf | null>(null);
+  const [falling, setFalling] = useState<FallingLeaf[]>([]);
   const clearLeaf = useCallback(() => {
     if (activeLeafOwner === id) activeLeafOwner = null;
-    setFalling(null);
+    setFalling([]);
   }, [id]);
   useEffect(() => {
-    setFalling(null);
+    setFalling([]);
     if (!enabled || !surface.current) return;
     const header = surface.current.closest('header');
     if (!header) return;
@@ -156,23 +158,35 @@ export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
           if (!reduced.matches && visible() && activeLeafOwner === null) {
             const rect = header.getBoundingClientRect();
             activeLeafOwner = id;
-            const shape: LeafShape = Math.random() > 0.5 ? 'oak' : 'beech';
-            setFalling({
-              shape,
-              colors: FRONT_COLORS[Math.floor(Math.random() * FRONT_COLORS.length)],
-              x: Math.max(
-                18,
-                Math.min(innerWidth - 50, rect.left + rect.width * (0.1 + Math.random() * 0.8)),
-              ),
-              top: Math.max(0, rect.bottom - 34),
-              size: shape === 'oak' ? 27 + Math.random() * 5 : 33 + Math.random() * 5,
-              drift: -35 + Math.random() * 70,
-              rotation: -24 + Math.random() * 48,
-            });
+            const chance = Math.random();
+            const banana = chance < 0.1;
+            const count = !banana && chance < 0.25 ? 2 : 1;
+            setFalling(
+              Array.from({ length: count }, () => {
+                const shape: LeafShape = Math.random() > 0.5 ? 'oak' : 'beech';
+                return {
+                  kind: banana ? 'banana' : 'leaf',
+                  shape,
+                  colors: FRONT_COLORS[Math.floor(Math.random() * FRONT_COLORS.length)],
+                  x: Math.max(
+                    18,
+                    Math.min(innerWidth - 50, rect.left + rect.width * (0.1 + Math.random() * 0.8)),
+                  ),
+                  top: Math.max(0, rect.bottom - 34),
+                  size: banana
+                    ? 42
+                    : shape === 'oak'
+                      ? 27 + Math.random() * 5
+                      : 33 + Math.random() * 5,
+                  drift: -35 + Math.random() * 70,
+                  rotation: -24 + Math.random() * 48,
+                };
+              }),
+            );
           }
           schedule();
         },
-        26000 + Math.random() * 14000,
+        17000 + Math.random() * 33000,
       );
     };
     const pointerMove = (event: PointerEvent) => {
@@ -312,28 +326,37 @@ export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
           ))}
         </svg>
       </div>
-      {falling &&
+      {falling.length > 0 &&
         createPortal(
           <div className="ambient-leaf-layer" aria-hidden="true">
-            <span
-              className="ambient-leaf"
-              data-leaf-shape={falling.shape}
-              onAnimationEnd={clearLeaf}
-              style={
-                {
-                  left: falling.x,
-                  top: falling.top,
-                  width: falling.size,
-                  height: falling.size * 1.1,
-                  '--fall-drift': `${falling.drift}px`,
-                  '--fall-rotation': `${falling.rotation}deg`,
-                } as React.CSSProperties
-              }
-            >
-              <svg viewBox="-48 -98 100 105" focusable="false">
-                <BotanicalLeaf shape={falling.shape} colors={falling.colors} />
-              </svg>
-            </span>
+            {falling.map((particle, index) => (
+              <span
+                key={index}
+                className={`ambient-leaf ${particle.kind === 'banana' ? 'ambient-banana' : ''}`}
+                data-leaf-shape={particle.kind === 'leaf' ? particle.shape : undefined}
+                data-falling-kind={particle.kind}
+                onAnimationEnd={index === falling.length - 1 ? clearLeaf : undefined}
+                style={
+                  {
+                    animationDelay: `${index * 0.35}s`,
+                    left: particle.x,
+                    top: particle.top,
+                    width: particle.size,
+                    height: particle.size * 1.1,
+                    '--fall-drift': `${particle.drift}px`,
+                    '--fall-rotation': `${particle.rotation}deg`,
+                  } as React.CSSProperties
+                }
+              >
+                {particle.kind === 'banana' ? (
+                  <BananaArtwork />
+                ) : (
+                  <svg viewBox="-48 -98 100 105" focusable="false">
+                    <BotanicalLeaf shape={particle.shape} colors={particle.colors} />
+                  </svg>
+                )}
+              </span>
+            ))}
           </div>,
           document.body,
         )}

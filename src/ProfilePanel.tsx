@@ -15,7 +15,7 @@ type Props = {
 };
 function Neckerchief() {
   return (
-    <svg className="profile-neckerchief" viewBox="0 0 52 52" aria-hidden="true" focusable="false">
+    <svg className="profile-neckerchief" viewBox="0 0 52 60" aria-hidden="true" focusable="false">
       <defs>
         <pattern
           id="scout-stripes"
@@ -29,14 +29,21 @@ function Neckerchief() {
         </pattern>
       </defs>
       <path
-        d="M5 9 26 34 47 9 36 12 26 25 16 12Z M23 31 17 45 26 40 34 45 29 31Z"
+        d="M4 8Q26-2 48 8L34 34 31 38 38 54 26 49 14 54 21 38 18 34Z M13 9Q26 16 39 9L26 30Z"
+        fillRule="evenodd"
         fill="url(#scout-stripes)"
         stroke="#633174"
         strokeWidth="1.5"
         strokeLinejoin="round"
       />
-      <rect x="21" y="27" width="10" height="9" rx="3" fill="#7b3d93" />
-      <path d="m24 29 4 5" stroke="#ed9cc5" strokeWidth="2" strokeLinecap="round" />
+      <path
+        d="M21 30 31 30 32 39 20 39Z"
+        fill="url(#scout-stripes)"
+        stroke="#633174"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path d="m23 32 6 5" stroke="#ed9cc5" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }

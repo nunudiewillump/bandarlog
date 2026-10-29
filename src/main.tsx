@@ -82,6 +82,8 @@ import { Workload } from './Workload';
 import { SyncStatus } from './SyncStatus';
 import { deadlineISO, deadlineDay } from './deadline';
 import { offline, clearOffline, notifyDataChanged } from './offline';
+import { EntitySettings } from './EntitySettings';
+import { CommissionSettings } from './CommissionSettings';
 import { TaskEditor } from './TaskEditor';
 import { TaskChecklist } from './TaskChecklist';
 import { ProfilePanel } from './ProfilePanel';
@@ -1612,54 +1614,76 @@ function App() {
                       {date(activeProject.starts)} – {date(activeProject.ends)}
                     </p>
                   </div>
-                </div>
-                {manage && activeProject.archived !== 'true' && (
-                  <details className="project-appearance">
-                    <summary>Ajustes del proyecto</summary>
-                    <label>
-                      Tipo (opcional)
-                      <Select
-                        aria-label="Tipo de proyecto"
-                        value={projectType(activeProject.type)}
-                        disabled={busy}
-                        onChange={(e) =>
+                  {manage && (
+                    <EntitySettings key={activeProject.id} label="Ajustes del proyecto">
+                      {activeProject.archived !== 'true' && (
+                        <>
+                          <label>
+                            Tipo (opcional)
+                            <Select
+                              aria-label="Tipo de proyecto"
+                              value={projectType(activeProject.type)}
+                              disabled={busy}
+                              onChange={(e) =>
+                                void run(async () => {
+                                  await api(`/projects/${project}`, 'PATCH', {
+                                    type: e.target.value,
+                                  });
+                                })
+                              }
+                            >
+                              {projectTypes.map((type) => (
+                                <option key={type.id} value={type.id}>
+                                  {type.name}
+                                </option>
+                              ))}
+                            </Select>
+                          </label>
+                          <label className="project-artwork-theme">
+                            Colección de iconos
+                            <Select
+                              value={activeProject.artworkTheme || 'scout'}
+                              disabled={
+                                busy || inferArtworkTheme(activeProject.name) === 'christmas'
+                              }
+                              onChange={(event) =>
+                                void run(async () => {
+                                  await api(`/projects/${project}`, 'PATCH', {
+                                    artworkTheme: event.target.value,
+                                  });
+                                }, 'Colección actualizada')
+                              }
+                            >
+                              {artworkThemes.map((theme) => (
+                                <option key={theme.id} value={theme.id}>
+                                  {theme.name}
+                                </option>
+                              ))}
+                            </Select>
+                            <span className="hint">
+                              Se aplica a todas las comisiones de este proyecto.
+                            </span>
+                          </label>
+                        </>
+                      )}
+                      <button
+                        className="text-link archive"
+                        onClick={() =>
                           void run(async () => {
-                            await api(`/projects/${project}`, 'PATCH', { type: e.target.value });
+                            await api(`/projects/${project}`, 'PATCH', {
+                              archived: activeProject.archived !== 'true',
+                            });
                           })
                         }
                       >
-                        {projectTypes.map((type) => (
-                          <option key={type.id} value={type.id}>
-                            {type.name}
-                          </option>
-                        ))}
-                      </Select>
-                    </label>
-                    <label className="project-artwork-theme">
-                      Colección de iconos
-                      <Select
-                        value={activeProject.artworkTheme || 'scout'}
-                        disabled={busy || inferArtworkTheme(activeProject.name) === 'christmas'}
-                        onChange={(event) =>
-                          void run(async () => {
-                            await api(`/projects/${project}`, 'PATCH', {
-                              artworkTheme: event.target.value,
-                            });
-                          }, 'Colección actualizada')
-                        }
-                      >
-                        {artworkThemes.map((theme) => (
-                          <option key={theme.id} value={theme.id}>
-                            {theme.name}
-                          </option>
-                        ))}
-                      </Select>
-                      <span className="hint">
-                        Se aplica a todas las comisiones de este proyecto.
-                      </span>
-                    </label>
-                  </details>
-                )}
+                        <Archive size={16} />
+                        {activeProject.archived === 'true'
+                          ? 'Restaurar proyecto'
+                          : 'Archivar proyecto conservando el historial'}
+                      </button>
+                    </EntitySettings>
+                  )}
+                </div>
                 <div className="page-tabs">
                   {[
                     ['tasks', 'Resumen'],
@@ -1732,23 +1756,17 @@ function App() {
                   </section>
                 )}
                 {tab === 'people' && <People />}
-                {manage && (
-                  <button
-                    className="text-link archive"
-                    onClick={() =>
-                      void run(async () => {
-                        await api(`/projects/${project}`, 'PATCH', {
-                          archived: activeProject.archived !== 'true',
-                        });
-                      })
-                    }
-                  >
-                    <Archive size={16} />
-                    {activeProject.archived === 'true'
-                      ? 'Restaurar proyecto'
-                      : 'Archivar proyecto conservando el historial'}
-                  </button>
-                )}
+              </>
+            )}
+            {view === 'commission' && !activeCommission && (
+              <>
+                <Empty
+                  text="Comisión no disponible"
+                  sub="Puede haberse eliminado o no tener acceso."
+                />
+                <button className="secondary" onClick={() => navigate('commissions')}>
+                  Ver comisiones
+                </button>
               </>
             )}
             {view === 'commission' && activeCommission && (
@@ -1775,16 +1793,27 @@ function App() {
                       </>
                     )}
                   </div>
-                  {canManage(commission) &&
-                    !activeCommission.artworkLocked &&
-                    activeProject?.archived !== 'true' && (
-                      <button
-                        className="text-link artwork-retry"
-                        onClick={() => setModal('artwork')}
-                      >
-                        Elegir icono
-                      </button>
-                    )}
+                  {canManage(commission) && activeProject?.archived !== 'true' && (
+                    <EntitySettings key={activeCommission.id} label="Ajustes de la comisión">
+                      <CommissionSettings
+                        commission={activeCommission}
+                        busy={busy}
+                        run={run}
+                        onDeleted={() => navigate('project', activeCommission.projectId)}
+                      />
+                      {!activeCommission.artworkLocked && (
+                        <button
+                          className="text-link artwork-retry"
+                          onClick={(event) => {
+                            event.currentTarget.closest<HTMLElement>('[popover]')?.hidePopover();
+                            setModal('artwork');
+                          }}
+                        >
+                          Elegir icono
+                        </button>
+                      )}
+                    </EntitySettings>
+                  )}
                 </section>
                 {canManage(commission) && desktopSummary(scoped)}
                 {canManage(commission) && (
@@ -2011,6 +2040,60 @@ function App() {
                 <div className="detail-heading">
                   <h2>{detail.title}</h2>
                   {overdue(detail) && <span className="badge overdue">Vencida</span>}
+                  {canManage(detail.commissionId) && pOf(cOf(detail))?.archived !== 'true' && (
+                    <EntitySettings key={detail.id} label="Ajustes de la tarea">
+                      <div className="task-management">
+                        {' '}
+                        {canManage(detail.commissionId) &&
+                          pOf(cOf(detail))?.archived !== 'true' && (
+                            <TaskEditor
+                              key={detail.id}
+                              task={detail}
+                              members={[
+                                ...new Map(
+                                  [
+                                    ...data.members
+                                      .filter((m) => m.commissionId === detail.commissionId)
+                                      .map((m) => data.users.find((u) => u.id === m.userId)!),
+                                    ...usersOf(detail),
+                                  ]
+                                    .filter(Boolean)
+                                    .map((user) => [user.id, user]),
+                                ).values(),
+                              ]}
+                              responsibleIds={usersOf(detail).map((u) => u.id)}
+                              busy={busy}
+                              run={run}
+                            />
+                          )}
+                        {canManage(detail.commissionId) &&
+                          pOf(cOf(detail))?.archived !== 'true' && (
+                            <details className="delete-task">
+                              <summary>
+                                <Trash2 size={18} aria-hidden="true" />
+                                <span>Eliminar tarea</span>
+                              </summary>
+                              <p>
+                                Se quitará de los listados y del progreso. Conservaremos el
+                                historial.
+                              </p>
+                              <button
+                                className="secondary danger"
+                                disabled={busy}
+                                onClick={() =>
+                                  void run(async () => {
+                                    await api(`/tasks/${detail.id}`, 'DELETE');
+                                    setSelected('');
+                                  }, 'Tarea eliminada')
+                                }
+                              >
+                                Confirmar eliminación
+                              </button>
+                            </details>
+                          )}
+                      </div>{' '}
+                    </EntitySettings>
+                  )}
                 </div>
                 <p className="muted">
                   {cOf(detail)?.name} · {pOf(cOf(detail))?.name}
@@ -2238,51 +2321,6 @@ function App() {
                       )}
                     </div>
                   )}
-                <div className="task-management">
-                  {' '}
-                  {canManage(detail.commissionId) && pOf(cOf(detail))?.archived !== 'true' && (
-                    <TaskEditor
-                      key={detail.id}
-                      task={detail}
-                      members={[
-                        ...new Map(
-                          [
-                            ...data.members
-                              .filter((m) => m.commissionId === detail.commissionId)
-                              .map((m) => data.users.find((u) => u.id === m.userId)!),
-                            ...usersOf(detail),
-                          ]
-                            .filter(Boolean)
-                            .map((user) => [user.id, user]),
-                        ).values(),
-                      ]}
-                      responsibleIds={usersOf(detail).map((u) => u.id)}
-                      busy={busy}
-                      run={run}
-                    />
-                  )}
-                  {canManage(detail.commissionId) && pOf(cOf(detail))?.archived !== 'true' && (
-                    <details className="delete-task">
-                      <summary>
-                        <Trash2 size={18} aria-hidden="true" />
-                        <span>Eliminar tarea</span>
-                      </summary>
-                      <p>Se quitará de los listados y del progreso. Conservaremos el historial.</p>
-                      <button
-                        className="secondary danger"
-                        disabled={busy}
-                        onClick={() =>
-                          void run(async () => {
-                            await api(`/tasks/${detail.id}`, 'DELETE');
-                            setSelected('');
-                          }, 'Tarea eliminada')
-                        }
-                      >
-                        Confirmar eliminación
-                      </button>
-                    </details>
-                  )}
-                </div>
               </>
             ) : (
               <Empty text="Tarea no disponible" sub="Puede que no tengas acceso a esta comisión." />

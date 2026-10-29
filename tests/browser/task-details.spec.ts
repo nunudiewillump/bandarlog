@@ -67,10 +67,22 @@ for (const width of [320, 1440])
     await page.goto(`/?task=${created.id}`);
     const dialog = page.getByRole('dialog');
     await expect(dialog.getByLabel('Título', { exact: true })).toHaveCount(0);
+    if (
+      (await dialog
+        .getByRole('button', { name: 'Ajustes de la tarea', exact: true })
+        .getAttribute('aria-expanded')) !== 'true'
+    )
+      await dialog.getByRole('button', { name: 'Ajustes de la tarea', exact: true }).click();
     await dialog.locator('.reassign > summary').click();
     await dialog.getByLabel('Título', { exact: true }).fill('Cambio descartado');
     await dialog.getByRole('button', { name: 'Cancelar', exact: true }).click();
     await expect(dialog.locator('.detail-heading')).toContainText(`Editar ${width}`);
+    if (
+      (await dialog
+        .getByRole('button', { name: 'Ajustes de la tarea', exact: true })
+        .getAttribute('aria-expanded')) !== 'true'
+    )
+      await dialog.getByRole('button', { name: 'Ajustes de la tarea', exact: true }).click();
     await dialog.locator('.reassign > summary').click();
     await dialog.getByLabel('Título', { exact: true }).fill(`Título actualizado ${width}`);
     await dialog.getByLabel('Descripción', { exact: true }).fill('Descripción actualizada');
@@ -84,6 +96,12 @@ for (const width of [320, 1440])
       (t: any) => t.id === created.id,
     );
     expect(+new Date(saved.due)).toBe(+new Date(created.task.due));
+    if (
+      (await dialog
+        .getByRole('button', { name: 'Ajustes de la tarea', exact: true })
+        .getAttribute('aria-expanded')) !== 'true'
+    )
+      await dialog.getByRole('button', { name: 'Ajustes de la tarea', exact: true }).click();
     await dialog.locator('.reassign > summary').click();
     await dialog.getByLabel('Fecha límite', { exact: true }).fill('2027-06-16');
     await dialog.getByRole('checkbox', { name: 'Álex Martín', exact: true }).check();
@@ -189,6 +207,12 @@ test('an open editor retains its draft and refuses to overwrite a concurrent cha
   const created = await task(page, 'Título inicial');
   await page.goto(`/?task=${created.id}`);
   const dialog = page.getByRole('dialog');
+  if (
+    (await dialog
+      .getByRole('button', { name: 'Ajustes de la tarea', exact: true })
+      .getAttribute('aria-expanded')) !== 'true'
+  )
+    await dialog.getByRole('button', { name: 'Ajustes de la tarea', exact: true }).click();
   await dialog.locator('.reassign > summary').click();
   await dialog.getByLabel('Descripción', { exact: true }).fill('Borrador local');
   await patch(page, created.id, { title: 'Cambio de otra persona' });
@@ -197,6 +221,12 @@ test('an open editor retains its draft and refuses to overwrite a concurrent cha
   await expect(dialog.getByLabel('Descripción', { exact: true })).toHaveValue('Borrador local');
   await dialog.getByRole('button', { name: 'Cancelar', exact: true }).click();
   await page.reload();
+  if (
+    (await dialog
+      .getByRole('button', { name: 'Ajustes de la tarea', exact: true })
+      .getAttribute('aria-expanded')) !== 'true'
+  )
+    await dialog.getByRole('button', { name: 'Ajustes de la tarea', exact: true }).click();
   await dialog.locator('.reassign > summary').click();
   await expect(dialog.getByLabel('Título', { exact: true })).toHaveValue('Cambio de otra persona');
   await expect(dialog.getByLabel('Descripción', { exact: true })).toHaveValue(
@@ -218,7 +248,9 @@ test('offline title edits and dependent checklist changes sync without losing st
   await page.goto(`http://127.0.0.1:4174/?task=${created.id}`);
   await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
   await page.reload();
-  await expect(page.getByRole('dialog').locator('.detail-heading')).toHaveText('Sin cobertura');
+  await expect(page.getByRole('dialog').locator('.detail-heading > h2')).toHaveText(
+    'Sin cobertura',
+  );
   await context.setOffline(true);
   await page.reload();
   const section = page.getByRole('region', { name: 'Pasos de la tarea' }),
@@ -229,6 +261,12 @@ test('offline title edits and dependent checklist changes sync without losing st
   await expect(
     section.getByRole('checkbox', { name: 'Completar paso: Paso inicial', exact: true }),
   ).toBeChecked();
+  if (
+    (await dialog
+      .getByRole('button', { name: 'Ajustes de la tarea', exact: true })
+      .getAttribute('aria-expanded')) !== 'true'
+  )
+    await dialog.getByRole('button', { name: 'Ajustes de la tarea', exact: true }).click();
   await dialog.locator('.reassign > summary').click();
   await dialog.getByLabel('Título', { exact: true }).fill('Editada sin cobertura');
   await dialog.getByLabel('Descripción', { exact: true }).fill('Guardada en la cola');

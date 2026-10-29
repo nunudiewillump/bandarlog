@@ -38,8 +38,14 @@ export const commissions = pgTable(
     mascotUrl: text('mascot_url'),
     artworkStatus: text('artwork_status').notNull().default('pending'),
     artworkKey: text('artwork_key'),
+    deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'string' }),
+    deletedBy: text('deleted_by').references(() => users.id),
   },
-  (t) => [uniqueIndex('commission_project_name').on(t.projectId, t.name)],
+  (t) => [
+    uniqueIndex('commission_project_name')
+      .on(t.projectId, t.name)
+      .where(sql`${t.deletedAt} is null`),
+  ],
 );
 export const members = pgTable(
   'members',

@@ -97,20 +97,23 @@ test('mobile save indicator stays compact and task controls remain below activit
   expect(box!.height).toBeLessThan(70);
   expect(box!.width).toBeLessThan(220);
   finish();
+  await expect(page.getByRole('dialog', { name: 'Nueva tarea', exact: true })).not.toBeVisible();
   await expect(dialog.locator('.detail-heading')).toBeVisible();
   const positions = await dialog.evaluate((el) => ({
     activity: el.querySelector('.activity-list')!.getBoundingClientRect().top,
     actions: el.querySelector('.detail-actions')!.getBoundingClientRect().top,
-    management: el.querySelector('.task-management')!.getBoundingClientRect().top,
+    settings: el.querySelector('.entity-settings-trigger')!.getBoundingClientRect().top,
+    heading: el.querySelector('.detail-heading')!.getBoundingClientRect().top,
   }));
   expect(positions.actions).toBeGreaterThan(positions.activity);
-  expect(positions.management).toBeGreaterThan(positions.actions);
+  expect(positions.settings).toBeGreaterThanOrEqual(positions.heading);
   await mkdir('artifacts/workflow-fixes', { recursive: true });
   await dialog.locator('.detail-actions').scrollIntoViewIfNeeded();
   await page.screenshot({ path: 'artifacts/workflow-fixes/mobile-task.png' });
   await dialog.getByRole('button', { name: 'Completar', exact: true }).click();
   await expect(page.locator('.undo-toast')).toBeVisible();
   await expect(page.locator('.task-celebration > strong')).toHaveCount(0);
+  await dialog.getByRole('button', { name: 'Ajustes de la tarea', exact: true }).click();
   await dialog.locator('.delete-task > summary').click();
   await dialog.getByRole('button', { name: 'Confirmar eliminación' }).click();
 });

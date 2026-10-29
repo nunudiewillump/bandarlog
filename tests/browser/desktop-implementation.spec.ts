@@ -142,7 +142,7 @@ test('a loose leaf uses the canopy artwork, can fall centrally and never interce
   await expect(page.locator('.botanical-decoration:visible')).toHaveCount(1);
   await page.evaluate(() => document.fonts.ready);
   await page.clock.runFor(100);
-  await page.clock.runFor(33_100);
+  await page.clock.runFor(33_600);
   const leaf = page.locator('.ambient-leaf');
   await expect(leaf).toHaveCount(1);
   const shape = await leaf.getAttribute('data-leaf-shape');
@@ -215,3 +215,34 @@ test('installed PWA declares a dark forest status area and preserves safe-area l
   expect(offline).toContain('name="theme-color" content="#103b2d"');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+for (const [chance, count, kind] of [
+  [0.2, 2, 'leaf'],
+  [0.05, 1, 'banana'],
+] as const)
+  test(`canopy fall selects ${count} ${kind} and respects appearance preferences`, async ({
+    page,
+  }) => {
+    await page.addInitScript((value) => {
+      Math.random = () => value;
+    }, chance);
+    await page.clock.install();
+    await preparedUser(page);
+    await page.setViewportSize({ width: 390, height: 950 });
+    await page.goto('/');
+    await expect(page.locator('.botanical-decoration:visible')).toHaveCount(1);
+    await page.clock.runFor(100);
+    await page.clock.runFor(17000 + chance * 33000 + 100);
+    const particles = page.locator('.ambient-leaf');
+    await expect(particles).toHaveCount(count);
+    await expect(page.locator(`[data-falling-kind="${kind}"]`)).toHaveCount(count);
+    if (kind === 'banana') {
+      await expect(particles.locator('svg')).toHaveCount(1);
+      await expect(particles.locator('.banana-fill-progress')).toHaveCount(0);
+      await expect(particles.locator('ellipse')).toHaveCount(3);
+    }
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await expect(particles).toHaveCount(0);
+    await page.clock.runFor(35000);
+    await expect(particles).toHaveCount(0);
+  });

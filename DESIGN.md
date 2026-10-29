@@ -256,3 +256,7 @@ Esta corrección histórica usó crema a todos los anchos; la decisión posterio
 El lienzo operativo desktop es verde oscuro #103b2d. Las superficies de lectura y acción siguen siendo blancas #fffefa con tinta #24352b: paneles, encabezados, listados, comisiones, proyectos, perfil, pestañas y vacíos. Solo los elementos que estén directamente sobre el lienzo llevan texto claro. El móvil conserva crema. Esta decisión del usuario sustituye la instrucción anterior de lienzo crema a todos los tamaños.
 
 Proyectos es una única sección, con clasificación opcional y filtro. El tipo no cambia las funciones ni crea una jerarquía visual. La barra móvil incluye Proyectos y mantiene objetivos táctiles de al menos 44 px. El zoom de página se limita únicamente en la PWA móvil instalada; los controles de recorte de foto siguen funcionando. Ver [Proyectos independientes](docs/unified-projects.md).
+
+## Ajustes de cabecera y copa
+
+El engranaje de gestión vive a la derecha de la tarjeta de título de proyecto, comisión o tarea y reserva espacio para evitar solapar nombres largos. Usa el mismo objetivo de 44 px en todos los dispositivos y un popover de papel con tinta oscura. Formularios y eliminación se muestran progresivamente; las acciones operativas principales siguen visibles. La copa usa 17–50 segundos por lote, 15 % de dos hojas y 10 % de un plátano del indicador de carga. La preferencia de apariencia y movimiento reducido siguen siendo vinculantes. La pañoleta completa del perfil lleva franjas rosas y moradas.
