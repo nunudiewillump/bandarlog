@@ -1,0 +1,188 @@
+{
+  "kind": "Independent final implementation review",
+  "verdict": "ship",
+  "materialUnresolved": 0,
+  "reviewedAt": "2026-10-29",
+  "sourceOfTruth": "Actual React application served by Vite5200, synthetic mobileFixture API routes scoped to review browser; no server or production writes.",
+  "captureScope": {
+    "mainAndStateCaptures": 42,
+    "formAndCropCaptures": 9,
+    "otherCaptures": [
+      "ambient-leaf-1440.png",
+      "commission-static-open-1024.png"
+    ],
+    "widths": [
+      320,
+      390,
+      430,
+      1024,
+      1440,
+      1920
+    ],
+    "freshDirectory": "artifacts/desktop-final-review-confirmation",
+    "earlierAdditionalEvidence": "artifacts/desktop-final-review (includes1280px, inspected representative earliercaptures; freshness judged against current source and fresh confirmation, not claimed exact current screenshots)"
+  },
+  "observations": {
+    "pageErrors": [],
+    "mainHorizontalOverflow": [],
+    "brokenImages": [],
+    "formHorizontalOverflow": [],
+    "hover": {
+      "responding": 14,
+      "maxX": 5.89683871871916,
+      "header": {
+        "x": 218,
+        "y": 0,
+        "width": 1222,
+        "height": 68
+      }
+    },
+    "centralLeaf": {
+      "count": 1,
+      "shape": "beech",
+      "samePath": true,
+      "x": 829,
+      "y": 74,
+      "width": 35.5,
+      "height": 39.046875,
+      "centerAllowed": true,
+      "pointerEvents": "none",
+      "hitLeaf": false
+    },
+    "reducedAfterAwaitedReactUpdate": {
+      "leaves": 0,
+      "canopies": 2,
+      "visibleCanopies": 1,
+      "transformedBoughs": 0
+    },
+    "openCountConfirmation": {
+      "tag": "SPAN",
+      "text": "4 abiertas",
+      "role": null,
+      "tabIndex": -1
+    }
+  },
+  "matrix": [
+    {
+      "requirement": "Forest desktop composition and useful role-aware home",
+      "status": "pass",
+      "proof": "Fresh home1440/1920,commissions1440,commission1024,project1024 and source desktopHome/desktopSummary. Original icon references retained; no static3D render found."
+    },
+    {
+      "requirement": "Mobile header on320/390/430 with organic foliage edge and stable actions",
+      "status": "pass",
+      "proof": "Fresh profile320,commissions430,home/task/profile captures; finalhas-foliage darktopbandgradient removes flatdarkrectangle while preserving plainbasewhenhidden.0documentoverflow."
+    },
+    {
+      "requirement": "Read-only profile first; edit only on intent; group and pink/purple neckerchief",
+      "status": "pass",
+      "proof": "Fresh profile320/1920 +profile-edit390 +profile-save-error390; no inputs initial, oneEditperfil action, onlyrequestedname/photo edit. Userenteredname remains inerror; email/group read-only."
+    },
+    {
+      "requirement": "Preference hides canopy/leaves across devices without changing notification settings",
+      "status": "pass",
+      "proof": "ProfilePanel source partialPATCH and root47API parent result; independently toggled in routedUI and observed no decoration+plainheader; rootbrowser coverscrossviewport/reload. No appAPI validation claim fromroutedvisualfixture."
+    },
+    {
+      "requirement": "More visible local hover, shared botanical leaf art, occasional nonblocking central fall",
+      "status": "pass",
+      "proof": {
+        "hover": {
+          "responding": 14,
+          "maxX": 5.89683871871916,
+          "header": {
+            "x": 218,
+            "y": 0,
+            "width": 1222,
+            "height": 68
+          }
+        },
+        "fall": {
+          "count": 1,
+          "shape": "beech",
+          "samePath": true,
+          "x": 829,
+          "y": 74,
+          "width": 35.5,
+          "height": 39.046875,
+          "centerAllowed": true,
+          "pointerEvents": "none",
+          "hitLeaf": false
+        },
+        "source": "BotanicalLeaf shared component; interval26–40s visible/non-reduced; single globalowner andcleanup."
+      }
+    },
+    {
+      "requirement": "Reduced ambient motion, independent always-crossing task vine and queued completions",
+      "status": "pass-with-separate-test-evidence",
+      "proof": "Ambient measured0leaves/0transforms afterawaitingReactmediaupdate. main.tsx queues uniquecompletionIDs and keyedanimation; desktopCSSkeepslinear2.2s vinecross inreduced. Parenttargetedtests observed2actualanimationstarts and lateraldisplacement; thisreview didnot independentlyrepeat taskAPIevents."
+    },
+    {
+      "requirement": "PWA dark system-area configuration online/offline and safe-area layout",
+      "status": "pass-configuration-only",
+      "proof": "index/manifest/offline theme#103b2d; appleblack-translucent; viewport-fit=cover; safe-area topunderlay/padding source. PhysicaliOS/Androidinstalledsystembar is unverified."
+    },
+    {
+      "requirement": "Existing task/detail/invitation/create/crop flows remain legible",
+      "status": "pass-visual-source",
+      "proof": "9freshforms/detail/cropstates at320/1440+crop390, containeddialogs and nohorizontaloverflow. Existing guardedactions/APIhandlers preserved; parentfunctionaltests coverrealmutations."
+    }
+  ],
+  "initialBatchCorrections": [
+    {
+      "item": "Mobile solid darkrectangle below leaves",
+      "owner": "root",
+      "status": "fixed",
+      "proof": "Fresh profile320/430 and sourcehas-foliage gradient topband."
+    },
+    {
+      "item": "Open count was a misleading all-tasks filter button",
+      "owner": "root",
+      "status": "fixed",
+      "proof": {
+        "tag": "SPAN",
+        "text": "4 abiertas",
+        "role": null,
+        "tabIndex": -1
+      }
+    }
+  ],
+  "nonblocking": [
+    {
+      "severity": "minor",
+      "item": "Legacy project detail repeats progress below compact summary; retained existing usefulactionstructure and doesnotobscurecontrols."
+    },
+    {
+      "severity": "minor",
+      "item": "Some synthetic-fixture count copy retains plural forms such as1vencidas; no ambiguity aboutvalue/state."
+    }
+  ],
+  "remainingProof": [
+    "Full final50browser run andexactheadCI coordinatedbyparent; no claim here thatall50havepassed.",
+    "PhysicalinstalledPWA statusbar/notch in iOS/Android, longsession/backgroundtabbehavior, performance/comfort ondevices, assistivetechnology andfullaccessibility certification remain unverified."
+  ],
+  "sourceHashesAtFinalConfirmation": {
+    "src/main.tsx": "35f31fd8615dd0cfc22a2ac1fa27b2e798ffca9cede955197b4db9f412f85730",
+    "src/desktop-forest.css": "bd6fb589ac7cecb3015c0381cfd21922dce29ca823f65116d24b08d366d9e351",
+    "src/BotanicalCanopy.tsx": "4b1f0136ad2592eb2c92b14bf6648deeff0f1ad83da1071a3d16226b1394d67a",
+    "src/botanical-canopy.css": "a7fb5a0847ee9d36cc48fa64f2199c3b44a69ad0cfe5df82e7ddc65582bfb9ce",
+    "src/ProfilePanel.tsx": "a223806f1439b45fd22fdfb7adf14386daaa722ba9d3f4e854f27cf78b649e88",
+    "src/ProfileForm.tsx": "48d62a880474da97b25c37e7feef4cd3bc4b62683fab963eac78f40989eabcb9",
+    "src/profile-panel.css": "24989b01aa17c67fd8b83f66aac237de3405012df9dd1c10094416ccdecb13c0",
+    "src/ForestHeader.tsx": "4829057c73b9cb700c9791d75ae6103f1cf9787642623530de0283afe73c15dd",
+    "index.html": "a0c520a8646f7b9bdc3ac5ad3e958195eef35bc2d2dd0ffd6af4bf2ecc0005bc",
+    "public/manifest.webmanifest": "6a49ac9a709e2bf6ef19c1ecf57144f9c3d0d7642f0d774f1167795821fa00dd",
+    "public/offline.html": "abbb296e663b0a9b152572120f2c62d089adea57870990cc2cf5804526c9f2b2",
+    "public/sw.js": "8ac21fc10ad131368a5b08f3f7e142a5bad90c65fae05f5a729ed6863d939771",
+    "server/preferences.ts": "3805c8ed5cc00a17f8e287985481f7962281069e5b21d4cf32bd00f4f5e885dd",
+    "server/index.ts": "968b41baeb437d6d9de94cc2609d7fc8d6cee8505102fdd161dab00124150503"
+  },
+  "authority": "Implementationreview only; user already authorized implementation. This report does not authorize merge or deployment.",
+  "postReviewSourceGuard": {
+    "change": "Strengthened root background selector from html to html:root so baseline :root cannot override the installed-PWA dark green root paint. Body cream and organic header remain unchanged.",
+    "reason": "Integrator full suite49pass/1PWA assertion found CSS specificity conflict; targetedrerun/CI pending, no claim here ofall50pass.",
+    "source": "src/botanical-canopy.css",
+    "sha256": "a7fb5a0847ee9d36cc48fa64f2199c3b44a69ad0cfe5df82e7ddc65582bfb9ce",
+    "scope": "CSS specificity correctness only; no new visual direction or fullcapture rerun."
+  }
+}

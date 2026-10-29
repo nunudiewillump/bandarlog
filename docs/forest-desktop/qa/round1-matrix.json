@@ -1,0 +1,798 @@
+{
+  "proposal": "correction-round1",
+  "verdict": "meets with corrections",
+  "inspection": "All13sheetsD01–D73 plusfullD19,D53,D65,D73; mainreviewD01,D08,D45; sourcecontractcheck;166geometryrecords.",
+  "geometry": {
+    "cases": 166,
+    "pageErrors": 0,
+    "horizontalOverflow": 0,
+    "brokenImages": 0,
+    "rawTargetsBelow24": 0
+  },
+  "remainingMaterial": [
+    {
+      "id": "R1",
+      "screens": [
+        "D08",
+        "D09"
+      ],
+      "classification": "repairable drift",
+      "observed": "Todas displays6openrows despite8total/2done summary, with no truncation caption.",
+      "action": "Renderall8ServicesrowsunderTodas."
+    },
+    {
+      "id": "R2",
+      "screens": [
+        "D19"
+      ],
+      "classification": "repairable drift",
+      "observed": "Last2Logística incidents belong to annualproject but displayCampamentodeNavidad.",
+      "action": "Useannualcontextforbothrows."
+    },
+    {
+      "id": "R3",
+      "screens": [
+        "D73"
+      ],
+      "classification": "repairable drift",
+      "observed": "Annualdetailadded,butprojecttabsandAddPeoplemissing.",
+      "action": "Retainavailabletabsandannualfixedinvitationtarget."
+    }
+  ],
+  "nonBlockingCopyNotes": [
+    "Header month/year spacing and occasional singular/plural copy are minor; do not alter required product copy or journey. No independent copy-polish loop."
+  ],
+  "resolvedGroups": [
+    "Q01density/duplication",
+    "Q03profile",
+    "Q04authshell",
+    "Q05clearcounts",
+    "Q06annualicons",
+    "Q07unmatchedpicker",
+    "Q08primarytargets/filterlayout/materialcopyspacing"
+  ],
+  "partialGroups": [
+    "Q02 exceptR1/R2",
+    "Q09 exceptR3"
+  ],
+  "rows": [
+    {
+      "screen": "D01",
+      "requirement": "Inicio · Coordinación",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Compact priorities and global context; attention is visible earlier, without KPI/donut repetition.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-01.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D02",
+      "requirement": "Inicio · Scouter",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Scouter actions remain assigned-only; duplicate commission list removed.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-01.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D03",
+      "requirement": "Inicio · Responsable",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Responsable has management entry and one commission context list.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-01.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D04",
+      "requirement": "Mis tareas al día · equipo activo",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Personal-clear team rows now assigned to LM/CL/NR, with Open links.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-01.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D05",
+      "requirement": "Todo al día",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "All-clear reconciles 50 finished tasks,8commissions,40/40camp+10/10annual, non-redzeroalerts.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-01.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D06",
+      "requirement": "Primera instalación sin datos",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Firstprojectempty withspecificCTA,nomadeupcontent.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-01.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D07",
+      "requirement": "Comisiones · agrupación por contexto",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Six normalcommissionnameswithChristmasicons andcomparablerows.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-02.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D08",
+      "requirement": "Comisión · Responsable",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Servicios scoped rows corrected, but Todas shows6open instead of8including2done.",
+      "classification": "repairable drift",
+      "nextAction": [
+        "R1"
+      ],
+      "inspectedRender": "renders-round1/sheet-02.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D09",
+      "requirement": "Comisión · Scouter",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Scouter scope/actions corrected; same missing2done rows underTodas.",
+      "classification": "repairable drift",
+      "nextAction": [
+        "R1"
+      ],
+      "inspectedRender": "renders-round1/sheet-02.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D10",
+      "requirement": "Personas de la comisión",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "CurrentAM commissionResponsable now matches profile label.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-02.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D11",
+      "requirement": "Actividad de la comisión",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Commissionactivitywithauthor/date/changecontext.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-02.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D12",
+      "requirement": "Listado de tareas",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Tasktablewithcontext,assignees,date,status,filters.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-02.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D13",
+      "requirement": "Detalle de tarea asignada",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Scoped Servicios drawer matches blocked status and assignments; comment/edit controls for assigned/manage role.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-03.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D14",
+      "requirement": "Editar tarea",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Edittaskretainsname,date,time,description,assignment,cancel.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-03.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D15",
+      "requirement": "Bloquear · motivo obligatorio",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Blockdialogrequiresreasontext,saveandcancel.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-03.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D16",
+      "requirement": "Tarea bloqueada",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Scoped blocked task with reason.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-03.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D17",
+      "requirement": "Eliminar · confirmación",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Deleteconfirmationexplainsremovalfromtasks/reminders andhistoryretained.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-03.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D18",
+      "requirement": "Terminada · reabrir",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Done-only background rows and completion metadata; reopen action.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-03.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D19",
+      "requirement": "Alertas con incidencias",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "7 unique incidents=5overdue+3blocked-overlap1; last2annualLogística rows still labelled Christmascamp.",
+      "classification": "repairable drift",
+      "nextAction": [
+        "R2"
+      ],
+      "inspectedRender": "renders-round1/sheet-04.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D20",
+      "requirement": "Sin resultados de búsqueda",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Searchqueryretained,nosearchresults,clearfiltersrecovery.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-04.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D21",
+      "requirement": "Campamentos activos",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "CampamentoswithspecificNewcampCTA,active/archive.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-04.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D22",
+      "requirement": "Proyectos activos",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Projectswithdatesandprogress; staticlinksarenotruntimeproof.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-04.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D23",
+      "requirement": "Resumen de campamento",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Campoverview6commissions,22open,4overdue,2blocked,18/40.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-04.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D24",
+      "requirement": "Campamento archivado",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Archivebannerandrestoreaction withoutcreateCTA.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-04.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D25",
+      "requirement": "Tareas del campamento",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Camp-leveltaskswithcommissioncontext.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-05.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D26",
+      "requirement": "Personas del campamento",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Camppeople+invitationtab; staticmanagelinksneedcontextimplementation.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-05.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D27",
+      "requirement": "Directorio de personas",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Groupdirectorywithcoordinatorversusmemberroles.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-05.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D28",
+      "requirement": "Estados de invitaciones",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Pending,accepted,expired,revokedinvites +appropriateactionlabels.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-05.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D29",
+      "requirement": "Invitar un correo · comisión fija",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Singleemail,fixeddestinationServicios/Christmas,commissionrole.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-05.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D30",
+      "requirement": "Invitar lista · comisión fija",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Multilineemails,greenlistselection,fixedcommissiontarget.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-05.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D31",
+      "requirement": "Invitación · validación recuperable",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Invalidemailretainedandfieldtextidentifieserror.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-06.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D32",
+      "requirement": "Invitar desde campamento · destino fijo",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Campinvitationfixeddestination,noincorrectcommissionroleselector.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-06.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D33",
+      "requirement": "Invitaciones · resultado y duplicados",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Sent/omittedresultperemail andreturncommission.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-06.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D34",
+      "requirement": "Nueva tarea",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Createtaskname,commission,date,time,people,description.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-06.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D35",
+      "requirement": "Nueva comisión · paso1",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Commissionwizardstep1datawithprojectcontext.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-06.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D36",
+      "requirement": "Nueva comisión · paso2",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Wizardstep2peoplewithatleastoneResponsable.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-06.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D37",
+      "requirement": "Nueva comisión · paso3",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Wizardstep3reviewwithautomaticiconandresponsible.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-07.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D38",
+      "requirement": "Guardar · error conserva datos",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Savefailurekeepsfieldvaluesandretry.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-07.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D39",
+      "requirement": "Añadir personas · directorio",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Adddirectorymemberswithselection/rolesandemailinvitationentry.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-07.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D40",
+      "requirement": "Gestionar rol de comisión",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Rolemanagementexplicitlycommission-scoped.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-07.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D41",
+      "requirement": "Nuevo proyecto",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Newprojectnameanddates.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-07.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D42",
+      "requirement": "Nuevo campamento · Navidad automática",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "NewcampnormalnameCampamentodeNavidad andautomaticcollectionnotice.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-07.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D43",
+      "requirement": "Icono editable · comisión sin asociación",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Explicit unmatched Equipo de acogida target; existing 2D icon chooser.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-08.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D44",
+      "requirement": "Ampliar catálogo de iconos",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Expandiconcatalogwithname,collectionandfile,no3Dupload.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-08.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D45",
+      "requirement": "Perfil y avisos",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Read-only mail and real master/creation/update/custom7,3days/due/weeklyoverdue/coordination preferences.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-08.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D46",
+      "requirement": "Foto · recorte circular y cancelar",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Corrected profile plus circular crop/zoom/cancel/use.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-08.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D47",
+      "requirement": "Perfil guardado",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Corrected profile with saved status.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-08.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D48",
+      "requirement": "Perfil · error recuperable",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Corrected profile with retained inputs and retry.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-08.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D49",
+      "requirement": "Lectura de foto fallida",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Corrected profile with choose-another-photo recovery.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-09.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D50",
+      "requirement": "Carga de aplicación · banana",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Greenoutlineyellowbanana3brownspots,staticpendingframe.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-09.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D51",
+      "requirement": "Fallo de conexión · reintentar",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Networkfailureoffersretrywithoutclaimingsessionlogout.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-09.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D52",
+      "requirement": "Guardando · sin éxito anticipado",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Pendingguardando,banana,disabledsave,nosuccesspremature.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-09.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D53",
+      "requirement": "Completada · celebración 2D y Deshacer",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Post-completion6ownopen,Services3/8,camp19/40/21open3overdue; finished task removed;2Dvine+undo.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-09.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D54",
+      "requirement": "Completada · movimiento reducido conserva cruce",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Same coherent post-state; vine retained without extra rotation.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-09.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D55",
+      "requirement": "Conflicto de cambios · recuperar",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Concurrencyconflictofferscurrentversion/cancelandnoguessedsave.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-10.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D56",
+      "requirement": "Comisiones sin datos",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Commissionemptywithspecificcreateaction.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-10.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D57",
+      "requirement": "Campamentos sin datos",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "CampemptywithNewcampaction.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-10.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D58",
+      "requirement": "Acceso por código",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Standalone Forest login, no private workspace/profile.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-10.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D59",
+      "requirement": "Código · error, reenvío y recuperación",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Standalone code error/cooldown/change-email state.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-10.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D60",
+      "requirement": "Primer acceso · nombre obligatorio y foto opcional",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Standalone required-name error with optional photo.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-10.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D61",
+      "requirement": "Comisiones · una sola",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Singlecommissionretainsrowstructure;singularcopyincorrect.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-11.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D62",
+      "requirement": "Comisiones · diez en dos contextos",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "General icons under annual context; independent stress variant declared.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-11.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D63",
+      "requirement": "Comisión sin tareas",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "No-task commission now0/0 with useful create action.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-11.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D64",
+      "requirement": "Comisión completamente al día",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "All8Services rows finished and8/8 summary.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-11.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D65",
+      "requirement": "Tarea de otra persona · solo lectura",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Readonly botiquines assignedLM/CL, currentAMunassigned, no comment/edit actions.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-11.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D66",
+      "requirement": "Campamento con nombre largo",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Longcampnamewrapswithoutclipping;globalmetricsmaintained.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-11.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D67",
+      "requirement": "Proyectos sin datos",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "ProjectemptywithNewprojectaction.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-12.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D68",
+      "requirement": "Actividad sin entradas",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Activityemptyexplainswhatwillappear.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-12.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D69",
+      "requirement": "Invitar al grupo",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Groupinvitationtargetfixed,commissionroleomitted.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-12.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D70",
+      "requirement": "Tareas sin datos",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Noownassignedtaskslinkscommissions,notfalselyglobalempty.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-12.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D71",
+      "requirement": "Alertas al día",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Noalertsstatewithnonredzeroandtasklink.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-12.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D72",
+      "requirement": "Comisiones al día · lista",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Allcommissionsclearwithnormalnamesandgreennonredrows.",
+      "classification": "match",
+      "nextAction": "Keep matching visual direction; runtime checks remain.",
+      "inspectedRender": "renders-round1/sheet-12.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    },
+    {
+      "screen": "D73",
+      "requirement": "Proyecto anual · contexto independiente",
+      "provenance": "Confirmeddesktopscope;mobileForestcore;PRODUCTrolecontract;latestuserlianaamendment",
+      "observed": "Annual own context and general icons,7/10,2commissions; missing tabs/AddPeople.",
+      "classification": "repairable drift",
+      "nextAction": [
+        "R3"
+      ],
+      "inspectedRender": "renders-round1/sheet-13.webp",
+      "runtimeProof": "Serverauthorization,realbinding/persistence,keyboardfocus,assistivetechnology,motiontrigger/restart/timing require implementationproof."
+    }
+  ]
+}

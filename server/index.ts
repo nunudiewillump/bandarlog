@@ -839,6 +839,7 @@ app.patch('/api/profile', async (q, r) => {
       .object({
         name: text.optional(),
         avatarUrl: z.string().nullable().optional(),
+        forestEffects: z.boolean().optional(),
         notifications: z.boolean().optional(),
         weekly: z.boolean().optional(),
         creation: z.boolean().optional(),

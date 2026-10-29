@@ -6,6 +6,7 @@ test('default reminders run at seven and three Madrid calendar days, due, and on
     due = '2027-03-28T12:00:00+02:00';
   assert.deepEqual(p.reminderDays, [7, 3]);
   assert.equal(p.creation, true);
+  assert.equal(p.forestEffects, true);
   assert.equal(
     reminderEvents(due, 'pending', p, new Date('2027-03-21T12:00:00+01:00'))[0].key,
     'before-7',

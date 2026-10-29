@@ -1,0 +1,50 @@
+{
+  "source": "codex/screens/d53.html + existing source-observed vine-cross contract",
+  "frameRate": 12,
+  "simulatedDurationMs": 2500,
+  "observations": [
+    {
+      "milliseconds": 0,
+      "x": -300.2627868652344,
+      "right": 60.262786865234375,
+      "width": 360.52557373046875,
+      "viewport": 1440
+    },
+    {
+      "milliseconds": 500,
+      "x": 282.8525695800781,
+      "right": 524.9287109375,
+      "width": 242.07614135742188,
+      "viewport": 1440
+    },
+    {
+      "milliseconds": 1000,
+      "x": 761.8931274414062,
+      "right": 1010.2006225585938,
+      "width": 248.3074951171875,
+      "viewport": 1440
+    },
+    {
+      "milliseconds": 1500,
+      "x": 1260.3951416015625,
+      "right": 1554.3236083984375,
+      "width": 293.928466796875,
+      "viewport": 1440
+    },
+    {
+      "milliseconds": 2000,
+      "x": 1498.018310546875,
+      "right": 1848.231689453125,
+      "width": 350.21337890625,
+      "viewport": 1440
+    },
+    {
+      "milliseconds": 2500,
+      "x": 1517.0655517578125,
+      "right": 1870.9344482421875,
+      "width": 353.868896484375,
+      "viewport": 1440
+    }
+  ],
+  "limitations": "Authored deterministic prototype animation. GIF repeats for viewing; this does not prove the app triggers on every completion, actual event timing, reduced-motion behavior, or persisted counters."
+}

@@ -1,0 +1,722 @@
+[
+  {
+    "id": "D01",
+    "title": "Inicio · Coordinación",
+    "family": "Inicio",
+    "states": [
+      "Inicio · Coordinación"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d01.html"
+  },
+  {
+    "id": "D02",
+    "title": "Inicio · Scouter",
+    "family": "Inicio",
+    "states": [
+      "Inicio · Scouter"
+    ],
+    "role": "Scouter",
+    "file": "screens/d02.html"
+  },
+  {
+    "id": "D03",
+    "title": "Inicio · Responsable",
+    "family": "Inicio",
+    "states": [
+      "Inicio · Responsable"
+    ],
+    "role": "Responsable",
+    "file": "screens/d03.html"
+  },
+  {
+    "id": "D04",
+    "title": "Mis tareas al día · equipo activo",
+    "family": "Inicio",
+    "states": [
+      "Mis tareas al día · equipo activo"
+    ],
+    "role": "Scouter",
+    "file": "screens/d04.html"
+  },
+  {
+    "id": "D05",
+    "title": "Todo al día",
+    "family": "Inicio",
+    "states": [
+      "Todo al día"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d05.html"
+  },
+  {
+    "id": "D06",
+    "title": "Primera instalación sin datos",
+    "family": "Inicio",
+    "states": [
+      "Primera instalación sin datos"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d06.html"
+  },
+  {
+    "id": "D07",
+    "title": "Comisiones · agrupación por contexto",
+    "family": "Comisiones",
+    "states": [
+      "Comisiones · agrupación por contexto"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d07.html"
+  },
+  {
+    "id": "D08",
+    "title": "Comisión · Responsable",
+    "family": "Comisión",
+    "states": [
+      "Comisión · Responsable"
+    ],
+    "role": "Responsable",
+    "file": "screens/d08.html"
+  },
+  {
+    "id": "D09",
+    "title": "Comisión · Scouter",
+    "family": "Comisión",
+    "states": [
+      "Comisión · Scouter"
+    ],
+    "role": "Scouter",
+    "file": "screens/d09.html"
+  },
+  {
+    "id": "D10",
+    "title": "Personas de la comisión",
+    "family": "Comisión",
+    "states": [
+      "Personas de la comisión"
+    ],
+    "role": "Responsable",
+    "file": "screens/d10.html"
+  },
+  {
+    "id": "D11",
+    "title": "Actividad de la comisión",
+    "family": "Comisión",
+    "states": [
+      "Actividad de la comisión"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d11.html"
+  },
+  {
+    "id": "D12",
+    "title": "Listado de tareas",
+    "family": "Tareas",
+    "states": [
+      "Listado de tareas"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d12.html"
+  },
+  {
+    "id": "D13",
+    "title": "Detalle de tarea asignada",
+    "family": "Tarea",
+    "states": [
+      "Detalle de tarea asignada"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d13.html"
+  },
+  {
+    "id": "D14",
+    "title": "Editar tarea",
+    "family": "Tarea",
+    "states": [
+      "Editar tarea"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d14.html"
+  },
+  {
+    "id": "D15",
+    "title": "Bloquear · motivo obligatorio",
+    "family": "Tarea",
+    "states": [
+      "Bloquear · motivo obligatorio"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d15.html"
+  },
+  {
+    "id": "D16",
+    "title": "Tarea bloqueada",
+    "family": "Tarea",
+    "states": [
+      "Tarea bloqueada"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d16.html"
+  },
+  {
+    "id": "D17",
+    "title": "Eliminar · confirmación",
+    "family": "Tarea",
+    "states": [
+      "Eliminar · confirmación"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d17.html"
+  },
+  {
+    "id": "D18",
+    "title": "Terminada · reabrir",
+    "family": "Tarea",
+    "states": [
+      "Terminada · reabrir"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d18.html"
+  },
+  {
+    "id": "D19",
+    "title": "Alertas con incidencias",
+    "family": "Tareas",
+    "states": [
+      "Alertas con incidencias"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d19.html"
+  },
+  {
+    "id": "D20",
+    "title": "Sin resultados de búsqueda",
+    "family": "Tareas",
+    "states": [
+      "Sin resultados de búsqueda"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d20.html"
+  },
+  {
+    "id": "D21",
+    "title": "Campamentos activos",
+    "family": "Proyectos",
+    "states": [
+      "Campamentos activos"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d21.html"
+  },
+  {
+    "id": "D22",
+    "title": "Proyectos activos",
+    "family": "Proyectos",
+    "states": [
+      "Proyectos activos"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d22.html"
+  },
+  {
+    "id": "D23",
+    "title": "Resumen de campamento",
+    "family": "Proyectos",
+    "states": [
+      "Resumen de campamento"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d23.html"
+  },
+  {
+    "id": "D24",
+    "title": "Campamento archivado",
+    "family": "Proyectos",
+    "states": [
+      "Campamento archivado"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d24.html"
+  },
+  {
+    "id": "D25",
+    "title": "Tareas del campamento",
+    "family": "Proyectos",
+    "states": [
+      "Tareas del campamento"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d25.html"
+  },
+  {
+    "id": "D26",
+    "title": "Personas del campamento",
+    "family": "Proyectos",
+    "states": [
+      "Personas del campamento"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d26.html"
+  },
+  {
+    "id": "D27",
+    "title": "Directorio de personas",
+    "family": "Personas",
+    "states": [
+      "Directorio de personas"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d27.html"
+  },
+  {
+    "id": "D28",
+    "title": "Estados de invitaciones",
+    "family": "Personas",
+    "states": [
+      "Estados de invitaciones"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d28.html"
+  },
+  {
+    "id": "D29",
+    "title": "Invitar un correo · comisión fija",
+    "family": "Invitaciones",
+    "states": [
+      "Invitar un correo · comisión fija"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d29.html"
+  },
+  {
+    "id": "D30",
+    "title": "Invitar lista · comisión fija",
+    "family": "Invitaciones",
+    "states": [
+      "Invitar lista · comisión fija"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d30.html"
+  },
+  {
+    "id": "D31",
+    "title": "Invitación · validación recuperable",
+    "family": "Invitaciones",
+    "states": [
+      "Invitación · validación recuperable"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d31.html"
+  },
+  {
+    "id": "D32",
+    "title": "Invitar desde campamento · destino fijo",
+    "family": "Invitaciones",
+    "states": [
+      "Invitar desde campamento · destino fijo"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d32.html"
+  },
+  {
+    "id": "D33",
+    "title": "Invitaciones · resultado y duplicados",
+    "family": "Invitaciones",
+    "states": [
+      "Invitaciones · resultado y duplicados"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d33.html"
+  },
+  {
+    "id": "D34",
+    "title": "Nueva tarea",
+    "family": "Formularios",
+    "states": [
+      "Nueva tarea"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d34.html"
+  },
+  {
+    "id": "D35",
+    "title": "Nueva comisión · paso1",
+    "family": "Formularios",
+    "states": [
+      "Nueva comisión · paso1"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d35.html"
+  },
+  {
+    "id": "D36",
+    "title": "Nueva comisión · paso2",
+    "family": "Formularios",
+    "states": [
+      "Nueva comisión · paso2"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d36.html"
+  },
+  {
+    "id": "D37",
+    "title": "Nueva comisión · paso3",
+    "family": "Formularios",
+    "states": [
+      "Nueva comisión · paso3"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d37.html"
+  },
+  {
+    "id": "D38",
+    "title": "Guardar · error conserva datos",
+    "family": "Formularios",
+    "states": [
+      "Guardar · error conserva datos"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d38.html"
+  },
+  {
+    "id": "D39",
+    "title": "Añadir personas · directorio",
+    "family": "Formularios",
+    "states": [
+      "Añadir personas · directorio"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d39.html"
+  },
+  {
+    "id": "D40",
+    "title": "Gestionar rol de comisión",
+    "family": "Formularios",
+    "states": [
+      "Gestionar rol de comisión"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d40.html"
+  },
+  {
+    "id": "D41",
+    "title": "Nuevo proyecto",
+    "family": "Formularios",
+    "states": [
+      "Nuevo proyecto"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d41.html"
+  },
+  {
+    "id": "D42",
+    "title": "Nuevo campamento · Navidad automática",
+    "family": "Formularios",
+    "states": [
+      "Nuevo campamento · Navidad automática"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d42.html"
+  },
+  {
+    "id": "D43",
+    "title": "Icono editable · comisión sin asociación",
+    "family": "Formularios",
+    "states": [
+      "Icono editable · comisión sin asociación"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d43.html"
+  },
+  {
+    "id": "D44",
+    "title": "Ampliar catálogo de iconos",
+    "family": "Formularios",
+    "states": [
+      "Ampliar catálogo de iconos"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d44.html"
+  },
+  {
+    "id": "D45",
+    "title": "Perfil y avisos",
+    "family": "Perfil",
+    "states": [
+      "Perfil y avisos"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d45.html"
+  },
+  {
+    "id": "D46",
+    "title": "Foto · recorte circular y cancelar",
+    "family": "Perfil",
+    "states": [
+      "Foto · recorte circular y cancelar"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d46.html"
+  },
+  {
+    "id": "D47",
+    "title": "Perfil guardado",
+    "family": "Perfil",
+    "states": [
+      "Perfil guardado"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d47.html"
+  },
+  {
+    "id": "D48",
+    "title": "Perfil · error recuperable",
+    "family": "Perfil",
+    "states": [
+      "Perfil · error recuperable"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d48.html"
+  },
+  {
+    "id": "D49",
+    "title": "Lectura de foto fallida",
+    "family": "Perfil",
+    "states": [
+      "Lectura de foto fallida"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d49.html"
+  },
+  {
+    "id": "D50",
+    "title": "Carga de aplicación · banana",
+    "family": "Global",
+    "states": [
+      "Carga de aplicación · banana"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d50.html"
+  },
+  {
+    "id": "D51",
+    "title": "Fallo de conexión · reintentar",
+    "family": "Global",
+    "states": [
+      "Fallo de conexión · reintentar"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d51.html"
+  },
+  {
+    "id": "D52",
+    "title": "Guardando · sin éxito anticipado",
+    "family": "Global",
+    "states": [
+      "Guardando · sin éxito anticipado"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d52.html"
+  },
+  {
+    "id": "D53",
+    "title": "Completada · celebración2D y Deshacer",
+    "family": "Global",
+    "states": [
+      "Completada · celebración2D y Deshacer"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d53.html"
+  },
+  {
+    "id": "D54",
+    "title": "Completada · movimiento reducido conserva cruce",
+    "family": "Global",
+    "states": [
+      "Completada · movimiento reducido conserva cruce"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d54.html"
+  },
+  {
+    "id": "D55",
+    "title": "Conflicto de cambios · recuperar",
+    "family": "Global",
+    "states": [
+      "Conflicto de cambios · recuperar"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d55.html"
+  },
+  {
+    "id": "D56",
+    "title": "Comisiones sin datos",
+    "family": "Vacíos",
+    "states": [
+      "Comisiones sin datos"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d56.html"
+  },
+  {
+    "id": "D57",
+    "title": "Campamentos sin datos",
+    "family": "Vacíos",
+    "states": [
+      "Campamentos sin datos"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d57.html"
+  },
+  {
+    "id": "D58",
+    "title": "Acceso por código",
+    "family": "Acceso",
+    "states": [
+      "Acceso por código"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d58.html"
+  },
+  {
+    "id": "D59",
+    "title": "Código · error, reenvío y recuperación",
+    "family": "Acceso",
+    "states": [
+      "Código · error, reenvío y recuperación"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d59.html"
+  },
+  {
+    "id": "D60",
+    "title": "Primer acceso · nombre obligatorio y foto opcional",
+    "family": "Acceso",
+    "states": [
+      "Primer acceso · nombre obligatorio y foto opcional"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d60.html"
+  },
+  {
+    "id": "D61",
+    "title": "Comisiones · una sola",
+    "family": "Comisiones",
+    "states": [
+      "Comisiones · una sola"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d61.html"
+  },
+  {
+    "id": "D62",
+    "title": "Comisiones · diez en dos contextos",
+    "family": "Comisiones",
+    "states": [
+      "Comisiones · diez en dos contextos"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d62.html"
+  },
+  {
+    "id": "D63",
+    "title": "Comisión sin tareas",
+    "family": "Vacíos",
+    "states": [
+      "Comisión sin tareas"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d63.html"
+  },
+  {
+    "id": "D64",
+    "title": "Comisión completamente al día",
+    "family": "Vacíos",
+    "states": [
+      "Comisión completamente al día"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d64.html"
+  },
+  {
+    "id": "D65",
+    "title": "Tarea de otra persona · solo lectura",
+    "family": "Tarea",
+    "states": [
+      "Tarea de otra persona · solo lectura"
+    ],
+    "role": "Scouter",
+    "file": "screens/d65.html"
+  },
+  {
+    "id": "D66",
+    "title": "Campamento con nombre largo",
+    "family": "Proyectos",
+    "states": [
+      "Campamento con nombre largo"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d66.html"
+  },
+  {
+    "id": "D67",
+    "title": "Proyectos sin datos",
+    "family": "Vacíos",
+    "states": [
+      "Proyectos sin datos"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d67.html"
+  },
+  {
+    "id": "D68",
+    "title": "Actividad sin entradas",
+    "family": "Vacíos",
+    "states": [
+      "Actividad sin entradas"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d68.html"
+  },
+  {
+    "id": "D69",
+    "title": "Invitar al grupo",
+    "family": "Invitaciones",
+    "states": [
+      "Invitar al grupo"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d69.html"
+  },
+  {
+    "id": "D70",
+    "title": "Tareas sin datos",
+    "family": "Vacíos",
+    "states": [
+      "Tareas sin datos"
+    ],
+    "role": "Scouter",
+    "file": "screens/d70.html"
+  },
+  {
+    "id": "D71",
+    "title": "Alertas al día",
+    "family": "Vacíos",
+    "states": [
+      "Alertas al día"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d71.html"
+  },
+  {
+    "id": "D72",
+    "title": "Comisiones al día · lista",
+    "family": "Comisiones",
+    "states": [
+      "Comisiones al día · lista"
+    ],
+    "role": "Coordinación",
+    "file": "screens/d72.html"
+  }
+]

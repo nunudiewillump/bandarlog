@@ -1,0 +1,62 @@
+{
+  "scope": "User-directed botanical header amendment only. Existing icons and all work UI are preserved.",
+  "authority": "Visual prototype; no application implementation or deployment.",
+  "design": {
+    "layers": 3,
+    "boughs": 54,
+    "leafTypes": [
+      "purpose-drawn beech",
+      "purpose-drawn lobed oak"
+    ],
+    "headerHeightPx": {
+      "desktop1440": 120,
+      "desktop1920": 126,
+      "narrow1024": 112,
+      "mobileStudy390": 112
+    },
+    "renderedProof": "captures/comms-1440.png, comms-1024.png, comms-1920.png, home-1280.png and mobile-header-390.png"
+  },
+  "motion": [
+    {
+      "id": "CANOPY-HOVER",
+      "purpose": "Suggest physically disturbing the nearby tree canopy without moving navigation or work content",
+      "trigger": "Fine-pointer movement within the header",
+      "authoredParameters": {
+        "proximityPx": 225,
+        "maxTranslationXPx": 6,
+        "maxTranslationYPx": 3,
+        "maxRotationDegrees": 1.8,
+        "settleMs": 750,
+        "easing": "cubic-bezier(.2,.7,.2,1)"
+      },
+      "parameterProvenance": "Product-specific authored prototype values, not first-party prescribed timings or measured precedent",
+      "scope": "Only nearby leaf branchlets; header text, buttons, sidebar, rows and cards stay still",
+      "observedProof": "At pointer(870,81) in1440px viewport,13of54branchlets respond; screenshot comms-hover-1440.png and measurements.json",
+      "reducedMotion": "No leaf transforms or transitions; measured0transformedbranchlets",
+      "limitations": "No physical mouse/device comfort study, no app integration or performance certification"
+    },
+    {
+      "id": "CANOPY-LOOSE-LEAF",
+      "purpose": "Occasional forest detail in unused gutters; never a blocking overlay",
+      "trigger": "Scheduled while document visible; no more than one leaf at a time",
+      "authoredParameters": {
+        "intervalMinMs": 26000,
+        "intervalMaxMs": 40000,
+        "fallMs": 6500,
+        "leafWidthPx": 13,
+        "leafHeightPx": 23,
+        "driftMaxPx": 4,
+        "peakOpacity": 0.68
+      },
+      "parameterProvenance": "Authored restraint choices; interval scheduling inspected in source, not a measured long-duration trial",
+      "scope": "Leaf travels down left workspace gutter or right viewport gutter, pointer-events:none, aria-hidden",
+      "observedProof": "Finalfallcapture/motionpreviewandindependentscopedQA; priorcomms-leafimageprecededgutterguard",
+      "backgroundBehavior": "Clear schedule and pause leaf when document hidden, reschedule on return",
+      "reducedMotion": "No leaves spawn or remain visible",
+      "limitations": "Demo trigger bypasses waiting only for capture. Ambient rate and long-session behavior still need implementation/device checks",
+      "gutterGuard": "20pxfixedpaint-clippedchannel; rotatingleafcannotpaintoutsideunusedgutter. Rawrotatedleafboundingboxmayextendbutisclipped."
+    }
+  ],
+  "separateVineContract": "Unchanged: user requires side-to-side2Dvine on EVERY saved task completion, including lower-motion variant. This canopy JS/CSS never touches vine selectors, assets or triggers.",
+  "verification": "Initialvisualbatch and onegeometrycorrectionconfirmation; scopedguttercorrectnessguardaddedafterindependentactualrotatedboundscheck. No visualpolishloop."
+}

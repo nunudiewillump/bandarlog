@@ -1,0 +1,1080 @@
+{
+  "proposal": "initial",
+  "verdict": "meets with corrections",
+  "reviewScope": "All72scenes contact-sheet visualinspection and source/statecheck; full-resolutionselectedscreens D02,D03,D05,D08,D13,D30,D45,D58; geometry164records at1440/1280plusselected1024/1920. Not fullpixelinspectionofeverystate.",
+  "globalFacts": {
+    "pageErrors": 0,
+    "horizontalOverflow": 0,
+    "brokenImages": 0,
+    "rawSmallTargetRecords": 210,
+    "smallTargetInterpretation": "22pxtitlelinks and19pxcheckboxes; spacing/associatedlabel exceptionsnotfullymeasured. No blanketWCAGfailureclaim."
+  },
+  "findings": [
+    {
+      "id": "Q01",
+      "severity": "major",
+      "screens": [
+        "D02",
+        "D03",
+        "D04"
+      ],
+      "observed": "Same three commissions repeat in rightcolumn and lowersection; mobile-like tall featuredrows put coordinatedattentionbelowfold.",
+      "action": "Compact featuredrows, keep comparison/context without duplicatecommissionlist."
+    },
+    {
+      "id": "Q02",
+      "severity": "major",
+      "screens": [
+        "D04",
+        "D08",
+        "D09",
+        "D13",
+        "D16",
+        "D18",
+        "D19",
+        "D53",
+        "D54",
+        "D63",
+        "D65"
+      ],
+      "observed": "Fixtures contradict role/state: Servicios table includes Material/Animación rows, personal-clear teamrows remainAMassigned, readonly taskAMassigned, no-taskcommission8/8done, finishedfilterunfinishedrows, alertsordinaryfuturetask, completionstill7open andsameblockedtask.",
+      "action": "Use scope-specific datasets and post-completionsnapshot; no-task0/0; finishedonlydone; alertsvalidincidents; readonlyunassigneduser."
+    },
+    {
+      "id": "Q03",
+      "severity": "major",
+      "screens": [
+        "D45",
+        "D46",
+        "D47",
+        "D48",
+        "D49"
+      ],
+      "observed": "Email is editable although profileAPI does not support changing email; reminders reduced to fixed7/3checkboxes, losing globalon/off, updateevents, customdays and coordinationweeklysummary.",
+      "action": "Emailread-only; preserve real ProfileForm controls and defaults whilestyling."
+    },
+    {
+      "id": "Q04",
+      "severity": "major",
+      "screens": [
+        "D58",
+        "D59",
+        "D60"
+      ],
+      "observed": "Authenticatedsidebar, currentprofileAM andprojectnavigation appear beforelogin/onboarding.",
+      "action": "Use standaloneForestauthshell without privateworkspacechrome."
+    },
+    {
+      "id": "Q05",
+      "severity": "minor",
+      "screens": [
+        "D05"
+      ],
+      "observed": "All-clear says18finished6commissions while projects show40/40+10/10; scope ambiguous.",
+      "action": "Use coherentclearsnapshot or explicitpersonal scope; derivecountsfromdataset."
+    },
+    {
+      "id": "Q06",
+      "severity": "minor",
+      "screens": [
+        "D62"
+      ],
+      "observed": "Annualprojectcommissions reuse Christmasicons evenoutsideChristmascampcontext.",
+      "action": "Usegeneralicons forannualcontext; declaredvariantcounts mustreconcile."
+    },
+    {
+      "id": "Q07",
+      "severity": "minor",
+      "screens": [
+        "D43"
+      ],
+      "observed": "Editableiconmodalbackground contains onlyknownassociated/lockednames.",
+      "action": "Explicitly identify unmatchedcommissiontarget inchooser, preserveautomaticlocks."
+    },
+    {
+      "id": "Q08",
+      "severity": "minor",
+      "screens": [
+        "D01",
+        "D02",
+        "D03",
+        "D04",
+        "D05",
+        "D06",
+        "D07",
+        "D08",
+        "D09",
+        "D10",
+        "D11",
+        "D12",
+        "D13",
+        "D14",
+        "D15",
+        "D16",
+        "D17",
+        "D18",
+        "D19",
+        "D20",
+        "D21",
+        "D22",
+        "D23",
+        "D24",
+        "D25",
+        "D26",
+        "D27",
+        "D28",
+        "D29",
+        "D30",
+        "D31",
+        "D32",
+        "D33",
+        "D34",
+        "D35",
+        "D36",
+        "D37",
+        "D38",
+        "D39",
+        "D40",
+        "D41",
+        "D42",
+        "D43",
+        "D44",
+        "D45",
+        "D46",
+        "D47",
+        "D48",
+        "D49",
+        "D50",
+        "D51",
+        "D52",
+        "D53",
+        "D54",
+        "D55",
+        "D56",
+        "D57",
+        "D58",
+        "D59",
+        "D60",
+        "D61",
+        "D62",
+        "D63",
+        "D64",
+        "D65",
+        "D66",
+        "D67",
+        "D68",
+        "D69",
+        "D70",
+        "D71",
+        "D72"
+      ],
+      "observed": "Shared missingwordspaces(date28octubre2026; Máximo100; Añadir2personas etc),32pxheaderprofilearea; tabletitle22pxhigh, compactsummaryduplicated2/8.",
+      "action": "Restore naturalcopyspacing;44pxprimarytargets; compactsinglelinefilterswherefits; removecompactsummaryduplicate."
+    },
+    {
+      "id": "Q09",
+      "severity": "major",
+      "screens": [
+        "D01",
+        "D05",
+        "D22"
+      ],
+      "observed": "Annual project links open Campamento de Navidad and no distinct annual-project detail scene exists.",
+      "action": "Add annual project overview scene with correct project context and its own commissions; bind annual entry links to it. Reused tab patterns may be documented, but the missing detail itself is renderer-expressible."
+    }
+  ],
+  "rows": [
+    {
+      "screen": "D01",
+      "requirement": "Inicio · Coordinación",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Three personalpriorities plusglobalprojectcontext andattentioncommissions; orderclear, rowsneedcompactness.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08",
+        "Q09"
+      ],
+      "inspectedRender": "renders-initial/sheet-01.webp plus renders-initial/D01-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D02",
+      "requirement": "Inicio · Scouter",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Scouter sees ownpriorities andnoNuevaTarea; duplicatecommissioncontext.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q01",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-01.webp plus renders-initial/D02-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D03",
+      "requirement": "Inicio · Responsable",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Responsable hasNuevaTarea andpersonalpriorities; duplicatecommissioncontext.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q01",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-01.webp plus renders-initial/D03-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D04",
+      "requirement": "Mis tareas al día · equipo activo",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Personalclearwithteamtasks andOpenlinks; fixtureassignmentcontradiction.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q01",
+        "Q02",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-01.webp plus renders-initial/D04-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D05",
+      "requirement": "Todo al día",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Usefulclearstate,historyandprojectprogress; countsneedscoping.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q05",
+        "Q08",
+        "Q09"
+      ],
+      "inspectedRender": "renders-initial/sheet-01.webp plus renders-initial/D05-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D06",
+      "requirement": "Primera instalación sin datos",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Firstprojectempty withspecificCTA,nomadeupcontent.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-01.webp plus renders-initial/D06-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D07",
+      "requirement": "Comisiones · agrupación por contexto",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Six normalcommissionnameswithChristmasicons andcomparablerows.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-02.webp plus renders-initial/D07-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D08",
+      "requirement": "Comisión · Responsable",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "CompactResponsiblebanner,taskstablevisible; wrongscopefixture.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q02",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-02.webp plus renders-initial/D08-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D09",
+      "requirement": "Comisión · Scouter",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Scoutermanagementactionsabsent; samewrongscopefixture.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q02",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-02.webp plus renders-initial/D09-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D10",
+      "requirement": "Personas de la comisión",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Commissionpeoplewithscopedroles andmanageactions.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-02.webp plus renders-initial/D10-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D11",
+      "requirement": "Actividad de la comisión",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Commissionactivitywithauthor/date/changecontext.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-02.webp plus renders-initial/D11-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D12",
+      "requirement": "Listado de tareas",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Tasktablewithcontext,assignees,date,status,filters.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-02.webp plus renders-initial/D12-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D13",
+      "requirement": "Detalle de tarea asignada",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Taskdrawerreadable,comments+edit+complete,dates/statusinconsistentwithbackground.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q02",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-03.webp plus renders-initial/D13-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D14",
+      "requirement": "Editar tarea",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Edittaskretainsname,date,time,description,assignment,cancel.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-03.webp plus renders-initial/D14-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D15",
+      "requirement": "Bloquear · motivo obligatorio",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Blockdialogrequiresreasontext,saveandcancel.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-03.webp plus renders-initial/D15-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D16",
+      "requirement": "Tarea bloqueada",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Blockedtaskshowsreason; taskfixtureasabove.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q02",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-03.webp plus renders-initial/D16-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D17",
+      "requirement": "Eliminar · confirmación",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Deleteconfirmationexplainsremovalfromtasks/reminders andhistoryretained.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-03.webp plus renders-initial/D17-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D18",
+      "requirement": "Terminada · reabrir",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Donebadgeandreopen,backgroundfilterwrong.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q02",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-03.webp plus renders-initial/D18-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D19",
+      "requirement": "Alertas con incidencias",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Incidentsummaryvisible butordinaryfuturetaskincluded.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q02",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-04.webp plus renders-initial/D19-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D20",
+      "requirement": "Sin resultados de búsqueda",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Searchqueryretained,nosearchresults,clearfiltersrecovery.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-04.webp plus renders-initial/D20-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D21",
+      "requirement": "Campamentos activos",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "CampamentoswithspecificNewcampCTA,active/archive.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-04.webp plus renders-initial/D21-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D22",
+      "requirement": "Proyectos activos",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Projectswithdatesandprogress; staticlinksarenotruntimeproof.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08",
+        "Q09"
+      ],
+      "inspectedRender": "renders-initial/sheet-04.webp plus renders-initial/D22-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D23",
+      "requirement": "Resumen de campamento",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Campoverview6commissions,22open,4overdue,2blocked,18/40.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-04.webp plus renders-initial/D23-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D24",
+      "requirement": "Campamento archivado",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Archivebannerandrestoreaction withoutcreateCTA.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-04.webp plus renders-initial/D24-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D25",
+      "requirement": "Tareas del campamento",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Camp-leveltaskswithcommissioncontext.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-05.webp plus renders-initial/D25-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D26",
+      "requirement": "Personas del campamento",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Camppeople+invitationtab; staticmanagelinksneedcontextimplementation.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-05.webp plus renders-initial/D26-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D27",
+      "requirement": "Directorio de personas",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Groupdirectorywithcoordinatorversusmemberroles.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-05.webp plus renders-initial/D27-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D28",
+      "requirement": "Estados de invitaciones",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Pending,accepted,expired,revokedinvites +appropriateactionlabels.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-05.webp plus renders-initial/D28-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D29",
+      "requirement": "Invitar un correo · comisión fija",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Singleemail,fixeddestinationServicios/Christmas,commissionrole.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-05.webp plus renders-initial/D29-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D30",
+      "requirement": "Invitar lista · comisión fija",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Multilineemails,greenlistselection,fixedcommissiontarget.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-05.webp plus renders-initial/D30-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D31",
+      "requirement": "Invitación · validación recuperable",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Invalidemailretainedandfieldtextidentifieserror.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-06.webp plus renders-initial/D31-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D32",
+      "requirement": "Invitar desde campamento · destino fijo",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Campinvitationfixeddestination,noincorrectcommissionroleselector.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-06.webp plus renders-initial/D32-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D33",
+      "requirement": "Invitaciones · resultado y duplicados",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Sent/omittedresultperemail andreturncommission.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-06.webp plus renders-initial/D33-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D34",
+      "requirement": "Nueva tarea",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Createtaskname,commission,date,time,people,description.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-06.webp plus renders-initial/D34-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D35",
+      "requirement": "Nueva comisión · paso1",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Commissionwizardstep1datawithprojectcontext.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-06.webp plus renders-initial/D35-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D36",
+      "requirement": "Nueva comisión · paso2",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Wizardstep2peoplewithatleastoneResponsable.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-06.webp plus renders-initial/D36-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D37",
+      "requirement": "Nueva comisión · paso3",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Wizardstep3reviewwithautomaticiconandresponsible.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-07.webp plus renders-initial/D37-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D38",
+      "requirement": "Guardar · error conserva datos",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Savefailurekeepsfieldvaluesandretry.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-07.webp plus renders-initial/D38-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D39",
+      "requirement": "Añadir personas · directorio",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Adddirectorymemberswithselection/rolesandemailinvitationentry.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-07.webp plus renders-initial/D39-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D40",
+      "requirement": "Gestionar rol de comisión",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Rolemanagementexplicitlycommission-scoped.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-07.webp plus renders-initial/D40-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D41",
+      "requirement": "Nuevo proyecto",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Newprojectnameanddates.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-07.webp plus renders-initial/D41-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D42",
+      "requirement": "Nuevo campamento · Navidad automática",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "NewcampnormalnameCampamentodeNavidad andautomaticcollectionnotice.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-07.webp plus renders-initial/D42-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D43",
+      "requirement": "Icono editable · comisión sin asociación",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Iconchooserexisting2Dicons,selectiongreen; targetnotexplicitunmatched.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q07",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-08.webp plus renders-initial/D43-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D44",
+      "requirement": "Ampliar catálogo de iconos",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Expandiconcatalogwithname,collectionandfile,no3Dupload.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-08.webp plus renders-initial/D44-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D45",
+      "requirement": "Perfil y avisos",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Splitprofile/notifications,unsupportedemailchangeandmissingpreferences.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q03",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-08.webp plus renders-initial/D45-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D46",
+      "requirement": "Foto · recorte circular y cancelar",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Circularcrop2Dsyntheticexample,zoom,cancel/usephoto.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q03",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-08.webp plus renders-initial/D46-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D47",
+      "requirement": "Perfil guardado",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Savedprofilestatusshown; samepreferencesdrift.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q03",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-08.webp plus renders-initial/D47-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D48",
+      "requirement": "Perfil · error recuperable",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Profilefailurerecoveryretainsfields; samepreferencesdrift.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q03",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-08.webp plus renders-initial/D48-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D49",
+      "requirement": "Lectura de foto fallida",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Photoreadfailurewithchooseanotherrecovery; samepreferencesdrift.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q03",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-09.webp plus renders-initial/D49-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D50",
+      "requirement": "Carga de aplicación · banana",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Greenoutlineyellowbanana3brownspots,staticpendingframe.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-09.webp plus renders-initial/D50-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D51",
+      "requirement": "Fallo de conexión · reintentar",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Networkfailureoffersretrywithoutclaimingsessionlogout.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-09.webp plus renders-initial/D51-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D52",
+      "requirement": "Guardando · sin éxito anticipado",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Pendingguardando,banana,disabledsave,nosuccesspremature.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-09.webp plus renders-initial/D52-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D53",
+      "requirement": "Completada · celebración2D y Deshacer",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "2Dvinepresent,success+undo; postcompletiondatasetnotupdated.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q02",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-09.webp plus renders-initial/D53-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D54",
+      "requirement": "Completada · movimiento reducido conserva cruce",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "2Dvinealsoinlessmotionframe,success+undo; crossingstillruntimeproof.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q02",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-09.webp plus renders-initial/D54-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D55",
+      "requirement": "Conflicto de cambios · recuperar",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Concurrencyconflictofferscurrentversion/cancelandnoguessedsave.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-10.webp plus renders-initial/D55-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D56",
+      "requirement": "Comisiones sin datos",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Commissionemptywithspecificcreateaction.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-10.webp plus renders-initial/D56-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D57",
+      "requirement": "Campamentos sin datos",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "CampemptywithNewcampaction.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-10.webp plus renders-initial/D57-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D58",
+      "requirement": "Acceso por código",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Emailcodeentrybutprivateauthenticatedshellshown.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q04",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-10.webp plus renders-initial/D58-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D59",
+      "requirement": "Código · error, reenvío y recuperación",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Invalidcode,retry/changeemail/cooldown butprivateauthenticatedshellshown.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q04",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-10.webp plus renders-initial/D59-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D60",
+      "requirement": "Primer acceso · nombre obligatorio y foto opcional",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Requirednameerror+optionalphoto butprivateauthenticatedshellshown.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q04",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-10.webp plus renders-initial/D60-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D61",
+      "requirement": "Comisiones · una sola",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Singlecommissionretainsrowstructure;singularcopyincorrect.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-11.webp plus renders-initial/D61-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D62",
+      "requirement": "Comisiones · diez en dos contextos",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Tencommissionsin2contexts; annualrowswrongChristmasicons.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q06",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-11.webp plus renders-initial/D62-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D63",
+      "requirement": "Comisión sin tareas",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "No-taskcommissionusefulactionbutfalse8/8summary.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q02",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-11.webp plus renders-initial/D63-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D64",
+      "requirement": "Comisión completamente al día",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "All-donecommissiongreenstate,finishedrowsandnoalertsred.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-11.webp plus renders-initial/D64-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D65",
+      "requirement": "Tarea de otra persona · solo lectura",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Readonlynoticeandnocomment/actionbuttons;AMstillassignedsofixturecontradicts.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q02",
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-11.webp plus renders-initial/D65-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D66",
+      "requirement": "Campamento con nombre largo",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Longcampnamewrapswithoutclipping;globalmetricsmaintained.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-11.webp plus renders-initial/D66-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D67",
+      "requirement": "Proyectos sin datos",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "ProjectemptywithNewprojectaction.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-12.webp plus renders-initial/D67-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D68",
+      "requirement": "Actividad sin entradas",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Activityemptyexplainswhatwillappear.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-12.webp plus renders-initial/D68-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D69",
+      "requirement": "Invitar al grupo",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Groupinvitationtargetfixed,commissionroleomitted.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-12.webp plus renders-initial/D69-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D70",
+      "requirement": "Tareas sin datos",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Noownassignedtaskslinkscommissions,notfalselyglobalempty.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-12.webp plus renders-initial/D70-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D71",
+      "requirement": "Alertas al día",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Noalertsstatewithnonredzeroandtasklink.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-12.webp plus renders-initial/D71-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    },
+    {
+      "screen": "D72",
+      "requirement": "Comisiones al día · lista",
+      "provenance": "Confirmed desktop scope; docs/forest-desktop/README.md; PRODUCT.md rolecontract; mobile Forest approved direction; latest user liana amendment",
+      "observed": "Allcommissionsclearwithnormalnamesandgreennonredrows.",
+      "classification": "repairable drift",
+      "corrections": [
+        "Q08"
+      ],
+      "inspectedRender": "renders-initial/sheet-12.webp plus renders-initial/D72-1440.png where explicitly listed in report",
+      "runtimeProof": "Real navigation/focus,permissionchecks,persistence/API,announcements andmotiontrigger/timing remain implementationvalidation."
+    }
+  ]
+}

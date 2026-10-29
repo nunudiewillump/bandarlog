@@ -1,0 +1,120 @@
+[
+  {
+    "file": "comms.html",
+    "width": 1440,
+    "height": 1000,
+    "overflow": false,
+    "images": [],
+    "boughs": 54,
+    "headerHeight": 120,
+    "headerTargets": [
+      {
+        "label": "Ver alertas",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "file": "comms.html",
+    "width": 1024,
+    "height": 768,
+    "overflow": false,
+    "images": [],
+    "boughs": 54,
+    "headerHeight": 112,
+    "headerTargets": [
+      {
+        "label": "Ver alertas",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "file": "comms.html",
+    "width": 1920,
+    "height": 1080,
+    "overflow": false,
+    "images": [],
+    "boughs": 54,
+    "headerHeight": 126,
+    "headerTargets": [
+      {
+        "label": "Ver alertas",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "file": "home.html",
+    "width": 1280,
+    "height": 900,
+    "overflow": false,
+    "images": [],
+    "boughs": 54,
+    "headerHeight": 120,
+    "headerTargets": [
+      {
+        "label": "Ver alertas",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "file": "mobile-header.html",
+    "width": 390,
+    "height": 844,
+    "overflow": false,
+    "images": [],
+    "boughs": 54,
+    "headerHeight": 112,
+    "headerTargets": [
+      {
+        "label": "Bandarlog",
+        "width": 159,
+        "height": 44
+      },
+      {
+        "label": "Mi perfil",
+        "width": 44,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "hover": {
+      "movingBoughs": 13,
+      "total": 54
+    }
+  },
+  {
+    "reduced": {
+      "spawned": false,
+      "visibleLooseLeaves": 0,
+      "boughTransforms": 0
+    }
+  }
+]

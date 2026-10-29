@@ -1,0 +1,571 @@
+{
+  "samplePurpose": "Prototype-only deterministic checks, no application integration",
+  "mobileGutters": [
+    {
+      "side": "left",
+      "first": true,
+      "second": false,
+      "channels": 1,
+      "leaves": 1,
+      "channelLeft": 0,
+      "channelRight": 20,
+      "overflow": "hidden",
+      "contain": "paint",
+      "pointerEvents": "none",
+      "samples": [
+        {
+          "fraction": 0.08,
+          "visibleLeft": 2.7725186347961426,
+          "visibleRight": 18.31926965713501,
+          "documentWidth": 390,
+          "intercepts": false
+        },
+        {
+          "fraction": 0.2,
+          "visibleLeft": 3.0752551555633545,
+          "visibleRight": 20,
+          "documentWidth": 390,
+          "intercepts": false
+        },
+        {
+          "fraction": 0.35,
+          "visibleLeft": 1.28420889377594,
+          "visibleRight": 20,
+          "documentWidth": 390,
+          "intercepts": false
+        },
+        {
+          "fraction": 0.5,
+          "visibleLeft": 0,
+          "visibleRight": 20,
+          "documentWidth": 390,
+          "intercepts": false
+        },
+        {
+          "fraction": 0.7,
+          "visibleLeft": 0,
+          "visibleRight": 18.179656982421875,
+          "documentWidth": 390,
+          "intercepts": false
+        },
+        {
+          "fraction": 0.9,
+          "visibleLeft": 0,
+          "visibleRight": 20,
+          "documentWidth": 390,
+          "intercepts": false
+        }
+      ]
+    },
+    {
+      "side": "right",
+      "first": true,
+      "second": false,
+      "channels": 1,
+      "leaves": 1,
+      "channelLeft": 370,
+      "channelRight": 390,
+      "overflow": "hidden",
+      "contain": "paint",
+      "pointerEvents": "none",
+      "samples": [
+        {
+          "fraction": 0.08,
+          "visibleLeft": 372.77252197265625,
+          "visibleRight": 388.31927490234375,
+          "documentWidth": 390,
+          "intercepts": false
+        },
+        {
+          "fraction": 0.2,
+          "visibleLeft": 373.07525634765625,
+          "visibleRight": 390,
+          "documentWidth": 390,
+          "intercepts": false
+        },
+        {
+          "fraction": 0.35,
+          "visibleLeft": 371.2842102050781,
+          "visibleRight": 390,
+          "documentWidth": 390,
+          "intercepts": false
+        },
+        {
+          "fraction": 0.5,
+          "visibleLeft": 370,
+          "visibleRight": 390,
+          "documentWidth": 390,
+          "intercepts": false
+        },
+        {
+          "fraction": 0.7,
+          "visibleLeft": 370,
+          "visibleRight": 388.1796569824219,
+          "documentWidth": 390,
+          "intercepts": false
+        },
+        {
+          "fraction": 0.9,
+          "visibleLeft": 370,
+          "visibleRight": 390,
+          "documentWidth": 390,
+          "intercepts": false
+        }
+      ]
+    }
+  ],
+  "hiddenHandler": {
+    "simulatedVisibilityEvent": true,
+    "pausedClass": true,
+    "spawned": false,
+    "animationPlayState": "paused"
+  },
+  "reduced": {
+    "spawned": false,
+    "channels": 0,
+    "leaves": 0,
+    "transformed": 0
+  },
+  "hover": {
+    "transformed": 13,
+    "total": 54,
+    "headerBefore": {
+      "x": 218,
+      "y": 0,
+      "width": 1222,
+      "height": 67
+    },
+    "headerAfter": {
+      "x": 218,
+      "y": 0,
+      "width": 1222,
+      "height": 67
+    }
+  },
+  "texts": [
+    {
+      "text": "Mi grupo scout",
+      "x": 254,
+      "y": 24,
+      "width": 93.046875,
+      "height": 19,
+      "color": "rgb(255, 255, 255)"
+    },
+    {
+      "text": "/",
+      "x": 361.046875,
+      "y": 24,
+      "width": 3.96875,
+      "height": 19,
+      "color": "rgb(255, 255, 255)"
+    },
+    {
+      "text": "Comisiones",
+      "x": 379.015625,
+      "y": 24,
+      "width": 75.3125,
+      "height": 19,
+      "color": "rgb(255, 255, 255)"
+    },
+    {
+      "text": "28 octubre 2026 · 19:00",
+      "x": 1134.546875,
+      "y": 23.75,
+      "width": 141.453125,
+      "height": 18,
+      "color": "rgb(255, 255, 255)"
+    },
+    {
+      "text": "AM",
+      "x": 1373.03125,
+      "y": 25.25,
+      "width": 17.921875,
+      "height": 15,
+      "color": "rgb(52, 79, 53)"
+    }
+  ],
+  "contrast": {
+    "scope": "Single1440px settled prototype frame, sampledbackgroundunderpaintedtextpositions after hidingheadercontent. Not full accessibilitycertification.",
+    "samples": [
+      {
+        "text": "Mi grupo scout",
+        "foreground": [
+          255,
+          255,
+          255
+        ],
+        "minimumSampledContrast": 4.89,
+        "glyphPixels": 426
+      },
+      {
+        "text": "/",
+        "foreground": [
+          255,
+          255,
+          255
+        ],
+        "minimumSampledContrast": 5.68,
+        "glyphPixels": 23
+      },
+      {
+        "text": "Comisiones",
+        "foreground": [
+          255,
+          255,
+          255
+        ],
+        "minimumSampledContrast": 6.8,
+        "glyphPixels": 444
+      },
+      {
+        "text": "28 octubre 2026 · 19:00",
+        "foreground": [
+          255,
+          255,
+          255
+        ],
+        "minimumSampledContrast": 4.88,
+        "glyphPixels": 663
+      }
+    ]
+  },
+  "preservation": [
+    {
+      "scene": "comms.html",
+      "mainMarkupExactAfterRelativePathRebase": true,
+      "commissionIconsSame": true,
+      "iconCount": 6
+    },
+    {
+      "scene": "home.html",
+      "mainMarkupExactAfterRelativePathRebase": true,
+      "commissionIconsSame": true,
+      "iconCount": 6
+    }
+  ],
+  "desktopGutters": [
+    {
+      "side": "left",
+      "left": 218,
+      "right": 238,
+      "pointerEvents": "none",
+      "samples": [
+        {
+          "fraction": 0.08,
+          "paintLeft": 220.77252197265625,
+          "paintRight": 236.31927490234375,
+          "documentWidth": 1440
+        },
+        {
+          "fraction": 0.2,
+          "paintLeft": 221.07525634765625,
+          "paintRight": 238,
+          "documentWidth": 1440
+        },
+        {
+          "fraction": 0.35,
+          "paintLeft": 219.28421020507812,
+          "paintRight": 238,
+          "documentWidth": 1440
+        },
+        {
+          "fraction": 0.5,
+          "paintLeft": 218,
+          "paintRight": 238,
+          "documentWidth": 1440
+        },
+        {
+          "fraction": 0.7,
+          "paintLeft": 218,
+          "paintRight": 236.17965698242188,
+          "documentWidth": 1440
+        },
+        {
+          "fraction": 0.9,
+          "paintLeft": 218,
+          "paintRight": 238,
+          "documentWidth": 1440
+        }
+      ],
+      "controls": [
+        {
+          "label": "Ver alertas",
+          "width": 44,
+          "height": 44,
+          "hitCorrect": true
+        },
+        {
+          "label": "Mi perfil",
+          "width": 44,
+          "height": 44,
+          "hitCorrect": true
+        }
+      ]
+    },
+    {
+      "side": "right",
+      "left": 1420,
+      "right": 1440,
+      "pointerEvents": "none",
+      "samples": [
+        {
+          "fraction": 0.08,
+          "paintLeft": 1422.7724609375,
+          "paintRight": 1438.3192138671875,
+          "documentWidth": 1440
+        },
+        {
+          "fraction": 0.2,
+          "paintLeft": 1423.0751953125,
+          "paintRight": 1440,
+          "documentWidth": 1440
+        },
+        {
+          "fraction": 0.35,
+          "paintLeft": 1421.2841796875,
+          "paintRight": 1440,
+          "documentWidth": 1440
+        },
+        {
+          "fraction": 0.5,
+          "paintLeft": 1420,
+          "paintRight": 1440,
+          "documentWidth": 1440
+        },
+        {
+          "fraction": 0.7,
+          "paintLeft": 1420,
+          "paintRight": 1438.1796875,
+          "documentWidth": 1440
+        },
+        {
+          "fraction": 0.9,
+          "paintLeft": 1420,
+          "paintRight": 1440,
+          "documentWidth": 1440
+        }
+      ],
+      "controls": [
+        {
+          "label": "Ver alertas",
+          "width": 44,
+          "height": 44,
+          "hitCorrect": true
+        },
+        {
+          "label": "Mi perfil",
+          "width": 44,
+          "height": 44,
+          "hitCorrect": true
+        }
+      ]
+    }
+  ],
+  "verdict": "meets direction",
+  "scope": "Only the botanical canopy and its presentation interactions in two desktop scenes and one mobile header reference. Not a new validation of all78desktopstates or the full mobile journey.",
+  "materialUnresolved": 0,
+  "userLocks": [
+    "Keep original existing catalogue icons; reject complex iconstudy",
+    "Richer recognizable layered2Dfoliage",
+    "Occasional unobtrusive falling leaves",
+    "Localized pointer response only",
+    "Actions/cards/data/roles unchanged",
+    "Foliage may be static for reducedmotion; vine remains always lateral on every savedcompletion"
+  ],
+  "sourceHashes": {
+    "canopy.css": "c06dc60e08d9686ceec3477517f9d29c0c9c8d9e64001fea6d0f728073bbaa20",
+    "canopy.js": "3eddbe2febcbcfcd383fd23b4744a98ac1d0218599c86799c2beca0ca7455038",
+    "build.py": "950ee9259cc18f7d590ec00fa3d6bb5f7061f358f0b28e480f3075761588d9b7",
+    "comms.html": "86585bcc4e2dddaf490e4c9a3dcbabc119659a06661e8d8f60eb94f23c328bd7",
+    "home.html": "80d626ba4146194fa910061281f9a013f52ed10ff9cad6b6b1c5b1bbacaba03a",
+    "mobile-header.html": "9b9e24be7151d09942e1baadad31f8afcca5deeeeedba83684f439a0737ac10d"
+  },
+  "actualRendersInspected": [
+    "captures/comms-1440.png",
+    "captures/comms-1024.png",
+    "captures/comms-1920.png",
+    "captures/home-1280.png",
+    "captures/mobile-header-390.png",
+    "captures/comms-hover-1440.png",
+    "captures/comms-leaf-1440.png"
+  ],
+  "finalGeometryRecords": {
+    "scope": "Post-contrast/gutter correctness confirmation; scoped presentation prototype only",
+    "records": [
+      {
+        "file": "comms",
+        "width": 1440,
+        "height": 1000,
+        "overflow": false,
+        "brokenImages": [],
+        "boughs": 54,
+        "headerTargets": [
+          {
+            "label": "Ver alertas",
+            "width": 44,
+            "height": 44
+          },
+          {
+            "label": "Mi perfil",
+            "width": 44,
+            "height": 44
+          }
+        ]
+      },
+      {
+        "file": "comms",
+        "width": 1024,
+        "height": 768,
+        "overflow": false,
+        "brokenImages": [],
+        "boughs": 54,
+        "headerTargets": [
+          {
+            "label": "Ver alertas",
+            "width": 44,
+            "height": 44
+          },
+          {
+            "label": "Mi perfil",
+            "width": 44,
+            "height": 44
+          }
+        ]
+      },
+      {
+        "file": "comms",
+        "width": 1920,
+        "height": 1080,
+        "overflow": false,
+        "brokenImages": [],
+        "boughs": 54,
+        "headerTargets": [
+          {
+            "label": "Ver alertas",
+            "width": 44,
+            "height": 44
+          },
+          {
+            "label": "Mi perfil",
+            "width": 44,
+            "height": 44
+          }
+        ]
+      },
+      {
+        "file": "home",
+        "width": 1280,
+        "height": 900,
+        "overflow": false,
+        "brokenImages": [],
+        "boughs": 54,
+        "headerTargets": [
+          {
+            "label": "Ver alertas",
+            "width": 44,
+            "height": 44
+          },
+          {
+            "label": "Mi perfil",
+            "width": 44,
+            "height": 44
+          }
+        ]
+      },
+      {
+        "file": "mobile-header",
+        "width": 390,
+        "height": 844,
+        "overflow": false,
+        "brokenImages": [],
+        "boughs": 54,
+        "headerTargets": [
+          {
+            "label": "Bandarlog",
+            "width": 159,
+            "height": 44
+          },
+          {
+            "label": "Mi perfil",
+            "width": 44,
+            "height": 44
+          }
+        ]
+      }
+    ]
+  },
+  "correctionsConfirmed": [
+    {
+      "issue": "Regular branch repetition",
+      "resolution": "Initial batched artcorrection varied positions,scales,angles andleafrhythms; finalrenders visually reviewed."
+    },
+    {
+      "issue": "13×23leaf rotation widenedpaint beyond20pxgutter",
+      "resolution": "Fixed20pxoverflow:hidden contain:paint channel;6animationpoints eachside at390and1440 remain insidegutter; nointerception/overflow."
+    },
+    {
+      "issue": "Header mutedtext couldreach4.0:1 onleafbacking",
+      "resolution": "Whiteheaderlabels confirmed inactualframe; min sampled ratios4.89and4.88 oncontext/date at1440."
+    }
+  ],
+  "conformance": [
+    {
+      "requirement": "Originalicons retained, no complexiconstudy",
+      "classification": "match",
+      "evidence": "Protected mainmarkup and6catalogueicons exact inbothscenes afterrelativepathrebase; visuallyreviewed."
+    },
+    {
+      "requirement": "Recognizable layeredcanopy",
+      "classification": "match",
+      "evidence": "Five finalviewports inspected;54branchlets/3planes, distinctoak/beechsilhouettes, overlappinghalftones/veins."
+    },
+    {
+      "requirement": "Useful work remains primary; cards/actions unchanged",
+      "classification": "match",
+      "evidence": "OriginalmainHTMLbyte-equivalent afterpathrebase inD01/D07; screenshotworkinghierarchyretained."
+    },
+    {
+      "requirement": "Headercontrols accessible/readable within scopedstudy",
+      "classification": "match",
+      "evidence": "44pxcontrols inall5records; settled1440textsamplecontrast4.88:1minimum forheadertext; not fullWCAGcertification."
+    },
+    {
+      "requirement": "Localized hover withoutmovingUI",
+      "classification": "match",
+      "evidence": "13/54branchesrespond,headercontentboxunchanged."
+    },
+    {
+      "requirement": "Occasionalfall restrictedtogutter/nonblocking/max1",
+      "classification": "match",
+      "evidence": "Deterministicfirstspawntrue/secondfalse;channelclip,pointereventsnone,hit-tests; interval26–40sinsource,notlong-durationmeasured."
+    },
+    {
+      "requirement": "Reducedmotion staticfoliage",
+      "classification": "match",
+      "evidence": "Browserprefemulation:0channels/0leaves/0transformedboughs/spawnfalse."
+    },
+    {
+      "requirement": "Hiddenpausesambientbehavior",
+      "classification": "match",
+      "evidence": "Sourceclearschedule; simulatedvisibilityevent pausedCSSandblockedspawn. Realbackgroundtab/devicebehaviorunverified."
+    },
+    {
+      "requirement": "Vinealwayscrossing unaffected",
+      "classification": "match",
+      "evidence": "ScopedCSS/JStouchno vineasset,selectorortrigger; separateusercontractretained."
+    },
+    {
+      "requirement": "Realapplicationintegration, performance anddevicecomfort",
+      "classification": "runtime proof",
+      "evidence": "Presentationprototypeonly; noapplicationAPI/state/deploymentchanges."
+    }
+  ],
+  "remainingRuntimeProof": [
+    "Performance/comfort onphysicaldevices andlowpowerhardware",
+    "Realbackgroundtabbehavior andlongsessionfallfrequency",
+    "Integration acrossall78desktopstates andactualmobilejourney",
+    "Applicationpermission/persistence/keyboard/assistivetechnologyregressions",
+    "Vineevery-save-event andconsecutivecompletionbehavior inactualapp"
+  ],
+  "authority": "Scoped visualamendment readyforuserreview; doesnotauthorizeimplementation,mergeordeployment."
+}

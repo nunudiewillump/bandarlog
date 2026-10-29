@@ -1,0 +1,97 @@
+{
+  "reviewId": "forest-desktop-20261028",
+  "runtime": "codex",
+  "phase": "implementation-ready-for-pr",
+  "baseCommit": "65dc0a0363150778618b2f62bb82d28af30915cd",
+  "evidenceMode": "guidelines",
+  "approvalMode": "follow-recommendation",
+  "provenance": "User requested same design flow and confirmed desktop scope using mobile core guidelines. Prior session choices retained for this review only; no saved preferences found or rewritten.",
+  "objectiveConfirmed": true,
+  "direction": "Forest operativo con foco y contexto por rol",
+  "directionGate": "selected-by-follow-recommendation",
+  "rendererScope": "platform",
+  "visualProposalGate": "approved-by-user-with-amendments",
+  "implementationAuthorized": true,
+  "deploymentAuthorized": false,
+  "correctionRoundsUsed": 2,
+  "motion": {
+    "completion": "User amendment: every successfully saved task completion must show the2Dmonkey crossing the screen from one side to theother with vine and Tarea completada. No static replacement.",
+    "reducedMotion": "User keeps lateral crossing always. Proposed least-motion variant removes rotation/bobbing but retains crossing; existing CSS hides vine and must change only after implementation authorization.",
+    "loading": "Reuse green-outline yellow banana with3brownspots. Reduced motion retains static status; runtime verification required.",
+    "other": "No new decorative motion or entrance choreography proposed."
+  },
+  "evidenceLimitations": [
+    "Synthetic isolated local data only",
+    "No physical device, assistive technology or full accessibility compliance claim",
+    "Static prototype geometry and independently inspected renders; application APIs, permissions and persistence are not proved by this board",
+    "Animated GIF demonstrates authored crossing only, not application event triggering",
+    "Minor nonblocking date/singular copy retained as disclosed in independent review"
+  ],
+  "rendererSelection": "solo Codex",
+  "userAmendments": [
+    {
+      "instruction": "No, la liana se tiene que mover de lado a lado al acabar una tarea siempre",
+      "scope": "Each confirmed task completion;2D on desktop and mobile; preserve undo and nonblocking overlay",
+      "status": "bound in design only; application unchanged"
+    },
+    {
+      "instruction": "Los iconos no me acaban de cuadrar, me recuerdan mucho a Inventar.io",
+      "scope": "Explore own2Dcommissioniconidentity, preserve existing assets until selection"
+    },
+    {
+      "instruction": "El borde de hojas superiores le falta profundidad y calidad; hojas ocasionales y reacción al ratón",
+      "scope": "Layeredrecognizablecanopy, restraineddecorativemotionandreducedmotionstaticfoliage"
+    },
+    {
+      "instruction": "Simple en acciones y tarjetas; diseño con más complejidad",
+      "scope": "Visualcraftcanincreasewithoutaddinginteractionburden"
+    },
+    {
+      "instruction": "deja los anteriores de momento y sigue con el resto del proyecto",
+      "scope": "Retain originaliconset; rejectcomplexiconstudies; continuecanopyanddesktopdesignwork"
+    }
+  ],
+  "visualVerdict": "meets direction",
+  "finalSceneCount": 78,
+  "finalGeometryRecords": 176,
+  "finalScreenshotCount": 216,
+  "independentReview": "qa/final-review.md",
+  "independentMatrix": "qa/final-matrix.json",
+  "assetAudit": "qa/asset-audit.json",
+  "remainingMaterialDrift": 0,
+  "authority": "Implementation explicitly approved by user; merge and deployment are separate and not performed.",
+  "publicationBranch": "design/forest-desktop",
+  "priorVisualVerdict": "meets direction for original78-sceneproposal; userrequested directionamendmentpending",
+  "correctionBudgetNote": "Original2correctionrounds retained; focusedamendmentstudies do not reset or imply complete78-scene revalidation.",
+  "iconSelection": "Originalcatalogueiconsretained; noillustratedorpatchalternativesapplied",
+  "canopyAmendment": {
+    "verdict": "meets direction",
+    "scope": "Canopy only, five viewports and pointer/fall/reduced-motion presentation behavior; original78-scenebodyreview retained, no claim of completeboardrevalidation",
+    "source": "refinement-leaves/",
+    "review": "refinement-leaves/qa.md",
+    "matrix": "refinement-leaves/qa.json",
+    "originalIcons": "retained unchanged by explicituserinstruction",
+    "appImplementationStarted": true
+  },
+  "implementationBranch": "feat/desktop-forest",
+  "implementationReference": "implementacion.md",
+  "implementationApproval": "La apruebo ... con todo esto, pasa a la implementación final",
+  "finalAmendments": [
+    "Hover más perceptible",
+    "Hojas sueltas reutilizan exactamente el arte de la copa y pueden cruzar el centro",
+    "Copa compartida en móvil y desktop, ocultable por preferencia personal",
+    "Perfil de lectura por defecto; edición explícita",
+    "Grupo Rosales del Canal 702 con pequeña pañoleta rosa/morada",
+    "Zona superior/notch PWA integrada en verde #103b2d"
+  ],
+  "localValidation": {
+    "apiTests": 47,
+    "browserFullRunPassed": 49,
+    "browserFullRunTotal": 50,
+    "pwaCorrectedTargetedPassed": 1,
+    "productionBuild": "passed",
+    "combinedCI": "check PR for final commit execution"
+  },
+  "independentImplementationVerdict": "ship",
+  "independentImplementationReview": "implementation-review.md"
+}

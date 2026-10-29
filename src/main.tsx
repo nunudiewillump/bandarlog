@@ -10,6 +10,8 @@ import {
 } from './MobileUX';
 import { ArtworkPicker } from './Artwork';
 import { ForestHeader } from './ForestHeader';
+import { BotanicalCanopy } from './BotanicalCanopy';
+import { smartFocus } from './focus';
 import { AuthScreen } from './AuthScreen';
 import { Onboarding } from './Onboarding';
 import { artworkThemes, inferArtworkTheme } from '../shared/scout-catalog';
@@ -20,7 +22,6 @@ import {
   Users,
   UserRound,
   Bell,
-  Settings,
   Tent,
   Flag,
   Plus,
@@ -32,13 +33,11 @@ import {
   AlertCircle,
   LockKeyhole,
   Mail,
-  LogOut,
   ChefHat,
   Megaphone,
   Drama,
   Wrench,
   Heart,
-  LayoutDashboard,
   CalendarDays,
   MessageCircle,
   X,
@@ -70,7 +69,8 @@ import '@fontsource/nunito-sans/latin-800.css';
 import '@fontsource/nunito-sans/latin-900.css';
 import './styles.css';
 import './forest.css';
-import { ProfileForm } from './ProfileForm';
+import './desktop-forest.css';
+import { ProfilePanel } from './ProfilePanel';
 import { BananaLoader } from './BananaLoader';
 import { Select } from './Select';
 const initial: Data = {
@@ -148,7 +148,7 @@ function App() {
     [development, setDevelopment] = useState(false),
     [sidebar, setSidebar] = useState(false),
     [pendingAction, setPendingAction] = useState(''),
-    [celebrating, setCelebrating] = useState(false),
+    [celebrations, setCelebrations] = useState<number[]>([]),
     [satisfaction, setSatisfaction] = useState(false),
     [pendingTasks, setPendingTasks] = useState(new Set<string>()),
     [undo, setUndo] = useState<{ task: Task; expected: string; last: boolean } | null>(null),
@@ -159,11 +159,16 @@ function App() {
     taskLocks = useRef(new Set<string>());
   const detailScroll = useRef({ x: 0, y: 0 });
   const lastAnnounced = useRef(false);
-  const celebrationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const celebrationSequence = useRef(0);
+  const celebrationId = celebrations[0];
+  useEffect(() => {
+    if (celebrationId === undefined) return;
+    const timer = setTimeout(() => setCelebrations((queue) => queue.slice(1)), 2500);
+    return () => clearTimeout(timer);
+  }, [celebrationId]);
   const satisfactionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
     () => () => {
-      if (celebrationTimer.current) clearTimeout(celebrationTimer.current);
       if (satisfactionTimer.current) clearTimeout(satisfactionTimer.current);
     },
     [],
@@ -190,6 +195,12 @@ function App() {
   const [loginToken, setLoginToken] = useState(params.get('token') || '');
   const invitationAccess = loginToken.startsWith('invite.');
   const manage = me?.role === 'admin' || me?.role === 'coordination';
+  let forestEffects = true;
+  try {
+    forestEffects = JSON.parse(me?.preferences || '{}').forestEffects !== false;
+  } catch {
+    /* Legacy malformed preferences use the default. */
+  }
   const canManage = (cid: string) =>
     manage ||
     data.members.some(
@@ -395,9 +406,8 @@ function App() {
           satisfactionTimer.current = setTimeout(() => setSatisfaction(false), 2600);
         }
         setUndo({ task: t, expected: saved.updatedAt, last });
-        if (celebrationTimer.current) clearTimeout(celebrationTimer.current);
-        setCelebrating(true);
-        celebrationTimer.current = setTimeout(() => setCelebrating(false), 2500);
+        const event = ++celebrationSequence.current;
+        setCelebrations((queue) => [...queue, event]);
       }
       requestAnimationFrame(() => window.scrollTo(scroll.x, scroll.y));
     } finally {
@@ -418,7 +428,6 @@ function App() {
     ) {
       setUndo(null);
       setSatisfaction(false);
-      setCelebrating(false);
       lastAnnounced.current = false;
       if (satisfactionTimer.current) clearTimeout(satisfactionTimer.current);
     }
@@ -601,6 +610,11 @@ function App() {
                   <button className="text-link task-title" onClick={() => openTask(t)}>
                     {t.title}
                   </button>
+                  {!commission && (
+                    <small className="task-table-context">
+                      {cOf(t)?.name} · {cOf(t) && pOf(cOf(t))?.name}
+                    </small>
+                  )}
                 </td>
                 <td>
                   <div className="avatars">
@@ -655,16 +669,55 @@ function App() {
                 <small>{pOf(c)?.name}</small>
                 <small className="commission-open-label">
                   {ts.some((t) => t.status !== 'done')
-                    ? `${ts.filter((t) => t.status !== 'done').length} pendientes${ts.some(overdue) ? ` · ${ts.filter(overdue).length} vencidas` : ''}`
-                    : 'Al día'}
+                    ? `${ts.filter((t) => t.status !== 'done').length} abiertas${ts.some(overdue) ? ` · ${ts.filter(overdue).length} vencidas` : ''}`
+                    : ts.length
+                      ? 'Al día'
+                      : 'Sin tareas'}
                 </small>
               </span>
+              <span className="desktop-only commission-state">
+                {ts.some(overdue) && (
+                  <span className="badge overdue">
+                    {metric(ts, 'overdue')} {metric(ts, 'overdue') === 1 ? 'vencida' : 'vencidas'}
+                  </span>
+                )}
+                {metric(ts, 'blocked') > 0 && (
+                  <span className="badge blocked">
+                    {metric(ts, 'blocked')} {metric(ts, 'blocked') === 1 ? 'bloqueo' : 'bloqueos'}
+                  </span>
+                )}
+                {!ts.some(overdue) && !metric(ts, 'blocked') && (
+                  <span className="badge neutral">
+                    {!ts.length
+                      ? 'Sin tareas'
+                      : ts.every((t) => t.status === 'done')
+                        ? 'Al día'
+                        : 'En plazo'}
+                  </span>
+                )}
+              </span>
               <div className="commission-progress">{bar(ts)}</div>
-              <span className="count pending" title="Pendientes">
+              <span
+                className={`count pending legacy-commission-count ${!metric(ts, 'pending') ? 'zero' : ''}`}
+                title="Pendientes"
+              >
                 <AnimatedCounter value={metric(ts, 'pending')} />
               </span>
-              <span className="count overdue" title="Vencidas">
+              <span
+                className={`count overdue legacy-commission-count ${!metric(ts, 'overdue') ? 'zero' : ''}`}
+                title="Vencidas"
+              >
                 <AnimatedCounter value={metric(ts, 'overdue')} />
+              </span>
+              <span className="desktop-only commission-row-people">
+                <span className="avatars">
+                  {data.members
+                    .filter((m) => m.commissionId === c.id)
+                    .slice(0, 3)
+                    .map((m) => (
+                      <Avatar key={m.id} user={data.users.find((u) => u.id === m.userId)} small />
+                    ))}
+                </span>
               </span>
               <ChevronRight size={16} />
             </button>
@@ -675,6 +728,344 @@ function App() {
       )}
     </div>
   );
+  const desktopSummary = (ts: Task[]) => {
+    const done = metric(ts, 'done');
+    const open = ts.length - done;
+    const choose = (value: string) => {
+      setFilter(value);
+      setTab(view === 'project' ? 'taskList' : 'tasks');
+    };
+    return (
+      <section
+        className="desktop-only desktop-summary"
+        aria-label={view === 'commission' ? 'Panel de Responsable' : 'Resumen de tareas'}
+      >
+        <button className="summary-finished" onClick={() => choose('done')}>
+          <strong>
+            {done}/{ts.length}
+          </strong>
+          <span>tareas terminadas</span>
+        </button>
+        <div
+          className="summary-progress"
+          role="progressbar"
+          aria-label="Progreso de las tareas"
+          aria-valuenow={progress(ts)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <i style={{ width: `${progress(ts)}%` }} />
+        </div>
+        <span className="summary-open">
+          <strong>{open}</strong> {open === 1 ? 'abierta' : 'abiertas'}
+        </span>
+        <button
+          className={metric(ts, 'overdue') ? 'summary-overdue' : 'summary-zero'}
+          onClick={() => choose('overdue')}
+        >
+          <strong>{metric(ts, 'overdue')}</strong>{' '}
+          {metric(ts, 'overdue') === 1 ? 'vencida' : 'vencidas'}
+        </button>
+        <button
+          className={metric(ts, 'blocked') ? 'summary-blocked' : 'summary-zero'}
+          onClick={() => choose('blocked')}
+        >
+          <strong>{metric(ts, 'blocked')}</strong>{' '}
+          {metric(ts, 'blocked') === 1 ? 'bloqueo' : 'bloqueos'}
+        </button>
+      </section>
+    );
+  };
+  const desktopHome = () => {
+    const commissions = data.commissions.filter((c) => !project || c.projectId === project);
+    const ids = new Set(commissions.map((c) => c.id));
+    const focusData: Data = project
+      ? {
+          ...data,
+          commissions,
+          tasks: data.tasks.filter((t) => ids.has(t.commissionId)),
+          members: data.members.filter((m) => ids.has(m.commissionId)),
+          campSummaries: data.campSummaries?.filter((c) => c.id === project),
+        }
+      : data;
+    const focus = smartFocus(focusData, me!);
+    const personal = focus.level === 'personal';
+    const canCreate = commissions.some((c) => canManage(c.id) && pOf(c)?.archived !== 'true');
+    const ownCommissions = commissions.filter((c) => focus.ownCommissions.has(c.id));
+    const context =
+      focusData.tasks.length > 0 || commissions.length > 0 || data.projects.length > 0;
+    const attention = commissions.filter((c) =>
+      focusData.tasks.some(
+        (t) => t.commissionId === c.id && (overdue(t) || t.status === 'blocked'),
+      ),
+    );
+    return (
+      <section className="desktop-focus" data-focus-level={focus.level} data-holding={satisfaction}>
+        <div className="page-heading home-heading">
+          <h1>Inicio</h1>
+          <div className="heading-filters">
+            <Select
+              aria-label="Filtrar proyecto"
+              value={project}
+              onChange={(e) => setProject(e.target.value)}
+            >
+              <option value="">Todos los proyectos</option>
+              {data.projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </Select>
+            {canCreate && (
+              <button className="primary" onClick={() => setModal('task')}>
+                <Plus size={18} /> Nueva tarea
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="desktop-home-columns">
+          <section className="desktop-priority">
+            <div className="section-heading">
+              <h2>
+                {satisfaction
+                  ? 'Tus tareas están al día'
+                  : personal
+                    ? 'Tus tareas primero'
+                    : focus.level === 'commissions'
+                      ? 'Tareas del equipo'
+                      : focus.level === 'camps'
+                        ? 'Tus comisiones están al día'
+                        : context
+                          ? 'Todo al día'
+                          : 'Sin tareas asignadas'}
+              </h2>
+              {!satisfaction && (personal || focus.level === 'commissions') && (
+                <span className="desktop-open-count">
+                  {personal ? focus.personalOpen.length : focus.commissionOpen.length} abiertas
+                </span>
+              )}
+            </div>
+            {satisfaction ? (
+              <div className="desktop-all-clear">
+                <Check size={34} />
+                <h3>¡Tus tareas están al día!</h3>
+                <p>Tarea completada</p>
+              </div>
+            ) : personal || focus.level === 'commissions' ? (
+              <>
+                {!personal && (
+                  <p className="desktop-team-note">
+                    Tus tareas están al día. Estas tareas pertenecen a tus comisiones.
+                  </p>
+                )}
+                <div className="desktop-featured-tasks">
+                  {focus.featured.map((t) => {
+                    const c = cOf(t);
+                    const mayComplete =
+                      canManage(t.commissionId) ||
+                      data.assignments.some((a) => a.taskId === t.id && a.userId === me!.id);
+                    return (
+                      <article className="desktop-featured-task" key={t.id}>
+                        {c && <CIcon c={c} />}
+                        <div className="desktop-featured-content">
+                          <button className="desktop-task-title" onClick={() => openTask(t)}>
+                            {t.title}
+                          </button>
+                          <p>
+                            {c?.name} · {c && pOf(c)?.name}
+                          </p>
+                          <div className="desktop-task-meta">
+                            <span className={overdue(t) ? 'late-text' : ''}>
+                              <CalendarDays size={14} />
+                              {date(t.due, true)}
+                            </span>
+                            <Badge task={t} />
+                            {overdue(t) && <span className="badge overdue">Vencida</span>}
+                          </div>
+                        </div>
+                        <div className="desktop-task-actions">
+                          <div className="avatars">
+                            {usersOf(t)
+                              .slice(0, 3)
+                              .map((u) => (
+                                <Avatar key={u.id} user={u} small />
+                              ))}
+                          </div>
+                          {mayComplete && pOf(c)?.archived !== 'true' ? (
+                            <button
+                              className="desktop-complete"
+                              disabled={pendingTasks.has(t.id)}
+                              onClick={() => void taskStatus(t, 'done')}
+                            >
+                              {pendingTasks.has(t.id) ? (
+                                <BananaLoader compact label="Guardando…" />
+                              ) : (
+                                <>
+                                  <Check size={17} />
+                                  Completar
+                                </>
+                              )}
+                            </button>
+                          ) : (
+                            <button className="text-link" onClick={() => openTask(t)}>
+                              Ver tarea
+                              <ChevronRight size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+                <button
+                  className="text-link desktop-full-list"
+                  onClick={() => (personal ? navigate('tasks') : navigate('commissions'))}
+                >
+                  {personal
+                    ? `Ver mis ${focus.personalOpen.length} tareas abiertas`
+                    : 'Ver mis comisiones'}
+                  <ChevronRight size={17} />
+                </button>
+              </>
+            ) : focus.level === 'camps' ? (
+              <div className="desktop-authorized-camps">
+                {focus.camps.slice(0, 2).map((camp) => (
+                  <section key={camp.id}>
+                    <CampOverview camp={camp} />
+                    <button className="text-link" onClick={() => navigate('project', camp.id)}>
+                      Ver campamento
+                      <ChevronRight size={16} />
+                    </button>
+                  </section>
+                ))}
+              </div>
+            ) : (
+              <div className="desktop-all-clear">
+                <Check size={34} />
+                <h3>{context ? 'No hay tareas pendientes' : 'Tu trabajo aparecerá aquí'}</h3>
+                <p>
+                  {context
+                    ? 'Tus comisiones y campamentos están al día.'
+                    : 'Aquí verás tus tareas y comisiones cuando te añadan al equipo.'}
+                </p>
+                {context && (
+                  <div className="desktop-clear-stats">
+                    <span>
+                      <strong>
+                        {
+                          (manage ? focusData.tasks : focus.personal).filter(
+                            (t) => t.status === 'done',
+                          ).length
+                        }
+                      </strong>
+                      {manage ? 'tareas terminadas' : 'tus tareas terminadas'}
+                    </span>
+                    <span>
+                      <strong>{ownCommissions.length}</strong>comisiones al día
+                    </span>
+                  </div>
+                )}
+                <button
+                  className="text-link"
+                  onClick={() => {
+                    navigate(context ? 'tasks' : 'camps');
+                    if (context) setFilter('done');
+                  }}
+                >
+                  {context ? 'Ver tareas terminadas' : 'Ver campamentos'}
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            )}
+          </section>
+          <aside className="desktop-home-context">
+            <div className="section-heading">
+              <h2>{manage ? 'Campamentos y proyectos' : 'Mis comisiones'}</h2>
+              <button
+                className="text-link"
+                onClick={() => navigate(manage ? 'camps' : 'commissions')}
+              >
+                Ver todos
+                <ChevronRight size={16} />
+              </button>
+            </div>
+            {manage
+              ? data.projects
+                  .filter((p) => !project || p.id === project)
+                  .map((p) => {
+                    const tasks = focusData.tasks.filter((t) => cOf(t)?.projectId === p.id);
+                    const cs = commissions.filter((c) => c.projectId === p.id);
+                    return (
+                      <section className="desktop-project-overview" key={p.id}>
+                        <button onClick={() => navigate('project', p.id)}>
+                          <span className="desktop-project-symbol">
+                            {p.type === 'camp' ? <Tent size={27} /> : <CalendarDays size={27} />}
+                          </span>
+                          <span>
+                            <strong>{p.name}</strong>
+                            <small>
+                              {date(p.starts)} – {date(p.ends)} · {cs.length}{' '}
+                              {cs.length === 1 ? 'comisión' : 'comisiones'}
+                            </small>
+                          </span>
+                        </button>
+                        {bar(tasks)}
+                        <div className="desktop-project-open">
+                          <span>{tasks.filter((t) => t.status !== 'done').length} abiertas</span>
+                          {tasks.some(overdue) && (
+                            <span className="late-text">
+                              {tasks.filter(overdue).length} vencidas
+                            </span>
+                          )}
+                        </div>
+                      </section>
+                    );
+                  })
+              : ownCommissions.slice(0, 4).map((c) => (
+                  <button
+                    className="desktop-own-commission"
+                    key={c.id}
+                    onClick={() => navigate('commission', c.projectId, c.id)}
+                  >
+                    <CIcon c={c} />
+                    <span>
+                      <strong>{c.name}</strong>
+                      <small>{pOf(c)?.name}</small>
+                    </span>
+                    <ChevronRight size={16} />
+                  </button>
+                ))}
+            {(manage ? !data.projects.length : !ownCommissions.length) && (
+              <p className="muted">
+                {manage
+                  ? 'Todavía no hay proyectos ni campamentos.'
+                  : 'Tus comisiones aparecerán aquí cuando te añadan.'}
+              </p>
+            )}
+          </aside>
+        </div>
+        {manage && attention.length > 0 && (
+          <section className="desktop-attention">
+            <div className="section-heading">
+              <h2>Necesitan atención</h2>
+              <button className="text-link" onClick={() => navigate('alerts')}>
+                Ver alertas
+                <ChevronRight size={16} />
+              </button>
+            </div>
+            <div className="desktop-commission-caption" aria-hidden="true">
+              <span>Comisión</span>
+              <span>Trabajo abierto</span>
+              <span>Avance</span>
+              <span>Personas</span>
+              <span />
+            </div>
+            {commissionTable(attention)}
+          </section>
+        )}
+      </section>
+    );
+  };
   if (boot)
     return (
       <div className="loading">
@@ -755,17 +1146,15 @@ function App() {
             <img src="/brand-mark.webp" alt="" />
             Bandarlog
           </button>
-          <span className="nav-caption">ESPACIO DE TRABAJO</span>
           <nav>
             {[
-              ['home', 'Resumen', LayoutDashboard],
-              ['rounds', 'Proyectos', Flag],
-              ['camps', 'Campamentos', Tent],
+              ['home', 'Inicio', Home],
+              ['tasks', manage ? 'Tareas' : 'Mis tareas', ClipboardCheck],
               ['commissions', 'Comisiones', Users],
-              ['tasks', 'Tareas', ClipboardCheck],
+              ['camps', 'Campamentos', Tent],
+              ['rounds', 'Proyectos', Flag],
               ['people', 'Personas', UserRound],
               ['alerts', 'Alertas', Bell],
-              ['settings', 'Ajustes', Settings],
             ].map(([v, label, Icon]: any) => (
               <button key={v} onClick={() => navigate(v)} className={view === v ? 'active' : ''}>
                 <Icon size={19} />
@@ -800,54 +1189,75 @@ function App() {
         <div className="workspace">
           <ForestHeader
             className="app-forest-header"
+            effectsEnabled={forestEffects}
             avatar={<Avatar user={me} small />}
             onHome={() => navigate('home')}
             onProfile={() => navigate('profile')}
           />
-          <header className="topbar">
-            <button
-              className="icon-button menu-toggle"
-              aria-label="Abrir menú"
-              onClick={() => setSidebar(!sidebar)}
-            >
-              <Menu size={22} />
-            </button>
-            <div className="breadcrumbs">
-              <span>Mi grupo scout</span>
-              <ChevronRight size={13} />
-              <span>
-                {activeCommission?.name || activeProject?.name || 'Espacio de coordinación'}
-              </span>
-            </div>
-            <button className="mobile-brand" onClick={() => navigate('home')}>
-              <img src="/brand-mark.webp" alt="" />
-              Bandarlog
-            </button>
-            <div className="topbar-actions">
-              <span className="today">
-                {new Date().toLocaleDateString('es-ES', {
-                  timeZone: 'Europe/Madrid',
-                  day: 'numeric',
-                  month: 'long',
-                })}
-              </span>
+          <header
+            className={`topbar ${forestEffects ? 'with-forest-effects' : 'without-forest-effects'}`}
+          >
+            <BotanicalCanopy enabled={forestEffects} />
+            <div className="topbar-content">
               <button
-                className="icon-button"
-                aria-label="Ver alertas"
-                onClick={() => navigate('alerts')}
+                className="icon-button menu-toggle"
+                aria-label="Abrir menú"
+                onClick={() => setSidebar(!sidebar)}
               >
-                <Bell size={19} />
-                {data.tasks.some((t) => overdue(t) || t.status === 'blocked') && (
-                  <i className="notification-dot" />
-                )}
+                <Menu size={22} />
               </button>
-              <button
-                className="icon-button profile-button"
-                aria-label="Mi perfil"
-                onClick={() => navigate('profile')}
-              >
-                <Avatar user={me} small />
+              <div className="breadcrumbs">
+                <span>Rosales del Canal 702</span>
+                <ChevronRight size={13} />
+                <span>
+                  {activeCommission?.name ||
+                    activeProject?.name ||
+                    (
+                      {
+                        home: 'Inicio',
+                        tasks: manage ? 'Tareas' : 'Mis tareas',
+                        commissions: 'Comisiones',
+                        camps: 'Campamentos',
+                        rounds: 'Proyectos',
+                        people: 'Personas',
+                        alerts: 'Alertas',
+                        profile: 'Mi perfil',
+                        settings: 'Mi perfil',
+                      } as Record<string, string>
+                    )[view] ||
+                    'Inicio'}
+                </span>
+              </div>
+              <button className="mobile-brand" onClick={() => navigate('home')}>
+                <img src="/brand-mark.webp" alt="" />
+                Bandarlog
               </button>
+              <div className="topbar-actions">
+                <span className="today">
+                  {new Date().toLocaleDateString('es-ES', {
+                    timeZone: 'Europe/Madrid',
+                    day: 'numeric',
+                    month: 'long',
+                  })}
+                </span>
+                <button
+                  className="icon-button"
+                  aria-label="Ver alertas"
+                  onClick={() => navigate('alerts')}
+                >
+                  <Bell size={19} />
+                  {data.tasks.some((t) => overdue(t) || t.status === 'blocked') && (
+                    <i className="notification-dot" />
+                  )}
+                </button>
+                <button
+                  className="icon-button profile-button"
+                  aria-label="Mi perfil"
+                  onClick={() => navigate('profile')}
+                >
+                  <Avatar user={me} small />
+                </button>
+              </div>
             </div>
           </header>
           <main className="main">
@@ -874,142 +1284,7 @@ function App() {
             )}
             {view === 'home' && (
               <>
-                <div className="desktop-home">
-                  <div className="page-heading home-heading">
-                    <div>
-                      <h1>Resumen general</h1>
-                    </div>
-                    <div className="heading-filters">
-                      <Select
-                        aria-label="Filtrar proyecto"
-                        value={project}
-                        onChange={(e) => setProject(e.target.value)}
-                      >
-                        <option value="">Todos los proyectos</option>
-                        {data.projects.map((p) => (
-                          <option value={p.id} key={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </Select>
-                      <button className="secondary" onClick={() => setModal('task')}>
-                        <Plus size={16} /> Nueva tarea
-                      </button>
-                    </div>
-                  </div>
-                  {metricCards(scoped)}
-                  <div className="dashboard-grid">
-                    <section className="panel">
-                      <div className="section-heading">
-                        <h2>Progreso por proyecto</h2>
-                        <Tent size={18} />
-                      </div>
-                      {data.projects
-                        .filter((p) => !project || p.id === project)
-                        .map((p) => (
-                          <button
-                            key={p.id}
-                            className="project-progress"
-                            onClick={() => navigate('project', p.id)}
-                          >
-                            <span>{p.name}</span>
-                            {bar(data.tasks.filter((t) => cOf(t)?.projectId === p.id))}
-                          </button>
-                        ))}
-                    </section>
-                    <section className="panel">
-                      <div className="section-heading">
-                        <h2>Estado de las tareas</h2>
-                        <span className="muted">Vista general</span>
-                      </div>
-                      <div className="chart">
-                        <button
-                          className="donut"
-                          aria-label="Ver todas las tareas"
-                          onClick={() => navigate('tasks')}
-                          style={{
-                            background: (() => {
-                              let n = 0;
-                              const total = scoped.length || 1;
-                              const stops = ['done', 'in_progress', 'pending', 'blocked'].map(
-                                (v, i) => {
-                                  const start = n;
-                                  n += (metric(scoped, v) / total) * 100;
-                                  return `${['#21865c', '#438cd5', '#e8a33c', '#d9524b'][i]} ${start}% ${n}%`;
-                                },
-                              );
-                              return `conic-gradient(${stops.join(',')})`;
-                            })(),
-                          }}
-                        >
-                          <span>
-                            <strong>
-                              <AnimatedCounter value={scoped.length} />
-                            </strong>
-                            <small>tareas</small>
-                          </span>
-                        </button>
-                        <div className="chart-legend">
-                          {['pending', 'in_progress', 'done', 'blocked', 'overdue'].map(
-                            (status) => (
-                              <button
-                                key={status}
-                                onClick={() => {
-                                  setView('tasks');
-                                  setFilter(status);
-                                }}
-                              >
-                                <i className={status} />
-                                <span>{status === 'overdue' ? 'Vencidas' : labels[status]}</span>
-                                <b>
-                                  <AnimatedCounter value={metric(scoped, status)} />
-                                </b>
-                              </button>
-                            ),
-                          )}
-                        </div>
-                      </div>
-                    </section>
-                    <section className="panel">
-                      <div className="section-heading">
-                        <h2>Comisiones que necesitan atención</h2>
-                        <button className="text-link" onClick={() => navigate('commissions')}>
-                          Ver todas
-                        </button>
-                      </div>
-                      <div className="table-caption">
-                        <span>Comisión / proyecto</span>
-                        <span>Progreso · pendientes · vencidas</span>
-                      </div>
-                      {commissionTable(
-                        data.commissions.filter(
-                          (c) =>
-                            (!project || c.projectId === project) &&
-                            data.tasks.some(
-                              (t) =>
-                                t.commissionId === c.id && (overdue(t) || t.status === 'blocked'),
-                            ),
-                        ),
-                      )}
-                    </section>
-                    <section className="panel">
-                      <div className="section-heading">
-                        <h2>Tareas que requieren atención</h2>
-                        <span className="count overdue">
-                          <AnimatedCounter
-                            value={
-                              scoped.filter((t) => overdue(t) || t.status === 'blocked').length
-                            }
-                          />
-                        </span>
-                      </div>
-                      {taskList(
-                        scoped.filter((t) => overdue(t) || t.status === 'blocked').slice(0, 4),
-                        true,
-                      )}
-                    </section>
-                  </div>
-                </div>
+                <div className="desktop-home">{desktopHome()}</div>
                 <div className="mobile-only">
                   <MobileHome
                     data={data}
@@ -1103,8 +1378,12 @@ function App() {
                 </div>
                 {!data.projects.some((p) => p.type === (view === 'rounds' ? 'ronda' : 'camp')) && (
                   <Empty
-                    text="No hay proyectos"
-                    sub="Crea un proyecto para organizar sus comisiones."
+                    text={view === 'camps' ? 'No hay campamentos' : 'No hay proyectos'}
+                    sub={
+                      view === 'camps'
+                        ? 'Crea el primero para organizar sus comisiones y tareas.'
+                        : 'Crea un proyecto para organizar sus comisiones.'
+                    }
                   />
                 )}
               </>
@@ -1163,53 +1442,40 @@ function App() {
                     />
                   </div>
                 )}
-                <div className="commissions-grid desktop-only">
-                  {data.commissions
-                    .filter((c) => !project || c.projectId === project)
-                    .map((c) => {
-                      const ts = data.tasks.filter((t) => t.commissionId === c.id);
-                      return (
-                        <button
-                          className="panel commission-card"
-                          key={c.id}
-                          onClick={() => navigate('commission', c.projectId, c.id)}
-                        >
-                          <div>
-                            <CIcon c={c} />
-                            <ChevronRight size={18} />
-                          </div>
-                          <h2>{c.name}</h2>
-                          <p>{pOf(c)?.name}</p>
-                          {bar(ts)}
-                          <div className="commission-card-bottom">
-                            <span>
-                              <b className="count pending">
-                                <AnimatedCounter value={metric(ts, 'pending')} />
-                              </b>{' '}
-                              pendientes
+                <div className="desktop-only desktop-commission-groups">
+                  {data.projects
+                    .filter((p) => !project || p.id === project)
+                    .map((p) => {
+                      const cs = data.commissions.filter((c) => c.projectId === p.id);
+                      return cs.length ? (
+                        <section className="desktop-commission-group" key={p.id}>
+                          <div className="section-heading">
+                            <h2>{p.name}</h2>
+                            <span className="muted">
+                              {cs.length} {cs.length === 1 ? 'comisión' : 'comisiones'}
                             </span>
-                            <span>
-                              <b className="count overdue">
-                                <AnimatedCounter value={metric(ts, 'overdue')} />
-                              </b>{' '}
-                              vencidas
-                            </span>
-                            <div className="avatars">
-                              {data.members
-                                .filter((m) => m.commissionId === c.id)
-                                .slice(0, 3)
-                                .map((m) => (
-                                  <Avatar
-                                    user={data.users.find((u) => u.id === m.userId)}
-                                    key={m.id}
-                                    small
-                                  />
-                                ))}
-                            </div>
                           </div>
-                        </button>
-                      );
+                          <div className="desktop-commission-caption" aria-hidden="true">
+                            <span>Comisión</span>
+                            <span>Trabajo abierto</span>
+                            <span>Avance</span>
+                            <span>Personas</span>
+                            <span />
+                          </div>
+                          {commissionTable(cs)}
+                        </section>
+                      ) : null;
                     })}
+                  {!data.commissions.some((c) => !project || c.projectId === project) && (
+                    <Empty
+                      text="Todavía no hay comisiones"
+                      sub={
+                        manage
+                          ? 'Crea una comisión y elige quién se encargará de sus tareas.'
+                          : 'Tus comisiones aparecerán aquí cuando te añadan.'
+                      }
+                    />
+                  )}
                 </div>
               </>
             )}
@@ -1298,8 +1564,9 @@ function App() {
                           : ''
                       }
                     >
-                      {metricCards(scoped)}
-                      <section className="panel general-progress">
+                      <div className="mobile-only">{metricCards(scoped)}</div>
+                      {desktopSummary(scoped)}
+                      <section className="panel general-progress mobile-only">
                         <strong>Progreso general</strong>
                         {bar(scoped)}
                       </section>
@@ -1393,8 +1660,12 @@ function App() {
                       </button>
                     )}
                 </section>
+                {canManage(commission) && desktopSummary(scoped)}
                 {canManage(commission) && (
-                  <section className="commission-summary" aria-label="Panel de Responsable">
+                  <section
+                    className="commission-summary mobile-only"
+                    aria-label="Panel de Responsable"
+                  >
                     <div className="section-heading">
                       <div>
                         <h2>Panel de Responsable</h2>
@@ -1504,24 +1775,18 @@ function App() {
                     <p></p>
                   </div>
                 </div>
-                <section className="panel profile-panel">
-                  <Avatar user={me} />
-                  <h2>{me.name}</h2>
-                  <p>
-                    {me.email} · {manage ? 'Coordinación' : 'Miembro'}
-                  </p>
-                  <ProfileForm user={me} busy={busy} run={run} onSaved={setMe} />
-                  <button
-                    className="text-link logout"
-                    onClick={async () => {
-                      await api('/logout', 'POST');
-                      setMe(null);
-                      setData(initial);
-                    }}
-                  >
-                    <LogOut size={16} /> Cerrar sesión
-                  </button>
-                </section>
+                <ProfilePanel
+                  user={me}
+                  busy={busy}
+                  run={run}
+                  onSaved={setMe}
+                  onLogout={async () => {
+                    await api('/logout', 'POST');
+                    setCelebrations([]);
+                    setMe(null);
+                    setData(initial);
+                  }}
+                />
                 {development && (
                   <section className="panel development-panel">
                     <h2>Entorno de desarrollo</h2>
@@ -1564,12 +1829,17 @@ function App() {
             </button>
           ))}
         </nav>
-        {celebrating && (
-          <div className="task-celebration" aria-hidden="true">
+        {celebrationId !== undefined && (
+          <div
+            key={celebrationId}
+            className="task-celebration"
+            aria-hidden="true"
+            data-completion-event={celebrationId}
+          >
             <div className="vine-swing">
               <img src="/monkey-vine-2d.webp" alt="" />
             </div>
-            <strong>{undo?.last ? '¡Tus tareas están al día!' : 'Tarea completada'}</strong>
+            <strong>Tarea completada</strong>
           </div>
         )}
         {busy && (

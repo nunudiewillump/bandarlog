@@ -330,7 +330,17 @@
         "name": "desktop-wide",
         "value": "(min-width: 1600px)"
       }
-    ]
+    ],
+    "forestDesktopImplementation": {
+      "updatedAt": "2026-10-29",
+      "provenance": "Manual source update after explicit user implementation approval; no context engine execution",
+      "canopySource": "src/BotanicalCanopy.tsx",
+      "profileSource": "src/ProfilePanel.tsx",
+      "desktopSource": "src/desktop-forest.css",
+      "statusArea": "#103b2d",
+      "forestEffects": "Persistent user preference; hides foliage, not completion vine",
+      "originalCommissionIcons": "retained"
+    }
   },
   "components": [
     {
@@ -396,7 +406,7 @@
       "Verde bosque, crema y contraste de texto funcional.",
       "Nunito Sans local, nombres que envuelven y listas continuas.",
       "Identidad 2D discreta y celebración breve tras guardar.",
-      "Desktop operativo conservado; acceso y onboarding compartidos."
+      "Desktop Forest con foco por rol; perfil de lectura y copa compartida."
     ],
     "rules": [
       {
@@ -411,7 +421,7 @@
       },
       {
         "name": "Celebración Confirmada",
-        "body": "La liana 2D aparece solo tras confirmar guardado. El recorrido dura 2.2s y la etiqueta 2.5s; con movimiento reducido se oculta la liana y la etiqueta pierde animación. No hay decoración animada continua.",
+        "body": "La liana 2D cruza tras cada finalización guardada, con cola para eventos consecutivos y cruce sin giro en movimiento reducido. El follaje ambiental es independiente y se oculta con forestEffects.",
         "section": "elevation"
       }
     ],

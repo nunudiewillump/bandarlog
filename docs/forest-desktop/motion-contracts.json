@@ -1,0 +1,51 @@
+{
+  "contracts": [
+    {
+      "id": "M-COMPLETE",
+      "purpose": "Confirm a task was saved as completed without blocking the next action",
+      "trigger": "Successful persisted completion, never optimistic or failedsave",
+      "source": "src/styles.css:3023–3089 and src/main.tsx completion handling",
+      "provenance": "Existing timing from source; mandatory crossing on every completion is latest explicit user instruction, not a platformguideline",
+      "parameters": {
+        "crossingMs": 2200,
+        "easing": "cubic-bezier(0.28,0.1,0.44,1)",
+        "confirmationMs": 2500
+      },
+      "scope": "Every confirmed completion,2Dmonkey crossing from one side ofscreen to theother, Tarea completada and undo; no static substitute",
+      "focus": "No focus move; success and undo remain accessible",
+      "reducedMotion": "Product amendment keeps lateral crossing; remove ancillary rotations/bobbing in reduced-motion variant. Current hide-vine CSS no longer satisfies this new product requirement.",
+      "prototypeProof": "Static storyboard and representative frame only; real per-completion trigger, full travel, restart on consecutive completions and undo remain required runtimechecks"
+    },
+    {
+      "id": "M-WAIT",
+      "purpose": "Make an asynchronous load/save understandable without pretending measuredprogress",
+      "trigger": "Request pending",
+      "source": "src/BananaLoader.tsx and src/styles.css:3110–3167",
+      "provenance": "source-observed existing behavior",
+      "parameters": {
+        "cycleMs": 1800,
+        "easing": "ease-in-out",
+        "repeat": "while pending"
+      },
+      "scope": "Green contour, yellow filling, exactly3brownspots; label for operation",
+      "focus": "No focus move; pending action disabled, submittedvalues retained",
+      "reducedMotion": "Static filledbanana with status label",
+      "prototypeProof": "Static pending state; duration and actual completion unknown until implementation"
+    },
+    {
+      "id": "M-NAV",
+      "purpose": "Maintain orientation and task context",
+      "trigger": "Open detail, return to list, filter and route changes",
+      "provenance": "Product judgment using existing browser/dialog conventions; no external product motionprecedent",
+      "parameters": {
+        "newCustomMotion": "none"
+      },
+      "scope": "No page-entrance choreography or decorative loops; retain existing navigation behavior",
+      "focus": "Implementation must restore initiating control on close and expose active context",
+      "reducedMotion": "Same no-custom-motion behavior",
+      "prototypeProof": "Layout/navigation links only; focusmanagement and keyboard semantics require implementation validation"
+    }
+  ],
+  "authority": "Design proposal only. No source changes or deployment authorized.",
+  "platform": "Desktop web/PWA; official W3C/WAI guidance, not a shipped-product benchmark."
+}

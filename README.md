@@ -112,3 +112,9 @@ La [revisión móvil y del acceso](docs/revision-movil-y-acceso.md) documenta la
 El móvil usa copa de árbol, listas continuas, iconos originales y cuatro destinos estables. Se mantienen Smart Focus, permisos, completar/Deshacer y la experiencia operativa desktop. El primer acceso de las cuentas nuevas pide nombre obligatorio y foto opcional; se registra en servidor y no vuelve a mostrarse. La migración respeta perfiles e invitaciones anteriores.
 
 El acceso por código permanece dentro de la PWA. La sesión local admite hasta treinta días de inactividad y noventa días absolutos, con renovación controlada y revocación al cerrar sesión. Google es opcional, se prepara mediante OIDC verificado en backend y no usa las credenciales de Gmail. Configuración y límites de prueba: [Forest Experience implementado](docs/forest-experience/implementacion.md).
+
+## Forest en desktop y móvil
+
+Inicio prioriza tareas según el rol; las comisiones se agrupan por proyecto y el panel de Responsable es compacto. La copa botánica comparte las hojas de la caída ocasional, responde al cursor y se puede ocultar en Perfil → Preferencias → Mostrar copa y hojas. La elección se guarda para la cuenta.
+
+Perfil abre como información personal y del grupo Rosales del Canal 702; Editar perfil activa el formulario. Los avisos se configuran por separado. La PWA usa #103b2d en su tema y zona superior segura. Esta versión no necesita variables ni migraciones adicionales. Evidencia y límites: [implementación desktop](docs/forest-desktop/implementacion.md).
