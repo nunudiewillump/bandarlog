@@ -1,4 +1,4 @@
-import type { Data, Task, User } from './types';
+import { projectSummariesOf, type Data, type Task, type User } from './types';
 export const openTasks = (tasks: Task[]) => tasks.filter((task) => task.status !== 'done');
 export function smartFocus(data: Data, user: User, now = Date.now()) {
   const assigned = new Set(
@@ -14,13 +14,13 @@ export function smartFocus(data: Data, user: User, now = Date.now()) {
   const commissionTasks = data.tasks.filter((task) => ownCommissions.has(task.commissionId));
   const personalOpen = openTasks(personal),
     commissionOpen = openTasks(commissionTasks);
-  const camps = (data.campSummaries || []).filter((camp) => camp.open > 0);
+  const projects = projectSummariesOf(data).filter((camp) => camp.open > 0);
   const level = personalOpen.length
     ? 'personal'
     : commissionOpen.length
       ? 'commissions'
-      : camps.length
-        ? 'camps'
+      : projects.length
+        ? 'projects'
         : 'clear';
   const rank = (task: Task) => [
     Number(new Date(task.due).getTime() >= now),
@@ -41,7 +41,7 @@ export function smartFocus(data: Data, user: User, now = Date.now()) {
     commissionTasks,
     commissionOpen,
     featured: tasks.slice(0, 3),
-    camps: camps.sort(
+    projects: projects.sort(
       (a, b) =>
         b.overdue - a.overdue ||
         b.blocked - a.blocked ||

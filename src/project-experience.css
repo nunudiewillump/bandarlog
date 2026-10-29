@@ -1,0 +1,107 @@
+.project-kind-filter {
+  max-width: 340px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #fffefa;
+  color: #24352b;
+}
+.mobile-pwa-no-zoom {
+  touch-action: pan-x pan-y;
+}
+@media (max-width: 767px),
+  (orientation: landscape) and (max-height: 599px) and (max-width: 1023px) {
+  .bottom-nav {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  .bottom-nav button {
+    padding-inline: 2px;
+  }
+  .bottom-nav button span {
+    font-size: 12px;
+  }
+}
+/* Dark forest is the canvas. Every working surface keeps paper and dark ink. */
+@media (min-width: 1024px), (min-width: 768px) and (min-height: 600px) {
+  body,
+  #root,
+  .app-shell,
+  .workspace,
+  .main {
+    background: #103b2d;
+  }
+  .main {
+    color: #faf8f2;
+  }
+  .main .panel,
+  .main .page-heading,
+  .main .page-tabs,
+  .main .project-tabs,
+  .main .desktop-summary,
+  .main .desktop-priority,
+  .main .desktop-home-context,
+  .main .desktop-attention,
+  .main .desktop-commission-group,
+  .main .project-banner,
+  .main .commission-banner,
+  .main .project-appearance,
+  .main .profile-overview,
+  .main .device-notifications,
+  .main .empty,
+  .main .project-grid {
+    background: #fffefa;
+    color: #24352b;
+    border-radius: 12px;
+    --muted: #52675a;
+  }
+  .main .page-heading,
+  .main .desktop-priority,
+  .main .desktop-home-context,
+  .main .desktop-attention,
+  .main .desktop-commission-group,
+  .main .project-banner,
+  .main .commission-banner,
+  .main .project-appearance,
+  .main .profile-overview,
+  .main .project-grid {
+    padding: 24px;
+  }
+  .main .panel {
+    padding: 24px;
+  }
+  .main .page-heading,
+  .main .desktop-summary,
+  .main .page-tabs,
+  .main .project-appearance {
+    margin-bottom: 20px;
+  }
+  .main .page-tabs,
+  .main .project-tabs {
+    padding: 8px 12px;
+  }
+  .main .project-card {
+    padding: 20px 8px;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .main .desktop-summary {
+    padding: 16px 20px;
+  }
+  .main .profile-overview {
+    max-width: none;
+  }
+  .main > .back,
+  .main > .archive {
+    color: #faf8f2;
+    margin-bottom: 16px;
+  }
+  .main .project-appearance summary {
+    min-height: 44px;
+    cursor: pointer;
+  }
+  .main .project-appearance[open] summary {
+    margin-bottom: 16px;
+  }
+  .main .desktop-attention {
+    margin-top: 24px;
+  }
+}

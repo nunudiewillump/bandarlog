@@ -1,0 +1,138 @@
+.task-checklist {
+  margin-top: 24px;
+}
+.checklist-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.checklist-heading h3 {
+  margin: 0;
+}
+.checklist-heading > span {
+  color: #52675a;
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+}
+.task-checklist > .hint {
+  margin-top: 6px;
+}
+.task-checklist ul {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.task-checklist li {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px solid #dfe5da;
+  padding: 8px 0;
+}
+.checklist-step {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 12px 0;
+  line-height: 1.5;
+  font-size: 15px;
+  font-weight: 600;
+}
+.checklist-step input {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  margin: 2px 0;
+  accent-color: #124d38;
+}
+.checklist-step > span {
+  overflow-wrap: anywhere;
+}
+.checklist-step svg {
+  margin-top: 3px;
+  color: #52675a;
+}
+.step-done {
+  text-decoration: line-through;
+  color: #52675a;
+}
+.checklist-options {
+  margin-left: auto;
+  flex: 0 0 auto;
+  max-width: 100%;
+}
+.checklist-options summary {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  cursor: pointer;
+  border-radius: 8px;
+  list-style: none;
+}
+.checklist-options summary::-webkit-details-marker {
+  display: none;
+}
+.checklist-options summary:hover,
+.checklist-options[open] summary {
+  background: #edf0e5;
+}
+.checklist-options > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px;
+}
+.checklist-options button {
+  min-height: 44px;
+}
+.checklist-add {
+  min-height: 44px;
+  margin-top: 8px;
+}
+.dialog-body .checklist-editor {
+  display: flex;
+  align-items: flex-start;
+  flex: 1 0 100%;
+  gap: 6px;
+  margin: 8px 0;
+  padding: 0;
+  min-width: 0;
+}
+.checklist-editor input {
+  flex: 1;
+  min-width: 0;
+}
+.checklist-editor button {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+}
+.task-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+  padding-bottom: 12px;
+}
+.task-edit-actions > button {
+  flex: 1 1 120px;
+  min-height: 48px;
+}
+@media (max-width: 767px),
+  (orientation: landscape) and (max-height: 599px) and (max-width: 1023px) {
+  .checklist-step {
+    font-size: 16px;
+  }
+  .checklist-editor input {
+    font-size: 16px;
+  }
+}

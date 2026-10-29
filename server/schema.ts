@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
-import { pgTable, text, timestamp, integer, uniqueIndex } from 'drizzle-orm/pg-core';
+import type { ChecklistItem } from './task-checklist.js';
+import { pgTable, text, timestamp, integer, uniqueIndex, jsonb } from 'drizzle-orm/pg-core';
 export const users = pgTable('users', {
   id: text().primaryKey(),
   name: text().notNull(),
@@ -16,7 +17,7 @@ export const users = pgTable('users', {
 export const projects = pgTable('projects', {
   id: text().primaryKey(),
   name: text().notNull(),
-  type: text().notNull(),
+  type: text().notNull().default('general'),
   parentId: text('parent_id'),
   starts: text(),
   ends: text(),
@@ -61,6 +62,7 @@ export const tasks = pgTable('tasks', {
     .references(() => commissions.id),
   title: text().notNull(),
   description: text().notNull(),
+  checklist: jsonb().$type<ChecklistItem[]>().notNull().default([]),
   due: timestamp({ withTimezone: true, mode: 'string' }).notNull(),
   status: text().notNull(),
   blockedReason: text('blocked_reason'),

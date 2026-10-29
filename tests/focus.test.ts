@@ -22,8 +22,8 @@ for (const count of [1, 5, 10] as const)
     assert.equal(focus.commissionOpen.length, 30);
     for (const t of data.tasks) t.status = 'done';
     focus = smartFocus(summary(), user);
-    assert.equal(focus.level, 'camps');
-    assert.equal(focus.camps[0].open, 14);
+    assert.equal(focus.level, 'projects');
+    assert.equal(focus.projects[0].open, 14);
     assert.equal(
       data.tasks.some((t) => t.commissionId === 'camp-other'),
       false,

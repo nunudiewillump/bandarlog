@@ -1,5 +1,5 @@
-importScripts('/offline-store.js');
-const CACHE = 'bandarlog-static-v3';
+importScripts('/offline-store.js?v=4');
+const CACHE = 'bandarlog-static-v4';
 self.addEventListener('install', (e) => {
   e.waitUntil(
     (async () => {
@@ -8,6 +8,7 @@ self.addEventListener('install', (e) => {
         '/offline.html',
         '/icon-192.png',
         '/offline-store.js',
+        '/offline-store.js?v=4',
         '/manifest.webmanifest',
       ]);
       const shell = await fetch('/', { cache: 'reload' });

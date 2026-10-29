@@ -9,7 +9,7 @@ async function setup(
     role?: string;
     empty?: boolean;
     width?: number;
-    level?: 'personal' | 'commissions' | 'camps' | 'clear';
+    level?: 'personal' | 'commissions' | 'projects' | 'clear';
     fail?: boolean;
     delay?: number;
   } = {},
@@ -33,7 +33,7 @@ async function setup(
   );
   if (options.level && options.level !== 'personal')
     for (const task of fixture.allTasks) if (own.has(task.id)) task.status = 'done';
-  if (options.level === 'camps' || options.level === 'clear')
+  if (options.level === 'projects' || options.level === 'clear')
     for (const task of fixture.data.tasks) task.status = 'done';
   if (options.level === 'clear') for (const task of fixture.allTasks) task.status = 'done';
   const calls: string[] = [];
@@ -199,20 +199,20 @@ test('the last personal task gets a satisfaction pause before read-only team con
   await page.getByRole('dialog').getByRole('button', { name: 'Cerrar', exact: true }).click();
   await page.screenshot({ path: 'artifacts/mobile-v2/team-context.png', animations: 'disabled' });
 });
-for (const level of ['camps', 'clear'] as const)
+for (const level of ['projects', 'clear'] as const)
   test(`Always Something reaches ${level} without inventing work`, async ({ page }) => {
     await setup(page, { level });
     await expect(page.locator('.mobile-focus')).toHaveAttribute('data-focus-level', level);
     await expect(page.locator('.personal-clear')).toBeVisible();
     await expect(page.locator('.mobile-focus').getByRole('checkbox')).toHaveCount(0);
-    if (level === 'camps') {
+    if (level === 'projects') {
       await expect(
         page.getByRole('heading', { name: 'Tus comisiones están al día' }),
       ).toBeVisible();
-      await expect(page.locator('.mobile-focus .camp-overview')).toHaveCount(1);
-      await expect(page.locator('.mobile-focus .camp-overview > p [data-value="14"]')).toHaveCount(
-        1,
-      );
+      await expect(page.locator('.mobile-focus .project-overview')).toHaveCount(1);
+      await expect(
+        page.locator('.mobile-focus .project-overview > p [data-value="14"]'),
+      ).toHaveCount(1);
     } else await expect(page.getByRole('heading', { name: 'Todo al día' })).toBeVisible();
     await page.screenshot({
       path: `artifacts/mobile-v2/${level}.png`,
@@ -314,8 +314,7 @@ for (const width of [320, 390, 430])
         ['home', ''],
         ['tasks', '?view=tasks'],
         ['commissions', '?view=commissions'],
-        ['camps', '?view=camps'],
-        ['projects', '?view=rounds'],
+        ['projects', '?view=projects'],
         ['project', '?view=project&project=camp-v2'],
         ['commission', '?view=commission&project=camp-v2&commission=commission-v2-5'],
         ['people', '?view=people'],
@@ -390,7 +389,7 @@ for (const width of [320, 390, 430])
       for (const [view, action] of [
         ['commissions', 'Nueva comisión'],
         ['tasks', 'Nueva tarea'],
-        ['camps', 'Nuevo campamento'],
+        ['projects', 'Nuevo proyecto'],
         ['people', 'Invitar personas'],
       ]) {
         await page.goto('/?view=' + view);
@@ -416,8 +415,7 @@ for (const width of [320, 430])
       'home',
       'tasks',
       'commissions',
-      'camps',
-      'rounds',
+      'projects',
       'people',
       'profile',
       'alerts',

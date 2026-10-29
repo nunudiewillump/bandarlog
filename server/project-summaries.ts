@@ -1,19 +1,18 @@
 import { and, inArray, sql } from 'drizzle-orm';
 import type { Database } from './db.js';
 import { commissions, tasks } from './schema.js';
-export async function campSummaries(
+export async function projectSummaries(
   db: Database,
   projects: { id: string; name: string; type: string }[],
 ) {
-  const camps = projects.filter((project) => project.type === 'camp');
-  if (!camps.length) return [];
+  if (!projects.length) return [];
   const groups = await db
     .select({ id: commissions.id, name: commissions.name, projectId: commissions.projectId })
     .from(commissions)
     .where(
       inArray(
         commissions.projectId,
-        camps.map((camp) => camp.id),
+        projects.map((project) => project.id),
       ),
     );
   const rows = groups.length
@@ -46,12 +45,13 @@ export async function campSummaries(
           .sort()[0] || null,
     };
   };
-  return camps.map((camp) => {
-    const members = groups.filter((group) => group.projectId === camp.id);
+  return projects.map((project) => {
+    const members = groups.filter((group) => group.projectId === project.id);
     const ids = new Set(members.map((group) => group.id));
     return {
-      id: camp.id,
-      name: camp.name,
+      id: project.id,
+      name: project.name,
+      type: project.type,
       ...summarize(rows.filter((row) => ids.has(row.commissionId))),
       commissions: members.map((group) => ({
         id: group.id,

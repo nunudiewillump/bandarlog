@@ -20,10 +20,12 @@ import {
   type ArtworkTheme,
 } from '../shared/scout-catalog.js';
 import { normalizePhoto } from './photos.js';
+import { checklistChangeSchema, changeChecklist, ChecklistError } from './task-checklist.js';
 import { artworkImage } from './artwork.js';
 import { renderMail } from './mail-template.js';
 import { pushService, validPushEndpoint } from './push.js';
-import { campSummaries } from './camp-summaries.js';
+import { projectSummaries } from './project-summaries.js';
+import { projectTypeInput } from './project-input.js';
 import {
   codeVerifier,
   equalSecret,
@@ -1110,8 +1112,12 @@ app.get('/api/data', async (_q, r) => {
   const us = (await db.select().from(s.users))
     .filter((x) => globalManage(u) || uids.has(x.id))
     .map(({ preferences, ...x }) => x);
+  const summaries = await projectSummaries(db, visibleProjects);
   r.json({
-    campSummaries: await campSummaries(db, visibleProjects),
+    projectSummaries: summaries,
+    campSummaries: summaries.filter((summary) =>
+      visibleProjects.some((p) => p.id === summary.id && p.type === 'camp'),
+    ),
     artworkEnabled: true,
     artworkThemes,
     projects: visibleProjects.map((p) => ({ ...p, artworkTheme: projectArtworkTheme(p) })),
@@ -1168,22 +1174,20 @@ app.post('/api/projects', async (q, r) => {
   const input = parse(
     z.object({
       name: text,
-      type: z.enum(['ronda', 'camp']),
+      type: projectTypeInput.default('general'),
       artworkTheme: z.enum(['scout', 'christmas']).optional(),
-      parentId: z.string().optional(),
+      parentId: z.string().trim().max(200).nullable().optional(),
       starts: z.iso.date(),
       ends: z.iso.date(),
     }),
     q.body,
   );
   if (input.ends < input.starts) fail(400, 'La fecha final debe ser posterior al inicio.');
-  if (input.type === 'camp') {
-    const [parent] = await db
-      .select()
-      .from(s.projects)
-      .where(eq(s.projects.id, input.parentId || ''));
-    if (!parent || parent.type !== 'ronda' || parent.archived === 'true')
-      fail(400, 'Selecciona un proyecto anual activo.');
+  // Retained only for old API clients and historical imports, never inherited.
+  const parentId = input.parentId || null;
+  if (parentId) {
+    const [parent] = await db.select().from(s.projects).where(eq(s.projects.id, parentId));
+    if (!parent) fail(400, 'La referencia histórica de proyecto no existe.');
   }
   const [p] = await db
     .insert(s.projects)
@@ -1191,37 +1195,43 @@ app.post('/api/projects', async (q, r) => {
       ...input,
       artworkTheme: projectArtworkTheme(input),
       id: id(),
-      parentId: input.type === 'camp' ? input.parentId : null,
+      parentId,
     })
     .returning();
   r.status(201).json(p);
 });
 app.patch('/api/projects/:id', async (q, r) => {
   if (!globalManage(r.locals.user)) fail(403, 'Solo coordinación puede modificar proyectos.');
-  const { archived, artworkTheme } = parse(
+  const { archived, artworkTheme, type } = parse(
     z
       .object({
         archived: z.boolean().optional(),
+        type: projectTypeInput.optional(),
         artworkTheme: z.enum(['scout', 'christmas']).optional(),
       })
-      .refine((v) => v.archived !== undefined || v.artworkTheme !== undefined, 'Indica un cambio.'),
+      .refine(
+        (v) => v.archived !== undefined || v.artworkTheme !== undefined || v.type !== undefined,
+        'Indica un cambio.',
+      ),
     q.body,
   );
   const [existingProject] = await db
     .select()
     .from(s.projects)
     .where(eq(s.projects.id, String(q.params.id)));
+  if (!existingProject) fail(404, 'Proyecto no encontrado.');
   if (
     existingProject &&
     artworkTheme === 'scout' &&
     inferArtworkTheme(existingProject.name) === 'christmas'
   )
-    fail(409, 'El nombre del campamento tiene asociada la colección de Navidad.');
+    fail(409, 'El nombre del proyecto tiene asociada la colección de Navidad.');
   await db
     .update(s.projects)
     .set({
       ...(archived !== undefined ? { archived: String(archived) } : {}),
       ...(artworkTheme ? { artworkTheme } : {}),
+      ...(type !== undefined ? { type } : {}),
     })
     .where(eq(s.projects.id, String(q.params.id)));
   r.json({ ok: true });
@@ -1383,18 +1393,39 @@ app.post('/api/tasks', async (q, r) => {
 app.patch('/api/tasks/:id', async (q, r) => {
   const tid = String(q.params.id);
   const input = parse(
-    z.object({
-      status: statuses.optional(),
-      expectedUpdatedAt: z.string().optional(),
-      blockedReason: z.string().trim().max(1000).optional(),
-      responsibleIds: z.array(text).min(1).optional(),
-      due: z.iso.datetime({ offset: true }).optional(),
-    }),
+    z
+      .object({
+        title: text.optional(),
+        description: z.string().trim().max(5000).optional(),
+        checklistChange: checklistChangeSchema.optional(),
+        status: statuses.optional(),
+        expectedUpdatedAt: z.string().optional(),
+        blockedReason: z.string().trim().max(1000).optional(),
+        responsibleIds: z.array(text).min(1).optional(),
+        due: z.iso.datetime({ offset: true }).optional(),
+      })
+      .strict()
+      .refine(
+        (value) =>
+          Object.keys(value).some((key) => key !== 'expectedUpdatedAt' && key !== 'blockedReason'),
+        'Indica un cambio.',
+      ),
     q.body,
   );
   const changedTask = await withReceipt(q, r, async (tx: any) => {
     await tx.execute(sql`select commission_id from tasks where id=${tid} for update`);
-    const t = await editableTask(r.locals.user, tid, tx, !!(input.responsibleIds || input.due));
+    const t = await editableTask(
+      r.locals.user,
+      tid,
+      tx,
+      !!(
+        input.responsibleIds ||
+        input.due ||
+        input.title !== undefined ||
+        input.description !== undefined ||
+        (input.checklistChange && input.checklistChange.action !== 'toggle')
+      ),
+    );
     if (input.expectedUpdatedAt && +new Date(input.expectedUpdatedAt) !== +new Date(t.updatedAt))
       fail(409, 'La tarea ha cambiado. Actualiza la vista antes de modificarla.');
     await tx.execute(sql`select id from commissions where id=${t.commissionId} for update`);
@@ -1415,6 +1446,16 @@ app.patch('/api/tasks/:id', async (q, r) => {
     const update: any = {
       updatedAt: new Date(Math.max(Date.now(), +new Date(t.updatedAt) + 1)).toISOString(),
     };
+    if (input.title !== undefined) update.title = input.title;
+    if (input.description !== undefined) update.description = input.description;
+    if (input.checklistChange) {
+      try {
+        update.checklist = changeChecklist(t.checklist, input.checklistChange);
+      } catch (error) {
+        if (error instanceof ChecklistError) fail(error.status, error.message);
+        throw error;
+      }
+    }
     if (input.due) update.due = input.due;
     if (input.status) {
       Object.assign(update, {
@@ -1432,20 +1473,43 @@ app.patch('/api/tasks/:id', async (q, r) => {
       'updated',
       input.status
         ? `Estado: ${input.status}${input.blockedReason ? ` · ${input.blockedReason}` : ''}`
-        : input.responsibleIds
-          ? 'Ha reasignado responsables.'
-          : 'Ha cambiado la fecha límite.',
+        : input.checklistChange
+          ? {
+              add: 'Ha añadido un paso.',
+              edit: 'Ha editado un paso.',
+              toggle:
+                input.checklistChange.action === 'toggle' && input.checklistChange.done
+                  ? 'Ha marcado un paso.'
+                  : 'Ha desmarcado un paso.',
+              remove: 'Ha eliminado un paso.',
+            }[input.checklistChange.action]
+          : [
+              input.title !== undefined && 'Ha actualizado el título.',
+              input.description !== undefined && 'Ha actualizado la descripción.',
+              input.responsibleIds && 'Ha reasignado responsables.',
+              input.due && 'Ha cambiado la fecha límite.',
+            ]
+              .filter(Boolean)
+              .join(' '),
     );
-    await taskMail(
-      tx,
-      changed,
-      input.responsibleIds
-        ? 'Reasignación'
-        : input.due
-          ? 'Cambio de fecha'
-          : 'Actualización de tarea',
-      `updated-${tid}-${id()}`,
-    );
+    if (
+      !input.checklistChange ||
+      input.title !== undefined ||
+      input.description !== undefined ||
+      input.due ||
+      input.responsibleIds ||
+      input.status
+    )
+      await taskMail(
+        tx,
+        changed,
+        input.responsibleIds
+          ? 'Reasignación'
+          : input.due
+            ? 'Cambio de fecha'
+            : 'Actualización de tarea',
+        `updated-${tid}-${id()}`,
+      );
     return changed;
   });
   void deliver();
