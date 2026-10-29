@@ -1,0 +1,166 @@
+name: Codex nocturno · Forest Experience (única ejecución)
+
+on:
+  schedule:
+    # 29/10/2026 a las 04:00 Europe/Madrid (CET = UTC+1).
+    # GitHub ejecuta los cron en UTC y puede retrasarlos.
+    - cron: '0 3 29 10 *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bandarlog-codex-forest-20261029
+  cancel-in-progress: false
+
+jobs:
+  one_shot_guard:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.guard.outputs.should_run }}
+    steps:
+      - id: guard
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [[ "$EVENT_NAME" == 'workflow_dispatch' || "$(date -u +%Y-%m-%d)" == '2026-10-29' ]]; then
+            echo 'should_run=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'should_run=false' >> "$GITHUB_OUTPUT"
+            echo 'Esta ejecución está limitada al 29/10/2026.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  codex:
+    needs: one_shot_guard
+    if: needs.one_shot_guard.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    permissions:
+      contents: read
+    outputs:
+      has_patch: ${{ steps.patch.outputs.has_patch }}
+    steps:
+      - name: Comprobar clave de API (no se imprime)
+        shell: bash
+        env:
+          KEY_PRESENT: ${{ secrets.OPENAI_API_KEY != '' }}
+        run: |
+          if [[ "$KEY_PRESENT" != 'true' ]]; then
+            echo '::error::Falta OPENAI_API_KEY en Settings > Secrets and variables > Actions del repositorio.'
+            exit 1
+          fi
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - name: Instalar dependencias ANTES de proporcionar la clave a Codex
+        run: npm ci --include=dev
+      - name: Ejecutar Codex sobre Forest Experience
+        id: run_codex
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ':workspace'
+          prompt-file: .github/codex/forest-experience-night.md
+          output-file: codex-final.md
+      - name: Pruebas unitarias y de integración existentes
+        id: tests
+        continue-on-error: true
+        run: npm test
+      - name: Compilación y comprobación TypeScript
+        id: build
+        continue-on-error: true
+        run: npm run build
+      - name: Exportar solo cambios de código (no credenciales ni workflows)
+        id: patch
+        shell: bash
+        run: |
+          git add --intent-to-add .
+          git diff --binary --no-ext-diff -- . \
+            ':(exclude).github/**' \
+            ':(exclude).env' \
+            ':(exclude).env.*' \
+            ':(exclude)codex-final.md' \
+            > "$RUNNER_TEMP/codex.patch"
+          if [[ -s "$RUNNER_TEMP/codex.patch" ]]; then
+            echo 'has_patch=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'has_patch=false' >> "$GITHUB_OUTPUT"
+          fi
+          {
+            echo "Pruebas: ${{ steps.tests.outcome }}"
+            echo "Build: ${{ steps.build.outcome }}"
+            echo "Cambios: $(git diff --stat | tail -n 12)"
+          } > "$RUNNER_TEMP/codex-test-summary.txt"
+          cat "$RUNNER_TEMP/codex-test-summary.txt" >> "$GITHUB_STEP_SUMMARY"
+      - name: Guardar parche y resultados
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: bandarlog-codex-forest-patch
+          path: |
+            ${{ runner.temp }}/codex.patch
+            ${{ runner.temp }}/codex-test-summary.txt
+            codex-final.md
+          retention-days: 7
+          if-no-files-found: error
+
+  open_pull_request:
+    needs: [one_shot_guard, codex]
+    if: needs.codex.result == 'success' && needs.codex.outputs.has_patch == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: true
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093a # v4
+        with:
+          name: bandarlog-codex-forest-patch
+          path: ${{ runner.temp }}/handoff
+      - name: Aplicar parche y proponer PR, sin merge ni despliegue
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          PATCH="$RUNNER_TEMP/handoff/codex.patch"
+          if [[ ! -s "$PATCH" ]]; then
+            echo 'Codex no produjo cambios de código.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git apply --check "$PATCH"
+          git apply "$PATCH"
+          BRANCH="codex/forest-experience-20261029-${GITHUB_RUN_ID}"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "$BRANCH"
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'No hay cambios que proponer.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git commit -m 'feat: completar Forest Experience móvil con Codex'
+          git push origin "HEAD:refs/heads/$BRANCH"
+          {
+            echo 'Cambios generados por Codex; revisión humana obligatoria.'
+            echo
+            echo "Ejecución: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo
+            echo 'No se ha hecho merge ni despliegue.'
+            echo
+            echo 'Resultados automáticos (pueden incluir fallos):'
+            cat "$RUNNER_TEMP/handoff/codex-test-summary.txt"
+          } > "$RUNNER_TEMP/pr-body.txt"
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title 'Codex: finalizar Forest Experience móvil' \
+            --body-file "$RUNNER_TEMP/pr-body.txt"
