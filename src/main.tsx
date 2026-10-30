@@ -7,6 +7,7 @@ import {
   ProjectIdentity,
   ProjectOverview,
   TaskSummary,
+  TeamTaskCount,
 } from './MobileUX';
 import { ArtworkPicker } from './Artwork';
 import { ForestHeader } from './ForestHeader';
@@ -916,8 +917,11 @@ function App() {
                         : context
                           ? 'Todo al día'
                           : 'Sin tareas asignadas'}
+                {!satisfaction && focus.level === 'commissions' && (
+                  <TeamTaskCount open={focus.teamOpen.length} total={focus.teamTasks.length} />
+                )}
               </h2>
-              {!satisfaction && (personal || focus.level === 'commissions') && (
+              {!satisfaction && personal && (
                 <span className="desktop-open-count">
                   {personal ? focus.personalOpen.length : focus.commissionOpen.length} abiertas
                 </span>

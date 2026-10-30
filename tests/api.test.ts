@@ -549,6 +549,9 @@ test('all queued emails include branded HTML and tasks have safe contextual acti
     ),
   );
   const taskMail = messages.find((m: any) => m.subject.includes('Nueva asignación'));
+  assert.match(taskMail.html, />Ver tarea<\/a>/);
+  assert.equal((taskMail.html.match(/data-mail-action=/g) || []).length, 3);
+  assert.match(taskMail.html, /mail-grass\.png/);
   assert.match(taskMail.html, /Completar tarea/);
   assert.match(taskMail.html, /action=done/);
   assert.match(taskMail.html, /se confirman en Bandarlog/);

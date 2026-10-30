@@ -862,21 +862,24 @@ async function taskMail(
           },
         ],
         actions: [
-          { label: 'Abrir tarea', url: `${appUrl}/?task=${t.id}` },
+          { label: 'Ver tarea', url: `${appUrl}/?task=${t.id}` },
           ...(t.status !== 'done'
             ? [
                 {
                   label: 'Marcar en curso',
+                  kind: 'in_progress' as const,
                   url: `${appUrl}/?task=${t.id}&action=in_progress`,
                   secondary: true,
                 },
                 {
                   label: 'Completar tarea',
+                  kind: 'done' as const,
                   url: `${appUrl}/?task=${t.id}&action=done`,
                   secondary: true,
                 },
                 {
-                  label: 'Comunicar bloqueo',
+                  label: 'Bloquear tarea',
+                  kind: 'blocked' as const,
                   url: `${appUrl}/?task=${t.id}&action=blocked`,
                   secondary: true,
                 },

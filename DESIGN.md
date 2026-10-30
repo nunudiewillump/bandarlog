@@ -260,3 +260,9 @@ Proyectos es una única sección, con clasificación opcional y filtro. El tipo 
 ## Ajustes de cabecera y copa
 
 El engranaje de gestión vive a la derecha de la tarjeta de título de proyecto, comisión o tarea y reserva espacio para evitar solapar nombres largos. Usa el mismo objetivo de 44 px en todos los dispositivos y un popover de papel con tinta oscura. Formularios y eliminación se muestran progresivamente; las acciones operativas principales siguen visibles. La copa usa 17–50 segundos por lote, 15 % de dos hojas y 10 % de un plátano del indicador de carga. La preferencia de apariencia y movimiento reducido siguen siendo vinculantes. La pañoleta completa del perfil lleva franjas rosas y moradas.
+
+## Acciones de correo y contexto del equipo
+
+Los correos de tarea muestran «Ver tarea» y debajo tres acciones de icono en una fila: en curso azul, bloqueo amarillo con candado y finalización verde con check. Se usan PNG y tablas para conservar la disposición en clientes de correo, con texto alternativo, nombres accesibles y una franja de césped con la paleta de la copa debajo. Los enlaces mantienen la confirmación en la aplicación.
+
+«Por completar» en el resumen personal siempre cuenta tareas asignadas al usuario, incluso cuando llega a cero. El contexto «Tareas del equipo» lleva su contador pequeño junto al título, excluyendo las tareas personales del numerador y denominador: hasta 30 % pendiente verde, más de 30 % hasta 60 % amarillo, más de 60 % rojo. Incluye tareas pendientes, en curso y bloqueadas como no completadas. El porcentaje también se comunica en el nombre accesible y el título del contador.
