@@ -60,7 +60,12 @@ for (const width of [320, 1440])
     expect(
       await page
         .locator('img')
-        .evaluateAll((images) => images.every((image) => image.complete && image.naturalWidth > 0)),
+        .evaluateAll((images) =>
+          images.every(
+            (image) =>
+              image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0,
+          ),
+        ),
     ).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
