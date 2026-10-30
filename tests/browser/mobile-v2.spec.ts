@@ -186,9 +186,10 @@ test('the last personal task gets a satisfaction pause before read-only team con
     timeout: 5000,
   });
   await expect(page.locator('.personal-clear')).toBeVisible();
-  await expect(metric(page, 'Por completar')).toHaveAttribute('data-value', '30');
-  await expect(metric(page, 'Bloqueadas')).toHaveAttribute('data-value', '1');
-  await expect(metric(page, 'Terminadas')).toHaveAttribute('data-value', '30');
+  await expect(metric(page, 'Por completar')).toHaveAttribute('data-value', '0');
+  await expect(metric(page, 'Bloqueadas')).toHaveCount(0);
+  await expect(metric(page, 'Terminadas')).toHaveAttribute('data-value', '15');
+  await expect(page.locator('.team-task-count:visible')).toHaveAttribute('data-pending', '30');
   await expect(page.locator('.mobile-focus .mobile-task-row')).toHaveCount(3);
   await expect(page.locator('.mobile-focus').getByRole('checkbox')).toHaveCount(0);
   expect(new URL(page.url()).search).toBe('');

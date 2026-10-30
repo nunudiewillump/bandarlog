@@ -8,6 +8,7 @@ import {
   ProjectIdentity,
   ProjectOverview,
   TaskSummary,
+  TeamTaskCount,
 } from './MobileUX';
 import { ArtworkPicker } from './Artwork';
 import { ForestHeader } from './ForestHeader';
@@ -18,6 +19,7 @@ import { Onboarding } from './Onboarding';
 import { artworkThemes, inferArtworkTheme } from '../shared/scout-catalog';
 import { projectTypes, projectType, projectTypeName, projectView } from '../shared/project-types';
 import { installMobilePwaZoom } from './pwa';
+import { lockBodyScroll } from './scroll-lock';
 import { createRoot } from 'react-dom/client';
 import {
   Home,
@@ -924,8 +926,11 @@ function App() {
                         : context
                           ? 'Todo al día'
                           : 'Sin tareas asignadas'}
+                {!satisfaction && focus.level === 'commissions' && (
+                  <TeamTaskCount open={focus.teamOpen.length} total={focus.teamTasks.length} />
+                )}
               </h2>
-              {!satisfaction && (personal || focus.level === 'commissions') && (
+              {!satisfaction && personal && (
                 <span className="desktop-open-count">
                   {personal ? focus.personalOpen.length : focus.commissionOpen.length} abiertas
                 </span>
@@ -3469,8 +3474,7 @@ function Dialog({
   const ref = React.useRef<HTMLDivElement>(null);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
-    const old = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const releaseScroll = lockBodyScroll();
     const root = ref.current;
     const focus = () =>
       Array.from(
@@ -3494,7 +3498,7 @@ function Dialog({
     };
     root?.addEventListener('keydown', trap);
     return () => {
-      document.body.style.overflow = old;
+      releaseScroll();
       root?.removeEventListener('keydown', trap);
       previous?.focus({ preventScroll: true });
     };

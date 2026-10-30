@@ -1,5 +1,9 @@
 import { projectSummariesOf, type Data, type Task, type User } from './types';
 export const openTasks = (tasks: Task[]) => tasks.filter((task) => task.status !== 'done');
+export function teamPendingTone(pending: number, total: number) {
+  const ratio = total > 0 ? pending / total : 0;
+  return ratio <= 0.3 ? 'green' : ratio <= 0.6 ? 'yellow' : 'red';
+}
 export function smartFocus(data: Data, user: User, now = Date.now()) {
   const assigned = new Set(
     data.assignments.filter((a) => a.userId === user.id).map((a) => a.taskId),
@@ -12,6 +16,8 @@ export function smartFocus(data: Data, user: User, now = Date.now()) {
       : data.members.filter((m) => m.userId === user.id).map((m) => m.commissionId),
   );
   const commissionTasks = data.tasks.filter((task) => ownCommissions.has(task.commissionId));
+  const teamTasks = commissionTasks.filter((task) => !assigned.has(task.id));
+  const teamOpen = openTasks(teamTasks);
   const personalOpen = openTasks(personal),
     commissionOpen = openTasks(commissionTasks);
   const projects = projectSummariesOf(data).filter((camp) => camp.open > 0);
@@ -38,6 +44,8 @@ export function smartFocus(data: Data, user: User, now = Date.now()) {
     level,
     personal,
     personalOpen,
+    teamTasks,
+    teamOpen,
     commissionTasks,
     commissionOpen,
     featured: tasks.slice(0, 3),

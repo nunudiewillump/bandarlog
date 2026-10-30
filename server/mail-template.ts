@@ -1,4 +1,9 @@
-type Action = { label: string; url: string; secondary?: boolean };
+type Action = {
+  label: string;
+  url: string;
+  secondary?: boolean;
+  kind?: 'in_progress' | 'blocked' | 'done';
+};
 type Detail = { label: string; value: string };
 export const escapeHtml = (text: string) =>
   text.replace(
@@ -50,11 +55,19 @@ export function renderMail({
     })
     .join('');
   const buttons = actions
-    .filter((a) => /^https?:\/\//.test(a.url))
+    .filter((a) => !a.kind && /^https?:\/\//.test(a.url))
     .map(
       (a) =>
         `<a href="${safeUrl(a.url)}" style="display:inline-block;margin:6px 8px 6px 0;padding:13px 18px;border-radius:9px;text-decoration:none;font-weight:700;font-size:14px;background:${a.secondary ? '#f2f1ea' : '#124d38'};color:${a.secondary ? '#124d38' : '#ffffff'}">${escapeHtml(a.label)}</a>`,
     )
     .join('');
-  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title></head><body style="margin:0;background:#faf8f2;color:#24352b;font-family:'Nunito Sans',Arial,sans-serif"><div style="display:none;max-height:0;overflow:hidden">${escapeHtml(title)} · Bandarlog</div><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#faf8f2"><tr><td align="center" style="padding:32px 14px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:800px"><tr><td style="padding:8px 12px 24px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td width="42" style="vertical-align:middle"><img src="${safeUrl(appUrl + '/brand-mark.png')}" width="42" height="42" alt="" style="display:block;border:0;vertical-align:middle"></td><td style="padding-left:10px;vertical-align:middle"><strong style="font-size:26px;letter-spacing:-1px;color:#124d38">Bandarlog</strong></td><td width="84" align="right" style="vertical-align:middle"><img src="${safeUrl(appUrl + '/monkey-wave-2d.png')}" width="84" height="96" alt="Un mono de Bandarlog saludando" style="display:block;width:84px;height:96px;border:0"></td></tr></table></td></tr><tr><td style="background:#ffffff;border:1px solid #e6e8df;border-radius:16px;padding:30px 24px"><h1 style="font-size:25px;line-height:1.3;margin:0 0 22px;color:#24352b">${escapeHtml(title)}</h1>${details.length ? `<table role="presentation" width="100%" style="background:#f2f1ea;border-radius:10px;margin-bottom:22px;padding:14px">${details.map((d) => `<tr><td style="padding:7px;font-size:12px;color:#657367;vertical-align:top">${escapeHtml(d.label)}</td><td style="padding:7px;font-size:13px;font-weight:700">${escapeHtml(d.value)}</td></tr>`).join('')}</table>` : ''}<div style="font-size:14px;color:#546256">${paragraphs}</div>${buttons ? `<div style="padding-top:14px">${buttons}</div>` : ''}</td></tr><tr><td style="padding:18px;text-align:center;font-size:12px;line-height:1.6;color:#738078">${actions.some((a) => a.url.includes('action=')) ? 'Los cambios de tareas se confirman en Bandarlog.' : ''}</td></tr></table></td></tr></table></body></html>`;
+  const colors = { in_progress: '#276cae', blocked: '#f7c948', done: '#124d38' };
+  const order = { in_progress: 0, blocked: 1, done: 2 };
+  const statusActions = actions
+    .filter((a) => a.kind && /^https?:\/\//.test(a.url))
+    .sort((a, b) => order[a.kind!] - order[b.kind!]);
+  const statusButtons = statusActions.length
+    ? `<table role="presentation" cellspacing="0" cellpadding="0" style="margin-top:12px"><tr>${statusActions.map((a) => `<td style="padding:0 12px 0 0"><a data-mail-action="${a.kind}" href="${safeUrl(a.url)}" aria-label="${escapeHtml(a.label)}" title="${escapeHtml(a.label)}" style="display:inline-block;padding:12px;line-height:0;border-radius:9px;background:${colors[a.kind!]};text-decoration:none"><img src="${safeUrl(appUrl + '/mail-icons/' + a.kind + '.png')}" width="24" height="24" alt="${escapeHtml(a.label)}" style="display:block;border:0;width:24px;height:24px"></a></td>`).join('')}</tr></table><img src="${safeUrl(appUrl + '/mail-grass.png')}" width="752" height="75" alt="" role="presentation" style="display:block;width:100%;height:auto;border:0;margin-top:20px">`
+    : '';
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title></head><body style="margin:0;background:#faf8f2;color:#24352b;font-family:'Nunito Sans',Arial,sans-serif"><div style="display:none;max-height:0;overflow:hidden">${escapeHtml(title)} · Bandarlog</div><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#faf8f2"><tr><td align="center" style="padding:32px 14px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:800px"><tr><td style="padding:8px 12px 24px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td width="42" style="vertical-align:middle"><img src="${safeUrl(appUrl + '/brand-mark.png')}" width="42" height="42" alt="" style="display:block;border:0;vertical-align:middle"></td><td style="padding-left:10px;vertical-align:middle"><strong style="font-size:26px;letter-spacing:-1px;color:#124d38">Bandarlog</strong></td><td width="84" align="right" style="vertical-align:middle"><img src="${safeUrl(appUrl + '/monkey-wave-2d.png')}" width="84" height="96" alt="Un mono de Bandarlog saludando" style="display:block;width:84px;height:96px;border:0"></td></tr></table></td></tr><tr><td style="background:#ffffff;border:1px solid #e6e8df;border-radius:16px;padding:30px 24px"><h1 style="font-size:25px;line-height:1.3;margin:0 0 22px;color:#24352b">${escapeHtml(title)}</h1>${details.length ? `<table role="presentation" width="100%" style="background:#f2f1ea;border-radius:10px;margin-bottom:22px;padding:14px">${details.map((d) => `<tr><td style="padding:7px;font-size:12px;color:#657367;vertical-align:top">${escapeHtml(d.label)}</td><td style="padding:7px;font-size:13px;font-weight:700">${escapeHtml(d.value)}</td></tr>`).join('')}</table>` : ''}<div style="font-size:14px;color:#546256">${paragraphs}</div>${buttons ? `<div style="padding-top:14px">${buttons}</div>` : ''}${statusButtons}</td></tr><tr><td style="padding:18px;text-align:center;font-size:12px;line-height:1.6;color:#738078">${actions.some((a) => a.url.includes('action=')) ? 'Los cambios de tareas se confirman en Bandarlog.' : ''}</td></tr></table></td></tr></table></body></html>`;
 }

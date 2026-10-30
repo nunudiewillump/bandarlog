@@ -951,3 +951,37 @@
     margin-bottom: 16px;
   }
 }
+
+/* Team context is separate from the personal completion summary. */
+.team-tasks-heading,
+.desktop-priority .section-heading h2 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.team-task-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 800;
+  vertical-align: middle;
+}
+.team-task-count.green {
+  color: #124d38;
+  background: #e3efdf;
+}
+.team-task-count.yellow {
+  color: #805006;
+  background: #fff0bd;
+}
+.team-task-count.red {
+  color: #a82e29;
+  background: #fde7df;
+}
