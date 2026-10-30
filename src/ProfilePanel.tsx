@@ -4,9 +4,11 @@ import type { User } from './types';
 import { api } from './api';
 import { ProfileForm, profilePreferences } from './ProfileForm';
 import './profile-panel.css';
+import { TutorialStats } from './TutorialStats';
 import { DeviceNotifications } from './DeviceNotifications';
 
 type Props = {
+  onReplayTutorial?: () => void;
   user: User;
   busy: boolean;
   run: (fn: () => Promise<void>, message?: string) => Promise<boolean>;
@@ -47,7 +49,7 @@ function Neckerchief() {
     </svg>
   );
 }
-export function ProfilePanel({ user, busy, run, onSaved, onLogout }: Props) {
+export function ProfilePanel({ user, busy, run, onSaved, onLogout, onReplayTutorial }: Props) {
   const [editing, setEditing] = useState<'profile' | 'notifications' | null>(null);
   const editButton = useRef<HTMLButtonElement>(null);
   const noticeButton = useRef<HTMLButtonElement>(null);
@@ -199,6 +201,17 @@ export function ProfilePanel({ user, busy, run, onSaved, onLogout }: Props) {
           </section>
         </div>
       </details>
+      {onReplayTutorial && (
+        <details className="profile-help">
+          <summary>
+            Ayuda <ChevronRight size={18} />
+          </summary>
+          <button type="button" className="secondary" onClick={onReplayTutorial}>
+            Repetir tutorial
+          </button>
+          {user.role === 'admin' && <TutorialStats />}
+        </details>
+      )}
       <button
         type="button"
         className="text-link profile-logout"
