@@ -1471,3 +1471,114 @@ test('commission managers edit and delete only their commission; history and nam
     201,
   );
 });
+
+test('tutorial stays isolated, persists per user, deduplicates retry receipts and protects admin metrics', async () => {
+  const learner = await login('ana@example.test');
+  const coordinator = await login('miguel@example.test');
+  await request('/users/miguel/role', 'PATCH', { role: 'coordination' });
+  assert.equal((await request('/tutorial/stats', 'GET', undefined, learner)).status, 403);
+  assert.equal((await request('/tutorial/stats', 'GET', undefined, coordinator)).status, 403);
+  const initial = await request('/tutorial', 'GET', undefined, learner);
+  assert.equal(initial.status, 200);
+  assert.deepEqual(initial.body.events, {});
+  const realBefore = (await request('/data')).body;
+  const mailBefore = (await request('/dev/mail')).body;
+  for (const body of [
+    { action: 'shown', userId: 'alex' },
+    { action: 'update', expectedVersion: 0, content: 'PRIVATE-NOT-STORED' },
+  ])
+    assert.equal((await request('/tutorial', 'POST', body, learner)).status, 400);
+  assert.equal(
+    (
+      await request(
+        '/tutorial',
+        'POST',
+        { action: 'open' },
+        { cookie: learner.cookie, csrf: 'wrong' },
+      )
+    ).status,
+    403,
+  );
+  const mutation = 'a5b44641-ff54-4515-a56d-66fe6a58afed';
+  const first = await request('/tutorial', 'POST', { action: 'open' }, learner, mutation);
+  assert.equal(first.status, 200);
+  assert.deepEqual(
+    (await request('/tutorial', 'POST', { action: 'open' }, learner, mutation)).body,
+    first.body,
+  );
+  let p = first.body.progress;
+  const check = await request(
+    '/tutorial',
+    'POST',
+    { action: 'check', index: 0, done: true, expectedVersion: p.version },
+    learner,
+  );
+  assert.equal(check.status, 200);
+  p = check.body.progress;
+  assert.deepEqual((await request('/tutorial', 'GET', undefined, learner)).body.steps, [
+    true,
+    false,
+  ]);
+  assert.equal(
+    (
+      await request(
+        '/tutorial',
+        'POST',
+        { action: 'check', index: 1, done: true, expectedVersion: 0 },
+        learner,
+      )
+    ).status,
+    409,
+  );
+  p = (
+    await request('/tutorial', 'POST', { action: 'update', expectedVersion: p.version }, learner)
+  ).body.progress;
+  const completed = await request(
+    '/tutorial',
+    'POST',
+    { action: 'status', status: 'done', expectedVersion: p.version },
+    learner,
+  );
+  assert.equal(completed.body.celebrate, true);
+  p = completed.body.progress;
+  assert.deepEqual(p.steps, [true, false]);
+  const completedAt = p.events.tutorial_completed;
+  p = (await request('/tutorial', 'POST', { action: 'undo', expectedVersion: p.version }, learner))
+    .body.progress;
+  assert.equal(p.taskStatus, 'pending');
+  const repeated = await request(
+    '/tutorial',
+    'POST',
+    { action: 'status', status: 'done', expectedVersion: p.version },
+    learner,
+  );
+  assert.equal(repeated.body.celebrate, false);
+  p = (await request('/tutorial', 'POST', { action: 'open', restart: true }, learner)).body
+    .progress;
+  assert.equal(p.taskStatus, 'pending');
+  assert.deepEqual(p.steps, [false, false]);
+  assert.equal(p.events.tutorial_completed, completedAt);
+  const stats = (await request('/tutorial/stats')).body;
+  assert.deepEqual([stats.shown, stats.started, stats.completed, stats.reopened], [1, 1, 1, 1]);
+  assert.deepEqual(stats.features, { checklist: 1, update: 1, completed: 1, undo: 1 });
+  assert.deepEqual(stats.rates, {
+    started: 100,
+    skipped: 0,
+    completed: 100,
+    completedAmongStarted: 100,
+  });
+  assert.ok(!JSON.stringify(stats).includes('ana@example.test'));
+  assert.deepEqual((await request('/data')).body, realBefore);
+  assert.deepEqual((await request('/dev/mail')).body, mailBefore);
+  assert.deepEqual((await request('/tutorial', 'GET', undefined, member)).body.events, {});
+  await request('/tutorial', 'POST', { action: 'shown' }, member);
+  await request('/tutorial', 'POST', { action: 'shown' }, member);
+  const skipped = await request('/tutorial', 'POST', { action: 'skip' }, member);
+  await request('/tutorial', 'POST', { action: 'skip' }, member);
+  assert.ok(skipped.body.progress.events.tutorial_skipped);
+  const next = (await request('/tutorial/stats')).body;
+  assert.deepEqual(
+    [next.shown, next.started, next.skipped, next.completed, next.abandoned],
+    [2, 1, 1, 1, 0],
+  );
+});

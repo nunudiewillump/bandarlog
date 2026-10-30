@@ -10,7 +10,9 @@ export function TaskChecklist({
   canAct,
   busy,
   run,
+  onChange,
 }: {
+  onChange?: (change: ChecklistChange) => Promise<void>;
   task: Task;
   canManage: boolean;
   canAct: boolean;
@@ -30,10 +32,12 @@ export function TaskChecklist({
     setError('');
     return run(async () => {
       try {
-        await api(`/tasks/${task.id}`, 'PATCH', {
-          checklistChange: change,
-          expectedUpdatedAt: version,
-        });
+        if (onChange) await onChange(change);
+        else
+          await api(`/tasks/${task.id}`, 'PATCH', {
+            checklistChange: change,
+            expectedUpdatedAt: version,
+          });
       } catch (e) {
         setError((e as Error).message);
         throw e;

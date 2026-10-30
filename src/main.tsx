@@ -1,3 +1,4 @@
+import { useTutorial, TutorialInvitation, TutorialMission } from './Tutorial';
 import React, { useState, useEffect, useRef } from 'react';
 import { AnimatedCounter } from './AnimatedCounter';
 import {
@@ -171,6 +172,8 @@ function App() {
     [pendingTasks, setPendingTasks] = useState(new Set<string>()),
     [undo, setUndo] = useState<{ task: Task; expected: string; last: boolean } | null>(null),
     [outbox, setOutbox] = useState<any[]>([]);
+  const tutorial = useTutorial(me);
+  const [restartTutorial, setRestartTutorial] = useState(false);
   const dataRef = useRef(data),
     loadSequence = useRef(0),
     operations = useRef(0),
@@ -290,7 +293,7 @@ function App() {
       setDevelopment(session.development);
       await load();
       const p = new URLSearchParams(location.search);
-      if (p.get('task')) {
+      if (p.get('task') && p.get('view') !== 'tutorial') {
         setSelected(p.get('task')!);
         setPendingAction(p.get('action') || '');
       }
@@ -366,6 +369,11 @@ function App() {
   }
   const navigate = (v: string, p = '', c = '') => {
     v = projectView(v);
+    if (v === 'tutorial') {
+      setSelected('');
+      setPendingAction('');
+    }
+    if (v === 'tutorial' || view === 'tutorial') requestAnimationFrame(() => window.scrollTo(0, 0));
     setView(v);
     setProject(p);
     setCommission(c);
@@ -1238,7 +1246,11 @@ function App() {
               ['people', 'Personas', UserRound],
               ['alerts', 'Alertas', Bell],
             ].map(([v, label, Icon]: any) => (
-              <button key={v} onClick={() => navigate(v)} className={view === v ? 'active' : ''}>
+              <button
+                key={v}
+                onClick={() => navigate(v)}
+                className={view === v || (v === 'home' && view === 'tutorial') ? 'active' : ''}
+              >
                 <Icon size={19} />
                 {label}
                 {v === 'alerts' && (
@@ -1304,6 +1316,7 @@ function App() {
                     activeProject?.name ||
                     (
                       {
+                        tutorial: 'Tu primera misión',
                         home: 'Inicio',
                         tasks: manage ? 'Tareas' : 'Mis tareas',
                         commissions: 'Comisiones',
@@ -1350,7 +1363,7 @@ function App() {
             </div>
           </header>
           <main className="main">
-            {!['profile', 'settings'].includes(view) && (
+            {!['profile', 'settings', 'tutorial'].includes(view) && (
               <DeviceNotifications userId={me.id} firstVisit />
             )}
             <div className="mobile-page-title">
@@ -1374,6 +1387,33 @@ function App() {
                 </button>
               </div>
             )}
+            {view === 'home' && (
+              <TutorialInvitation
+                tutorial={tutorial}
+                onStart={() => {
+                  setRestartTutorial(false);
+                  navigate('tutorial');
+                }}
+              />
+            )}
+            {view === 'tutorial' &&
+              (tutorial.progress ? (
+                <TutorialMission
+                  tutorial={tutorial}
+                  restart={restartTutorial}
+                  onBack={() => navigate('home')}
+                />
+              ) : (
+                <section className="panel">
+                  <h1>Tu primera misión</h1>
+                  <p>{tutorial.error || 'Cargando misión…'}</p>
+                  {tutorial.error && (
+                    <button className="secondary" onClick={() => void tutorial.reload()}>
+                      Reintentar
+                    </button>
+                  )}
+                </section>
+              ))}
             {view === 'home' && (
               <>
                 <div className="desktop-home">{desktopHome()}</div>
@@ -1936,6 +1976,10 @@ function App() {
                 </div>
                 <ProfilePanel
                   user={me}
+                  onReplayTutorial={() => {
+                    setRestartTutorial(true);
+                    navigate('tutorial');
+                  }}
                   busy={busy}
                   run={run}
                   onSaved={setMe}
@@ -1988,6 +2032,7 @@ function App() {
               key={v}
               className={
                 view === v ||
+                (v === 'home' && view === 'tutorial') ||
                 (v === 'projects' && view === 'project') ||
                 (v === 'commissions' && ['commission', 'people'].includes(view))
                   ? 'active'

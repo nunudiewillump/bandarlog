@@ -1,3 +1,4 @@
+import type { TutorialProgress, PracticeStatus } from '../shared/tutorial.js';
 import { sql } from 'drizzle-orm';
 import type { ChecklistItem } from './task-checklist.js';
 import { pgTable, text, timestamp, integer, uniqueIndex, jsonb } from 'drizzle-orm/pg-core';
@@ -230,4 +231,16 @@ export const pushOutbox = pgTable('push_outbox', {
     .references(() => users.id),
   payload: text().notNull(),
   sentAt: timestamp('sent_at', { withTimezone: true, mode: 'string' }),
+});
+
+export const tutorialProgress = pgTable('tutorial_progress', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => users.id),
+  events: jsonb().$type<TutorialProgress['events']>().notNull().default({}),
+  taskStatus: text('task_status').$type<PracticeStatus>().notNull().default('pending'),
+  previousStatus: text('previous_status').$type<PracticeStatus>(),
+  steps: jsonb().$type<boolean[]>().notNull().default([false, false]),
+  version: integer().notNull().default(0),
+  lastActivityAt: timestamp('last_activity_at', { withTimezone: true, mode: 'string' }),
 });

@@ -1,4 +1,12 @@
 import express from 'express';
+import {
+  tutorialCommand,
+  writeTutorial,
+  readTutorial,
+  expireTutorials,
+  summarizeTutorial,
+  TutorialError,
+} from './tutorial.js';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import { randomBytes, randomInt, createHash, randomUUID } from 'node:crypto';
@@ -734,6 +742,36 @@ async function withReceipt(q: express.Request, r: express.Response, fn: (tx: any
     return result;
   });
 }
+// Dedicated tutorial storage never invokes task, membership, mail or activity services.
+app.get('/api/tutorial', async (_q, r) => r.json(await readTutorial(db, r.locals.user.id)));
+app.get('/api/tutorial/stats', async (_q, r) => {
+  if (r.locals.user.role !== 'admin')
+    fail(403, 'Solo Administración puede consultar estas estadísticas.');
+  await expireTutorials(db);
+  const rows = await db.select().from(s.tutorialProgress);
+  r.json(summarizeTutorial(rows));
+});
+app.post(
+  '/api/tutorial',
+  rateLimit({
+    windowMs: 60000,
+    limit: 120,
+    keyGenerator: (_q, r) => r.locals.user.id,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+  }),
+  async (q, r) => {
+    if (r.locals.user.onboardingCompletedAt === null)
+      fail(409, 'Completa primero tu nombre y foto opcional.');
+    const command = parse(tutorialCommand, q.body);
+    try {
+      r.json(await withReceipt(q, r, (tx) => writeTutorial(tx, r.locals.user.id, command)));
+    } catch (error) {
+      if (error instanceof TutorialError) fail(error.status, error.message);
+      throw error;
+    }
+  },
+);
 const liveViews = new Set<express.Response>();
 app.get('/api/events', (q, r) => {
   r.set({
@@ -752,6 +790,7 @@ app.get('/api/events', (q, r) => {
   });
 });
 app.use('/api', (q, r, next) => {
+  if (q.path === '/tutorial' || q.path.startsWith('/tutorial/')) return next();
   if (!['GET', 'HEAD'].includes(q.method))
     r.on('finish', () => {
       if (r.statusCode < 400)
@@ -1667,7 +1706,10 @@ async function createInvitations(q: express.Request, r: express.Response) {
     for (const recipient of recipients) {
       const [user] = await tx.select().from(s.users).where(eq(s.users.email, recipient));
       if (user?.disabledAt)
-        await tx.update(s.users).set({ disabledAt: null }).where(eq(s.users.id, user.id));
+        await tx
+          .update(s.users)
+          .set({ disabledAt: null, role: 'member' })
+          .where(eq(s.users.id, user.id));
       if (
         user &&
         !user.disabledAt &&
@@ -1827,7 +1869,7 @@ app.delete('/api/users/:id', async (q, r) => {
   await db.transaction(async (tx: any) => {
     await tx.execute(sql`lock table users in share row exclusive mode`);
     const [actor] = await tx.select().from(s.users).where(eq(s.users.id, r.locals.user.id));
-    if (actor?.role !== 'admin') fail(403, 'Tu rol ha cambiado.');
+    if (actor?.role !== 'admin' || actor.disabledAt) fail(403, 'Tu rol ha cambiado.');
     const [target] = await tx.select().from(s.users).where(eq(s.users.id, uid));
     if (!target || target.disabledAt) fail(404, 'Persona no encontrada.');
     await tx.execute(
@@ -1837,10 +1879,12 @@ app.delete('/api/users/:id', async (q, r) => {
       .select({ id: s.tasks.id })
       .from(s.tasks)
       .innerJoin(s.assignments, eq(s.assignments.taskId, s.tasks.id))
+      .innerJoin(s.commissions, eq(s.commissions.id, s.tasks.commissionId))
       .where(
         and(
           eq(s.assignments.userId, uid),
           sql`${s.tasks.deletedAt} is null`,
+          sql`${s.commissions.deletedAt} is null`,
           sql`${s.tasks.status} <> 'done'`,
         ),
       );
@@ -1873,11 +1917,11 @@ app.patch('/api/users/:id/role', async (q, r) => {
   await db.transaction(async (tx: any) => {
     await tx.execute(sql`lock table users in share row exclusive mode`);
     const [actor] = await tx.select().from(s.users).where(eq(s.users.id, r.locals.user.id));
-    if (actor?.role !== 'admin') fail(403, 'Tu rol ha cambiado.');
+    if (actor?.role !== 'admin' || actor.disabledAt) fail(403, 'Tu rol ha cambiado.');
     const changed = await tx
       .update(s.users)
       .set({ role: input.role })
-      .where(eq(s.users.id, uid))
+      .where(and(eq(s.users.id, uid), sql`${s.users.disabledAt} is null`))
       .returning();
     if (!changed.length) fail(404, 'Persona no encontrada.');
   });
@@ -1936,7 +1980,8 @@ async function reminders() {
     const ps = await db.select().from(s.projects);
     const cs = await db.select().from(s.commissions);
     for (const u of us) {
-      if (!globalManage(u) || !preferences(u.preferences).weekly) continue;
+      const pref = preferences(u.preferences);
+      if (u.disabledAt || !globalManage(u) || !pref.notifications || !pref.weekly) continue;
       for (const p of ps.filter((p) => p.archived === 'false')) {
         const pts = ts.filter((t) =>
           cs.some((c) => c.id === t.commissionId && c.projectId === p.id),
@@ -1956,6 +2001,9 @@ async function reminders() {
   }
 }
 const timer = setInterval(() => {
+  void expireTutorials(db).catch(() =>
+    console.error('No se pudo actualizar el estado del tutorial.'),
+  );
   void reminders()
     .then(deliver)
     .catch(() => console.error('No se pudieron procesar las notificaciones.'));

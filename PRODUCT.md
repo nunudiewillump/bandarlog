@@ -63,7 +63,7 @@ Las correcciones posteriores al PR11, las notificaciones del dispositivo, el an�
 
 ## Ámbito de acciones por rol
 
-Los controles sin permiso se ocultan. Scouter actúa únicamente sobre sus tareas asignadas; Responsable gestiona tareas y personas existentes dentro de sus propias comisiones; Coordinación incluye las acciones anteriores y la gestión de proyectos y campamentos. Solo Administración puede dar de alta usuarios mediante invitaciones, eliminar su acceso y cambiar roles globales. La baja revoca sesiones y avisos, conserva el historial y exige reasignar antes las tareas pendientes; no permite eliminar la propia cuenta. Las consultas de tareas de una comisión conservan su alcance autorizado.
+Los controles sin permiso se ocultan. Scouter actúa únicamente sobre sus tareas asignadas; Responsable gestiona tareas y personas existentes dentro de sus propias comisiones; Coordinación incluye las acciones anteriores y la gestión de proyectos y campamentos. Solo Administración puede dar de alta usuarios mediante invitaciones, eliminar su acceso y cambiar roles globales. La baja revoca sesiones y avisos y conserva el historial. Exige reasignar las tareas pendientes de comisiones vigentes; las tareas completadas o de comisiones eliminadas conservan sus asignaciones históricas sin bloquear la baja. Reabrir una tarea histórica exige responsables que pertenezcan a la comisión. No permite eliminar la propia cuenta ni cambiar el rol de una cuenta deshabilitada. Una nueva invitación reactiva la cuenta con rol global básico, sin recuperar antiguos privilegios de Administración o Coordinación; el rol de comisión se establece por la invitación. Los resúmenes semanales solo se programan para cuentas activas de Administración o Coordinación con los avisos generales y el resumen semanal activados. Las consultas de tareas de una comisión conservan su alcance autorizado.
 
 ## Edición de contenido y checklist
 
@@ -76,3 +76,7 @@ Todos los proyectos son independientes y comparten las mismas funciones; Campame
 Los ajustes de proyecto, comisión y tarea se abren desde el engranaje de su tarjeta de título. Las comisiones pueden renombrarse, editar su descripción y eliminarse con confirmación, conservando el historial. Detalles en [ajustes de cabecera](docs/entity-settings.md).
 
 El contexto del equipo no sustituye los contadores personales cuando el usuario termina sus tareas. Las tareas del equipo se cuentan por separado y excluyen las asignaciones propias. Sus colores reflejan la proporción no terminada: ≤30 % verde, ≤60 % amarillo, >60 % rojo. Las acciones del correo usan iconos en una fila bajo «Ver tarea» y siguen requiriendo confirmación en la aplicación.
+
+## Tu primera misión
+
+Inicio ofrece una práctica individual después del onboarding a toda persona que nunca la haya visto, incluidos usuarios existentes. Es opcional, no crea ni cambia trabajo real y puede repetirse en Perfil → Ayuda. Solo Administración ve sus estadísticas agregadas. El texto de las actualizaciones de práctica no sale del navegador. La primera finalización muestra el mono trompetista 2D durante unos dos segundos; Deshacer, repeticiones y tareas ordinarias no vuelven a dispararlo. Definiciones de tasas, abandono e idempotencia en [la guía del tutorial](docs/tutorial/README.md).

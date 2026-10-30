@@ -1,0 +1,272 @@
+.tutorial-invite {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-bottom: 20px;
+}
+.tutorial-invite h2 {
+  font-size: 18px;
+  margin: 0 0 6px;
+}
+.tutorial-invite p {
+  margin: 0;
+  color: #52675a;
+}
+.tutorial-invite-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.tutorial-invite-actions button {
+  min-height: 44px;
+}
+.tutorial-invite .error {
+  flex-basis: 100%;
+}
+.tutorial-mission {
+  max-width: 760px;
+  margin: 0 auto;
+  color: #24352b;
+  background: #fffefa;
+}
+.tutorial-mission .back {
+  margin-bottom: 16px;
+  color: #124d38;
+}
+.tutorial-practice-label {
+  font-size: 14px;
+  color: #52675a;
+  margin: 0 0 8px;
+}
+.tutorial-mission .detail-heading {
+  padding: 0;
+  background: none;
+}
+.tutorial-mission h1 {
+  font-size: 26px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.tutorial-mission .detail-fields dd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tutorial-mission .description {
+  line-height: 1.6;
+}
+.tutorial-activity-title {
+  margin-top: 28px;
+}
+.tutorial-update {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+.tutorial-update textarea {
+  min-height: 90px;
+}
+.tutorial-update button {
+  justify-self: start;
+}
+.tutorial-mission .activity-list article {
+  padding: 12px 0;
+  border-bottom: 1px solid #dfe5da;
+}
+.tutorial-mission .activity-list p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 8px 0;
+}
+.tutorial-mission .tutorial-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 24px 0 12px;
+}
+.tutorial-actions button {
+  min-height: 48px;
+  flex: 1 1 160px;
+  justify-content: center;
+}
+.tutorial-undo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.tutorial-skip {
+  min-height: 44px;
+  color: #52675a;
+}
+.tutorial-celebration {
+  position: fixed;
+  z-index: 90;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  width: min(540px, calc(100vw - 32px));
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #fffefa;
+  color: #24352b;
+  box-shadow: 0 8px 32px #08291d38;
+}
+.tutorial-celebration strong {
+  font-size: 20px;
+}
+.tutorial-celebration p {
+  margin: 6px 0;
+}
+.tutorial-celebration > .icon-button {
+  align-self: start;
+  flex: 0 0 44px;
+  min-height: 44px;
+}
+.tutorial-trumpeter {
+  position: relative;
+  flex: 0 0 112px;
+}
+.tutorial-trumpeter img {
+  display: block;
+  width: 112px;
+  height: 126px;
+  object-fit: contain;
+  transform-origin: 50% 80%;
+  animation: tutorial-trumpet 2s ease-in-out both;
+}
+.tutorial-note {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  right: 0;
+  top: 14px;
+  color: #805006;
+  opacity: 0;
+  animation: tutorial-notes 1.4s ease-out both;
+}
+.note-one {
+  animation-delay: 0.1s;
+}
+.note-two {
+  top: 5px;
+  right: 12px;
+  animation-delay: 0.45s;
+}
+.note-three {
+  top: 20px;
+  right: -8px;
+  animation-delay: 0.8s;
+}
+@keyframes tutorial-trumpet {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  22%,
+  62% {
+    transform: rotate(-3deg) scale(1.025);
+  }
+  42%,
+  82% {
+    transform: rotate(2deg);
+  }
+}
+@keyframes tutorial-notes {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  22%,
+  65% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(16px, -22px);
+  }
+}
+.profile-help {
+  grid-column: 1/-1;
+  border-top: 1px solid #dfe5da;
+  margin-top: 24px;
+  padding: 16px 0;
+  color: #24352b;
+}
+.profile-help > summary,
+.tutorial-stats > summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  min-height: 44px;
+  font-weight: 700;
+}
+.profile-help > button {
+  margin-top: 12px;
+}
+.tutorial-stats {
+  margin-top: 20px;
+}
+.tutorial-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+.tutorial-stats-grid div {
+  padding-bottom: 10px;
+  border-bottom: 1px solid #dfe5da;
+}
+.tutorial-stats-grid dt {
+  font-size: 14px;
+  color: #52675a;
+}
+.tutorial-stats-grid dd {
+  margin: 6px 0 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+@media (max-width: 767px),
+  (orientation: landscape) and (max-height: 599px) and (max-width: 1023px) {
+  .tutorial-celebration {
+    bottom: calc(106px + env(safe-area-inset-bottom));
+    gap: 10px;
+    padding: 12px;
+  }
+  .tutorial-trumpeter {
+    flex-basis: 74px;
+  }
+  .tutorial-trumpeter img {
+    width: 74px;
+    height: 94px;
+  }
+  .tutorial-celebration strong {
+    font-size: 18px;
+  }
+  .tutorial-celebration p {
+    font-size: 14px;
+  }
+  .tutorial-mission {
+    padding: 20px 16px;
+  }
+  .tutorial-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tutorial-trumpeter img,
+  .tutorial-note {
+    animation: none;
+    transform: none;
+  }
+  .tutorial-note {
+    opacity: 0.7;
+  }
+}
