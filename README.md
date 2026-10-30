@@ -134,3 +134,7 @@ Campamentos y proyectos anuales comparten ahora una sección **Proyectos**, con 
 ### Ajustes de entidades
 
 Proyecto, comisión y tarea reúnen sus ajustes en el engranaje de la cabecera. Consulta [gestión de comisiones y ajustes](docs/entity-settings.md) para permisos, conservación del historial y detalles de la copa. La migración 0012 se aplica al arrancar; no requiere nuevas variables.
+
+### Tutorial de primer uso
+
+«Tu primera misión» aparece después del onboarding, también para usuarios existentes sin visualización previa. Es una simulación aislada, repetible desde Perfil → Ayuda, con analítica propia visible solo para Administración y celebración 2D del mono trompetista. La migración 0013 conserva todos los datos anteriores y no requiere variables nuevas. Consulta [funcionamiento, privacidad y definiciones de métricas](docs/tutorial/README.md).

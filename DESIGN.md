@@ -260,3 +260,7 @@ Proyectos es una única sección, con clasificación opcional y filtro. El tipo 
 ## Ajustes de cabecera y copa
 
 El engranaje de gestión vive a la derecha de la tarjeta de título de proyecto, comisión o tarea y reserva espacio para evitar solapar nombres largos. Usa el mismo objetivo de 44 px en todos los dispositivos y un popover de papel con tinta oscura. Formularios y eliminación se muestran progresivamente; las acciones operativas principales siguen visibles. La copa usa 17–50 segundos por lote, 15 % de dos hojas y 10 % de un plátano del indicador de carga. La preferencia de apariencia y movimiento reducido siguen siendo vinculantes. La pañoleta completa del perfil lleva franjas rosas y moradas.
+
+## Primera misión
+
+La invitación de Inicio es una tarjeta discreta con título «Tu primera misión», duración 2–3 minutos y acciones Empezar/Omitir. La práctica reutiliza el detalle de tarea y la checklist, sin recorridos modales ni pasos obligatorios. La etiqueta de práctica individual y la responsable ficticia evitan confundirla con trabajo real. La ayuda contextual se limita al carácter opcional de los pasos y a que las actualizaciones escritas no se guardan ni envían. La celebración es una región no modal de papel, con mono 2D original tocando trompeta, pañoleta rosa/morada y tres notas pequeñas; nunca bloquea navegación y respeta movimiento reducido y áreas seguras. Perfil incorpora Ayuda y, solo para Administración, las estadísticas del tutorial.

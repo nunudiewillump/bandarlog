@@ -608,6 +608,7 @@ test('completing a task confirms persistence before showing the vine animation',
   if (await complete.isVisible()) {
     await complete.click();
     await expect(page.locator('.task-celebration')).toBeVisible();
+    await expect(page.locator('.tutorial-celebration')).toHaveCount(0);
     await expect(page.locator('.task-celebration > strong')).toHaveCount(0);
     await expect(page.locator('.undo-toast')).toContainText('Deshacer');
     await expect(page.locator('.vine-swing img')).toHaveAttribute('src', '/monkey-vine-2d.webp');
