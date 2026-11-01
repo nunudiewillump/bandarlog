@@ -50,3 +50,40 @@ test('every branded email includes the lightweight public waving mascot and rema
     assert.ok(html.includes('>Entrar</a>'));
   }
 });
+
+test('task email actions use labeled PNG icons in one row beneath the primary link, with grass beneath', () => {
+  const html = renderMail({
+    title: 'Nueva tarea',
+    body: 'Descripción',
+    appUrl: 'https://bandarlog.example.org',
+    actions: [
+      { label: 'Ver tarea', url: 'https://bandarlog.example.org/?task=1' },
+      {
+        label: 'Marcar en curso',
+        kind: 'in_progress',
+        url: 'https://bandarlog.example.org/?task=1&action=in_progress',
+      },
+      {
+        label: 'Completar tarea',
+        kind: 'done',
+        url: 'https://bandarlog.example.org/?task=1&action=done',
+      },
+      {
+        label: 'Bloquear tarea',
+        kind: 'blocked',
+        url: 'https://bandarlog.example.org/?task=1&action=blocked',
+      },
+    ],
+  });
+  assert.equal((html.match(/data-mail-action=/g) || []).length, 3);
+  assert.ok(html.indexOf('>Ver tarea</a>') < html.indexOf('data-mail-action='));
+  assert.ok(
+    html.indexOf('data-mail-action="in_progress"') < html.indexOf('data-mail-action="blocked"'),
+  );
+  assert.ok(html.indexOf('data-mail-action="blocked"') < html.indexOf('data-mail-action="done"'));
+  assert.ok(html.indexOf('data-mail-action="done"') < html.indexOf('/mail-grass.png'));
+  for (const label of ['Marcar en curso', 'Completar tarea', 'Bloquear tarea'])
+    assert.ok(html.includes(`alt="${label}"`));
+  for (const color of ['#276cae', '#f7c948', '#124d38'])
+    assert.ok(html.includes('background:' + color));
+});

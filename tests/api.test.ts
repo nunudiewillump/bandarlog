@@ -540,6 +540,14 @@ test('individual and bulk invitations work from People, reject invalid recipient
 });
 
 test('all queued emails include branded HTML and tasks have safe contextual action buttons', async () => {
+  // Generate a task email here so this regression can run independently.
+  const created = await request('/tasks', 'POST', {
+    title: 'Correo con acciones',
+    commissionId: 'cocina',
+    due: '2027-06-14T21:59:59Z',
+    responsibleIds: ['alex'],
+  });
+  assert.equal(created.status, 201);
   const messages = (await request('/dev/mail')).body;
   assert.ok(messages.length > 0);
   assert.ok(
@@ -549,6 +557,9 @@ test('all queued emails include branded HTML and tasks have safe contextual acti
     ),
   );
   const taskMail = messages.find((m: any) => m.subject.includes('Nueva asignación'));
+  assert.match(taskMail.html, />Ver tarea<\/a>/);
+  assert.equal((taskMail.html.match(/data-mail-action=/g) || []).length, 3);
+  assert.match(taskMail.html, /mail-grass\.png/);
   assert.match(taskMail.html, /Completar tarea/);
   assert.match(taskMail.html, /action=done/);
   assert.match(taskMail.html, /se confirman en Bandarlog/);

@@ -3,7 +3,7 @@ import { CalendarDays, Tent, Check, LockKeyhole, ChevronRight, Leaf } from 'luci
 import { AnimatedCounter } from './AnimatedCounter';
 import { BananaLoader } from './BananaLoader';
 import { projectType } from '../shared/project-types';
-import { smartFocus } from './focus';
+import { smartFocus, teamPendingTone } from './focus';
 import {
   date,
   overdue,
@@ -206,6 +206,20 @@ function CountMetric({
     </span>
   ) : null;
 }
+export function TeamTaskCount({ open, total }: { open: number; total: number }) {
+  const percent = total ? Math.round((open / total) * 100) : 0;
+  return (
+    <span
+      className={`team-task-count ${teamPendingTone(open, total)}`}
+      data-pending={open}
+      data-total={total}
+      title={`${percent} % por completar`}
+      aria-label={`${open} tareas del equipo por completar de ${total}, ${percent} %`}
+    >
+      <AnimatedCounter value={open} />
+    </span>
+  );
+}
 export function TaskSummary({ tasks, holding = false }: { tasks: Task[]; holding?: boolean }) {
   return (
     <div className="focus-counts" aria-label="Resumen de tareas">
@@ -241,7 +255,6 @@ export function MobileHome(props: {
   const personalClear = focus.personalOpen.length === 0;
   const hasContext =
     data.commissions.length > 0 || data.projects.length > 0 || data.tasks.length > 0;
-  const scope = holding || focus.level === 'personal' ? focus.personal : focus.commissionTasks;
   const finished = focus.personal.filter((task) => task.status === 'done');
   const recent = [...finished]
     .sort((a, b) => (b.completedAt || b.updatedAt).localeCompare(a.completedAt || a.updatedAt))
@@ -277,11 +290,7 @@ export function MobileHome(props: {
         </section>
       )}
       {(holding || focus.level === 'personal' || focus.level === 'commissions') && (
-        <TaskSummary
-          key={holding || focus.level === 'personal' ? 'personal' : 'commissions'}
-          tasks={scope}
-          holding={holding}
-        />
+        <TaskSummary tasks={focus.personal} holding={holding || personalClear} />
       )}
       {holding ? (
         <p className="satisfaction-pause">Tarea completada</p>
@@ -291,7 +300,10 @@ export function MobileHome(props: {
             <section className="focus-primary">
               {focus.level === 'commissions' && (
                 <div className="section-heading">
-                  <h2>Tareas del equipo</h2>
+                  <h2 className="team-tasks-heading">
+                    Tareas del equipo{' '}
+                    <TeamTaskCount open={focus.teamOpen.length} total={focus.teamTasks.length} />
+                  </h2>
                 </div>
               )}
               {focus.level === 'commissions' && (

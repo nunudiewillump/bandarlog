@@ -309,3 +309,45 @@ test('a stale offline version is kept for review instead of overwriting newer se
     .click();
   await expect(page.locator('.sync-status')).toHaveCount(0);
 });
+
+for (const width of [390, 1440])
+  test(`task creation restores page scrolling after overlapping dialogs at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 620 });
+    await login(page);
+    const name = `Recuperar scroll ${width} ${Date.now()}`;
+    await page.getByRole('button', { name: 'Nueva tarea', exact: true }).click();
+    const form = page.getByRole('dialog', { name: 'Nueva tarea', exact: true });
+    await choose(page, 'Proyecto', /Campamento de verano/);
+    await choose(page, 'Comisión', /^Cocina$/);
+    await form.getByLabel('Título', { exact: true }).fill(name);
+    await form.getByLabel('Fecha límite', { exact: true }).fill('2027-06-14');
+    await form.getByText('Álex Martín', { exact: true }).click();
+    let resume!: () => void;
+    const gate = new Promise<void>((resolve) => (resume = resolve));
+    // Keep the create form open while the new detail opens, as on a slow refresh.
+    await page.route('**/api/data', async (route) => {
+      await gate;
+      await route.continue();
+    });
+    try {
+      await form.getByRole('button', { name: 'Crear tarea', exact: true }).click();
+      await expect(page.getByRole('dialog')).toHaveCount(2);
+    } finally {
+      resume();
+    }
+    await expect(form).toHaveCount(0);
+    const detail = page.getByRole('dialog');
+    await expect(detail.getByRole('heading', { name, exact: true })).toBeVisible();
+    await expect(page.locator('body')).toHaveCSS('overflow', 'hidden');
+    await detail.getByRole('button', { name: 'Cerrar', exact: true }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await page.mouse.move(width > 1000 ? 900 : 190, 450);
+    await page.mouse.wheel(0, 600);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    // A subsequent cancelled form must not leave a stale scroll lock either.
+    await page.getByRole('button', { name: 'Nueva tarea', exact: true }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Cerrar', exact: true }).click();
+    await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden');
+  });

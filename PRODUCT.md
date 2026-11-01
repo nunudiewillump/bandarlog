@@ -75,6 +75,8 @@ Todos los proyectos son independientes y comparten las mismas funciones; Campame
 
 Los ajustes de proyecto, comisión y tarea se abren desde el engranaje de su tarjeta de título. Las comisiones pueden renombrarse, editar su descripción y eliminarse con confirmación, conservando el historial. Detalles en [ajustes de cabecera](docs/entity-settings.md).
 
+El contexto del equipo no sustituye los contadores personales cuando el usuario termina sus tareas. Las tareas del equipo se cuentan por separado y excluyen las asignaciones propias. Sus colores reflejan la proporción no terminada: ≤30 % verde, ≤60 % amarillo, >60 % rojo. Las acciones del correo usan iconos en una fila bajo «Ver tarea» y siguen requiriendo confirmación en la aplicación.
+
 ## Tu primera misión
 
 Inicio ofrece una práctica individual después del onboarding a toda persona que nunca la haya visto, incluidos usuarios existentes. Es opcional, no crea ni cambia trabajo real y puede repetirse en Perfil → Ayuda. Solo Administración ve sus estadísticas agregadas. El texto de las actualizaciones de práctica no sale del navegador. La primera finalización muestra el mono trompetista 2D durante unos dos segundos; Deshacer, repeticiones y tareas ordinarias no vuelven a dispararlo. Definiciones de tasas, abandono e idempotencia en [la guía del tutorial](docs/tutorial/README.md).
