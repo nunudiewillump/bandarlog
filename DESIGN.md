@@ -270,3 +270,5 @@ Los correos de tarea muestran «Ver tarea» y debajo tres acciones de icono en u
 ## Primera misión
 
 La invitación de Inicio es una tarjeta discreta con título «Tu primera misión», duración 2–3 minutos y acciones Empezar/Omitir. La práctica reutiliza el detalle de tarea y la checklist, sin recorridos modales ni pasos obligatorios. La etiqueta de práctica individual y la responsable ficticia evitan confundirla con trabajo real. La ayuda contextual se limita al carácter opcional de los pasos y a que las actualizaciones escritas no se guardan ni envían. La celebración es una región no modal de papel, con mono 2D original tocando trompeta, pañoleta rosa/morada y tres notas pequeñas; nunca bloquea navegación y respeta movimiento reducido y áreas seguras. Perfil incorpora Ayuda y, solo para Administración, las estadísticas del tutorial.
+
+La celebración al terminar tareas personales conserva el contenido de Inicio y su scroll; no sustituye el contexto del equipo por una pausa vacía. La liana y el aviso Deshacer permiten seguir desplazando el contenido.

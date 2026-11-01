@@ -3612,9 +3612,6 @@ input[type='file']::file-selector-button {
   padding: 12px 0;
   color: #245d43;
 }
-.satisfaction-pause {
-  min-height: 80px;
-}
 .mobile-task-filters {
   margin-bottom: 18px;
 }
