@@ -12,6 +12,8 @@ async function setup(
     level?: 'personal' | 'commissions' | 'projects' | 'clear';
     fail?: boolean;
     delay?: number;
+    lastPersonal?: boolean;
+    longTask?: boolean;
   } = {},
 ) {
   const fixture = mobileFixture(options.count || 10);
@@ -31,11 +33,16 @@ async function setup(
   const own = new Set(
     fixture.data.assignments.filter((a) => a.userId === fixture.user.id).map((a) => a.taskId),
   );
+  if (options.lastPersonal)
+    for (const task of fixture.allTasks)
+      if (own.has(task.id) && task.id !== 'v2-task-0') task.status = 'done';
   if (options.level && options.level !== 'personal')
     for (const task of fixture.allTasks) if (own.has(task.id)) task.status = 'done';
   if (options.level === 'projects' || options.level === 'clear')
     for (const task of fixture.data.tasks) task.status = 'done';
   if (options.level === 'clear') for (const task of fixture.allTasks) task.status = 'done';
+  if (options.longTask)
+    fixture.allTasks[0].description = 'Revisar material y organizar el equipo. '.repeat(150);
   const calls: string[] = [];
   await page.setViewportSize({ width: options.width || 390, height: 900 });
   await page.route('**/api/**', async (route) => {
@@ -163,7 +170,7 @@ test('mobile completion animates 7→6, done and progress, then undo restores au
     .click();
   await expect(page.locator('.mobile-commission-groups .commission-row')).toHaveCount(10);
 });
-test('the last personal task gets a satisfaction pause before read-only team context', async ({
+test('the last personal task celebrates without hiding the read-only team context', async ({
   page,
 }) => {
   const fixture = await setup(page);
@@ -178,9 +185,8 @@ test('the last personal task gets a satisfaction pause before read-only team con
   await page.getByRole('checkbox', { name: 'Completar Mi tarea 1', exact: true }).click();
   await expect(page.locator('.mobile-focus')).toHaveAttribute('data-holding', 'true');
   await expect(page.locator('.personal-clear')).toContainText('¡Tus tareas están al día!');
-  await expect(page.locator('.mobile-focus .focus-primary')).toHaveCount(0);
-  await page.waitForTimeout(1500);
-  await expect(page.locator('.mobile-focus .focus-primary')).toHaveCount(0);
+  expect(await page.locator('.mobile-focus .focus-primary').isVisible()).toBe(true);
+  await expect(page.locator('.mobile-focus').getByRole('checkbox')).toHaveCount(0);
   await page.screenshot({ path: 'artifacts/mobile-v2/last-task.png', animations: 'disabled' });
   await expect(page.getByRole('heading', { name: 'Mis comisiones', exact: true })).toBeVisible({
     timeout: 5000,
@@ -449,3 +455,86 @@ for (const width of [320, 430])
       });
     }
   });
+
+test.describe('mobile touch scrolling', () => {
+  test.use({ isMobile: true, hasTouch: true });
+  test('last mobile completion keeps content and touch scrolling available during celebration and undo', async ({
+    page,
+  }) => {
+    await setup(page, { lastPersonal: true });
+    await page.getByRole('checkbox', { name: 'Completar Mi tarea 1', exact: true }).click();
+    await expect(page.locator('.mobile-focus')).toHaveAttribute('data-holding', 'true');
+    await expect(page.locator('.task-celebration')).toBeVisible();
+    expect(await page.locator('.mobile-focus .focus-primary').isVisible()).toBe(true);
+    await expect(page.locator('.undo-toast')).toBeVisible();
+    const touch = await page.context().newCDPSession(page);
+    const swipe = async () => {
+      const before = await page.evaluate(() => scrollY);
+      await touch.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [{ x: 190, y: 720 }],
+      });
+      for (const y of [650, 550, 450, 350, 250]) {
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ x: 190, y }],
+        });
+        await page.waitForTimeout(20);
+      }
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(before);
+    };
+    await swipe();
+    await page.getByRole('button', { name: 'Deshacer', exact: true }).click();
+    await expect(
+      page.getByRole('checkbox', { name: 'Completar Mi tarea 1', exact: true }),
+    ).toBeVisible();
+    await page.evaluate(() => scrollTo(0, 0));
+    await swipe();
+    await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden');
+  });
+
+  test('mobile task detail scrolls by touch while saving, celebrating, undoing and after closing', async ({
+    page,
+  }) => {
+    await setup(page, { longTask: true, delay: 1200 });
+    await page.locator('.mobile-task-open').first().click();
+    const dialog = page.getByRole('dialog');
+    const body = dialog.locator('.dialog-body');
+    const touch = await page.context().newCDPSession(page);
+    const scrollUp = async () => {
+      const before = await body.evaluate((el) => {
+        el.scrollTop = el.scrollHeight;
+        return el.scrollTop;
+      });
+      expect(before).toBeGreaterThan(100);
+      await touch.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [{ x: 190, y: 240 }],
+      });
+      for (const y of [320, 420, 520, 620, 720]) {
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ x: 190, y }],
+        });
+        await page.waitForTimeout(20);
+      }
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await expect.poll(() => body.evaluate((el) => el.scrollTop)).toBeLessThan(before);
+    };
+    await scrollUp();
+    await dialog.getByRole('button', { name: 'Completar', exact: true }).click();
+    await expect(page.locator('.operation-loading')).toBeVisible();
+    await scrollUp();
+    await expect(page.locator('.task-celebration')).toBeVisible();
+    await scrollUp();
+    await page.getByRole('button', { name: 'Deshacer', exact: true }).click();
+    await expect(dialog.getByRole('button', { name: 'Completar', exact: true })).toBeVisible();
+    await scrollUp();
+    await dialog.getByRole('button', { name: 'Cerrar', exact: true }).click();
+    await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden');
+    await page.mouse.move(190, 450);
+    await page.mouse.wheel(0, 500);
+    await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0);
+  });
+});

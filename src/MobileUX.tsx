@@ -292,97 +292,93 @@ export function MobileHome(props: {
       {(holding || focus.level === 'personal' || focus.level === 'commissions') && (
         <TaskSummary tasks={focus.personal} holding={holding || personalClear} />
       )}
-      {holding ? (
-        <p className="satisfaction-pause">Tarea completada</p>
-      ) : (
-        <>
-          {(focus.level === 'personal' || focus.level === 'commissions') && (
-            <section className="focus-primary">
-              {focus.level === 'commissions' && (
-                <div className="section-heading">
-                  <h2 className="team-tasks-heading">
-                    Tareas del equipo{' '}
-                    <TeamTaskCount open={focus.teamOpen.length} total={focus.teamTasks.length} />
-                  </h2>
+      <>
+        {(focus.level === 'personal' || focus.level === 'commissions') && (
+          <section className="focus-primary">
+            {focus.level === 'commissions' && (
+              <div className="section-heading">
+                <h2 className="team-tasks-heading">
+                  Tareas del equipo{' '}
+                  <TeamTaskCount open={focus.teamOpen.length} total={focus.teamTasks.length} />
+                </h2>
+              </div>
+            )}
+            {focus.level === 'commissions' && (
+              <p className="focus-context-note">
+                Tus tareas están al día. Estas tareas pertenecen a tu equipo.
+              </p>
+            )}
+            <MobileTasks {...props} tasks={focus.featured} />
+          </section>
+        )}
+        {focus.level === 'projects' && (
+          <section className="focus-primary">
+            <h2>Tus comisiones están al día</h2>
+            <p>Así avanzan tus proyectos.</p>
+            {focus.projects.slice(0, 2).map((camp) => (
+              <section key={camp.id}>
+                <ProjectOverview project={camp} />
+                <button className="text-link" onClick={() => navigate('project', camp.id)}>
+                  Ver proyecto
+                  <ChevronRight size={16} />
+                </button>
+              </section>
+            ))}
+            {focus.projects.length > 2 && (
+              <button className="secondary" onClick={() => navigate('projects')}>
+                Ver todos los proyectos
+              </button>
+            )}
+          </section>
+        )}
+        {focus.level === 'clear' && (
+          <>
+            <section className="all-clear rich-state">
+              <span className="clear-status">
+                <Check size={16} /> Sin pendientes
+              </span>
+
+              <Check size={34} aria-hidden="true" />
+              {hasContext && (
+                <div className="personal-clear compact">
+                  <p>¡Tus tareas están al día!</p>
                 </div>
               )}
-              {focus.level === 'commissions' && (
-                <p className="focus-context-note">
-                  Tus tareas están al día. Estas tareas pertenecen a tu equipo.
-                </p>
+              <p>
+                {hasContext
+                  ? 'No quedan tareas abiertas en tus comisiones ni proyectos.'
+                  : 'Aquí verás tus tareas y comisiones cuando te añadan al equipo.'}
+              </p>
+              {(finished.length > 0 || focus.ownCommissions.size > 0) && (
+                <div className="clear-summary">
+                  {finished.length > 0 && (
+                    <span>
+                      <strong>
+                        <AnimatedCounter value={finished.length} />
+                      </strong>{' '}
+                      tus tareas terminadas
+                    </span>
+                  )}
+                  {focus.ownCommissions.size > 0 && (
+                    <span>
+                      <strong>
+                        <AnimatedCounter value={focus.ownCommissions.size} />
+                      </strong>{' '}
+                      comisiones al día
+                    </span>
+                  )}
+                </div>
               )}
-              <MobileTasks {...props} tasks={focus.featured} />
             </section>
-          )}
-          {focus.level === 'projects' && (
-            <section className="focus-primary">
-              <h2>Tus comisiones están al día</h2>
-              <p>Así avanzan tus proyectos.</p>
-              {focus.projects.slice(0, 2).map((camp) => (
-                <section key={camp.id}>
-                  <ProjectOverview project={camp} />
-                  <button className="text-link" onClick={() => navigate('project', camp.id)}>
-                    Ver proyecto
-                    <ChevronRight size={16} />
-                  </button>
-                </section>
-              ))}
-              {focus.projects.length > 2 && (
-                <button className="secondary" onClick={() => navigate('projects')}>
-                  Ver todos los proyectos
-                </button>
-              )}
-            </section>
-          )}
-          {focus.level === 'clear' && (
-            <>
-              <section className="all-clear rich-state">
-                <span className="clear-status">
-                  <Check size={16} /> Sin pendientes
-                </span>
-
-                <Check size={34} aria-hidden="true" />
-                {hasContext && (
-                  <div className="personal-clear compact">
-                    <p>¡Tus tareas están al día!</p>
-                  </div>
-                )}
-                <p>
-                  {hasContext
-                    ? 'No quedan tareas abiertas en tus comisiones ni proyectos.'
-                    : 'Aquí verás tus tareas y comisiones cuando te añadan al equipo.'}
-                </p>
-                {(finished.length > 0 || focus.ownCommissions.size > 0) && (
-                  <div className="clear-summary">
-                    {finished.length > 0 && (
-                      <span>
-                        <strong>
-                          <AnimatedCounter value={finished.length} />
-                        </strong>{' '}
-                        tus tareas terminadas
-                      </span>
-                    )}
-                    {focus.ownCommissions.size > 0 && (
-                      <span>
-                        <strong>
-                          <AnimatedCounter value={focus.ownCommissions.size} />
-                        </strong>{' '}
-                        comisiones al día
-                      </span>
-                    )}
-                  </div>
-                )}
+            {recent.length > 0 && (
+              <section className="recent-finished">
+                <h2>Últimas tareas terminadas</h2>
+                <MobileTasks {...props} tasks={recent} />
               </section>
-              {recent.length > 0 && (
-                <section className="recent-finished">
-                  <h2>Últimas tareas terminadas</h2>
-                  <MobileTasks {...props} tasks={recent} />
-                </section>
-              )}
-            </>
-          )}
-        </>
-      )}
+            )}
+          </>
+        )}
+      </>
       <button className="secondary focus-full-list" onClick={() => navigate('tasks')}>
         {focus.level === 'clear' ? 'Ver mi historial de tareas' : 'Ver todas mis tareas'}
       </button>
