@@ -2241,7 +2241,17 @@ if (!prod)
   );
 site.use('/g/:groupId', groupResolver(ownerDb), app);
 site.get('/', (q, r, next) => {
-  if (Object.keys(q.query).length) {
+  const legacyQuery = [
+    'token',
+    'task',
+    'project',
+    'commission',
+    'view',
+    'auth_error',
+    'email',
+    'action',
+  ].some((key) => typeof q.query[key] === 'string');
+  if (legacyQuery) {
     if (!prod)
       return r.redirect(
         303,

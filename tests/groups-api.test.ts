@@ -150,6 +150,7 @@ test('public home and policies need no login, signup verifies email, and billing
   const home = await call('/');
   assert.equal(home.status, 200);
   assert.match(home.body, /Menos lío/);
+  assert.match((await call('/?utm_source=example')).body, /Menos lío/);
   assert.ok(!home.headers.get('set-cookie'));
   for (const path of [
     '/presentacion',
