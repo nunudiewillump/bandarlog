@@ -120,15 +120,15 @@
   margin-top: 28px;
 }
 .profile-overview button,
-.profile-preferences > summary {
+:is(.profile-preferences, .profile-group-settings) > summary {
   min-height: 44px;
 }
-.profile-preferences {
+:is(.profile-preferences, .profile-group-settings) {
   border-top: 1px solid #dfe5da;
   border-bottom: 1px solid #dfe5da;
   max-width: 620px;
 }
-.profile-preferences > summary {
+:is(.profile-preferences, .profile-group-settings) > summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -138,14 +138,14 @@
   list-style: none;
   cursor: pointer;
 }
-.profile-preferences > summary::-webkit-details-marker {
+:is(.profile-preferences, .profile-group-settings) > summary::-webkit-details-marker {
   display: none;
 }
-.profile-preferences > summary:focus-visible {
+:is(.profile-preferences, .profile-group-settings) > summary:focus-visible {
   outline: 3px solid #e8a33c;
   outline-offset: 4px;
 }
-.profile-preferences[open] > summary > svg {
+:is(.profile-preferences, .profile-group-settings)[open] > summary > svg {
   transform: rotate(90deg);
 }
 .profile-preferences-content {
@@ -197,7 +197,7 @@
   .profile-identity {
     padding-right: 30px;
   }
-  .profile-preferences {
+  :is(.profile-preferences, .profile-group-settings) {
     border-top: 0;
     margin-top: 0;
   }
@@ -209,7 +209,7 @@
   .profile-overview .profile-form fieldset {
     background: none;
   }
-  .profile-preferences > summary {
+  :is(.profile-preferences, .profile-group-settings) > summary {
     padding-top: 0;
   }
 }

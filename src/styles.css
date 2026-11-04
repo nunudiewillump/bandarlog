@@ -4112,3 +4112,8 @@ input[type='file']::file-selector-button {
   padding: 0;
   margin: -1px;
 }
+
+.auth-public-links { display:flex; flex-wrap:wrap; gap:16px; margin-top:32px; font-size:14px; }
+.auth-public-links a { color:#124d38; text-underline-offset:3px; }
+
+.auth-group-name { color:#52675a; margin-bottom:12px; font-size:15px; }

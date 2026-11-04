@@ -1,3 +1,4 @@
+import { groupBasePath } from './group-location';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, Mail } from 'lucide-react';
 import { api } from './api';
@@ -14,6 +15,7 @@ export function AuthScreen({
   onAuthenticated: () => Promise<void>;
   onToken: (token: string) => void;
 }) {
+  const [groupName, setGroupName] = useState('');
   const [email, setEmail] = useState(() =>
     (new URLSearchParams(location.search).get('email') || '').slice(0, 254),
   );
@@ -33,7 +35,10 @@ export function AuthScreen({
   const invitation = token.startsWith('invite.');
   useEffect(() => {
     void api('/auth/config')
-      .then((c) => setGoogle(c.googleEnabled === true))
+      .then((c) => {
+        setGoogle(c.googleEnabled === true);
+        setGroupName(c.group?.name || '');
+      })
       .catch(() => {});
   }, []);
   useEffect(() => {
@@ -94,6 +99,7 @@ export function AuthScreen({
             Cambiar correo
           </button>
         )}
+        {groupName && <p className="auth-group-name">{groupName}</p>}
         <h1>
           {token
             ? invitation
@@ -159,7 +165,10 @@ export function AuthScreen({
           <>
             {google && (
               <>
-                <a href="/api/auth/google/start" className="secondary google-access">
+                <a
+                  href={groupBasePath() + '/api/auth/google/start'}
+                  className="secondary google-access"
+                >
                   Continuar con Google
                 </a>
                 <p className="auth-divider">o con tu correo</p>
@@ -226,6 +235,11 @@ export function AuthScreen({
               ))}
           </details>
         )}
+        <nav className="auth-public-links" aria-label="Información de Bandarlog">
+          <a href="/presentacion">Sobre Bandarlog</a>
+          <a href="/privacidad">Privacidad</a>
+          <a href="/condiciones">Condiciones</a>
+        </nav>
       </main>
     </div>
   );

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { publicInfo } from '../shared/public-info.js';
 import { mailProvider } from './mail.js';
 
 // Validate deployment settings before connecting to or migrating the database.
@@ -64,5 +65,32 @@ export function validateEnvironment(env: NodeJS.ProcessEnv = process.env) {
     );
   if (Boolean(env.GOOGLE_LOGIN_CLIENT_ID) !== Boolean(env.GOOGLE_LOGIN_CLIENT_SECRET))
     throw new Error('Configura GOOGLE_LOGIN_CLIENT_ID y GOOGLE_LOGIN_CLIENT_SECRET conjuntamente.');
-  return { production, appUrl: origin.origin };
+  const legacyInput =
+    env.LEGACY_APP_ORIGINS ?? (origin.origin === publicInfo.origin ? publicInfo.legacyOrigin : '');
+  const legacyOrigins = legacyInput
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)
+    .map((value) => {
+      let parsed: URL;
+      try {
+        parsed = new URL(value);
+      } catch {
+        throw new Error('LEGACY_APP_ORIGINS debe contener orígenes HTTPS válidos.');
+      }
+      if (
+        parsed.protocol !== 'https:' ||
+        parsed.pathname !== '/' ||
+        parsed.search ||
+        parsed.hash ||
+        parsed.username ||
+        parsed.password ||
+        parsed.port
+      )
+        throw new Error('LEGACY_APP_ORIGINS debe contener solo orígenes HTTPS sin rutas.');
+      if (parsed.origin === origin.origin)
+        throw new Error('LEGACY_APP_ORIGINS no debe incluir APP_URL.');
+      return parsed.origin;
+    });
+  return { production, appUrl: origin.origin, legacyOrigins };
 }

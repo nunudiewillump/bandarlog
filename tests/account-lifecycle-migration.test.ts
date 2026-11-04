@@ -32,7 +32,12 @@ test('historical responsibility migration preserves data and enforces live task 
     const snapshot = async () =>
       Promise.all(
         ['users', 'projects', 'commissions', 'members', 'tasks', 'assignments', 'activity'].map(
-          async (table) => (await client.query(`SELECT * FROM ${table} ORDER BY id`)).rows,
+          async (table) =>
+            (
+              await client.query<Record<string, unknown>>(`SELECT * FROM ${table} ORDER BY id`)
+            ).rows.map((row) =>
+              Object.fromEntries(Object.entries(row).filter(([key]) => key !== 'group_id')),
+            ),
         ),
       );
     const before = await snapshot();

@@ -1,4 +1,9 @@
 import express from 'express';
+import { readFile } from 'node:fs/promises';
+import { publicSite, renderPublicPage, renderPublicForm } from './public-site.js';
+import { publicInfo } from '../shared/public-info.js';
+import { groupContext, groupPath, groupUrl, type Group } from './group-context.js';
+import { groupRegistrationRoutes, groupResolver, groupColor } from './groups.js';
 import {
   tutorialCommand,
   writeTutorial,
@@ -45,10 +50,50 @@ import {
   SESSION_ABSOLUTE,
   SESSION_RENEW_INTERVAL,
 } from './auth-security.js';
-const { production: prod, appUrl } = validateEnvironment();
-const { db, close } = await connect();
-await seed(db);
-const push = await pushService(db, appUrl);
+const { production: prod, appUrl, legacyOrigins } = validateEnvironment();
+const { db, ownerDb, close } = await connect();
+await seed(ownerDb);
+const [legacyGroup] = await ownerDb.select().from(s.groups).where(eq(s.groups.id, 'rosales-702'));
+const site = express();
+site.disable('x-powered-by');
+site.use(helmet({ contentSecurityPolicy: prod ? undefined : false }));
+site.use((q, r, next) => {
+  const oldHost = prod && legacyOrigins.includes('https://' + (q.get('host') || '').toLowerCase());
+  const publicRoute = [
+    '/presentacion',
+    '/privacidad',
+    '/condiciones',
+    '/crear-grupo',
+    '/confirmar-grupo',
+    '/aprobar-grupo',
+    '/entrar',
+    '/suscripcion-demo',
+    '/robots.txt',
+    '/sitemap.xml',
+  ].includes(q.path);
+  const anonymousHome = q.path === '/' && !q.headers.cookie?.includes('bandarlog=');
+  if (
+    oldHost &&
+    ['GET', 'HEAD'].includes(q.method) &&
+    (publicRoute || anonymousHome || q.path === '/api/auth/google/start')
+  ) {
+    if (!q.originalUrl.startsWith('/')) return r.sendStatus(400);
+    return r.redirect(308, appUrl + q.originalUrl);
+  }
+  next();
+});
+function allowedOrigin(q: express.Request) {
+  const origin = q.get('origin');
+  return (
+    !origin ||
+    origin === appUrl ||
+    (groupContext.getStore()?.id === legacyGroup.id &&
+      legacyOrigins.includes(origin) &&
+      origin === 'https://' + (q.get('host') || '').toLowerCase())
+  );
+}
+site.use(publicSite(appUrl));
+const push = await pushService(db, appUrl, ownerDb);
 const app = express();
 app.disable('x-powered-by');
 app.use(helmet({ contentSecurityPolicy: prod ? undefined : false }));
@@ -58,7 +103,7 @@ app.use('/api', (_q, r, n) => {
   n();
 });
 app.use('/api/auth', (q, r, n) => {
-  if (!['GET', 'HEAD'].includes(q.method) && q.headers.origin && q.headers.origin !== appUrl)
+  if (!['GET', 'HEAD'].includes(q.method) && !allowedOrigin(q))
     return r.status(403).json({ error: 'Origen no permitido.' });
   n();
 });
@@ -106,7 +151,7 @@ async function invitationLink(recipient: string, invitationId: string, expires: 
   // Hashing the complete token binds its invitation ID to the secret without a schema change.
   const token = `invite.${invitationId}.${secret()}`;
   await tx.insert(s.tokens).values({ id: hash(token), email: recipient, expires });
-  const url = new URL(appUrl);
+  const url = new URL(groupUrl(appUrl));
   url.searchParams.set('token', token);
   return url.toString();
 }
@@ -132,11 +177,96 @@ async function queue(
     })
     .onConflictDoNothing();
 }
-let sending = false;
-let pushing = false;
+async function queuePlatform(
+  email: string,
+  subject: string,
+  body: string,
+  dedupe: string,
+  tx: any = ownerDb,
+) {
+  const link = body
+    .split('\n')
+    .find(
+      (line) =>
+        line.startsWith(appUrl + '/aprobar-grupo?token=') ||
+        line.startsWith(appUrl + '/confirmar-grupo?token='),
+    );
+  await tx
+    .insert(s.platformMail)
+    .values({
+      id: id(),
+      email,
+      subject,
+      body,
+      dedupe,
+      html: renderMail({
+        title: subject,
+        body,
+        appUrl,
+        actions: [
+          {
+            label: link?.includes('/aprobar-grupo')
+              ? 'Revisar solicitud'
+              : link
+                ? 'Activar grupo'
+                : 'Ver Bandarlog',
+            url: link || appUrl + '/',
+          },
+        ],
+      }),
+      status: mailTransport ? 'pending' : 'preview',
+      createdAt: now(),
+    })
+    .onConflictDoNothing();
+}
+let platformSending = false;
+async function deliverPlatform() {
+  if (!mailTransport || platformSending) return;
+  platformSending = true;
+  try {
+    const pending = await ownerDb
+      .select()
+      .from(s.platformMail)
+      .where(eq(s.platformMail.status, 'pending'));
+    for (const m of pending) {
+      const claimed = await ownerDb
+        .update(s.platformMail)
+        .set({ status: 'sending' })
+        .where(and(eq(s.platformMail.id, m.id), eq(s.platformMail.status, 'pending')))
+        .returning();
+      if (!claimed.length) continue;
+      try {
+        await mailTransport.sendMail({
+          from: process.env.MAIL_FROM,
+          to: m.email,
+          subject: m.subject,
+          text: m.body,
+          html: m.html,
+        });
+        await ownerDb
+          .update(s.platformMail)
+          .set({ status: 'sent', sentAt: now() })
+          .where(eq(s.platformMail.id, m.id));
+      } catch {
+        await ownerDb
+          .update(s.platformMail)
+          .set({
+            attempts: String(Number(m.attempts) + 1),
+            status: Number(m.attempts) + 1 >= 5 ? 'failed' : 'pending',
+          })
+          .where(eq(s.platformMail.id, m.id));
+      }
+    }
+  } finally {
+    platformSending = false;
+  }
+}
+const sending = new Set<string>();
+const pushing = new Set<string>();
 async function deliverPush() {
-  if (pushing) return;
-  pushing = true;
+  const key = groupContext.getStore()!.id;
+  if (pushing.has(key)) return;
+  pushing.add(key);
   try {
     const pending = await db
       .select()
@@ -148,15 +278,16 @@ async function deliverPush() {
         await db.update(s.pushOutbox).set({ sentAt: now() }).where(eq(s.pushOutbox.id, entry.id));
     }
   } finally {
-    pushing = false;
+    pushing.delete(key);
   }
 }
 async function deliver() {
   await deliverPush().catch(() =>
     console.error('No se pudieron enviar los avisos al dispositivo.'),
   );
-  if (!mailTransport || sending) return;
-  sending = true;
+  const key = groupContext.getStore()!.id;
+  if (!mailTransport || sending.has(key)) return;
+  sending.add(key);
   try {
     const pending = await db
       .select()
@@ -194,7 +325,7 @@ async function deliver() {
       }
     }
   } finally {
-    sending = false;
+    sending.delete(key);
   }
 }
 // Tokens are stored only as hashes. A GET never consumes a token or changes a task.
@@ -223,7 +354,7 @@ app.post('/api/auth/request', async (q, r) => {
       email: input.email,
       expires: new Date(Date.now() + 15 * 60000).toISOString(),
     });
-    const loginUrl = new URL(appUrl);
+    const loginUrl = new URL(groupUrl(appUrl));
     loginUrl.searchParams.set('token', token);
     if (input.task) loginUrl.searchParams.set('task', input.task);
     if (input.action) loginUrl.searchParams.set('action', input.action);
@@ -297,7 +428,7 @@ function sessionCookie(r: express.Response, raw: string, expires = Date.now() + 
     secure: prod,
     sameSite: 'lax',
     maxAge: Math.max(0, expires - Date.now()),
-    path: '/',
+    path: groupPath() || '/',
   });
 }
 const cookie = (q: express.Request, name: string) =>
@@ -326,7 +457,9 @@ const googleEnabled = Boolean(
 );
 const challengeSecret =
   process.env.AUTH_CHALLENGE_SECRET || 'bandarlog-local-development-challenge-key';
-app.get('/api/auth/config', (_q, r) => r.json({ googleEnabled, codeEnabled: true }));
+app.get('/api/auth/config', (_q, r) =>
+  r.json({ googleEnabled, codeEnabled: true, group: { name: groupContext.getStore()!.name } }),
+);
 app.post('/api/auth/code/request', async (q, r) => {
   const input = parse(
     z.object({ email, task: z.string().max(100).optional(), action: statuses.optional() }),
@@ -415,7 +548,7 @@ app.post('/api/auth/code/request', async (q, r) => {
       await queue(
         input.email,
         'Tu código de acceso a Bandarlog',
-        `Tu código de acceso es: ${code}\nCaduca en 10 minutos y solo se puede usar una vez. Introdúcelo en Bandarlog sin salir de la aplicación.\nSi no lo has solicitado, ignora este correo.`,
+        `Grupo: ${groupContext.getStore()!.name}\nTu código de acceso es: ${code}\nCaduca en 10 minutos y solo se puede usar una vez. Introdúcelo en Bandarlog sin salir de la aplicación.\nSi no lo has solicitado, ignora este correo.`,
         id(),
         tx,
       );
@@ -502,7 +635,7 @@ app.post('/api/auth/code/verify', async (q, r) => {
   });
   if ('error' in result) return r.status(result.status || 400).json({ error: result.error });
   sessionCookie(r, result.session.raw);
-  r.clearCookie('bandarlog_google_link', { path: '/api/auth' });
+  r.clearCookie('bandarlog_google_link', { path: '/' });
   r.json({ ok: true });
 });
 app.get('/api/auth/google/start', async (_q, r) => {
@@ -621,9 +754,9 @@ app.get('/api/auth/google/callback', async (q, r) => {
         secure: prod,
         sameSite: 'lax',
         maxAge: CODE_LIFETIME,
-        path: '/api/auth',
+        path: '/',
       });
-      return r.redirect(`${appUrl}/?auth_error=google_email_verify`);
+      return r.redirect(`${groupUrl(appUrl)}?auth_error=google_email_verify`);
     }
     const session = await db.transaction(async (tx: any) => {
       let user;
@@ -646,10 +779,10 @@ app.get('/api/auth/google/callback', async (q, r) => {
       return createSession(tx, user.id);
     });
     sessionCookie(r, session.raw);
-    r.redirect(appUrl);
+    r.redirect(groupUrl(appUrl));
   } catch {
     // Never leak tokens, callback parameters, credentials, or provider response bodies.
-    r.redirect(`${appUrl}/?auth_error=google`);
+    r.redirect(`${groupUrl(appUrl)}?auth_error=google`);
   }
 });
 
@@ -657,6 +790,29 @@ if (!prod)
   app.get('/api/dev/mail', async (_q, r) => {
     r.json(await db.select().from(s.notifications).orderBy(s.notifications.createdAt));
   });
+for (const file of ['sw.js', 'offline-store.js', 'offline.html'])
+  app.get('/' + file, (_q, r) => r.sendFile('public/' + file, { root: process.cwd() }));
+app.get('/manifest.webmanifest', (_q, r) => {
+  const group = groupContext.getStore()!,
+    base = groupPath() || '';
+  r.set('Cache-Control', 'no-store')
+    .type('application/manifest+json')
+    .json({
+      id: base + '/',
+      name: 'Bandarlog · ' + group.name,
+      short_name: 'Bandarlog',
+      lang: 'es',
+      start_url: base + '/',
+      scope: base + '/',
+      display: 'standalone',
+      background_color: '#103b2d',
+      theme_color: '#103b2d',
+      icons: [
+        { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+        { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    });
+});
 app.use('/api', async (q, r, n) => {
   const raw = q.headers.cookie
     ?.split(';')
@@ -687,8 +843,9 @@ app.use('/api', async (q, r, n) => {
     const origin = q.headers.origin;
     if (
       origin &&
+      !allowedOrigin(q) &&
       !new Set([
-        new URL(appUrl).origin,
+        new URL(groupUrl(appUrl)).origin,
         ...(!prod
           ? ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://127.0.0.1:4174']
           : []),
@@ -772,7 +929,7 @@ app.post(
     }
   },
 );
-const liveViews = new Set<express.Response>();
+const liveViews = new Map<express.Response, string>();
 app.get('/api/events', (q, r) => {
   r.set({
     'Content-Type': 'text/event-stream',
@@ -782,7 +939,7 @@ app.get('/api/events', (q, r) => {
   });
   r.flushHeaders();
   r.write('event: ready\ndata: {}\n\n');
-  liveViews.add(r);
+  liveViews.set(r, groupContext.getStore()!.id);
   const timer = setInterval(() => r.write(': keepalive\n\n'), 25000);
   q.on('close', () => {
     clearInterval(timer);
@@ -791,10 +948,12 @@ app.get('/api/events', (q, r) => {
 });
 app.use('/api', (q, r, next) => {
   if (q.path === '/tutorial' || q.path.startsWith('/tutorial/')) return next();
+  const changedGroupId = groupContext.getStore()?.id;
   if (!['GET', 'HEAD'].includes(q.method))
     r.on('finish', () => {
       if (r.statusCode < 400)
-        for (const view of liveViews) view.write('event: changed\ndata: {}\n\n');
+        for (const [view, groupId] of liveViews)
+          if (groupId === changedGroupId) view.write('event: changed\ndata: {}\n\n');
     });
   next();
 });
@@ -872,7 +1031,7 @@ async function taskMail(
     await queue(
       user.email,
       `${subject}: ${t.title}`,
-      `Bandarlog\n${t.title}\n${c.name} · ${p.name}\nResponsables: ${rows.map((x: any) => x.user.name).join(', ')}\nFecha límite: ${new Date(t.due).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' })}\nEstado: ${t.status}\n${t.description}\n\nAbrir tarea: ${appUrl}/?task=${t.id}\nMarcar en curso: ${appUrl}/?task=${t.id}&action=in_progress\nTerminar: ${appUrl}/?task=${t.id}&action=done\nBloquear: ${appUrl}/?task=${t.id}&action=blocked\nLas acciones requieren iniciar sesión y confirmar.`,
+      `Bandarlog\n${t.title}\n${c.name} · ${p.name}\nResponsables: ${rows.map((x: any) => x.user.name).join(', ')}\nFecha límite: ${new Date(t.due).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' })}\nEstado: ${t.status}\n${t.description}\n\nAbrir tarea: ${groupUrl(appUrl)}?task=${t.id}\nMarcar en curso: ${groupUrl(appUrl)}?task=${t.id}&action=in_progress\nTerminar: ${groupUrl(appUrl)}?task=${t.id}&action=done\nBloquear: ${groupUrl(appUrl)}?task=${t.id}&action=blocked\nLas acciones requieren iniciar sesión y confirmar.`,
       `${key}-${user.id}`,
       tx,
       renderMail({
@@ -880,6 +1039,7 @@ async function taskMail(
         appUrl,
         body: t.description + (t.blockedReason ? '\nMotivo del bloqueo: ' + t.blockedReason : ''),
         details: [
+          { label: 'Grupo', value: groupContext.getStore()!.name },
           { label: 'Comisión', value: c.name },
           { label: 'Proyecto', value: p.name },
           { label: 'Responsables', value: rows.map((x: any) => x.user.name).join(', ') },
@@ -901,25 +1061,25 @@ async function taskMail(
           },
         ],
         actions: [
-          { label: 'Ver tarea', url: `${appUrl}/?task=${t.id}` },
+          { label: 'Ver tarea', url: `${groupUrl(appUrl)}?task=${t.id}` },
           ...(t.status !== 'done'
             ? [
                 {
                   label: 'Marcar en curso',
                   kind: 'in_progress' as const,
-                  url: `${appUrl}/?task=${t.id}&action=in_progress`,
+                  url: `${groupUrl(appUrl)}?task=${t.id}&action=in_progress`,
                   secondary: true,
                 },
                 {
                   label: 'Completar tarea',
                   kind: 'done' as const,
-                  url: `${appUrl}/?task=${t.id}&action=done`,
+                  url: `${groupUrl(appUrl)}?task=${t.id}&action=done`,
                   secondary: true,
                 },
                 {
                   label: 'Bloquear tarea',
                   kind: 'blocked' as const,
-                  url: `${appUrl}/?task=${t.id}&action=blocked`,
+                  url: `${groupUrl(appUrl)}?task=${t.id}&action=blocked`,
                   secondary: true,
                 },
               ]
@@ -935,7 +1095,7 @@ async function taskMail(
         payload: JSON.stringify({
           title: subject,
           body: `${t.title} · ${c.name}`,
-          url: `/?task=${t.id}`,
+          url: `${groupPath()}/?task=${t.id}`,
           tag: `task-${t.id}`,
         }),
       })
@@ -961,7 +1121,7 @@ app.post('/api/push/subscriptions', async (q, r) => {
     .insert(s.pushSubscriptions)
     .values({ id: key, userId: r.locals.user.id, subscription: JSON.stringify(input) })
     .onConflictDoUpdate({
-      target: s.pushSubscriptions.id,
+      target: [s.pushSubscriptions.groupId, s.pushSubscriptions.id],
       set: { userId: r.locals.user.id, subscription: JSON.stringify(input) },
     });
   r.json({ ok: true });
@@ -978,9 +1138,26 @@ app.delete('/api/push/subscriptions', async (q, r) => {
     );
   r.json({ ok: true });
 });
+app.get('/api/group', (_q, r) => r.json(groupContext.getStore()));
+app.patch('/api/group', async (q, r) => {
+  if (r.locals.user.role !== 'admin') fail(403, 'Solo Administración puede configurar el grupo.');
+  const input = parse(
+    z
+      .object({
+        name: z.string().trim().min(2).max(100),
+        colorPrimary: groupColor,
+        colorSecondary: groupColor,
+      })
+      .strict(),
+    q.body,
+  );
+  await ownerDb.update(s.groups).set(input).where(eq(s.groups.id, groupContext.getStore()!.id));
+  r.json({ ok: true });
+});
 app.get('/api/me', (_q, r) =>
   r.json({
     user: r.locals.user,
+    group: groupContext.getStore(),
     csrf: r.locals.session.csrf,
     development: !prod,
     googleEnabled: Boolean(
@@ -1015,7 +1192,7 @@ app.post('/api/onboarding', async (q, r) => {
 });
 app.post('/api/logout', async (_q, r) => {
   await db.delete(s.sessions).where(eq(s.sessions.id, r.locals.session.id));
-  r.clearCookie('bandarlog', { path: '/' }).json({ ok: true });
+  r.clearCookie('bandarlog', { path: groupPath() || '/' }).json({ ok: true });
 });
 app.patch('/api/profile', async (q, r) => {
   const input = parse(
@@ -1192,6 +1369,7 @@ app.get('/api/data', async (_q, r) => {
         artworkMode: !artworkLocked && c.artworkKey === artwork.id ? 'manual' : 'automatic',
       };
     }),
+    group: groupContext.getStore(),
     members: visibleMembers,
     users: us,
     tasks: ts,
@@ -1938,10 +2116,11 @@ app.get('/api/notifications', async (_q, r) => {
   const all = await db.select().from(s.notifications);
   r.json(all.map(({ body, ...m }) => m));
 });
-let scheduling = false;
+const scheduling = new Set<string>();
 async function reminders() {
-  if (scheduling) return;
-  scheduling = true;
+  const key = groupContext.getStore()!.id;
+  if (scheduling.has(key)) return;
+  scheduling.add(key);
   try {
     const allTasks = await db
       .select()
@@ -1991,28 +2170,37 @@ async function reminders() {
         await queue(
           u.email,
           `Resumen semanal · ${p.name}`,
-          `Bandarlog\n${total ? Math.round((done / total) * 100) + '%' : 'Sin tareas'} de progreso\n${pts.filter((t) => t.status === 'pending').length} pendientes · ${pts.filter((t) => t.status === 'blocked').length} bloqueadas · ${pts.filter((t) => t.status !== 'done' && new Date(t.due) < new Date()).length} vencidas\nConsulta comisiones y tareas: ${appUrl}/?project=${p.id}`,
+          `Bandarlog\n${total ? Math.round((done / total) * 100) + '%' : 'Sin tareas'} de progreso\n${pts.filter((t) => t.status === 'pending').length} pendientes · ${pts.filter((t) => t.status === 'blocked').length} bloqueadas · ${pts.filter((t) => t.status !== 'done' && new Date(t.due) < new Date()).length} vencidas\nConsulta comisiones y tareas: ${groupUrl(appUrl)}?project=${p.id}`,
           `weekly-${stamp}-${p.id}-${u.id}`,
         );
       }
     }
   } finally {
-    scheduling = false;
+    scheduling.delete(key);
   }
 }
 const timer = setInterval(() => {
-  void expireTutorials(db).catch(() =>
-    console.error('No se pudo actualizar el estado del tutorial.'),
-  );
-  void reminders()
-    .then(deliver)
-    .catch(() => console.error('No se pudieron procesar las notificaciones.'));
+  void (async () => {
+    for (const group of await ownerDb.select().from(s.groups))
+      await groupContext.run(group, async () => {
+        await expireTutorials(db).catch(() => console.error('No se pudo actualizar el tutorial.'));
+        await reminders()
+          .then(deliver)
+          .catch(() => console.error('No se pudieron procesar las notificaciones.'));
+      });
+    await deliverPlatform();
+  })().catch(() => console.error('No se pudo completar el mantenimiento.'));
 }, 60000);
 timer.unref();
 app.use('/api', (_q, r) => r.status(404).json({ error: 'Ruta no encontrada.' }));
 if (prod) {
-  app.use(express.static('dist'));
-  app.get('/{*path}', (_q, r) => r.sendFile('index.html', { root: 'dist' }));
+  app.use(express.static('dist', { index: false }));
+  app.get('/{*path}', async (_q, r) => {
+    const html = await readFile('dist/index.html', 'utf8');
+    r.type('html').send(
+      html.replace('/manifest.webmanifest', groupPath() + '/manifest.webmanifest'),
+    );
+  });
 }
 app.use((error: any, _q: any, r: any, _n: any) => {
   const status =
@@ -2038,13 +2226,57 @@ app.use((error: any, _q: any, r: any, _n: any) => {
               : error.message,
   });
 });
-const server = app.listen(Number(process.env.PORT || 3001), '0.0.0.0', () =>
+site.use(
+  groupRegistrationRoutes(ownerDb, appUrl, {
+    queue: queuePlatform,
+    deliver: deliverPlatform,
+    createSession,
+    cookie: (r, raw, group) => groupContext.run(group, () => sessionCookie(r, raw)),
+    render: (path, message, token) => renderPublicForm(path, appUrl, message, token),
+  }),
+);
+if (!prod)
+  site.get('/api/dev/platform-mail', async (_q, r) =>
+    r.json(await ownerDb.select().from(s.platformMail).orderBy(s.platformMail.createdAt)),
+  );
+site.use('/g/:groupId', groupResolver(ownerDb), app);
+site.get('/', (q, r, next) => {
+  if (Object.keys(q.query).length) {
+    if (!prod)
+      return r.redirect(
+        303,
+        '/acceso' +
+          (q.originalUrl.includes('?') ? q.originalUrl.slice(q.originalUrl.indexOf('?')) : ''),
+      );
+    return next();
+  }
+  r.type('html').send(renderPublicPage('/presentacion', appUrl));
+});
+site.use(async (q, r, next) => {
+  let group: Group = { ...legacyGroup, legacyAccess: true };
+  if (q.path === '/api/auth/google/callback' && typeof q.query.state === 'string') {
+    const [state] = await ownerDb
+      .select()
+      .from(s.googleStates)
+      .where(eq(s.googleStates.id, hash(q.query.state)));
+    if (state) {
+      const [found] = await ownerDb.select().from(s.groups).where(eq(s.groups.id, state.groupId));
+      if (found) group = found;
+    }
+  }
+  groupContext.run(group, () => app(q, r, next));
+});
+site.use((_q, r) => r.status(404).type('text').send('Página no encontrada.'));
+site.use((_error: any, _q: any, r: any, _next: any) =>
+  r.status(500).type('text').send('No se pudo completar la operación.'),
+);
+const server = site.listen(Number(process.env.PORT || 3001), '0.0.0.0', () =>
   console.log(
     `Bandarlog API preparada en puerto ${process.env.PORT || 3001} (${prod ? 'producción' : 'desarrollo con datos demostrativos'})`,
   ),
 );
 process.on('SIGTERM', () => {
   clearInterval(timer);
-  for (const view of liveViews) view.end();
+  for (const view of liveViews.keys()) view.end();
   server.close(() => void close().then(() => process.exit(0)));
 });

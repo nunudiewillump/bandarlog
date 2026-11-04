@@ -138,3 +138,9 @@ Proyecto, comisión y tarea reúnen sus ajustes en el engranaje de la cabecera. 
 ### Tutorial de primer uso
 
 «Tu primera misión» aparece después del onboarding, también para usuarios existentes sin visualización previa. Es una simulación aislada, repetible desde Perfil → Ayuda, con analítica propia visible solo para Administración y celebración 2D del mono trompetista. La migración 0013 conserva todos los datos anteriores y no requiere variables nuevas. Consulta [funcionamiento, privacidad y definiciones de métricas](docs/tutorial/README.md).
+
+## Dominio público y grupos
+
+El origen de producción es `https://bandarlog.app`. Sin ID se muestra información pública; cada grupo nuevo tiene su espacio `/g/ID-privado/`, con cuentas y datos separados. La solicitud de grupos es gratuita, exige aprobación previa del responsable de Bandarlog y verifica después el correo de su primer administrador. La suscripción en `/suscripcion-demo` es solo una maqueta funcional de lectura, sin contratación ni cobros. Configuración, migración del grupo inicial, DNS y Google: [publicación y grupos](docs/publicacion.md).
+
+`npm run publication:check` comprueba las páginas públicas sin enviar correos. El desarrollo local mantiene `localhost`; no se deben reemplazar las URLs de pruebas por producción.

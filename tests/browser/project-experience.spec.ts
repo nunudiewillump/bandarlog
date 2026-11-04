@@ -27,7 +27,7 @@ for (const width of [390, 1440])
   }) => {
     await page.setViewportSize({ width, height: 950 });
     await login(page);
-    await page.goto('/');
+    await page.goto('/acceso');
     await page
       .locator(width === 390 ? '.bottom-nav' : '.sidebar nav')
       .getByRole('button', { name: 'Proyectos', exact: true })

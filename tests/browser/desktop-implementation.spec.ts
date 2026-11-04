@@ -137,7 +137,7 @@ test('a loose leaf uses the canopy artwork, can fall centrally and never interce
   await page.clock.install();
   await preparedUser(page);
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto('/');
+  await page.goto('/acceso');
   await expect(page.getByRole('heading', { name: 'Inicio', exact: true })).toBeVisible();
   await expect(page.locator('.botanical-decoration:visible')).toHaveCount(1);
   await page.evaluate(() => document.fonts.ready);
@@ -189,7 +189,7 @@ test('installed PWA declares a dark forest status area and preserves safe-area l
 }) => {
   await preparedUser(page);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
+  await page.goto('/acceso');
   await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#103b2d');
   await expect(page.locator('meta[name="apple-mobile-web-app-status-bar-style"]')).toHaveAttribute(
     'content',
@@ -229,7 +229,7 @@ for (const [chance, count, kind] of [
     await page.clock.install();
     await preparedUser(page);
     await page.setViewportSize({ width: 390, height: 950 });
-    await page.goto('/');
+    await page.goto('/acceso');
     await expect(page.locator('.botanical-decoration:visible')).toHaveCount(1);
     await page.clock.runFor(100);
     await page.clock.runFor(17000 + chance * 33000 + 100);

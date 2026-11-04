@@ -77,7 +77,7 @@ async function setup(
     }
     return route.fulfill({ status: 404, json: { error: 'No disponible en esta prueba aislada' } });
   });
-  await page.goto('/');
+  await page.goto('/acceso');
   await expect(page.locator('.mobile-focus')).toBeVisible();
   return { ...fixture, calls };
 }

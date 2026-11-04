@@ -46,3 +46,23 @@ test('production refuses incomplete settings, insecure Neon and URL paths before
   assert.throws(() => validateEnvironment({ ...valid, DATABASE_URL: '' }), /DATABASE_URL/);
   assert.equal(validateEnvironment({}).production, false);
 });
+
+test('bandarlog.app uses the legacy Railway origin only as an explicit migration alias', () => {
+  const config = validateEnvironment({ APP_URL: 'https://bandarlog.app' });
+  assert.deepEqual(config.legacyOrigins, ['https://bandarlog-production.up.railway.app']);
+  assert.deepEqual(
+    validateEnvironment({ APP_URL: 'https://bandarlog.app', LEGACY_APP_ORIGINS: '' }).legacyOrigins,
+    [],
+  );
+  assert.deepEqual(validateEnvironment({}).legacyOrigins, []);
+  for (const origin of [
+    'http://old.example',
+    'https://old.example/path',
+    'https://user@old.example',
+    'https://bandarlog.app',
+  ])
+    assert.throws(
+      () => validateEnvironment({ APP_URL: 'https://bandarlog.app', LEGACY_APP_ORIGINS: origin }),
+      /LEGACY_APP_ORIGINS/,
+    );
+});

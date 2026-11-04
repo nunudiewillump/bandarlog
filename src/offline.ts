@@ -1,3 +1,4 @@
+import { groupChannel } from './group-location';
 type Store = {
   remember(path: string, value: any): Promise<any>;
   cached(path: string): Promise<any>;
@@ -24,7 +25,7 @@ export async function clearOffline() {
 }
 export function notifyDataChanged() {
   if (typeof BroadcastChannel !== 'undefined') {
-    const channel = new BroadcastChannel('bandarlog-data');
+    const channel = new BroadcastChannel(groupChannel());
     channel.postMessage('changed');
     channel.close();
   }

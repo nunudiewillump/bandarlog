@@ -48,7 +48,7 @@ test('new profile requires a name, preserves it when cancelling crop and can omi
 }) => {
   const state = await forest(page, { pending: true });
   await page.setViewportSize({ width: 375, height: 812 });
-  await page.goto('/');
+  await page.goto('/acceso');
   await expect(page.getByRole('heading', { name: '¿Cómo te llamamos?' })).toBeVisible();
   await page.getByLabel('Nombre', { exact: true }).fill('   ');
   await page.getByRole('button', { name: 'Ahora no, sin foto' }).click();
@@ -84,7 +84,7 @@ test('a failed boot offers retry instead of claiming the session expired, and re
 }) => {
   const state = await forest(page, { unavailable: true });
   await page.setViewportSize({ width: 375, height: 812 });
-  await page.goto('/');
+  await page.goto('/acceso');
   await expect(page.getByRole('heading', { name: 'No se pudo cargar Bandarlog' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Recibir código', exact: true })).toHaveCount(0);
   state.restore();
@@ -104,7 +104,7 @@ test('phone landscape retains the canopy and five destinations while scrolling c
 }) => {
   await forest(page);
   await page.setViewportSize({ width: 844, height: 390 });
-  await page.goto('/');
+  await page.goto('/acceso');
   await expect(page.locator('.mobile-focus')).toBeVisible();
   await expect(page.locator('.forest-canopy:visible')).toHaveCount(1);
   const nav = page.getByRole('navigation', { name: 'Navegación principal' });
