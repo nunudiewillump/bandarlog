@@ -56,9 +56,9 @@ test.describe('public website without JavaScript or login', () => {
         fullPage: true,
         animations: 'disabled',
       });
-      await expect(page.locator('.public-monkey-wave')).not.toHaveCSS('animation-name', 'none');
+      await expect(page.locator('.public-keyboard-hands')).not.toHaveCSS('animation-name', 'none');
       await page.emulateMedia({ reducedMotion: 'reduce' });
-      await expect(page.locator('.public-monkey-wave')).toHaveCSS('animation-name', 'none');
+      await expect(page.locator('.public-keyboard-hands')).toHaveCSS('animation-name', 'none');
       await expect(page.locator('.public-falling-stage')).toBeHidden();
       await page.getByRole('link', { name: 'Sobre Bandarlog', exact: true }).click();
       await expect(

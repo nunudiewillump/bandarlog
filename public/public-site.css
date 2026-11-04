@@ -342,113 +342,14 @@ svg {
     scroll-behavior: auto;
   }
 }
-/* The public entrance stays short and fast; decoration never intercepts input. */
-.public-home-simple {
-  max-width: 1184px;
-  padding: 0 24px;
+/* Public entrance · the illustrated forest has its own desktop/mobile composition. */
+::selection {
+  background: #e7b548;
+  color: #103b2d;
 }
-.public-fast-hero {
-  position: relative;
-  isolation: isolate;
-  display: grid;
-  place-items: center;
-  min-height: 590px;
-  min-height: calc(100svh - 290px);
-  padding: 65px 170px 95px;
-  overflow: hidden;
-}
-.public-fast-copy {
-  position: relative;
-  z-index: 3;
-  text-align: center;
-  max-width: 600px;
-}
-.public-fast-copy h1 {
-  font-size: clamp(52px, 6vw, 84px);
-  line-height: 1.04;
-  letter-spacing: -0.055em;
-}
-.public-fast-copy p {
-  font-size: 20px;
-  color: #52675a;
-  margin: 22px 0 0;
-}
-.public-fast-copy .public-primary {
-  margin-top: 26px;
-}
-.public-monkey-wave,
-.public-monkey-vine {
-  position: absolute;
-  z-index: 2;
-  object-fit: contain;
-  pointer-events: none;
-  user-select: none;
-}
-.public-monkey-wave {
-  width: 190px;
-  height: auto;
-  left: 4px;
-  bottom: 65px;
-  animation: public-monkey-wave 6s ease-in-out infinite;
-}
-.public-monkey-vine {
-  width: 190px;
-  height: 310px;
-  right: 0;
-  top: 12px;
-  transform-origin: 50% 0;
-  animation: public-monkey-vine 8s ease-in-out infinite;
-}
-.public-falling-stage {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-.public-falling {
-  position: absolute;
-  top: -80px;
-  width: 38px;
-  height: 50px;
-  animation: public-fall 12s linear infinite;
-  will-change: transform;
-  opacity: 0;
-}
-.public-falling svg {
-  width: 100%;
-  height: 100%;
-}
-.public-falling-0 {
-  left: 9%;
-  animation-delay: -4s;
-}
-.public-falling-1 {
-  left: 32%;
-  animation-delay: -8s;
-  animation-duration: 16s;
-}
-.public-falling-2 {
-  left: 76%;
-  animation-delay: -12s;
-  animation-duration: 18s;
-  width: 42px;
-}
-.public-falling-3 {
-  left: 56%;
-  animation-delay: -1s;
-  animation-duration: 14s;
-}
-.public-falling-4 {
-  left: 88%;
-  animation-delay: -9s;
-  animation-duration: 17s;
-}
-.public-falling-5 {
-  left: 18%;
-  animation-delay: -6s;
-  animation-duration: 21s;
-  width: 36px;
+html {
+  scrollbar-color: #70866a #f0f0e5;
+  scrollbar-width: thin;
 }
 .public-secondary {
   min-height: 48px;
@@ -462,93 +363,498 @@ svg {
     sans-serif;
   cursor: pointer;
 }
-@keyframes public-monkey-wave {
-  0%,
-  40%,
-  100% {
-    transform: rotate(-3deg) translateY(0);
+.public-landing {
+  background: #faf8f2;
+}
+.public-landing .public-header {
+  overflow: visible;
+  z-index: 4;
+  padding: max(25px, env(safe-area-inset-top)) max(32px, env(safe-area-inset-right)) 25px
+    max(32px, env(safe-area-inset-left));
+  background: #103b2d;
+}
+.public-landing .public-header nav {
+  max-width: 1280px;
+  position: relative;
+  z-index: 2;
+}
+.public-landing .public-brand {
+  font-size: 28px;
+}
+.public-landing .public-enter {
+  font-size: 16px;
+  text-decoration: none;
+  padding: 8px 15px;
+  background: #103b2d;
+  border-radius: 8px;
+}
+.public-landing .public-enter:hover {
+  background: #245739;
+}
+.public-canopy-full {
+  height: 270px;
+  overflow: visible;
+  z-index: 0;
+  filter: drop-shadow(0 6px 4px #09261930);
+}
+.public-canopy-plane-0 {
+  filter: drop-shadow(0 3px 2px #09261940);
+}
+.public-canopy-plane-1 {
+  filter: drop-shadow(0 3px 2px #09261940);
+}
+.public-landing .public-canopy-twig {
+  transform-origin: 0 0;
+  animation: public-bough-breathe 8s ease-in-out infinite alternate;
+}
+.public-landing .public-canopy-plane-1 .public-canopy-twig {
+  animation-delay: -4s;
+  animation-duration: 11s;
+}
+.public-landing .public-canopy-plane-2 .public-canopy-twig {
+  animation-delay: -2s;
+  animation-duration: 9s;
+}
+.public-landing .public-canopy-corner {
+  transform-origin: 0 0;
+  animation: public-bough-breathe 12s ease-in-out infinite alternate;
+}
+.public-forest-home {
+  overflow: clip;
+}
+.public-forest-hero {
+  position: relative;
+  isolation: isolate;
+  max-width: 1536px;
+  margin: 0 auto;
+  min-height: 710px;
+  min-height: max(710px, calc(100svh - 225px));
+  display: flex;
+  align-items: flex-start;
+  background: radial-gradient(ellipse at 21% 66%, #e8ecd9 0, #f4f4e8 32%, #faf8f2 66%);
+}
+.public-forest-copy {
+  position: relative;
+  z-index: 3;
+  margin: 135px 4% 145px 49%;
+  width: 47%;
+}
+.public-forest-copy h1 {
+  color: #103b2d;
+  font-size: clamp(66px, 6.7vw, 100px);
+  line-height: 1.04;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+.public-forest-copy h1 span {
+  position: relative;
+  white-space: nowrap;
+}
+.public-title-stroke {
+  position: absolute;
+  left: -1%;
+  bottom: -11%;
+  width: 103%;
+  height: 20%;
+  z-index: -1;
+}
+.public-forest-copy p {
+  color: #425f4d;
+  font-size: 20px;
+  margin-top: 30px;
+  max-width: 32ch;
+}
+.public-forest-copy .public-primary {
+  min-height: 56px;
+  margin-top: 26px;
+  padding: 15px 24px;
+  border-radius: 12px;
+  box-shadow: 0 7px 18px #103b2d14;
+  transition:
+    background-color 0.18s,
+    transform 0.18s;
+}
+.public-forest-copy .public-primary:hover {
+  transform: translateY(-2px);
+}
+.public-forest-about {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: fit-content;
+  font-size: 15px;
+  margin-top: 18px;
+  min-height: 44px;
+  text-decoration: none;
+}
+.public-forest-about svg {
+  width: 16px;
+  height: 16px;
+}
+.public-forest-about:hover {
+  text-decoration: underline;
+}
+.public-keyboard-scene {
+  position: absolute;
+  width: 52%;
+  max-width: 760px;
+  aspect-ratio: 1;
+  left: 0;
+  bottom: 10px;
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+}
+.public-keyboard-scene picture {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+.public-keyboard-scene img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+.public-keyboard-working-frame {
+  opacity: 1;
+  animation: public-working 14s linear infinite;
+}
+.public-keyboard-smile-frame {
+  opacity: 0;
+  animation: public-smile 14s linear infinite;
+}
+.public-keyboard-hands {
+  clip-path: polygon(35% 53%, 57% 53%, 57% 64%, 35% 64%);
+  animation:
+    public-typing 0.18s steps(2, end) infinite alternate,
+    public-working 14s linear infinite;
+}
+/* The smile is above the typing layer, so the occasional pause really stops the hands. */
+.public-forest-clearing {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 140px;
+  z-index: 0;
+  pointer-events: none;
+}
+.public-falling-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+.public-falling {
+  position: absolute;
+  top: -95px;
+  width: 31px;
+  height: 42px;
+  opacity: 0;
+  animation: public-forest-fall 27s linear infinite;
+}
+.public-falling svg {
+  width: 100%;
+  height: 100%;
+}
+.public-falling-0 {
+  left: 12%;
+  animation-delay: -3s;
+}
+.public-falling-1 {
+  left: 45%;
+  animation-delay: -13s;
+  animation-duration: 33s;
+}
+.public-falling-2 {
+  left: 88%;
+  animation-delay: -22s;
+  animation-duration: 39s;
+  width: 24px;
+}
+.public-falling-3 {
+  left: 66%;
+  animation-delay: -4.5s;
+  animation-duration: 45s;
+}
+.public-falling-4 {
+  left: 31%;
+  animation-delay: -18s;
+  animation-duration: 47s;
+  width: 34px;
+}
+.public-motion-control {
+  position: absolute;
+  bottom: 24px;
+  right: max(32px, env(safe-area-inset-right));
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: #425f4d;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+.public-motion-control input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #124d38;
+  cursor: pointer;
+}
+.public-motion-control svg {
+  width: 15px;
+  height: 15px;
+}
+.public-motion-control:focus-within {
+  outline: 3px solid #e8a33c;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+.public-landing .public-footer {
+  position: relative;
+  padding: 24px max(32px, calc((100vw - 1280px) / 2));
+  background: #103b2d;
+  color: #e9eddf;
+  border: none;
+  gap: 12px 30px;
+}
+.public-landing .public-footer a {
+  color: #e9eddf;
+}
+.public-landing .public-footer > p {
+  color: #b6c9b5;
+  font-size: 12px;
+}
+.public-landing .public-footer .public-brand {
+  font-size: 21px;
+}
+.public-landing .public-footer nav {
+  font-size: 13px;
+  gap: 14px 22px;
+}
+@keyframes public-bough-breathe {
+  from {
+    transform: rotate(-1deg);
   }
-  50%,
-  65% {
-    transform: rotate(3deg) translateY(-9px);
-  }
-  58% {
-    transform: rotate(-2deg) translateY(-5px);
+  to {
+    transform: rotate(1.4deg);
   }
 }
-@keyframes public-monkey-vine {
+@keyframes public-working {
   0%,
-  100% {
-    transform: rotate(-7deg);
+  79% {
+    opacity: 1;
   }
-  50% {
-    transform: rotate(8deg);
+  80%,
+  95% {
+    opacity: 0;
+  }
+  96%,
+  100% {
+    opacity: 1;
   }
 }
-@keyframes public-fall {
+@keyframes public-smile {
+  0%,
+  79% {
+    opacity: 0;
+  }
+  80%,
+  95% {
+    opacity: 1;
+  }
+  96%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes public-typing {
+  from {
+    transform: translateY(-1px) rotate(-0.1deg);
+  }
+  to {
+    transform: translateY(1.5px) rotate(0.1deg);
+  }
+}
+@keyframes public-forest-fall {
   0% {
-    transform: translate(0, -30px) rotate(-30deg);
+    transform: translate3d(0, -15px, 0) rotate(-30deg);
     opacity: 0;
   }
-  8% {
-    opacity: 0.75;
+  2% {
+    opacity: 0.8;
   }
-  50% {
-    transform: translate(35px, 45vh) rotate(80deg);
+  13% {
+    transform: translate3d(48px, 330px, 0) rotate(75deg);
+    opacity: 0.8;
   }
-  90% {
-    opacity: 0.7;
+  24% {
+    transform: translate3d(-30px, 780px, 0) rotate(180deg);
+    opacity: 0;
   }
   100% {
-    transform: translate(-25px, 95vh) rotate(190deg);
+    transform: translate3d(-30px, 780px, 0) rotate(180deg);
     opacity: 0;
   }
 }
-@media (max-width: 700px) {
-  .public-fast-hero {
-    padding: 46px 0 220px;
-    min-height: 640px;
-    min-height: calc(100svh - 175px);
+/* A real mobile scene: title/access above the enlarged desk, rather than a shrunken desktop. */
+@media (max-width: 900px) {
+  .public-forest-hero {
+    min-height: 630px;
   }
-  .public-fast-copy {
-    align-self: start;
+  .public-forest-copy {
+    margin-top: 100px;
+    margin-left: 47%;
+    width: 50%;
   }
-  .public-fast-copy h1 {
-    font-size: clamp(50px, 14vw, 65px);
+  .public-forest-copy h1 {
+    font-size: clamp(50px, 7.3vw, 66px);
   }
-  .public-fast-copy p {
+  .public-forest-copy p {
     font-size: 17px;
-    max-width: 24ch;
-    margin: 18px auto 0;
   }
-  .public-fast-copy .public-primary {
-    width: auto;
+  .public-keyboard-scene {
+    width: 46%;
+    left: 0;
+    bottom: 55px;
   }
-  .public-monkey-wave {
-    width: 120px;
-    left: 8px;
-    bottom: 15px;
+}
+@media (max-width: 600px) {
+  .public-landing .public-header {
+    padding: max(18px, env(safe-area-inset-top)) 22px 18px;
   }
-  .public-monkey-vine {
-    width: 150px;
-    height: 230px;
-    top: auto;
-    right: 0;
-    bottom: 6px;
-    transform-origin: 50% -40%;
+  .public-landing .public-header nav {
+    gap: 12px;
+  }
+  .public-landing .public-header .public-brand {
+    font-size: 24px;
+  }
+  .public-landing .public-brand img {
+    width: 32px;
+    height: 32px;
+  }
+  .public-landing .public-enter {
+    font-size: 14px;
+    padding: 6px 10px;
+    gap: 6px;
+  }
+  .public-landing .public-enter svg {
+    width: 17px;
+  }
+  .public-canopy-full {
+    height: 175px;
+    width: 100%;
+  }
+  .public-forest-hero {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding-bottom: 55px;
+  }
+  .public-forest-copy {
+    margin: 52px 24px 0;
+    width: calc(100% - 48px);
+  }
+  .public-forest-copy h1 {
+    font-size: clamp(50px, 14.5vw, 76px);
+    line-height: 1.04;
+  }
+  .public-forest-copy p {
+    font-size: 16px;
+    margin-top: 23px;
+    max-width: 26ch;
+  }
+  .public-forest-copy .public-primary {
+    width: 100%;
+    margin-top: 20px;
+    min-height: 54px;
+    font-size: 16px;
+    padding: 14px 16px;
+  }
+  .public-forest-about {
+    margin-top: 8px;
+    min-height: 40px;
+    font-size: 14px;
+  }
+  .public-keyboard-scene {
+    position: relative;
+    order: 1;
+    left: 0;
+    bottom: auto;
+    width: 100%;
+    max-width: none;
+    margin-top: -24px;
+    margin-bottom: -15px;
+    flex: none;
+  }
+  .public-forest-clearing {
+    height: 150px;
+    bottom: 35px;
+  }
+  .public-motion-control {
+    right: 24px;
+    bottom: 10px;
+    font-size: 12px;
   }
   .public-falling {
-    width: 27px;
-    height: 36px;
+    width: 23px;
+    height: 32px;
+  }
+  .public-landing .public-footer {
+    padding: 22px 24px max(24px, env(safe-area-inset-bottom));
+  }
+  .public-landing .public-footer nav {
+    margin: 16px 0;
+    gap: 12px 19px;
+  }
+  .public-landing .public-footer > p {
+    line-height: 1.5;
   }
 }
+/* Pausing works without JavaScript. Reduced motion keeps the same smiling illustration. */
+.public-landing:has(#public-motion-pause:checked) .public-canopy *,
+.public-landing:has(#public-motion-pause:checked) .public-keyboard-scene picture,
+.public-landing:has(#public-motion-pause:checked) .public-falling {
+  animation: none;
+}
+.public-landing:has(#public-motion-pause:checked) .public-keyboard-working-frame,
+.public-landing:has(#public-motion-pause:checked) .public-keyboard-hands {
+  opacity: 0;
+}
+.public-landing:has(#public-motion-pause:checked) .public-keyboard-smile-frame {
+  opacity: 1;
+}
+.public-landing:has(#public-motion-pause:checked) .public-falling-stage {
+  visibility: hidden;
+}
 @media (prefers-reduced-motion: reduce) {
-  .public-monkey-wave,
-  .public-monkey-vine {
+  .public-canopy *,
+  .public-keyboard-scene picture,
+  .public-falling {
     animation: none;
-    transform: none;
+  }
+  .public-keyboard-working-frame,
+  .public-keyboard-hands {
+    opacity: 0;
+  }
+  .public-keyboard-smile-frame {
+    opacity: 1;
   }
   .public-falling-stage {
+    display: none;
+  }
+  .public-forest-copy .public-primary {
+    transition: none;
+  }
+  .public-forest-copy .public-primary:hover {
+    transform: none;
+  }
+  .public-motion-control {
     display: none;
   }
 }
