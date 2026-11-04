@@ -112,7 +112,9 @@ test('database group isolation covers selects, transactions, writes and cross-gr
     };
     for (const group of groups)
       await groupContext.run(group, async () => {
-        assert.equal((await importBundle(db, source, true)).ok, true);
+        const report = await importBundle(db, source, true);
+        assert.ok(report && typeof report === 'object' && 'ok' in report);
+        assert.equal(report.ok, true);
         await assert.rejects(db.select().from(s.groupRegistrations));
       });
     const imported = (await owner.select().from(s.users)).filter(
