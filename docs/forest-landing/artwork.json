@@ -1,0 +1,43 @@
+{
+  "generator": "image_gen.imagegen",
+  "operation": "original illustration using existing mascot identity reference",
+  "reference": "public/monkey-wave-2d.png",
+  "source_sha256": "71533f5bc159db347c8cd58edf8e983b56f32778f36cd03749a468620b1b4063",
+  "source_dimensions": [
+    1774,
+    887
+  ],
+  "preparation": "Split the two equal registered frames and resize/compress to transparent WebP with sharp; no third-party artwork service at runtime.",
+  "poses": [
+    "working at the keyboard",
+    "turning to smile at the viewer"
+  ],
+  "identity_locks": [
+    "2D brown Bandarlog monkey, cream face and tuft",
+    "striped pink/purple scout neckerchief",
+    "wooden desk, keyboard, forest-green laptop, stool, fern and banana"
+  ],
+  "canopy": "Existing shared/forest-art.ts beech/oak paths only; generated canopy experiment discarded after user correction.",
+  "files": [
+    {
+      "path": "public/landing/monkey-keyboard-smile-480.webp",
+      "bytes": 51154,
+      "sha256": "519408b5ff415886a2caa96122916c614923f51f7478cce583163ee374e32658"
+    },
+    {
+      "path": "public/landing/monkey-keyboard-smile-887.webp",
+      "bytes": 132748,
+      "sha256": "f1b4e3e50dee48f5cfd78ac85e1324ff4f26f056ee90c6bff3abb5444284c163"
+    },
+    {
+      "path": "public/landing/monkey-keyboard-working-480.webp",
+      "bytes": 49246,
+      "sha256": "d234ef4dfc14797684218d167c1f1ea5522b96c77b1f6b20defaab6cfe85ce70"
+    },
+    {
+      "path": "public/landing/monkey-keyboard-working-887.webp",
+      "bytes": 129474,
+      "sha256": "a2b6dfb58819364a9210bf16570b71b028d111a67bb8e15e6e2cfbff3918bc14"
+    }
+  ]
+}
