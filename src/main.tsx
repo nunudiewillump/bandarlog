@@ -1,3 +1,4 @@
+import { groupBasePath, groupChannel } from './group-location';
 import { useTutorial, TutorialInvitation, TutorialMission } from './Tutorial';
 import React, { useState, useEffect, useRef } from 'react';
 import { AnimatedCounter } from './AnimatedCounter';
@@ -263,9 +264,10 @@ function App() {
         void load().catch(() => {});
     };
     const channel =
-      typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('bandarlog-data') : null;
+      typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(groupChannel()) : null;
     if (channel) channel.onmessage = refresh;
-    const stream = typeof EventSource !== 'undefined' ? new EventSource('/api/events') : null;
+    const stream =
+      typeof EventSource !== 'undefined' ? new EventSource(groupBasePath() + '/api/events') : null;
     stream?.addEventListener('changed', refresh);
     const timer = setInterval(refresh, 15000);
     window.addEventListener('focus', refresh);
@@ -1310,7 +1312,7 @@ function App() {
                 <Menu size={22} />
               </button>
               <div className="breadcrumbs">
-                <span>Rosales del Canal 702</span>
+                <span>{data.group?.name || 'Rosales del Canal 702'}</span>
                 <ChevronRight size={13} />
                 <span>
                   {activeCommission?.name ||
@@ -1976,6 +1978,7 @@ function App() {
                   </div>
                 </div>
                 <ProfilePanel
+                  group={data.group}
                   user={me}
                   onReplayTutorial={() => {
                     setRestartTutorial(true);
@@ -3523,6 +3526,8 @@ function Dialog({
   );
 }
 installMobilePwaZoom();
+const manifest = document.querySelector<HTMLLinkElement>('link[rel=manifest]');
+if (manifest && groupBasePath()) manifest.href = groupBasePath() + '/manifest.webmanifest';
 createRoot(document.getElementById('root')!).render(<App />);
 if ('serviceWorker' in navigator && import.meta.env.PROD)
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
+  navigator.serviceWorker.register(groupBasePath() + '/sw.js').catch(() => {});

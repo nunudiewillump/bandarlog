@@ -6,11 +6,11 @@ async function login(page: Page, email = 'alex@example.test') {
   const cached = loginCookies.get(email);
   if (cached) {
     await page.context().addCookies(cached);
-    await page.goto('/');
+    await page.goto('/acceso');
     await expect(page.getByRole('heading', { name: 'Inicio', exact: true })).toBeVisible();
     return;
   }
-  await page.goto('/');
+  await page.goto('/acceso');
   await page.getByLabel('Tu correo electrónico').fill(email);
   await page.getByRole('button', { name: 'Recibir código', exact: true }).click();
   await expect(page.getByLabel('Código de acceso')).toBeVisible();
@@ -154,7 +154,7 @@ test('desktop: commission, task, comments and persistent status', async ({ page 
 });
 test('responsive screenshots and no horizontal overflow', async ({ page }) => {
   await mkdir('artifacts', { recursive: true });
-  await page.goto('/');
+  await page.goto('/acceso');
   await page.screenshot({
     path: 'artifacts/acceso-desktop.png',
     fullPage: true,
@@ -163,7 +163,7 @@ test('responsive screenshots and no horizontal overflow', async ({ page }) => {
   await login(page);
   for (const width of [1440, 1024, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto('/');
+    await page.goto('/acceso');
     await page.waitForTimeout(200);
     await expect(page.getByRole('main')).toBeVisible();
     expect(
@@ -231,7 +231,7 @@ test('responsive screenshots and no horizontal overflow', async ({ page }) => {
 test('built PWA serves an explicit offline screen and never caches API responses', async ({
   page,
 }) => {
-  await page.goto('http://127.0.0.1:4174/');
+  await page.goto('http://127.0.0.1:4174/acceso');
   await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
   await page.reload();
   await page.evaluate(() => fetch('/api/health'));
@@ -588,7 +588,7 @@ test('a banana fills while waiting for initial data and disappears when ready', 
     await hold;
     await route.continue();
   });
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.goto('/acceso', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('status', { name: 'Cargando Bandarlog…' })).toBeVisible();
   await page.waitForTimeout(1400);
   await page.screenshot({ path: 'artifacts/carga-banana.png' });

@@ -22,13 +22,13 @@ export function validPushEndpoint(value: string) {
     return false;
   }
 }
-export async function pushService(db: any, subject: string) {
+export async function pushService(db: any, subject: string, keysDb: any = db) {
   const generated = webpush.generateVAPIDKeys();
-  await db
+  await keysDb
     .insert(pushKeys)
     .values({ id: 'default', ...generated })
     .onConflictDoNothing();
-  const [keys] = await db.select().from(pushKeys).where(eq(pushKeys.id, 'default'));
+  const [keys] = await keysDb.select().from(pushKeys).where(eq(pushKeys.id, 'default'));
   const vapidDetails = { subject, publicKey: keys.publicKey, privateKey: keys.privateKey };
   return {
     publicKey: keys.publicKey,

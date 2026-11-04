@@ -1,3 +1,11 @@
+export type ScoutGroup = {
+  id: string;
+  privateId: string;
+  name: string;
+  colorPrimary: string;
+  colorSecondary: string;
+  plan: string;
+};
 export type User = {
   disabledAt?: string | null;
   onboardingCompletedAt?: string | null;
@@ -69,6 +77,7 @@ export type ProjectSummary = {
 };
 export type CampSummary = ProjectSummary;
 export type Data = {
+  group?: ScoutGroup;
   projectSummaries?: ProjectSummary[];
   campSummaries?: CampSummary[];
   artworkEnabled: boolean;

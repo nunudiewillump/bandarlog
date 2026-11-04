@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { ChevronRight, LogOut, Pencil } from 'lucide-react';
-import type { User } from './types';
+import type { User, ScoutGroup } from './types';
 import { api } from './api';
 import { ProfileForm, profilePreferences } from './ProfileForm';
 import './profile-panel.css';
@@ -8,6 +8,7 @@ import { TutorialStats } from './TutorialStats';
 import { DeviceNotifications } from './DeviceNotifications';
 
 type Props = {
+  group?: ScoutGroup;
   onReplayTutorial?: () => void;
   user: User;
   busy: boolean;
@@ -15,7 +16,7 @@ type Props = {
   onSaved: (user: User) => void;
   onLogout: () => void | Promise<void>;
 };
-function Neckerchief() {
+function Neckerchief({ group }: { group?: ScoutGroup }) {
   return (
     <svg className="profile-neckerchief" viewBox="0 0 52 60" aria-hidden="true" focusable="false">
       <defs>
@@ -26,8 +27,8 @@ function Neckerchief() {
           height="12"
           patternTransform="rotate(35)"
         >
-          <rect width="12" height="12" fill="#d75a9e" />
-          <rect width="6" height="12" fill="#7b3d93" />
+          <rect width="12" height="12" fill={group?.colorPrimary || '#d75a9e'} />
+          <rect width="6" height="12" fill={group?.colorSecondary || '#7b3d93'} />
         </pattern>
       </defs>
       <path
@@ -49,7 +50,15 @@ function Neckerchief() {
     </svg>
   );
 }
-export function ProfilePanel({ user, busy, run, onSaved, onLogout, onReplayTutorial }: Props) {
+export function ProfilePanel({
+  group,
+  user,
+  busy,
+  run,
+  onSaved,
+  onLogout,
+  onReplayTutorial,
+}: Props) {
   const [editing, setEditing] = useState<'profile' | 'notifications' | null>(null);
   const editButton = useRef<HTMLButtonElement>(null);
   const noticeButton = useRef<HTMLButtonElement>(null);
@@ -102,8 +111,8 @@ export function ProfilePanel({ user, busy, run, onSaved, onLogout, onReplayTutor
               <div>
                 <dt>Grupo Scout</dt>
                 <dd className="profile-group">
-                  <Neckerchief />
-                  <span>Rosales del Canal 702</span>
+                  <Neckerchief group={group} />
+                  <span>{group?.name || 'Rosales del Canal 702'}</span>
                 </dd>
               </div>
             </dl>
@@ -120,6 +129,44 @@ export function ProfilePanel({ user, busy, run, onSaved, onLogout, onReplayTutor
           </>
         )}
       </section>
+      {group && user.role === 'admin' && (
+        <details className="profile-group-settings">
+          <summary>Configurar grupo</summary>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const f = new FormData(e.currentTarget);
+              void run(async () => {
+                await api('/group', 'PATCH', {
+                  name: f.get('groupName'),
+                  colorPrimary: f.get('colorPrimary'),
+                  colorSecondary: f.get('colorSecondary'),
+                });
+              });
+            }}
+          >
+            <label>
+              Nombre del grupo
+              <input name="groupName" defaultValue={group.name} required maxLength={100} />
+            </label>
+            <label>
+              Primer color de la pañoleta
+              <input type="color" name="colorPrimary" defaultValue={group.colorPrimary} />
+            </label>
+            <label>
+              Segundo color de la pañoleta
+              <input type="color" name="colorSecondary" defaultValue={group.colorSecondary} />
+            </label>
+            <p>Enlace privado del grupo</p>
+            <a href={'/g/' + group.privateId + '/'}>
+              {location.origin + '/g/' + group.privateId + '/'}
+            </a>
+            <button className="primary" disabled={busy}>
+              Guardar grupo
+            </button>
+          </form>
+        </details>
+      )}
       <details
         className="profile-preferences"
         onToggle={(event) => {

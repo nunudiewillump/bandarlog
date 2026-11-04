@@ -82,7 +82,7 @@ test('existing user discovers the real persisted tutorial at 320px, with no real
       mutations.push({ path: new URL(r.url()).pathname, body: r.postDataJSON() });
   });
   const before = await page.request.get('/api/data').then((r) => r.json());
-  await page.goto('/');
+  await page.goto('/acceso');
   const invitation = page.getByRole('region', { name: 'Tu primera misión', exact: true });
   await expect(invitation).toBeVisible();
   await invitation.scrollIntoViewIfNeeded();
@@ -147,7 +147,7 @@ test('onboarding precedes discovery, omission persists and replay is in Profile 
 }) => {
   const mock = await fixture(page, { onboarded: false });
   await page.setViewportSize({ width: 390, height: 950 });
-  await page.goto('/');
+  await page.goto('/acceso');
   await expect(
     page.getByRole('heading', { name: '¿Cómo te llamamos?', exact: true }),
   ).toBeVisible();
@@ -195,7 +195,7 @@ test('first shown is gated by visibility and is not duplicated by reloads', asyn
       }
     };
   });
-  await page.goto('/');
+  await page.goto('/acceso');
   await expect(page.locator('.tutorial-invite')).toBeVisible();
   expect(mock.calls.filter((r) => r.body.action === 'shown')).toHaveLength(0);
   await page.evaluate(() => (window as any).revealTutorial());

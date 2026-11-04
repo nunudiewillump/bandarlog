@@ -104,7 +104,7 @@ for (const width of [320, 1440])
         return route.fulfill({ status: 404, json: { error: 'No disponible' } });
       });
       await page.setViewportSize({ width, height: 950 });
-      await page.goto('/');
+      await page.goto('/acceso');
       await expect(page.getByRole('heading', { name: /Tareas del equipo/ })).toBeVisible();
       const count = page.locator('.team-task-count:visible');
       await expect(count).toHaveAttribute('data-pending', String(pending));

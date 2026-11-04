@@ -1,3 +1,4 @@
+import { groupBasePath } from './group-location';
 import { offline, requestSync } from './offline';
 export class ApiError extends Error {
   constructor(
@@ -31,7 +32,7 @@ export async function api(path: string, method = 'GET', body?: unknown) {
     setCSRF(session.csrf);
   }
   try {
-    response = await fetch(`/api${path}`, {
+    response = await fetch(`${groupBasePath()}/api${path}`, {
       method,
       headers: {
         'Content-Type': 'application/json',

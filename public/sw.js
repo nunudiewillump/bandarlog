@@ -1,5 +1,10 @@
-importScripts('/offline-store.js?v=4');
-const CACHE = 'bandarlog-static-v4';
+importScripts('/offline-store.js?v=5');
+const GROUP_BASE = location.pathname.match(/^\/g\/[a-f0-9]{32}(?=\/|$)/)?.[0] || '';
+const CACHE_FAMILY = GROUP_BASE
+  ? 'bandarlog-static-' + GROUP_BASE.split('/')[2] + '-'
+  : 'bandarlog-static-';
+const CACHE = CACHE_FAMILY + 'v5';
+const SHELL = GROUP_BASE + '/';
 self.addEventListener('install', (e) => {
   e.waitUntil(
     (async () => {
@@ -8,12 +13,13 @@ self.addEventListener('install', (e) => {
         '/offline.html',
         '/icon-192.png',
         '/offline-store.js',
-        '/offline-store.js?v=4',
-        '/manifest.webmanifest',
+        '/offline-store.js?v=5',
+        GROUP_BASE + '/manifest.webmanifest',
       ]);
-      const shell = await fetch('/', { cache: 'reload' });
+      const shell = await fetch(SHELL, { cache: 'reload' });
       if (shell.ok) {
-        await cache.put('/', shell.clone());
+        const snapshot = await shell.clone().text();
+        if (snapshot.includes('id="root"')) await cache.put(SHELL, shell.clone());
         const html = await shell.text();
         const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[^" ]+)"/g)].map(
           (match) => match[1],
@@ -42,7 +48,11 @@ self.addEventListener('activate', (e) =>
       .then((keys) =>
         Promise.all(
           keys
-            .filter((k) => k.startsWith('bandarlog-static-') && k !== CACHE)
+            .filter(
+              (k) =>
+                (GROUP_BASE ? k.startsWith(CACHE_FAMILY) : /^bandarlog-static-v\d+$/.test(k)) &&
+                k !== CACHE,
+            )
             .map((k) => caches.delete(k)),
         ),
       )
@@ -53,24 +63,51 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (
     url.origin !== location.origin ||
-    url.pathname.startsWith('/api') ||
+    /^\/(?:g\/[a-f0-9]{32}\/)?api(?:\/|$)/.test(url.pathname) ||
+    [
+      '/presentacion',
+      '/privacidad',
+      '/condiciones',
+      '/crear-grupo',
+      '/confirmar-grupo',
+      '/aprobar-grupo',
+      '/entrar',
+      '/suscripcion-demo',
+    ].includes(url.pathname) ||
     e.request.method !== 'GET'
   )
     return;
+  if (
+    e.request.mode === 'navigate' &&
+    (GROUP_BASE ? !url.pathname.startsWith(GROUP_BASE + '/') : url.pathname.startsWith('/g/'))
+  )
+    return;
+  if (url.pathname === GROUP_BASE + '/manifest.webmanifest') {
+    e.respondWith(
+      fetch(e.request)
+        .then(async (response) => {
+          if (response.ok) (await caches.open(CACHE)).put(e.request, response.clone());
+          return response;
+        })
+        .catch(() => caches.match(e.request)),
+    );
+    return;
+  }
   if (e.request.mode === 'navigate') {
     e.respondWith(
       fetch(e.request)
         .then(async (response) => {
           if (response.ok) {
             const cache = await caches.open(CACHE);
-            await cache.put('/', response.clone());
+            if ((await response.clone().text()).includes('id="root"'))
+              await cache.put(SHELL, response.clone());
           }
           return response;
         })
         .catch(
           async () =>
             ((await BandarlogOffline.cached('/me').catch(() => null)) &&
-              (await caches.match('/'))) ||
+              (await caches.match(SHELL))) ||
             (await caches.match('/offline.html')),
         ),
     );
@@ -130,7 +167,7 @@ self.addEventListener('notificationclick', (e) => {
   e.waitUntil(
     (async () => {
       for (const client of await clients.matchAll({ type: 'window', includeUncontrolled: true })) {
-        if ('focus' in client) {
+        if ('focus' in client && client.url.startsWith(self.registration.scope)) {
           await client.navigate(target.href);
           return client.focus();
         }

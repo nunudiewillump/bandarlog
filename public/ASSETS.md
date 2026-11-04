@@ -12,3 +12,5 @@ Bandarlog visual assets
 - artwork/icons: paired vector pictograms composed from Lucide (ISC) with Bandarlog green/gold styling. Rebuild with `node --import tsx scripts/build-artwork-icons.ts`.
 
 - monkey-vine-2d.webp: new original flat 2D monkey swinging from a vine, generated from the official brand-mark reference for the approved task-completion animation. Source: generated_images/exec-0a3ea63d-5d9d-45ab-9c31-fc406cbec39b.png; optimized to transparent 569×650 WebP. Direction: preserve the logo's brown/cream face, oval eyes, round ears, tuft and smile, full small body and tail, one hand holding a green vine, simple green neckerchief; isolated 2D cartoon, no 3D, scenery, text or watermark. Original generation remains in the task workspace.
+
+- public-fonts/: Nunito Sans 400 and 800 WOFF2 copied from the installed @fontsource package for the server-rendered public website; its SIL Open Font License is included in public-fonts/LICENSE. Public canopy silhouettes reuse shared/forest-art.ts, also used by the app.

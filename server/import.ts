@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { connect, type Database } from './db.js';
 import * as s from './schema.js';
+import { groupContext } from './group-context.js';
 import { projectTypeInput } from './project-input.js';
 const key = z.string().trim().min(1).max(100);
 const bundle = z.object({
@@ -68,9 +69,20 @@ const bundle = z.object({
     )
     .default([]),
 });
-const prefix = (id: string) => `import-${id}`;
+const prefix = (id: string) =>
+  groupContext.getStore()?.id && groupContext.getStore()!.id !== 'rosales-702'
+    ? stable('entity', id)
+    : `import-${id}`;
 const stable = (...parts: string[]) =>
-  `import-${createHash('sha256').update(parts.join('\0')).digest('hex').slice(0, 32)}`;
+  `import-${createHash('sha256')
+    .update(
+      (groupContext.getStore()?.id && groupContext.getStore()!.id !== 'rosales-702'
+        ? [groupContext.getStore()!.id, ...parts]
+        : parts
+      ).join('\0'),
+    )
+    .digest('hex')
+    .slice(0, 32)}`;
 class Preview extends Error {
   constructor(public report: unknown) {
     super('preview');
@@ -241,9 +253,21 @@ if (process.argv[1]?.endsWith('/import.ts')) {
   const path = process.argv[2];
   if (!path) throw new Error('Uso: npm run import -- fichero.json [--apply]');
   const input = JSON.parse(await readFile(path, 'utf8'));
-  const { db, close } = await connect();
+  const { db, ownerDb, close } = await connect();
   try {
-    const report: any = await importBundle(db, input, process.argv.includes('--apply'));
+    const [group] = await ownerDb
+      .select()
+      .from(s.groups)
+      .where(
+        process.env.GROUP_ID
+          ? eq(s.groups.privateId, process.env.GROUP_ID)
+          : eq(s.groups.id, 'rosales-702'),
+      );
+    if (!group) throw new Error('Grupo no encontrado. Revisa GROUP_ID.');
+    const report: any = await groupContext.run(
+      group,
+      async () => await importBundle(db, input, process.argv.includes('--apply')),
+    );
     console.log(JSON.stringify(report, null, 2));
     if (!report.ok) process.exitCode = 1;
   } finally {

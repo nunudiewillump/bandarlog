@@ -18,7 +18,7 @@ export default defineConfig({
   webServer: [
     {
       command: 'npm exec vite preview -- --host 127.0.0.1 --port 4174 --strictPort',
-      url: 'http://127.0.0.1:4174',
+      url: 'http://127.0.0.1:4174/icon-192.png',
       timeout: 30000,
       env: { API_PORT: '3100' },
     },
@@ -43,7 +43,7 @@ export default defineConfig({
     },
     {
       command: 'npm run dev:web -- --port 5174 --strictPort',
-      url: 'http://127.0.0.1:5174',
+      url: 'http://127.0.0.1:5174/acceso',
       timeout: 30000,
       env: { API_PORT: '3100' },
     },

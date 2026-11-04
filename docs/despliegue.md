@@ -33,13 +33,13 @@ Si se utiliza Railway Pro o superior, puedes elegir `MAIL_TRANSPORT=smtp`, con l
 
 1. En [Railway](https://railway.com/dashboard), crea un proyecto y añade un servicio desde el repositorio GitHub `nunudiewillump/bandarlog`, rama `main`. Autoriza a Railway solo el acceso necesario a ese repositorio.
 2. La raíz del servicio es la raíz del repositorio. `railway.toml` define la compilación, `npm start` y el healthcheck `/api/health`; Node 24 está fijado en `.node-version` y `engines`.
-3. En **Settings → Networking → Public Networking**, genera un dominio público. Guarda su origen completo `https://...up.railway.app` como `APP_URL` (sin rutas). No publiques ese dominio como listo antes de terminar las comprobaciones.
+3. El dominio público es **https://bandarlog.app**. En **Settings → Networking → Public Networking**, conecta el dominio personalizado y espera a que el certificado HTTPS esté activo. Usa `APP_URL=https://bandarlog.app`. Conserva temporalmente el dominio antiguo para enlaces y sincronización heredados. La transición, Google y los grupos se describen en [publicación](publicacion.md).
 4. En **Variables**, introduce la configuración siguiente. Los valores entre `<...>` se sustituyen allí; no se guardan en archivos del repositorio.
 
 | Variable | Valor |
 |---|---|
 | `NODE_ENV` | `production` |
-| `APP_URL` | `<origen HTTPS generado por Railway>` |
+| `APP_URL` | `https://bandarlog.app` |
 | `DATABASE_URL` | `<URL PostgreSQL privada de Neon con sslmode=verify-full>` |
 | `BOOTSTRAP_EMAIL` | `<correo del primer administrador>` |
 | `AUTH_CHALLENGE_SECRET` | `<secreto privado aleatorio estable de al menos 32 caracteres>` |
@@ -55,10 +55,10 @@ Railway proporciona `PORT`: no lo fijes al puerto local del desarrollo. Deja una
 
 ## 4. Verificación
 
-- El despliegue debe superar el healthcheck y el dominio debe mostrar la pantalla de acceso de Bandarlog, sin bandeja de desarrollo.
+- El despliegue debe superar el healthcheck y el dominio sin ID de grupo debe mostrar la presentación pública; `/acceso` conserva el acceso del grupo inicial, sin bandeja de desarrollo.
 - `GET /api/health` debe indicar `ok: true`, `database: postgresql` y `mail: gmail_api`. Esto confirma el arranque y la base, pero no certifica por sí solo la autorización del correo.
 - Solicita el código usando el correo de `BOOTSTRAP_EMAIL`, verifica su recepción real e introdúcelo dentro de Bandarlog. Completa nombre y foto opcional si es una cuenta nueva. No compartas códigos ni enlaces de acceso.
-- Crea una ronda solar, una comisión y una tarea con una fecha futura; comprueba el correo de asignación y que sus enlaces solo modifican datos tras autenticar y confirmar.
+- Crea un proyecto, una comisión y una tarea con una fecha futura; comprueba el correo de asignación y que sus enlaces solo modifican datos tras autenticar y confirmar.
 - Recarga la aplicación y comprueba la persistencia. Las tablas se pueden consultar en Neon sin exportar datos privados al chat.
 - Si falla el correo, verifica que Gmail API está habilitada, que el token pertenece al cliente OAuth configurado, que el alcance autorizado incluye `gmail.send` y que no ha caducado el consentimiento de prueba.
 

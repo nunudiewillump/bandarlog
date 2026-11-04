@@ -1,9 +1,12 @@
 /* Shared by the window and service worker. Private snapshots and queued changes
    live in IndexedDB, scoped to the last authenticated user, never in HTTP cache. */
 (() => {
+  const groupBase =
+    (globalThis.location?.pathname || '').match(/^\/g\/[a-f0-9]{32}(?=\/|$)/)?.[0] || '';
+  const databaseName = 'bandarlog-offline' + (groupBase ? '-' + groupBase.split('/')[2] : '');
   const database = () =>
     new Promise((resolve, reject) => {
-      const request = indexedDB.open('bandarlog-offline', 1);
+      const request = indexedDB.open(databaseName, 1);
       request.onupgradeneeded = () => request.result.createObjectStore('state');
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
@@ -36,7 +39,9 @@
     });
   }
   const lock = (fn) =>
-    globalThis.navigator?.locks ? navigator.locks.request('bandarlog-offline-sync', fn) : fn();
+    globalThis.navigator?.locks
+      ? navigator.locks.request('bandarlog-offline-sync' + groupBase, fn)
+      : fn();
   function project(state) {
     if (!state.data) return null;
     const data = structuredClone(state.data),
@@ -189,7 +194,7 @@
       if (!state.queue.length) return;
       let response;
       try {
-        response = await fetch('/api/me', { cache: 'no-store' });
+        response = await fetch(groupBase + '/api/me', { cache: 'no-store' });
       } catch {
         return;
       }
@@ -213,7 +218,7 @@
         if (!job) continue;
         if (job.failed) break;
         try {
-          const result = await fetch('/api' + job.path, {
+          const result = await fetch(groupBase + '/api' + job.path, {
             method: job.method,
             headers: {
               'Content-Type': 'application/json',
@@ -246,7 +251,7 @@
         }
       }
       try {
-        const current = await fetch('/api/data', { cache: 'no-store' });
+        const current = await fetch(groupBase + '/api/data', { cache: 'no-store' });
         if (current.ok) await remember('/data', await current.json());
       } catch {}
       if (globalThis.clients) {

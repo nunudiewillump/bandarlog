@@ -11,7 +11,7 @@ test('import dry run does not write; apply is idempotent; changed source reports
   process.env.DATA_DIR = dir;
   process.env.DATABASE_URL = '';
   process.env.NODE_ENV = 'test';
-  const { db, close } = await connect();
+  const { ownerDb: db, close } = await connect();
   try {
     const bundle = {
       users: [{ id: 'u1', name: 'Persona de prueba', email: 'qa@example.test', role: 'member' }],
@@ -67,7 +67,7 @@ test('independent and legacy projects import in any type order and remain idempo
   process.env.DATA_DIR = dir;
   process.env.DATABASE_URL = '';
   process.env.NODE_ENV = 'test';
-  const { db, close } = await connect();
+  const { ownerDb: db, close } = await connect();
   try {
     const input = {
       projects: [
