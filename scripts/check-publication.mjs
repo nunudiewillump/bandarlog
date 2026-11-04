@@ -13,6 +13,7 @@ if (base.protocol === 'http:' && !['localhost', '127.0.0.1'].includes(base.hostn
   throw new Error('El dominio público debe usar HTTPS.');
 const checks = [
   ['/', ['Menos lío', '/crear-grupo', '/privacidad']],
+  ['/presentacion', ['Qué es Bandarlog', 'coordinación para equipos scouts', 'Gmail API']],
   ['/privacidad', [publicInfo.responsible, publicInfo.contact, 'gmail.send', 'Uso Limitado']],
   ['/condiciones', [publicInfo.responsible, publicInfo.contact]],
   ['/crear-grupo', ['Enviar solicitud', 'name="terms"']],

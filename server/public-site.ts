@@ -31,7 +31,7 @@ function canopy() {
 }
 function shell(title: string, path: string, body: string, appUrl: string, description: string) {
   const origin = esc(appUrl);
-  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#103b2d"><meta name="description" content="${esc(description)}"><link rel="canonical" href="${origin}${path}"><link rel="icon" href="/icon.svg"><link rel="stylesheet" href="/public-site.css"><title>${esc(title)} · Bandarlog</title></head><body class="public-site"><a class="public-skip" href="#contenido">Saltar al contenido</a><header class="public-header">${canopy()}<nav aria-label="Principal"><a class="public-brand" href="/presentacion"><img src="/brand-mark.webp" alt="" width="36" height="36">Bandarlog</a><a class="public-enter" href="/entrar">Entrar ${icon(ArrowRight)}</a></nav></header>${body}<footer class="public-footer"><a class="public-brand" href="/presentacion"><img src="/brand-mark.webp" alt="" width="26" height="26">Bandarlog</a><nav aria-label="Información pública"><a href="/presentacion">Sobre Bandarlog</a><a href="/privacidad">Privacidad</a><a href="/condiciones">Condiciones de uso</a><a href="/crear-grupo">Solicitar un grupo</a><a href="mailto:${publicInfo.contact}">Contacto</a></nav><p>Responsable: ${esc(publicInfo.responsible)}</p></footer></body></html>`;
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#103b2d"><meta name="description" content="${esc(description)}"><link rel="canonical" href="${origin}${path}"><link rel="icon" href="/icon.svg"><link rel="stylesheet" href="/public-site.css"><title>${esc(title)} · Bandarlog</title></head><body class="public-site"><a class="public-skip" href="#contenido">Saltar al contenido</a><header class="public-header">${canopy()}<nav aria-label="Principal"><a class="public-brand" href="/"><img src="/brand-mark.webp" alt="" width="36" height="36">Bandarlog</a><a class="public-enter" href="/entrar">Entrar ${icon(ArrowRight)}</a></nav></header>${body}<footer class="public-footer"><a class="public-brand" href="/"><img src="/brand-mark.webp" alt="" width="26" height="26">Bandarlog</a><nav aria-label="Información pública"><a href="/presentacion">Sobre Bandarlog</a><a href="/privacidad">Privacidad</a><a href="/condiciones">Condiciones de uso</a><a href="/crear-grupo">Solicitar un grupo</a><a href="mailto:${publicInfo.contact}">Contacto</a></nav><p>Responsable: ${esc(publicInfo.responsible)}</p></footer></body></html>`;
 }
 const introduction = `Bandarlog es una aplicación de coordinación para equipos scouts. Reúne proyectos, comisiones y tareas para que cada persona sepa qué tiene que hacer y el equipo pueda seguir su avance.`;
 function home() {
@@ -95,6 +95,12 @@ export function renderPublicForm(path: string, appUrl: string, message = '', tok
     title,
   );
 }
+export function renderPublicHome(appUrl: string) {
+  return shell('Tu grupo scout en marcha', '/', home(), appUrl, introduction);
+}
+function information() {
+  return `<main id="contenido" class="public-reading"><a class="public-back" href="/">← Inicio</a><h1>Qué es Bandarlog</h1><p>${introduction}</p><h2>Proyectos, comisiones y tareas</h2><ul><li>Organizar proyectos y campamentos con sus fechas, miembros y progreso.</li><li>Repartir el trabajo entre comisiones con responsables y permisos propios.</li><li>Crear tareas, asignarlas, añadir pasos opcionales, publicar actualizaciones y registrar su finalización.</li></ul><h2>Un espacio para cada grupo</h2><p>Cada grupo utiliza un ID privado y sus personas deben entrar con una cuenta autorizada. Los datos y permisos de grupos distintos están separados. La solicitud de un grupo es gratuita y requiere aprobación previa del responsable de Bandarlog.</p><h2>Correo y notificaciones</h2><p>La aplicación envía invitaciones, códigos de acceso y los avisos de tareas elegidos por cada persona. Usa Gmail API para enviar desde una cuenta remitente autorizada; no lee las bandejas de los miembros ni les pide permisos de Gmail. El inicio de sesión con Google, cuando se habilita, solo verifica la identidad.</p><p>Bandarlog es una PWA instalable en móvil y escritorio, con consulta guardada y sincronización de cambios compatibles al recuperar la cobertura.</p><p><a href="/privacidad">Política de privacidad</a> · <a href="/condiciones">Condiciones de uso</a></p><p>Responsable: ${esc(publicInfo.responsible)}. Contacto: ${contact}.</p><a class="public-primary" href="/entrar">Entrar a mi grupo ${icon(ArrowRight)}</a></main>`;
+}
 export function renderPublicPage(path: (typeof publicPaths)[number], appUrl: string) {
   if (path === '/privacidad')
     return shell(
@@ -112,7 +118,7 @@ export function renderPublicPage(path: (typeof publicPaths)[number], appUrl: str
       appUrl,
       'Titular, acceso y condiciones de uso de Bandarlog para equipos scouts.',
     );
-  return shell('Proyectos y tareas para equipos scouts', path, home(), appUrl, introduction);
+  return shell('Proyectos y tareas para equipos scouts', path, information(), appUrl, introduction);
 }
 export function publicSite(appUrl: string) {
   const router = express.Router();

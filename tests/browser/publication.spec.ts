@@ -60,6 +60,11 @@ test.describe('public website without JavaScript or login', () => {
       await page.emulateMedia({ reducedMotion: 'reduce' });
       await expect(page.locator('.public-monkey-wave')).toHaveCSS('animation-name', 'none');
       await expect(page.locator('.public-falling-stage')).toBeHidden();
+      await page.getByRole('link', { name: 'Sobre Bandarlog', exact: true }).click();
+      await expect(
+        page.getByRole('heading', { name: 'Qué es Bandarlog', exact: true }),
+      ).toBeVisible();
+      await expect(page.locator('body')).toContainText('Gmail API');
       await page.getByRole('link', { name: 'Privacidad', exact: true }).click();
       await expect(
         page.getByRole('heading', { name: 'Política de privacidad', exact: true }),

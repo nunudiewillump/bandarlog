@@ -1,6 +1,6 @@
 import express from 'express';
 import { readFile } from 'node:fs/promises';
-import { publicSite, renderPublicPage, renderPublicForm } from './public-site.js';
+import { publicSite, renderPublicForm, renderPublicHome } from './public-site.js';
 import { publicInfo } from '../shared/public-info.js';
 import { groupContext, groupPath, groupUrl, type Group } from './group-context.js';
 import { groupRegistrationRoutes, groupResolver, groupColor } from './groups.js';
@@ -2250,7 +2250,7 @@ site.get('/', (q, r, next) => {
       );
     return next();
   }
-  r.type('html').send(renderPublicPage('/presentacion', appUrl));
+  r.type('html').send(renderPublicHome(appUrl));
 });
 site.use(async (q, r, next) => {
   let group: Group = { ...legacyGroup, legacyAccess: true };

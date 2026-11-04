@@ -2,7 +2,7 @@
 
 ## Qué incorpora el cambio
 
-- Origen público: `https://bandarlog.app`. Sin ID de grupo, `/` informa sobre el servicio. `/presentacion` muestra la misma información; `/privacidad` y `/condiciones` son páginas públicas reales, servidas en HTML y legibles sin JavaScript ni sesión.
+- Origen público: `https://bandarlog.app`. Sin ID de grupo, `/` informa sobre el servicio. `/presentacion` amplía el propósito y funcionamiento para la revisión de Google sin alargar la portada; `/privacidad` y `/condiciones` son páginas públicas reales, servidas en HTML y legibles sin JavaScript ni sesión.
 - `/entrar` pide el ID privado. `/crear-grupo` ofrece solicitud gratuita con aprobación obligatoria: el responsable recibe en `darguinenagimenez@gmail.com` un enlace privado para aprobar o rechazar. Solo tras aprobar se envía al solicitante un enlace de activación de siete días. Abrir cualquiera de los enlaces no crea nada; el POST de activación, con aprobación previa y correo verificado, crea grupo, administrador y sesión de forma atómica. Un enlace consumido no crea grupos duplicados. Hay límites por IP y por correo; no se pide tarjeta.
 - `/g/ID-privado/` identifica el espacio. Cada persona necesita además una sesión y los permisos de ese grupo. Un mismo correo puede pertenecer a varios grupos con roles distintos. El ID no es una contraseña, no concede acceso a datos y no debe publicarse en buscadores.
 - Perfil → Configurar grupo permite a Administración cambiar nombre y los dos colores de la pañoleta y consultar su enlace. Las invitaciones, los correos de tarea y las notificaciones mantienen el contexto del grupo.
@@ -57,7 +57,7 @@ Mantén una sola réplica y el servicio activo para ejecutar recordatorios. No c
 
 | Campo | Valor |
 |---|---|
-| Página principal | `https://bandarlog.app/` |
+| Página principal de información para Google | `https://bandarlog.app/presentacion` |
 | Política de privacidad | `https://bandarlog.app/privacidad` |
 | Condiciones | `https://bandarlog.app/condiciones` |
 | Dominio autorizado | `bandarlog.app` |
