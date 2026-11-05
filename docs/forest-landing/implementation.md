@@ -2,7 +2,7 @@
 
 ## Dirección
 
-La entrada conserva marca, Nunito Sans local, crema y verde bosque. El propósito y la acción siguen siendo «Menos lío. Más grupo.», «Proyectos, comisiones y tareas scout.» y «Entrar a mi grupo». La explicación extensa continúa en `/presentacion`.
+La entrada conserva marca, Poppins local y marca Bungee, crema y verde bosque. El propósito y la acción siguen siendo «Menos lío. Más grupo.», «Proyectos, comisiones y tareas.» y «Entrar a mi grupo». La explicación extensa continúa en `/presentacion`.
 
 La escena al teclado ocupa aproximadamente la mitad izquierda del escritorio. En móvil, texto y acceso preceden a la ilustración a ancho completo. El pie queda al fondo de la ventana con flex y altura mínima, y continúa en el flujo cuando el contenido necesita scroll: no es fijo ni tapa controles.
 
@@ -42,4 +42,4 @@ La cobertura se amplía a sesiones, dominios y sincronización porque cambian la
 
 ## Corrección acotada posterior
 
-El montaje actual conserva la proporción nativa de cada brazo y utiliza pivotes de hombro separados. La animación corregida se sirve desde `/landing/arms-v2/`, conservando los archivos anteriores para cachés/documentos existentes. La identidad legal aparece en privacidad y condiciones; el pie y la presentación enlazan a esa información sin repetir nombre o correo. Detalles de la corrección y sus verificaciones en [brazos y datos públicos](arms-correction.md).
+El montaje actual conserva la proporción nativa de cada brazo y utiliza pivotes de hombro separados. La animación corregida se sirve desde `/landing/arms-v3/`, conservando los archivos anteriores para cachés/documentos existentes. La identidad legal aparece en privacidad y condiciones; el pie y la presentación enlazan a esa información sin repetir nombre o correo. Detalles de la corrección y sus verificaciones en [brazos y datos públicos](arms-correction.md).

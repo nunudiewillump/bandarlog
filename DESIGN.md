@@ -1,6 +1,6 @@
 ---
 name: Bandarlog · Forest Experience
-description: Coordinación scout con copa compacta y trabajo legible.
+description: Coordinación de equipos con copa compacta y trabajo legible.
 colors:
   green: "#124d38"
   deep: "#103b2d"
@@ -117,7 +117,7 @@ components:
 
 **Creative North Star: "Copa compacta, trabajo al frente"**
 
-Forest Experience hace reconocible la coordinación scout con una copa verde de borde orgánico, marca pequeña y fondo crema. El tono es cercano y sereno; la densidad sirve a personas voluntarias que necesitan localizar trabajo y actuar con claridad. Las listas continuas y los estados textuales llevan la jerarquía; la identidad acompaña sin ocupar el centro operativo.
+Forest Experience hace reconocible la coordinación de equipos con una copa verde de borde orgánico, marca pequeña y fondo crema. El tono es cercano y sereno; la densidad sirve a personas voluntarias que necesitan localizar trabajo y actuar con claridad. Las listas continuas y los estados textuales llevan la jerarquía; la identidad acompaña sin ocupar el centro operativo.
 
 La autoridad visual es la propuesta refinada Codex aprobada en `7088637`, actualizada por la decisión posterior del usuario de retirar todos los monos 3D estáticos y permitir solo marca, liana y guiños discretos 2D. La implementación vigente, leída después de esa decisión, determina los tokens. Las láminas antiguas y los recursos Stitch conservados como evidencia no deben sustituirla.
 

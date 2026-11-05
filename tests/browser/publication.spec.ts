@@ -44,6 +44,10 @@ test.describe('public website without JavaScript or login', () => {
       await page.setViewportSize({ width, height: 950 });
       await page.goto('/');
       await expect(page.getByRole('heading', { name: /Menos lío/ })).toBeVisible();
+      await expect(page.locator('.public-forest-copy p')).toHaveText(
+        'Proyectos, comisiones y tareas.',
+      );
+      await expect(page).toHaveTitle('Tu grupo en marcha · Bandarlog');
       await expect(page.locator('body')).not.toContainText(publicInfo.responsible);
       await expect(page.locator('body')).not.toContainText(publicInfo.contact);
       await expect(page.getByRole('link', { name: 'Contacto', exact: true })).toHaveAttribute(
@@ -77,6 +81,9 @@ test.describe('public website without JavaScript or login', () => {
         page.getByRole('heading', { name: 'Qué es Bandarlog', exact: true }),
       ).toBeVisible();
       await expect(page.locator('body')).toContainText('Gmail API');
+      await expect(page.locator('.public-reading > p').first()).toContainText(
+        'coordinación para grupos y equipos',
+      );
       await expect(page.locator('body')).not.toContainText(publicInfo.responsible);
       await expect(page.locator('body')).not.toContainText(publicInfo.contact);
       await page.getByRole('link', { name: 'Privacidad', exact: true }).click();

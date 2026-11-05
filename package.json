@@ -1,7 +1,7 @@
 {
   "name": "bandarlog",
   "version": "1.0.0",
-  "description": "Gestión de comisiones y seguimiento de tareas para un grupo scout",
+  "description": "Gestión de comisiones y seguimiento de tareas para grupos y equipos",
   "main": "index.js",
   "scripts": {
     "dev": "node --env-file-if-exists=.env --import tsx --watch server/index.ts",

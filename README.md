@@ -1,6 +1,6 @@
 # Bandarlog
 
-PWA de comisiones y seguimiento de tareas de un grupo scout. React + TypeScript + Vite, API Express, Drizzle y PostgreSQL. Cada instalación representa un único grupo; los miembros solo acceden a sus comisiones, y administración/coordinación supervisan el grupo completo.
+PWA de comisiones y seguimiento de tareas para grupos y equipos. React + TypeScript + Vite, API Express, Drizzle y PostgreSQL. Cada grupo dispone de un espacio privado; los miembros solo acceden a sus comisiones, y administración/coordinación supervisan su grupo completo.
 
 ## Desarrollo
 
