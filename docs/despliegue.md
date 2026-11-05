@@ -86,3 +86,5 @@ Las pruebas locales validan códigos, verificadores JWT y permisos con datos ais
 ## Escritorio y copa botánica
 
 Esta enmienda no añade secretos, variables de entorno ni migraciones. La preferencia forestEffects se guarda en el perfil existente. Tema y fondo de la PWA son #103b2d; se conserva viewport-fit=cover y el espacio seguro superior. La pantalla sin conexión comparte esos metadatos y el caché estático cambia a v2 para renovarla, manteniendo la exclusión de API y escrituras. La apariencia de la barra de estado en iOS/Android físicos se verifica después de una instalación real; las capturas de navegador no la certifican.
+
+La preparación de DNS, la plantilla publicada opcional, las claves restringidas, el seguimiento y las verificaciones se describen en [Resend](resend.md). No es necesario configurar una plantilla para conservar el envío HTML del despliegue anterior.

@@ -21,6 +21,8 @@ export const platformMail = pgTable('platform_mail', {
   attempts: text().notNull().default('0'),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
   sentAt: timestamp('sent_at', { withTimezone: true, mode: 'string' }),
+  nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true, mode: 'string' }),
+  providerMessageId: text('provider_message_id'),
 });
 export const groups = pgTable('scout_groups', {
   id: text()
@@ -212,6 +214,8 @@ export const notifications = pgTable('notifications', {
   attempts: text().notNull().default('0'),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
   sentAt: timestamp('sent_at', { withTimezone: true, mode: 'string' }),
+  nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true, mode: 'string' }),
+  providerMessageId: text('provider_message_id'),
 });
 
 export const projectMembers = pgTable(
