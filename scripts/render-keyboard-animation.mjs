@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 const execute = promisify(execFile);
+const output = 'public/landing/arms-v3';
 const assetSizes = {};
 const assets = Object.fromEntries(
   await Promise.all(
@@ -45,16 +46,18 @@ const blink = (t) =>
 function scene(t) {
   const look = ease((t - 4.4) / 0.8) * (1 - ease((t - 6.4) / 0.8));
   const type = 1 - look;
-  const left = -15 + type * (Math.sin(t * Math.PI * 5.5) * 2.1 - 0.8);
-  const right = -10 + type * (Math.sin(t * Math.PI * 5.5 + Math.PI) * 2.1 - 0.8) - look * 5;
+  const left = -29 + type * (Math.sin(t * Math.PI * 5.5) * 2.1 - 0.8);
+  const right = -25 + type * (Math.sin(t * Math.PI * 5.5 + Math.PI) * 2.1 - 0.8) - look * 5;
   const headAngle = 7 * type - 3 * look;
   const gazeX = 9 * type,
     gazeY = 7 * type;
   const eyes = blink(t);
+  // The far shoulder sits behind the torso. The near shoulder attaches below
+  // the scarf, rather than at the neck; only its forearm passes in front.
   return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="768" height="768" viewBox="0 0 768 768">
+    <g transform="rotate(${right} 324 400)">${armImage('arm-right', 291, 392, 145)}</g>
     ${image('base', 72, 301, 606, 424)}
-    <g transform="rotate(${right} 311 357)">${armImage('arm-right', 288, 350, 140)}</g>
-    <g transform="rotate(${left} 255 363)">${armImage('arm-left', 220, 355, 170)}</g>
+    <g transform="rotate(${left} 230 410)">${armImage('arm-left', 195, 398, 170)}</g>
     <g transform="rotate(${headAngle} 278 336)">
       ${image('head', 105, 44, 342, 297)}
       <g transform="translate(105 44) scale(.684)">
@@ -68,13 +71,12 @@ function scene(t) {
   </svg>`;
 }
 if (process.argv.includes('--poster-only')) {
-  await mkdir('public/landing/arms-v2', { recursive: true });
+  await mkdir(output, { recursive: true });
   await sharp(Buffer.from(scene(5.6)))
     .webp({ quality: 88, effort: 6 })
-    .toFile('public/landing/arms-v2/monkey-keyboard-poster.webp');
+    .toFile(`${output}/monkey-keyboard-poster.webp`);
   process.exit(0);
 }
-const output = 'public/landing/arms-v2';
 await mkdir(output, { recursive: true });
 const folder = await mkdtemp(join(tmpdir(), 'bandarlog-keyboard-frames-'));
 try {
@@ -112,14 +114,14 @@ try {
         '0',
         '-an',
         '-y',
-        `public/landing/arms-v2/monkey-keyboard-animated-${width}.webp`,
+        `${output}/monkey-keyboard-animated-${width}.webp`,
       ],
       { maxBuffer: 1024 * 1024 },
     );
   }
   await sharp(Buffer.from(scene(5.6)))
     .webp({ quality: 88, effort: 6 })
-    .toFile('public/landing/arms-v2/monkey-keyboard-poster.webp');
+    .toFile(`${output}/monkey-keyboard-poster.webp`);
   console.log(
     'Rendered 120 articulated frames at 15 fps, 8-second seamless loop; desktop/mobile WebP plus reduced-motion poster.',
   );

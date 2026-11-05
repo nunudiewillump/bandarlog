@@ -1,10 +1,12 @@
 # Corrección de los brazos
 
-El montaje anterior comprimía las piezas de los brazos hasta aproximadamente la mitad de su proporción original. Esa transformación unía visualmente hombros y antebrazos y deformaba las manos.
+El montaje original comprimía las piezas de los brazos. La revisión v2 recuperaba sus proporciones, pero anclaba ambos brazos cerca del cuello y superponía los dos sobre el torso: tapaba la pañoleta y producía una unión incorrecta en los hombros.
 
-Se conservan los cuatro recursos originales de la marioneta. El render calcula la altura de cada brazo desde sus dimensiones reales y aplica `xMinYMin meet`, con pivotes de hombro y ángulos de reposo nuevos. Los codos bajan desde el hombro y los antebrazos alcanzan el teclado; las dos manos quedan separadas. Se mantiene el tecleo alterno y el pequeño gesto de pausa. Cara, cuerpo, pañoleta, mesa y duración del ciclo conservan sus recursos y parámetros anteriores.
+La revisión v3 conserva las cuatro piezas originales y su proporción natural. Sitúa los pivotes en los hombros, por debajo del cuello, y coloca el brazo lejano detrás del torso. El brazo cercano queda delante del cuerpo, con el codo más bajo y la mano en el teclado. Los ángulos de reposo separan las dos manos durante el tecleo y la pausa con sonrisa. No se modifica la cara, el cuerpo, la pañoleta, el mobiliario ni la duración del ciclo.
 
-La animación y el póster corregidos se sirven desde `/landing/arms-v2/`. Así una PWA que conserve los WebP anteriores en su caché solicita una URL nueva, sin borrar su almacenamiento o invalidar sus colas de trabajo. Los archivos anteriores permanecen disponibles para documentos previamente guardados.
+La animación y el póster corregidos se sirven desde `/landing/arms-v3/`. Así una PWA que conserve WebP anteriores solicita una URL nueva, sin borrar su almacenamiento ni sus colas. Los archivos anteriores permanecen disponibles para documentos previamente guardados. La prueba de regresión comprueba que la pañoleta rosa y morada permanece visible en distintas poses de ambas resoluciones; la unión de los hombros y las manos se revisa también en la hoja de poses `artifacts/forest-landing/arms-v3-poses.png`.
+
+Los textos de presentación, las descripciones públicas y los metadatos hablan de grupos y equipos. Se retira «scout» de esas definiciones, conservando los nombres de roles, las identidades de los grupos, el catálogo y la pañoleta.
 
 La retirada del nombre/contacto repetidos afecta solo a la presentación pública: se elimina el nombre del pie y la identificación repetida de `/presentacion`; «Contacto» lleva a la sección correspondiente de privacidad. Se mantienen nombre y correo una vez en cada página legal y las referencias posteriores enlazan a esa sección. No cambian roles de comisión, cuentas o autorizaciones.
 

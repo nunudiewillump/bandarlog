@@ -1,6 +1,6 @@
 ---
 name: Bandarlog · Forest Experience
-description: Coordinación scout con copa compacta y trabajo legible.
+description: Coordinación de equipos con copa compacta y trabajo legible.
 colors:
   green: "#124d38"
   deep: "#103b2d"
@@ -21,40 +21,44 @@ colors:
   focus-control: "#e8a33c"
   focus-field: "#21865c"
 typography:
+  brand:
+    fontFamily: "'Bungee', 'Poppins', sans-serif"
+    fontWeight: 400
+    letterSpacing: "0"
   headline:
-    fontFamily: "'Nunito Sans', system-ui, sans-serif"
+    fontFamily: "'Poppins', system-ui, sans-serif"
     fontSize: "26px"
     fontWeight: 800
     lineHeight: "30px"
     letterSpacing: "-0.03em"
   title:
-    fontFamily: "'Nunito Sans', system-ui, sans-serif"
+    fontFamily: "'Poppins', system-ui, sans-serif"
     fontSize: "18px"
     lineHeight: "24px"
     fontWeight: 800
   task:
-    fontFamily: "'Nunito Sans', system-ui, sans-serif"
+    fontFamily: "'Poppins', system-ui, sans-serif"
     fontSize: "16px"
     lineHeight: "22px"
     fontWeight: 800
   body:
-    fontFamily: "'Nunito Sans', system-ui, sans-serif"
+    fontFamily: "'Poppins', system-ui, sans-serif"
     fontSize: "16px"
     lineHeight: 1.5
   context:
-    fontFamily: "'Nunito Sans', system-ui, sans-serif"
+    fontFamily: "'Poppins', system-ui, sans-serif"
     fontSize: "14px"
     lineHeight: "20px"
   label:
-    fontFamily: "'Nunito Sans', system-ui, sans-serif"
+    fontFamily: "'Poppins', system-ui, sans-serif"
     fontSize: "16px"
     fontWeight: 700
   navigation:
-    fontFamily: "'Nunito Sans', system-ui, sans-serif"
+    fontFamily: "'Poppins', system-ui, sans-serif"
     fontSize: "12px"
     lineHeight: "16px"
   headline-desktop:
-    fontFamily: "'Nunito Sans', system-ui, sans-serif"
+    fontFamily: "'Poppins', system-ui, sans-serif"
     fontSize: "30px"
     fontWeight: 850
     lineHeight: 1.2
@@ -113,7 +117,7 @@ components:
 
 **Creative North Star: "Copa compacta, trabajo al frente"**
 
-Forest Experience hace reconocible la coordinación scout con una copa verde de borde orgánico, marca pequeña y fondo crema. El tono es cercano y sereno; la densidad sirve a personas voluntarias que necesitan localizar trabajo y actuar con claridad. Las listas continuas y los estados textuales llevan la jerarquía; la identidad acompaña sin ocupar el centro operativo.
+Forest Experience hace reconocible la coordinación de equipos con una copa verde de borde orgánico, marca pequeña y fondo crema. El tono es cercano y sereno; la densidad sirve a personas voluntarias que necesitan localizar trabajo y actuar con claridad. Las listas continuas y los estados textuales llevan la jerarquía; la identidad acompaña sin ocupar el centro operativo.
 
 La autoridad visual es la propuesta refinada Codex aprobada en `7088637`, actualizada por la decisión posterior del usuario de retirar todos los monos 3D estáticos y permitir solo marca, liana y guiños discretos 2D. La implementación vigente, leída después de esa decisión, determina los tokens. Las láminas antiguas y los recursos Stitch conservados como evidencia no deben sustituirla.
 
@@ -121,7 +125,7 @@ La autoridad visual es la propuesta refinada Codex aprobada en `7088637`, actual
 
 - Copa orgánica compacta en flujo normal y navegación móvil estable.
 - Verde bosque, crema y contraste de texto funcional.
-- Nunito Sans local, nombres que envuelven y listas continuas.
+- Poppins local, nombres que envuelven y listas continuas.
 - Identidad 2D discreta y celebración breve tras guardar.
 - Desktop Forest con foco por rol y comisiones agrupadas; acceso y onboarding compartidos.
 
@@ -158,10 +162,10 @@ La paleta combina bosque profundo con crema cálida; los colores de estado conse
 
 ## Typography
 
-**Display Font:** Nunito Sans, con system-ui y sans-serif de reserva.
-**Body Font:** la misma familia; no hay una segunda fuente decorativa ni monoespaciada de marca.
+**Brand Font:** Bungee Regular, exclusivamente para la palabra Bandarlog en las cabeceras y la navegación de marca.
+**Interface Font:** Poppins, para títulos de pantalla, tareas, texto, formularios y navegación, con system-ui y sans-serif de reserva.
 
-La familia se empaqueta localmente mediante `@fontsource/nunito-sans`, con archivos latinos de pesos 400, 600, 700, 800 y 900. El código declara algunos pesos intermedios, como 750 u 850, que el navegador resuelve contra esos archivos; no se afirma una fuente variable cargada.
+Las fuentes se alojan localmente como subconjuntos WOFF2 latinos: Bungee 400 y Poppins 400, 500, 600, 700, 800 y 900, con licencias SIL OFL. Los pesos intermedios se resuelven contra los archivos disponibles. `public/typography.css` comparte familias y tokens entre interfaz, páginas públicas y pantalla sin conexión; la PWA los precachea. La marca utiliza peso 400 y espaciado natural para respetar el dibujo de Bungee; se adapta a 22px en el lateral desktop, 18px en su variante compacta y 20px en la cabecera pública más estrecha. La navegación inferior conserva 12px, con 11px por debajo de 360px para que sus cinco etiquetas no se solapen. No se solicitan fuentes externas durante el uso. Los archivos proceden de las distribuciones Fontsource 5.3.0 de Bungee y Poppins; Poppins es la misma familia gratuita del catálogo de Font Squirrel. Referencias: [Bungee](https://fonts.google.com/specimen/Bungee) y [Poppins](https://www.fontsquirrel.com/fonts/poppins).
 
 La jerarquía normativa del frontmatter describe el sistema móvil/acceso: `headline` para pantalla, `title` para sección, `task` para fila, `body` para contenido/campos, `context` para proyecto/fecha/ayuda y `navigation` para los cinco destinos. `label` describe las etiquetas visibles de formulario. En desktop se mantiene raíz de 14px y la jerarquía operativa existente; `headline-desktop` registra su título global. En móvil la raíz pasa a 16px. El resumen principal de Inicio usa cifra de 38px con línea de 44px; es un acento informativo, no un estilo display general.
 
@@ -275,6 +279,6 @@ La celebración al terminar tareas personales conserva el contenido de Inicio y 
 
 ## Páginas públicas y cuenta de grupo
 
-La presentación pública conserva Forest Experience: Nunito Sans local, verde bosque, papel crema, marca 2D y las mismas siluetas de hojas. La portada se limita a «Menos lío. Más grupo.», una línea sobre proyectos, comisiones y tareas y el acceso. La composición vigente utiliza una única ilustración original del mono al teclado, anclada a una mesa, en aproximadamente la mitad izquierda del escritorio. El titular queda en primer plano y la entrada a la derecha. En móvil, texto y acceso preceden a una escena amplia debajo; no se reduce la composición desktop. Las hojas de haya y roble existentes forman cuatro planos más poblados y ramas laterales, con pequeñas flores y bellotas 2D; no se introducen siluetas nuevas. El mono es una animación articulada de ocho segundos con tecleo, giro, sonrisa y parpadeo, codificada como WebP animado. El render une piezas 2D de colores planos, sin fundir dos escenas ni mover la mesa. La imagen estática aparece antes de decodificar la animación. No hay pausa visible; movimiento reducido, pestaña oculta y salida de pantalla conservan una ilustración estática. Sin JavaScript también se conserva la ilustración y el acceso. El pie permanece al fondo de la ventana y en el flujo si hay más contenido. Ver [portada ilustrada](docs/forest-landing/implementation.md). La solicitud de grupo vive como enlace discreto en el pie y nunca activa una cuenta sin aprobación del responsable. Las páginas legales priorizan lectura y siguen disponibles sin sesión o JavaScript. El registro pide nombre del grupo, correo y nombre del primer administrador y dos colores de pañoleta. La suscripción de ejemplo señala su naturaleza ficticia antes de cualquier precio y mantiene deshabilitada toda contratación. La identidad del grupo se muestra en acceso, cabecera, manifiesto PWA y perfil; sus ajustes no aparecen sin rol de Administración.
+La presentación pública conserva Forest Experience: Poppins local, verde bosque, papel crema, marca 2D y las mismas siluetas de hojas. La portada se limita a «Menos lío. Más grupo.», una línea sobre proyectos, comisiones y tareas y el acceso. La composición vigente utiliza una única ilustración original del mono al teclado, anclada a una mesa, en aproximadamente la mitad izquierda del escritorio. El titular queda en primer plano y la entrada a la derecha. En móvil, texto y acceso preceden a una escena amplia debajo; no se reduce la composición desktop. Las hojas de haya y roble existentes forman cuatro planos más poblados y ramas laterales, con pequeñas flores y bellotas 2D; no se introducen siluetas nuevas. El mono es una animación articulada de ocho segundos con tecleo, giro, sonrisa y parpadeo, codificada como WebP animado. El render une piezas 2D de colores planos, sin fundir dos escenas ni mover la mesa. La imagen estática aparece antes de decodificar la animación. No hay pausa visible; movimiento reducido, pestaña oculta y salida de pantalla conservan una ilustración estática. Sin JavaScript también se conserva la ilustración y el acceso. El pie permanece al fondo de la ventana y en el flujo si hay más contenido. Ver [portada ilustrada](docs/forest-landing/implementation.md). La solicitud de grupo vive como enlace discreto en el pie y nunca activa una cuenta sin aprobación del responsable. Las páginas legales priorizan lectura y siguen disponibles sin sesión o JavaScript. El registro pide nombre del grupo, correo y nombre del primer administrador y dos colores de pañoleta. La suscripción de ejemplo señala su naturaleza ficticia antes de cualquier precio y mantiene deshabilitada toda contratación. La identidad del grupo se muestra en acceso, cabecera, manifiesto PWA y perfil; sus ajustes no aparecen sin rol de Administración.
 
 La explicación extensa del servicio y de Gmail se mantiene en `/presentacion` para la verificación de Google; no se añade a la portada animada.

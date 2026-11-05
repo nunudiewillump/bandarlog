@@ -18,14 +18,15 @@
   margin: auto;
 }
 .forest-brand {
+  font-family: var(--font-brand);
   display: flex;
   align-items: center;
   gap: 8px;
   min-height: 44px;
   color: #faf8f2;
   font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-weight: 400;
+  letter-spacing: 0;
   padding: 0;
 }
 .forest-brand img {

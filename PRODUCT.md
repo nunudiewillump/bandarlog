@@ -1,6 +1,6 @@
 # Bandarlog
 
-Bandarlog es una PWA web para coordinar las comisiones y seguir las tareas de un único grupo scout. Ayuda a personas voluntarias a saber qué les toca, completar su trabajo y consultar el avance del equipo sin convertir la coordinación en otro canal de conversación.
+Bandarlog es una PWA web para coordinar las comisiones y seguir las tareas de grupos y equipos. Ayuda a personas voluntarias a saber qué les toca, completar su trabajo y consultar el avance del equipo sin convertir la coordinación en otro canal de conversación.
 
 ## Personas y alcance
 

@@ -2,10 +2,7 @@
   "generator": "image_gen.imagegen",
   "operation": "original flat 2D puppet parts using established mascot identity",
   "reference": "public/monkey-wave-2d.png",
-  "source_dimensions": [
-    1254,
-    1254
-  ],
+  "source_dimensions": [1254, 1254],
   "source_sha256": "600fdd18dbfe507a2cf55c28f441c09c5a92279e18f302061e2395d321c63ee0",
   "source_parts": [
     "docs/forest-landing/rig/base.webp",
@@ -25,55 +22,44 @@
       "illustrated smile",
       "eye blinks"
     ],
-    "stationary": [
-      "desk",
-      "keyboard",
-      "laptop",
-      "stool",
-      "body and tail"
-    ],
+    "stationary": ["desk", "keyboard", "laptop", "stool", "body and tail"],
     "runtime": "One local animated WebP image, no scene crossfade; small SSR poster remains until animation has decoded.",
     "armCorrection": {
       "sourceParts": "unchanged",
       "fit": "native aspect ratio from actual dimensions; xMinYMin meet",
-      "nearShoulder": [
-        255,
-        363
-      ],
-      "farShoulder": [
-        311,
-        357
-      ],
+      "nearShoulder": [230, 410],
+      "farShoulder": [324, 400],
       "restAngles": {
-        "near": -15,
-        "far": -10
+        "near": -29,
+        "far": -25
       },
-      "cacheFamily": "/landing/arms-v2/"
+      "cacheFamily": "/landing/arms-v3/",
+      "compositing": ["far arm", "body and scarf", "near arm", "head"]
     }
   },
   "canopy": "Existing shared/forest-art.ts beech/oak paths, four layers; no generated foliage.",
   "files": [
     {
-      "path": "public/landing/arms-v2/monkey-keyboard-poster.webp",
-      "bytes": 66482,
-      "sha256": "4edfcee8eeb4529dfa752d949fccde83d03d780fe36efb6a0164c9af94de0727",
+      "path": "public/landing/arms-v3/monkey-keyboard-poster.webp",
+      "bytes": 66848,
+      "sha256": "463f3fe017edba4c27f0a0eae1423356ded351ba9142c12956468486b3275b6f",
       "width": 768,
       "height": 768,
       "encodedFrames": 1
     },
     {
-      "path": "public/landing/arms-v2/monkey-keyboard-animated-480.webp",
-      "bytes": 732464,
-      "sha256": "c4f0e9ea6bc932c8439ac67312dfd7965d0e0e38fd154e968c201c38c262dfaf",
+      "path": "public/landing/arms-v3/monkey-keyboard-animated-480.webp",
+      "bytes": 772178,
+      "sha256": "d47c58004b8d36fdd326ea906c9db63db347f5839859cb9ed711acf414755a9a",
       "width": 480,
       "height": 480,
       "encodedFrames": 106,
       "durationMs": 7999
     },
     {
-      "path": "public/landing/arms-v2/monkey-keyboard-animated-768.webp",
-      "bytes": 1345886,
-      "sha256": "12f9f06578effdfe20222034ce1b758fbb1d9f095299728c88b906765100854c",
+      "path": "public/landing/arms-v3/monkey-keyboard-animated-768.webp",
+      "bytes": 1403958,
+      "sha256": "b65395b2bc59f0847c81172c4eac58375a2b90305a485e7ddb5b584968e60d63",
       "width": 768,
       "height": 768,
       "encodedFrames": 106,
@@ -87,6 +73,9 @@
     "public/landing/monkey-keyboard-working-887.webp",
     "public/landing/monkey-keyboard-poster.webp",
     "public/landing/monkey-keyboard-animated-480.webp",
-    "public/landing/monkey-keyboard-animated-768.webp"
+    "public/landing/monkey-keyboard-animated-768.webp",
+    "public/landing/arms-v2/monkey-keyboard-poster.webp",
+    "public/landing/arms-v2/monkey-keyboard-animated-480.webp",
+    "public/landing/arms-v2/monkey-keyboard-animated-768.webp"
   ]
 }

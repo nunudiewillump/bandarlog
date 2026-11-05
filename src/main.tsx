@@ -72,11 +72,6 @@ import {
   progress,
   date,
 } from './types';
-import '@fontsource/nunito-sans/latin-400.css';
-import '@fontsource/nunito-sans/latin-600.css';
-import '@fontsource/nunito-sans/latin-700.css';
-import '@fontsource/nunito-sans/latin-800.css';
-import '@fontsource/nunito-sans/latin-900.css';
 import './styles.css';
 import './forest.css';
 import './desktop-forest.css';

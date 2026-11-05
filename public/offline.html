@@ -6,6 +6,21 @@
     <meta name="theme-color" content="#103b2d" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link
+      rel="preload"
+      href="/public-fonts/poppins-latin-400-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/public-fonts/bungee-latin-400-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="/typography.css" />
     <title>Sin conexión · Bandarlog</title>
   </head>
   <body
@@ -14,7 +29,7 @@
       padding-top: env(safe-area-inset-top, 0px);
       background: #103b2d;
       color: #124d38;
-      font: 18px system-ui;
+      font: 18px/1.5 var(--font-interface);
     "
   >
     <main

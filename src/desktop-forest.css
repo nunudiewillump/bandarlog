@@ -63,10 +63,10 @@
   }
   .sidebar-brand {
     color: #103b2d;
-    font-size: 26px;
-    letter-spacing: -0.04em;
+    font-size: 22px;
+    letter-spacing: 0;
     margin-bottom: 38px;
-    padding: 0 6px;
+    padding: 0;
     min-height: 44px;
   }
   .sidebar-brand img {
@@ -1048,8 +1048,8 @@
     padding-right: 10px;
   }
   .sidebar-brand {
-    font-size: 21px;
-    gap: 6px;
+    font-size: 18px;
+    gap: 4px;
     padding: 0;
   }
   .sidebar-brand img {
