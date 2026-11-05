@@ -32,31 +32,48 @@
       "stool",
       "body and tail"
     ],
-    "runtime": "One local animated WebP image, no scene crossfade; small SSR poster remains until animation has decoded."
+    "runtime": "One local animated WebP image, no scene crossfade; small SSR poster remains until animation has decoded.",
+    "armCorrection": {
+      "sourceParts": "unchanged",
+      "fit": "native aspect ratio from actual dimensions; xMinYMin meet",
+      "nearShoulder": [
+        255,
+        363
+      ],
+      "farShoulder": [
+        311,
+        357
+      ],
+      "restAngles": {
+        "near": -15,
+        "far": -10
+      },
+      "cacheFamily": "/landing/arms-v2/"
+    }
   },
   "canopy": "Existing shared/forest-art.ts beech/oak paths, four layers; no generated foliage.",
   "files": [
     {
-      "path": "public/landing/monkey-keyboard-poster.webp",
-      "bytes": 65546,
-      "sha256": "dce659a19dd795f4c1b429c4b15c90ed4d3afef018d1550fa0d34b9696df2d15",
+      "path": "public/landing/arms-v2/monkey-keyboard-poster.webp",
+      "bytes": 66482,
+      "sha256": "4edfcee8eeb4529dfa752d949fccde83d03d780fe36efb6a0164c9af94de0727",
       "width": 768,
       "height": 768,
       "encodedFrames": 1
     },
     {
-      "path": "public/landing/monkey-keyboard-animated-480.webp",
-      "bytes": 587646,
-      "sha256": "92890da68622e0d8b85157687239273b19ee7211e8c4c7568131387cecb2f479",
+      "path": "public/landing/arms-v2/monkey-keyboard-animated-480.webp",
+      "bytes": 732464,
+      "sha256": "c4f0e9ea6bc932c8439ac67312dfd7965d0e0e38fd154e968c201c38c262dfaf",
       "width": 480,
       "height": 480,
       "encodedFrames": 106,
       "durationMs": 7999
     },
     {
-      "path": "public/landing/monkey-keyboard-animated-768.webp",
-      "bytes": 1065444,
-      "sha256": "b1de8c3be081ce521f6351ddaf9a814e17c7dd6d4d4e056c800be258cce65cf3",
+      "path": "public/landing/arms-v2/monkey-keyboard-animated-768.webp",
+      "bytes": 1345886,
+      "sha256": "12f9f06578effdfe20222034ce1b758fbb1d9f095299728c88b906765100854c",
       "width": 768,
       "height": 768,
       "encodedFrames": 106,
@@ -67,6 +84,9 @@
     "public/landing/monkey-keyboard-smile-480.webp",
     "public/landing/monkey-keyboard-smile-887.webp",
     "public/landing/monkey-keyboard-working-480.webp",
-    "public/landing/monkey-keyboard-working-887.webp"
+    "public/landing/monkey-keyboard-working-887.webp",
+    "public/landing/monkey-keyboard-poster.webp",
+    "public/landing/monkey-keyboard-animated-480.webp",
+    "public/landing/monkey-keyboard-animated-768.webp"
   ]
 }
