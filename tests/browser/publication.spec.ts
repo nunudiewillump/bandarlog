@@ -44,6 +44,12 @@ test.describe('public website without JavaScript or login', () => {
       await page.setViewportSize({ width, height: 950 });
       await page.goto('/');
       await expect(page.getByRole('heading', { name: /Menos lío/ })).toBeVisible();
+      await expect(page.locator('body')).not.toContainText(publicInfo.responsible);
+      await expect(page.locator('body')).not.toContainText(publicInfo.contact);
+      await expect(page.getByRole('link', { name: 'Contacto', exact: true })).toHaveAttribute(
+        'href',
+        '/privacidad#contacto',
+      );
       await expect(
         page.getByRole('link', { name: 'Solicitar un grupo', exact: true }),
       ).toBeVisible();
@@ -71,12 +77,18 @@ test.describe('public website without JavaScript or login', () => {
         page.getByRole('heading', { name: 'Qué es Bandarlog', exact: true }),
       ).toBeVisible();
       await expect(page.locator('body')).toContainText('Gmail API');
+      await expect(page.locator('body')).not.toContainText(publicInfo.responsible);
+      await expect(page.locator('body')).not.toContainText(publicInfo.contact);
       await page.getByRole('link', { name: 'Privacidad', exact: true }).click();
       await expect(
         page.getByRole('heading', { name: 'Política de privacidad', exact: true }),
       ).toBeVisible();
       await expect(page.getByText('Dabi Arguiñena Giménez', { exact: true })).toBeVisible();
+      await expect(page.locator('a[href="mailto:' + publicInfo.contact + '"]')).toHaveCount(1);
       await expect(page.locator('body')).toContainText('gmail.send');
+      await page.getByRole('link', { name: 'Contacto', exact: true }).click();
+      await expect(page).toHaveURL(/\/privacidad#contacto$/);
+      await expect(page.locator('#contacto')).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
       );

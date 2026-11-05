@@ -38,3 +38,8 @@ El service worker cambia su caché estática a v6 y conserva `/acceso` como shel
 - Navegador: composición 320/390/768/1440 px, pie al fondo en ventana alta, acceso/legales sin JavaScript, movimiento reducido y pestaña oculta; reanudación de la PWA inicial y conservación de su cuenta offline; grupos privados y sus cachés; aceptación de invitaciones.
 
 La cobertura se amplía a sesiones, dominios y sincronización porque cambian la selección de entrada y el shell del service worker. No se ejecuta de rutina toda la suite. Las capturas reales están en `artifacts/forest-landing/`; no sustituyen una comprobación en Safari o dispositivos físicos. No se ha fusionado ni desplegado esta revisión.
+
+
+## Corrección acotada posterior
+
+El montaje actual conserva la proporción nativa de cada brazo y utiliza pivotes de hombro separados. La animación corregida se sirve desde `/landing/arms-v2/`, conservando los archivos anteriores para cachés/documentos existentes. La identidad legal aparece en privacidad y condiciones; el pie y la presentación enlazan a esa información sin repetir nombre o correo. Detalles de la corrección y sus verificaciones en [brazos y datos públicos](arms-correction.md).
