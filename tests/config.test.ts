@@ -47,6 +47,21 @@ test('production refuses incomplete settings, insecure Neon and URL paths before
   assert.equal(validateEnvironment({}).production, false);
 });
 
+test('production accepts Resend with only its API key and authorized sender', () => {
+  const resend = {
+    NODE_ENV: 'production',
+    APP_URL: 'https://bandarlog.app',
+    DATABASE_URL: 'postgresql://example@db.neon.tech/db?sslmode=verify-full',
+    AUTH_CHALLENGE_SECRET: 'test-only-auth-challenge-secret-at-least-32',
+    MAIL_TRANSPORT: 'resend',
+    MAIL_FROM: 'Bandarlog <notifications@bandarlog.app>',
+    RESEND_API_KEY: 're_test-only-placeholder',
+  };
+  assert.equal(validateEnvironment(resend).production, true);
+  assert.throws(() => validateEnvironment({ ...resend, RESEND_API_KEY: '' }), /RESEND_API_KEY/);
+  assert.throws(() => validateEnvironment({ ...resend, MAIL_FROM: '' }), /MAIL_FROM/);
+});
+
 test('bandarlog.app uses the legacy Railway origin only as an explicit migration alias', () => {
   const config = validateEnvironment({ APP_URL: 'https://bandarlog.app' });
   assert.deepEqual(config.legacyOrigins, ['https://bandarlog-production.up.railway.app']);
