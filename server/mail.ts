@@ -29,22 +29,17 @@ export function createMailTransport(
     return {
       kind: 'resend',
       async sendMail(message: MailInput) {
-        if (!message.from || !message.to || !message.subject)
-          throw new Error('El correo requiere remitente, destinatario y asunto.');
+        // Bandarlog queues one recipient per message. Keep this explicit:
+        // Nodemailer's address objects/arrays are not part of the current sending path.
+        if (typeof message.from !== 'string' || typeof message.to !== 'string' || !message.subject)
+          throw new Error('El correo requiere remitente y destinatario individuales y asunto.');
         if (typeof message.text !== 'string' && typeof message.html !== 'string')
           throw new Error('El correo requiere texto o HTML.');
-        const sender =
-          typeof message.from === 'string'
-            ? message.from
-            : message.from.name
-              ? `${message.from.name} <${message.from.address}>`
-              : message.from.address;
-        const recipients = (Array.isArray(message.to) ? message.to : [message.to]).map((entry) =>
-          typeof entry === 'string' ? entry : entry.address,
-        );
+        const sender = message.from;
+        const recipients = [message.to];
         // Notifications already carry a stable internal Message-ID. Map it to
         // Resend's 24-hour idempotency key instead of trying to override its Message-ID.
-        const internalId = message.headers?.['Message-ID'];
+        const internalId = (message.headers as Record<string, unknown> | undefined)?.['Message-ID'];
         const notificationId =
           typeof internalId === 'string'
             ? /^<([a-f0-9-]{36})@bandarlog\.local>$/.exec(internalId)?.[1]
