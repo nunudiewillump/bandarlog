@@ -41,7 +41,7 @@ export function validateEnvironment(env: NodeJS.ProcessEnv = process.env) {
     for (const name of mailRequirements) {
       if (!env[name]) throw new Error(`Producción requiere ${name}.`);
     }
-    if (env.SMTP_PORT && !['465', '587'].includes(env.SMTP_PORT))
+    if (provider === 'smtp' && env.SMTP_PORT && !['465', '587'].includes(env.SMTP_PORT))
       throw new Error('SMTP_PORT debe ser 465 o 587.');
   }
   if (env.DATABASE_URL) {

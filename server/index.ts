@@ -19,6 +19,7 @@ import { randomBytes, randomInt, createHash, randomUUID } from 'node:crypto';
 import { eq, and, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { createMailTransport } from './mail.js';
+import { mailFailure, MailDeliveryError } from './resend-mail.js';
 import { connect } from './db.js';
 import { seed } from './seed.js';
 import * as s from './schema.js';
@@ -231,7 +232,12 @@ async function deliverPlatform() {
     const pending = await ownerDb
       .select()
       .from(s.platformMail)
-      .where(eq(s.platformMail.status, 'pending'));
+      .where(
+        and(
+          eq(s.platformMail.status, 'pending'),
+          sql`(${s.platformMail.nextAttemptAt} is null or ${s.platformMail.nextAttemptAt} <= now())`,
+        ),
+      );
     for (const m of pending) {
       const claimed = await ownerDb
         .update(s.platformMail)
@@ -240,25 +246,36 @@ async function deliverPlatform() {
         .returning();
       if (!claimed.length) continue;
       try {
-        await mailTransport.sendMail({
+        const sent = await mailTransport.sendMail({
           from: process.env.MAIL_FROM,
           to: m.email,
           subject: m.subject,
           text: m.body,
           html: m.html,
+          idempotencyKey: 'bandarlog-platform/' + m.id,
         });
         await ownerDb
           .update(s.platformMail)
-          .set({ status: 'sent', sentAt: now() })
-          .where(eq(s.platformMail.id, m.id));
-      } catch {
-        await ownerDb
-          .update(s.platformMail)
           .set({
-            attempts: String(Number(m.attempts) + 1),
-            status: Number(m.attempts) + 1 >= 5 ? 'failed' : 'pending',
+            status: 'sent',
+            sentAt: now(),
+            nextAttemptAt: null,
+            providerMessageId: typeof sent.messageId === 'string' ? sent.messageId : null,
           })
           .where(eq(s.platformMail.id, m.id));
+        if (mailTransport.kind === 'resend')
+          console.info({ event: 'mail.accepted', provider: 'resend', messageId: sent.messageId });
+      } catch (error) {
+        const failure = mailFailure(error, Number(m.attempts) + 1);
+        await ownerDb.update(s.platformMail).set(failure).where(eq(s.platformMail.id, m.id));
+        if (mailTransport.kind === 'resend')
+          console.error({
+            event: 'mail.failed',
+            provider: 'resend',
+            status: error instanceof MailDeliveryError ? error.statusCode : undefined,
+            retry: failure.status === 'pending',
+          });
+        if (error instanceof MailDeliveryError && error.statusCode === 429) break;
       }
     }
   } finally {
@@ -296,7 +313,12 @@ async function deliver() {
     const pending = await db
       .select()
       .from(s.notifications)
-      .where(eq(s.notifications.status, 'pending'));
+      .where(
+        and(
+          eq(s.notifications.status, 'pending'),
+          sql`(${s.notifications.nextAttemptAt} is null or ${s.notifications.nextAttemptAt} <= now())`,
+        ),
+      );
     for (const m of pending) {
       if (Number(m.attempts) >= 5) continue;
       const claimed = await db
@@ -306,26 +328,43 @@ async function deliver() {
         .returning();
       if (!claimed.length) continue;
       try {
-        await mailTransport.sendMail({
+        const snapshot = m.html || renderMail({ title: m.subject, body: m.body, appUrl });
+        if (!m.html)
+          await db
+            .update(s.notifications)
+            .set({ html: snapshot })
+            .where(eq(s.notifications.id, m.id));
+        const sent = await mailTransport.sendMail({
           from: process.env.MAIL_FROM,
           to: m.email,
           subject: m.subject,
           text: m.body,
-          html: m.html || renderMail({ title: m.subject, body: m.body, appUrl }),
+          html: snapshot,
+          idempotencyKey: 'bandarlog-notification/' + m.id,
           headers: { 'Message-ID': `<${m.id}@bandarlog.local>` },
         });
         await db
           .update(s.notifications)
-          .set({ status: 'sent', sentAt: now() })
-          .where(eq(s.notifications.id, m.id));
-      } catch {
-        await db
-          .update(s.notifications)
           .set({
-            attempts: String(Number(m.attempts) + 1),
-            status: Number(m.attempts) + 1 >= 5 ? 'failed' : 'pending',
+            status: 'sent',
+            sentAt: now(),
+            nextAttemptAt: null,
+            providerMessageId: typeof sent.messageId === 'string' ? sent.messageId : null,
           })
           .where(eq(s.notifications.id, m.id));
+        if (mailTransport.kind === 'resend')
+          console.info({ event: 'mail.accepted', provider: 'resend', messageId: sent.messageId });
+      } catch (error) {
+        const failure = mailFailure(error, Number(m.attempts) + 1);
+        await db.update(s.notifications).set(failure).where(eq(s.notifications.id, m.id));
+        if (mailTransport.kind === 'resend')
+          console.error({
+            event: 'mail.failed',
+            provider: 'resend',
+            status: error instanceof MailDeliveryError ? error.statusCode : undefined,
+            retry: failure.status === 'pending',
+          });
+        if (error instanceof MailDeliveryError && error.statusCode === 429) break;
       }
     }
   } finally {
