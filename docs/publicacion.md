@@ -40,14 +40,16 @@ El dominio ya responde con HTTPS desde Railway. En el servicio de la aplicación
 NODE_ENV=production
 APP_URL=https://bandarlog.app
 LEGACY_APP_ORIGINS=https://bandarlog-production.up.railway.app
-MAIL_TRANSPORT=gmail_api
+MAIL_TRANSPORT=resend
+MAIL_FROM=Bandarlog <notifications@bandarlog.app>
+RESEND_API_KEY=<clave privada en Railway>
 ```
 
-Conserva `DATABASE_URL`, `AUTH_CHALLENGE_SECRET`, `MAIL_FROM`, `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET` y el resto de secretos existentes. No cambies la URL de Neon por el dominio web. No modifiques `BOOTSTRAP_EMAIL` para recrear usuarios. `.env.production.example` enumera las variables, sin valores privados. El desarrollo y las pruebas conservan sus orígenes locales y bases aisladas.
+Conserva `DATABASE_URL`, `AUTH_CHALLENGE_SECRET` y los demás secretos existentes. Para Resend se requiere `RESEND_API_KEY` y el remitente verificado indicado; las claves `GMAIL_*` quedan como alternativa, sin usarse mientras `MAIL_TRANSPORT=resend`. Activa Resend solamente después de fusionar y desplegar el código compatible. No cambies la URL de Neon por el dominio web. No modifiques `BOOTSTRAP_EMAIL` para recrear usuarios. `.env.production.example` enumera las variables, sin valores privados. El desarrollo y las pruebas conservan sus orígenes locales y bases aisladas.
 
 Si `APP_URL` es `https://bandarlog.app` y no se define `LEGACY_APP_ORIGINS`, se usa automáticamente el antiguo dominio de Railway. Se puede definir vacío para retirar esa compatibilidad cuando todas las instalaciones hayan migrado. No elimines el dominio antiguo antes de sincronizar las instalaciones previas.
 
-Mantén una sola réplica y el servicio activo para ejecutar recordatorios. No cambies el plan de Railway ni contrates servicios para activar esta implementación. Cambiar de dominio no crea un buzón `@bandarlog.app`: `MAIL_FROM` debe seguir siendo la cuenta o alias autorizado realmente con Gmail.
+Mantén una sola réplica y el servicio activo para ejecutar recordatorios. No cambies el plan de Railway ni contrates servicios para activar esta implementación. Cambiar de dominio no crea un buzón `@bandarlog.app`. Con Resend el remitente `notifications@bandarlog.app` puede enviar sin buzón, tras verificar el dominio; con Gmail `MAIL_FROM` debe ser una cuenta o alias autorizado.
 
 ## Google Cloud y Search Console
 
@@ -63,9 +65,9 @@ Mantén una sola réplica y el servicio activo para ejecutar recordatorios. No c
 | Dominio autorizado | `bandarlog.app` |
 
 4. En el cliente web de **inicio de sesión**, si se utiliza, registra `https://bandarlog.app` como origen JavaScript y `https://bandarlog.app/api/auth/google/callback` como redirección. No añadas `/g/ID` como origen. El callback es único: el estado de OAuth resuelve el grupo en servidor y verifica navegador, nonce y token. Los permisos de inicio de sesión son `openid email profile`.
-5. El cliente de **envío de Gmail** sigue siendo independiente. Solo necesita `https://www.googleapis.com/auth/gmail.send`, autorizado por la cuenta remitente de la plataforma. Los miembros de los grupos no tienen que conceder acceso a sus bandejas. Si se utiliza OAuth Playground para obtenerlo, registra su callback y activa **Use your own OAuth credentials**.
+5. Si se conserva **Gmail API** como alternativa, su cliente de envío sigue siendo independiente. Solo necesita `https://www.googleapis.com/auth/gmail.send`, autorizado por la cuenta remitente de la plataforma. Los miembros de los grupos no tienen que conceder acceso a sus bandejas. Si se utiliza OAuth Playground para obtenerlo, registra su callback y activa **Use your own OAuth credentials**.
 6. Corrige la marca y solicita de nuevo la revisión con las páginas públicas ya accesibles. Revisa **Público → Estado de publicación** y completa el paso a producción que Google permita o requiera. El código no puede verificar la propiedad por ti ni asegurar su aprobación.
-7. Después de salir del estado de pruebas, autoriza Gmail otra vez y sustituye `GMAIL_REFRESH_TOKEN` en Railway. Publicar no revive un token ya caducado. Mantener el cliente de envío en Testing puede volver a caducar el refresh token a los siete días. No compartas su valor en el chat ni en GitHub.
+7. Solo si se mantiene Gmail API: después de salir del estado de pruebas, autoriza Gmail otra vez y sustituye `GMAIL_REFRESH_TOKEN` en Railway. Publicar no revive un token ya caducado. Mantener el cliente de envío en Testing puede volver a caducar el refresh token a los siete días. No compartas su valor en el chat ni en GitHub.
 
 Los cambios de variables y OAuth externos no se han realizado desde este entorno: no hay herramienta de Railway o Google conectada para administrarlos. No se han añadido registros DNS desconocidos ni inventado una verificación.
 
