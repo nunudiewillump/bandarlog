@@ -30,12 +30,14 @@ export function validateEnvironment(env: NodeJS.ProcessEnv = process.env) {
       throw new Error('Producción requiere APP_URL HTTPS.');
     if (!env.DATABASE_URL) throw new Error('Producción requiere DATABASE_URL.');
     const provider = mailProvider(env);
-    if (!['smtp', 'gmail_api'].includes(provider))
-      throw new Error('Producción requiere MAIL_TRANSPORT=smtp o gmail_api.');
+    if (!['smtp', 'gmail_api', 'resend'].includes(provider))
+      throw new Error('Producción requiere MAIL_TRANSPORT=smtp, gmail_api o resend.');
     const mailRequirements =
       provider === 'gmail_api'
         ? ['GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN', 'MAIL_FROM']
-        : ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'MAIL_FROM'];
+        : provider === 'resend'
+          ? ['RESEND_API_KEY', 'MAIL_FROM']
+          : ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'MAIL_FROM'];
     for (const name of mailRequirements) {
       if (!env[name]) throw new Error(`Producción requiere ${name}.`);
     }
