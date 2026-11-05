@@ -11,9 +11,11 @@ El repositorio está preparado; no contiene credenciales de producción. No se h
 
 La primera ejecución crea las tablas con las migraciones de Drizzle y el administrador indicado en `BOOTSTRAP_EMAIL`. En producción no se crean usuarios ni tareas de demostración. No ejecutes importaciones de hojas ni semillas de desarrollo contra la base real.
 
-## 2. Correo en Railway Free, Trial o Hobby
+## 2. Correo transaccional en Railway
 
-[Railway bloquea SMTP en estos planes](https://docs.railway.com/reference/outbound-networking). La contraseña de aplicación de Gmail solo sirve para SMTP y no resuelve ese bloqueo. La aplicación admite Gmail API por HTTPS, manteniendo el remitente del grupo, sin leer su bandeja de entrada.
+**Opción recomendada — Resend HTTPS:** verifica `bandarlog.app` en Resend (SPF y DKIM según el panel, sin sustituir los registros web), genera una clave con permiso de envío y guárdala como `RESEND_API_KEY` en Railway. Usa `MAIL_TRANSPORT=resend` y `MAIL_FROM=Bandarlog <notifications@bandarlog.app>`. El remitente no es un buzón: para recibir respuestas hay que configurar recepción o reenvío por separado. No cambies `MAIL_TRANSPORT` hasta que el código de Resend esté fusionado y desplegado; verifica primero un envío real. Resend no necesita el OAuth de Gmail, y el login con Google conserva su cliente independiente.
+
+**Alternativa existente — Gmail API HTTPS:** [Railway bloquea SMTP en estos planes](https://docs.railway.com/reference/outbound-networking). La contraseña de aplicación de Gmail solo sirve para SMTP y no resuelve ese bloqueo. La aplicación admite Gmail API por HTTPS, manteniendo el remitente del grupo, sin leer su bandeja de entrada.
 
 Para configurarla, entra en Google Cloud con una cuenta administrada por el grupo:
 
@@ -43,11 +45,10 @@ Si se utiliza Railway Pro o superior, puedes elegir `MAIL_TRANSPORT=smtp`, con l
 | `DATABASE_URL` | `<URL PostgreSQL privada de Neon con sslmode=verify-full>` |
 | `BOOTSTRAP_EMAIL` | `<correo del primer administrador>` |
 | `AUTH_CHALLENGE_SECRET` | `<secreto privado aleatorio estable de al menos 32 caracteres>` |
-| `MAIL_TRANSPORT` | `gmail_api` |
-| `MAIL_FROM` | `Bandarlog <correo-remitente-autorizado>` |
-| `GMAIL_CLIENT_ID` | `<cliente OAuth de Google>` |
-| `GMAIL_CLIENT_SECRET` | `<secreto OAuth>` |
-| `GMAIL_REFRESH_TOKEN` | `<refresh token de la cuenta remitente>` |
+| `MAIL_TRANSPORT` | `resend` (o `gmail_api` si se mantiene Gmail) |
+| `MAIL_FROM` | `Bandarlog <notifications@bandarlog.app>` |
+| `RESEND_API_KEY` | `<clave de Resend con permisos de envío, solo para resend>` |
+| `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` | `<credenciales OAuth; solo para gmail_api>` |
 
 Railway proporciona `PORT`: no lo fijes al puerto local del desarrollo. Deja una sola réplica. Desactiva el modo de suspensión automática/Serverless si está habilitado para que el proceso pueda ejecutar los recordatorios aun sin visitas; los costes dependen del plan contratado.
 
@@ -56,11 +57,11 @@ Railway proporciona `PORT`: no lo fijes al puerto local del desarrollo. Deja una
 ## 4. Verificación
 
 - El despliegue debe superar el healthcheck y el dominio sin ID de grupo debe mostrar la presentación pública; `/acceso` conserva el acceso del grupo inicial, sin bandeja de desarrollo.
-- `GET /api/health` debe indicar `ok: true`, `database: postgresql` y `mail: gmail_api`. Esto confirma el arranque y la base, pero no certifica por sí solo la autorización del correo.
+- `GET /api/health` debe indicar `ok: true`, `database: postgresql` y `mail: resend` (o `gmail_api` si se mantiene el servicio antiguo). Esto confirma el arranque y la base, pero no certifica por sí solo la autorización del correo.
 - Solicita el código usando el correo de `BOOTSTRAP_EMAIL`, verifica su recepción real e introdúcelo dentro de Bandarlog. Completa nombre y foto opcional si es una cuenta nueva. No compartas códigos ni enlaces de acceso.
 - Crea un proyecto, una comisión y una tarea con una fecha futura; comprueba el correo de asignación y que sus enlaces solo modifican datos tras autenticar y confirmar.
 - Recarga la aplicación y comprueba la persistencia. Las tablas se pueden consultar en Neon sin exportar datos privados al chat.
-- Si falla el correo, verifica que Gmail API está habilitada, que el token pertenece al cliente OAuth configurado, que el alcance autorizado incluye `gmail.send` y que no ha caducado el consentimiento de prueba.
+- Si falla el correo con Resend, revisa su dominio verificado, la autorización de la clave, `MAIL_FROM` y el estado del mensaje en Resend. Si usas Gmail API, verifica el refresh token y `gmail.send`. No vuelvas a enviar automáticamente correos antiguos sin comprobar el estado de la cola.
 
 Los valores secretos pueden reemplazarse en Railway sin editar ni volver a publicarlos en GitHub. Las pruebas locales de Gmail usan respuestas simuladas y no sustituyen la comprobación con la cuenta real. La ruta node-postgres se ha comprobado contra PostgreSQL 17 local; la conexión concreta a Neon requiere completar estos pasos.
 
