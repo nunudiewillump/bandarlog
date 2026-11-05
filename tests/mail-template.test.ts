@@ -1,6 +1,31 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { renderMail } from '../server/mail-template';
+test('access codes are copyable prominent text with an original key mascot, without changing ordinary emails', async () => {
+  const body = 'Grupo: Prueba\nTu código de acceso es: 012345\nCaduca en 10 minutos.';
+  const html = renderMail({
+    title: 'Tu código de acceso a Bandarlog',
+    body,
+    appUrl: 'https://bandarlog.example.test',
+  });
+  assert.match(html, /data-mail-code[^>]*font-size:36px[^>]*>012345<\/div>/);
+  assert.equal(html.match(/012345/g)?.length, 1);
+  assert.match(html, /monkey-key-2d.png/);
+  assert.match(html, /Caduca en 10 minutos/);
+  const ordinary = renderMail({
+    title: 'Nueva asignación',
+    body: 'Referencia: 012345',
+    appUrl: 'https://bandarlog.example.test',
+  });
+  assert.equal(ordinary.includes('data-mail-code'), false);
+  const { default: sharp } = await import('sharp');
+  const { readFile } = await import('node:fs/promises');
+  const asset = await readFile('public/monkey-key-2d.png');
+  const info = await sharp(asset).metadata();
+  assert.equal(info.hasAlpha, true);
+  assert.equal(info.height, 240);
+  assert.ok(asset.length < 50000);
+});
 test('Bandarlog email HTML escapes untrusted values, preserves text and renders usable secure buttons', () => {
   const html = renderMail({
     title: '<script>alert(1)</script>',

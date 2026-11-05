@@ -93,7 +93,7 @@ async function bugReviewUser(label: string) {
   return { ...user, auth };
 }
 
-test('bug review: deleted commissions do not block account removal but live pending tasks do', async () => {
+test('bug review: account removal clears assignments in deleted, completed and pending tasks without losing history', async () => {
   const target = await bugReviewUser('historical-tasks');
   const commissions: string[] = [];
   for (const name of ['Historial eliminado', 'Trabajo vigente']) {
@@ -120,18 +120,33 @@ test('bug review: deleted commissions do not block account removal but live pend
   const data = (await request('/data')).body;
   assert.ok(!data.commissions.some((c: any) => c.id === commissions[0]));
   assert.ok(!data.tasks.some((t: any) => t.id === tasks[0]));
-  assert.equal((await request(`/users/${target.id}`, 'DELETE')).status, 409);
   assert.equal((await request(`/tasks/${tasks[1]}`, 'PATCH', { status: 'done' })).status, 200);
+  const pending = await request('/tasks', 'POST', {
+    title: 'Pendiente que queda sin responsables',
+    commissionId: commissions[1],
+    due: '2028-06-01T21:59:59Z',
+    responsibleIds: [target.id],
+  });
+  assert.equal(pending.status, 201);
   assert.equal((await request(`/users/${target.id}`, 'DELETE')).status, 200);
   assert.equal((await request('/me', 'GET', undefined, target.auth)).status, 401);
   const history = (await request('/data')).body;
   assert.ok(history.tasks.some((t: any) => t.id === tasks[1] && t.status === 'done'));
-  assert.ok(history.assignments.some((a: any) => a.taskId === tasks[1] && a.userId === target.id));
+  assert.ok(
+    history.tasks.some((task: any) => task.id === pending.body.id && task.status === 'pending'),
+  );
+  assert.equal(
+    history.assignments.some((a: any) => a.userId === target.id),
+    false,
+  );
+  assert.ok(
+    history.activity.some((entry: any) => entry.taskId === tasks[1] && entry.kind === 'unassigned'),
+  );
   assert.equal(
     (await request(`/tasks/${tasks[1]}`, 'PATCH', { title: 'Historial editable' })).status,
     200,
   );
-  assert.equal((await request(`/tasks/${tasks[1]}`, 'PATCH', { status: 'pending' })).status, 409);
+  assert.equal((await request(`/tasks/${tasks[1]}`, 'PATCH', { status: 'pending' })).status, 200);
   assert.equal(
     (await request(`/commissions/${commissions[1]}/members`, 'POST', { userIds: ['alex'] })).status,
     200,

@@ -99,6 +99,19 @@ test('a failed boot offers retry instead of claiming the session expired, and re
     ),
   ).toHaveCount(0);
 });
+test('a fast anonymous response cannot hide a slower health failure', async ({ page }) => {
+  await page.route('**/api/health', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    return route.fulfill({ status: 503, json: { error: 'Servicio temporalmente no disponible.' } });
+  });
+  await page.route('**/api/me', (route) =>
+    route.fulfill({ status: 401, json: { error: 'Inicia sesión.' } }),
+  );
+  await page.goto('/acceso');
+  await expect(page.getByRole('heading', { name: 'No se pudo cargar Bandarlog' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Reintentar', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Recibir código', exact: true })).toHaveCount(0);
+});
 test('phone landscape retains the canopy and five destinations while scrolling commission rows', async ({
   page,
 }) => {

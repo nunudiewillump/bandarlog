@@ -20,7 +20,7 @@ import { eq, and, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { createMailTransport } from './mail.js';
 import { mailFailure, MailDeliveryError } from './resend-mail.js';
-import { connect } from './db.js';
+import { connect, type Database } from './db.js';
 import { seed } from './seed.js';
 import * as s from './schema.js';
 import { validateEnvironment } from './config.js';
@@ -43,6 +43,7 @@ import { projectSummaries } from './project-summaries.js';
 import { projectTypeInput } from './project-input.js';
 import {
   codeVerifier,
+  codeRequestId,
   equalSecret,
   sessionDeadline,
   googleEmailAuthoritative,
@@ -372,14 +373,18 @@ async function deliver() {
   }
 }
 // Tokens are stored only as hashes. A GET never consumes a token or changes a task.
-app.get('/api/health', async (_q, r) => {
-  await db.execute(sql`select 1`);
+async function health(_q: express.Request, r: express.Response) {
+  // This probe reads no tenant tables; avoid a tenant transaction and role setup.
+  r.set('Cache-Control', 'no-store');
+  await ownerDb.execute(sql`select 1`);
   r.json({
     ok: true,
     mail: mailTransport?.kind || 'development',
     database: process.env.DATABASE_URL ? 'postgresql' : 'pglite',
   });
-});
+}
+site.get('/api/health', health);
+app.get('/api/health', health);
 app.post('/api/auth/request', async (q, r) => {
   const input = parse(
     z.object({ email, task: z.string().max(100).optional(), action: statuses.optional() }),
@@ -530,16 +535,35 @@ app.post('/api/auth/code/request', async (q, r) => {
       .where(eq(s.authChallenges.email, input.email))
       .for('update');
     const wait = Math.ceil((+new Date(previous.requestedAt) + 60000 - stamp) / 1000);
-    if (wait > 0) return { retryAfter: wait };
+    const previousId = codeRequestId(
+      challengeSecret,
+      groupContext.getStore()!.id,
+      input.email,
+      previous.requestedAt,
+    );
+    const recovery =
+      hash(previousId) === previous.id && +new Date(previous.expires) > stamp
+        ? {
+            challengeId: previousId,
+            expiresIn: Math.ceil((+new Date(previous.expires) - stamp) / 1000),
+          }
+        : {};
+    if (wait > 0) return { retryAfter: wait, ...recovery };
     const reset = stamp - +new Date(previous.windowStartedAt) >= 15 * 60000;
     if (!reset && previous.requests >= 5)
       return {
+        ...recovery,
         retryAfter: Math.max(
           1,
           Math.ceil((+new Date(previous.windowStartedAt) + 15 * 60000 - stamp) / 1000),
         ),
       };
-    const challengeId = secret(),
+    const challengeId = codeRequestId(
+        challengeSecret,
+        groupContext.getStore()!.id,
+        input.email,
+        new Date(stamp).toISOString(),
+      ),
       code = String(randomInt(1000000)).padStart(6, '0');
     let googleLinkId: string | null = null;
     const googleLink = cookie(q, 'bandarlog_google_link');
@@ -599,9 +623,7 @@ app.post('/api/auth/code/request', async (q, r) => {
     return { challengeId };
   });
   if ('retryAfter' in result)
-    return r
-      .status(429)
-      .json({ error: 'Espera antes de solicitar otro código.', retryAfter: result.retryAfter });
+    return r.status(429).json({ error: 'Espera antes de solicitar otro código.', ...result });
   void deliver();
   r.json({
     challengeId: result.challengeId,
@@ -1050,6 +1072,33 @@ async function event(tx: any, taskId: string, uid: string, kind: string, body: s
     .insert(s.activity)
     .values({ id: id(), taskId, userId: uid, kind, body, createdAt: now() });
 }
+async function removeAssignments(tx: any, uid: string, actor: string, name: string, cid?: string) {
+  const removed = await tx
+    .delete(s.assignments)
+    .where(
+      and(
+        eq(s.assignments.userId, uid),
+        ...(cid
+          ? [sql`${s.assignments.taskId} in (select id from tasks where commission_id=${cid})`]
+          : []),
+      ),
+    )
+    .returning({ taskId: s.assignments.taskId });
+  const ids = [...new Set(removed.map((row: { taskId: string }) => row.taskId))] as string[];
+  if (!ids.length) return;
+  const stamp = now();
+  await tx.update(s.tasks).set({ updatedAt: stamp }).where(inArray(s.tasks.id, ids));
+  await tx.insert(s.activity).values(
+    ids.map((taskId) => ({
+      id: id(),
+      taskId,
+      userId: actor,
+      kind: 'unassigned',
+      body: `Se ha retirado a ${name} de los responsables al darle de baja.`,
+      createdAt: stamp,
+    })),
+  );
+}
 async function taskMail(
   tx: any,
   t: any,
@@ -1295,8 +1344,8 @@ app.patch('/api/profile', async (q, r) => {
     .where(eq(s.users.id, r.locals.user.id));
   r.json({ ok: true });
 });
-async function extraArtwork() {
-  const rows = await db
+async function extraArtwork(storage: Pick<Database, 'select'> = db) {
+  const rows = await storage
     .select({
       id: s.artworkEntries.id,
       name: s.artworkEntries.name,
@@ -1360,98 +1409,114 @@ app.get('/api/artwork/assets/:id/:kind', async (q, r) => {
   r.type('image/webp').send(Buffer.from(entry.data.split(',')[1], 'base64'));
 });
 app.get('/api/data', async (_q, r) => {
-  const catalogueExtra = await extraArtwork();
-  const u = r.locals.user;
-  const memberships = await db.select().from(s.members);
-  const cs = (await db.select().from(s.commissions)).filter(
-    (c) =>
-      !c.deletedAt &&
-      (globalManage(u) || memberships.some((m) => m.userId === u.id && m.commissionId === c.id)),
-  );
-  const cids = cs.map((c) => c.id);
-  const ts = cids.length
-    ? await db
-        .select()
-        .from(s.tasks)
-        .where(and(inArray(s.tasks.commissionId, cids), sql`${s.tasks.deletedAt} is null`))
-    : [];
-  const tids = ts.map((t) => t.id);
-  const visibleMembers = memberships.filter((m) => cids.includes(m.commissionId));
-  const projectMemberships = await db.select().from(s.projectMembers);
-  const visibleProjects = (await db.select().from(s.projects)).filter(
-    (p) =>
-      globalManage(u) ||
-      cs.some((c) => c.projectId === p.id) ||
-      projectMemberships.some((m) => m.projectId === p.id && m.userId === u.id),
-  );
-  const visibleProjectMembers = projectMemberships.filter((m) =>
-    visibleProjects.some((p) => p.id === m.projectId),
-  );
-  const uids = new Set([
-    u.id,
-    ...visibleMembers.map((m) => m.userId),
-    ...visibleProjectMembers.map((m) => m.userId),
-  ]);
-  const us = (await db.select().from(s.users))
-    .filter((x) => globalManage(u) || uids.has(x.id))
-    .map(({ preferences, ...x }) => x);
-  const summaries = await projectSummaries(db, visibleProjects);
-  r.json({
-    projectSummaries: summaries,
-    campSummaries: summaries.filter((summary) =>
-      visibleProjects.some((p) => p.id === summary.id && p.type === 'camp'),
-    ),
-    artworkEnabled: true,
-    artworkThemes,
-    projects: visibleProjects.map((p) => ({ ...p, artworkTheme: projectArtworkTheme(p) })),
-    projectMembers: visibleProjectMembers,
-    commissions: cs.map((c) => {
-      const theme = projectArtworkTheme(visibleProjects.find((p) => p.id === c.projectId)!);
-      const artworkLocked = hasArtworkAssociation(c.name, theme, catalogueExtra);
-      const artwork = selectArtwork(
-        {
-          name: c.name,
-          description: c.description,
-          theme,
-          key: artworkLocked ? null : c.artworkKey,
-          seed: c.id,
-        },
-        catalogueExtra,
-      );
-      return {
-        ...c,
-        iconUrl: artwork.iconUrl,
-        mascotUrl: artwork.mascotUrl,
-        artworkStatus: 'ready',
-        artworkKey: artwork.id,
-        artworkLocked,
-        artworkMode: !artworkLocked && c.artworkKey === artwork.id ? 'manual' : 'automatic',
-      };
-    }),
-    group: groupContext.getStore(),
-    members: visibleMembers,
-    users: us,
-    tasks: ts,
-    assignments: tids.length
-      ? await db.select().from(s.assignments).where(inArray(s.assignments.taskId, tids))
-      : [],
-    activity: tids.length
-      ? await db.select().from(s.activity).where(inArray(s.activity.taskId, tids))
-      : [],
-    invitations: (await db.select().from(s.invitations))
-      .filter(
-        (i) =>
-          globalManage(u) ||
-          visibleMembers.some(
-            (m) =>
-              m.commissionId === i.commissionId && m.userId === u.id && m.role === 'responsible',
-          ),
-      )
-      .map((i) => ({
-        ...i,
-        status: i.status === 'pending' && new Date(i.expires) < new Date() ? 'expired' : i.status,
-      })),
+  const response = await db.transaction(async (tx) => {
+    const db = tx as unknown as Database;
+    const catalogueExtra = await extraArtwork(db);
+    const u = r.locals.user;
+    const memberships = await db.select().from(s.members);
+    const cs = (await db.select().from(s.commissions)).filter(
+      (c) =>
+        !c.deletedAt &&
+        (globalManage(u) || memberships.some((m) => m.userId === u.id && m.commissionId === c.id)),
+    );
+    const cids = cs.map((c) => c.id);
+    const ts = cids.length
+      ? await db
+          .select()
+          .from(s.tasks)
+          .where(and(inArray(s.tasks.commissionId, cids), sql`${s.tasks.deletedAt} is null`))
+      : [];
+    const tids = ts.map((t) => t.id);
+    const visibleMembers = memberships.filter((m) => cids.includes(m.commissionId));
+    const projectMemberships = await db.select().from(s.projectMembers);
+    const visibleProjects = (await db.select().from(s.projects)).filter(
+      (p) =>
+        globalManage(u) ||
+        cs.some((c) => c.projectId === p.id) ||
+        projectMemberships.some((m) => m.projectId === p.id && m.userId === u.id),
+    );
+    const visibleProjectMembers = projectMemberships.filter((m) =>
+      visibleProjects.some((p) => p.id === m.projectId),
+    );
+    const uids = new Set([
+      u.id,
+      ...visibleMembers.map((m) => m.userId),
+      ...visibleProjectMembers.map((m) => m.userId),
+    ]);
+    const us = (await db.select().from(s.users))
+      .filter((x) => globalManage(u) || uids.has(x.id))
+      .map(({ preferences, ...x }) => x);
+    const activeUsers = new Set(us.filter((user) => !user.disabledAt).map((user) => user.id));
+    const taskCommissions = new Map(ts.map((task) => [task.id, task.commissionId]));
+    const memberKeys = new Set(
+      visibleMembers.map((member) => JSON.stringify([member.commissionId, member.userId])),
+    );
+    const assignments = tids.length
+      ? (await db.select().from(s.assignments).where(inArray(s.assignments.taskId, tids))).filter(
+          (assignment) =>
+            activeUsers.has(assignment.userId) &&
+            memberKeys.has(
+              JSON.stringify([taskCommissions.get(assignment.taskId), assignment.userId]),
+            ),
+        )
+      : [];
+    const summaries = await projectSummaries(db, visibleProjects);
+    return {
+      projectSummaries: summaries,
+      campSummaries: summaries.filter((summary) =>
+        visibleProjects.some((p) => p.id === summary.id && p.type === 'camp'),
+      ),
+      artworkEnabled: true,
+      artworkThemes,
+      projects: visibleProjects.map((p) => ({ ...p, artworkTheme: projectArtworkTheme(p) })),
+      projectMembers: visibleProjectMembers,
+      commissions: cs.map((c) => {
+        const theme = projectArtworkTheme(visibleProjects.find((p) => p.id === c.projectId)!);
+        const artworkLocked = hasArtworkAssociation(c.name, theme, catalogueExtra);
+        const artwork = selectArtwork(
+          {
+            name: c.name,
+            description: c.description,
+            theme,
+            key: artworkLocked ? null : c.artworkKey,
+            seed: c.id,
+          },
+          catalogueExtra,
+        );
+        return {
+          ...c,
+          iconUrl: artwork.iconUrl,
+          mascotUrl: artwork.mascotUrl,
+          artworkStatus: 'ready',
+          artworkKey: artwork.id,
+          artworkLocked,
+          artworkMode: !artworkLocked && c.artworkKey === artwork.id ? 'manual' : 'automatic',
+        };
+      }),
+      group: groupContext.getStore(),
+      members: visibleMembers,
+      users: us,
+      tasks: ts,
+      assignments,
+      activity: tids.length
+        ? await db.select().from(s.activity).where(inArray(s.activity.taskId, tids))
+        : [],
+      invitations: (await db.select().from(s.invitations))
+        .filter(
+          (i) =>
+            globalManage(u) ||
+            visibleMembers.some(
+              (m) =>
+                m.commissionId === i.commissionId && m.userId === u.id && m.role === 'responsible',
+            ),
+        )
+        .map((i) => ({
+          ...i,
+          status: i.status === 'pending' && new Date(i.expires) < new Date() ? 'expired' : i.status,
+        })),
+    };
   });
+  r.json(response);
 });
 app.post('/api/projects', async (q, r) => {
   if (!globalManage(r.locals.user)) fail(403, 'Solo coordinación puede crear proyectos.');
@@ -1678,18 +1743,8 @@ app.delete('/api/commissions/:id/members/:uid', async (q, r) => {
   await authorize(r.locals.user, cid, true);
   await db.transaction(async (tx: any) => {
     await tx.execute(sql`select id from commissions where id=${cid} for update`);
-    const assigned = await tx
-      .select({ id: s.tasks.id })
-      .from(s.tasks)
-      .innerJoin(s.assignments, eq(s.assignments.taskId, s.tasks.id))
-      .where(
-        and(
-          eq(s.tasks.commissionId, cid),
-          eq(s.assignments.userId, uid),
-          sql`${s.tasks.deletedAt} is null`,
-        ),
-      );
-    if (assigned.length) fail(409, 'Reasigna sus tareas antes de quitar a esta persona.');
+    const [person] = await tx.select().from(s.users).where(eq(s.users.id, uid));
+    await removeAssignments(tx, uid, r.locals.user.id, person?.name || 'esta persona', cid);
     await tx
       .delete(s.members)
       .where(and(eq(s.members.commissionId, cid), eq(s.members.userId, uid)));
@@ -1942,11 +1997,14 @@ async function createInvitations(q: express.Request, r: express.Response) {
       .where(and(eq(s.invitations.status, 'pending'), sql`${s.invitations.expires}<=now()`));
     for (const recipient of recipients) {
       const [user] = await tx.select().from(s.users).where(eq(s.users.email, recipient));
-      if (user?.disabledAt)
+      if (user?.disabledAt) {
+        // Legacy disabled accounts can still carry assignments from before automatic cleanup.
+        await removeAssignments(tx, user.id, r.locals.user.id, user.name);
         await tx
           .update(s.users)
           .set({ disabledAt: null, role: 'member' })
           .where(eq(s.users.id, user.id));
+      }
       if (
         user &&
         !user.disabledAt &&
@@ -2112,20 +2170,7 @@ app.delete('/api/users/:id', async (q, r) => {
     await tx.execute(
       sql`select id from commissions where id in (select commission_id from members where user_id=${uid}) order by id for update`,
     );
-    const open = await tx
-      .select({ id: s.tasks.id })
-      .from(s.tasks)
-      .innerJoin(s.assignments, eq(s.assignments.taskId, s.tasks.id))
-      .innerJoin(s.commissions, eq(s.commissions.id, s.tasks.commissionId))
-      .where(
-        and(
-          eq(s.assignments.userId, uid),
-          sql`${s.tasks.deletedAt} is null`,
-          sql`${s.commissions.deletedAt} is null`,
-          sql`${s.tasks.status} <> 'done'`,
-        ),
-      );
-    if (open.length) fail(409, 'Reasigna sus tareas pendientes antes de eliminar a esta persona.');
+    await removeAssignments(tx, uid, r.locals.user.id, target.name);
     await tx.update(s.users).set({ disabledAt: now() }).where(eq(s.users.id, uid));
     await tx.delete(s.sessions).where(eq(s.sessions.userId, uid));
     await tx.delete(s.tokens).where(eq(s.tokens.email, target.email));

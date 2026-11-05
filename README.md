@@ -75,7 +75,7 @@ npm run import -- examples/import.json --apply  # importar explícitamente a la 
 
 ## Seguridad y alcance
 
-Sesión HttpOnly, Secure en producción y SameSite; tokens almacenados como hash, expiración, CSRF y comprobación de origen. Autorización en cada operación y aislamiento de lecturas por membresía. Responsables obligatorios, membresías y finalización protegidos también por restricciones y triggers diferidos de PostgreSQL. Reasignación y cambios de membresía transaccionales. La retirada de miembros exige reasignar antes todas sus tareas para conservar la integridad.
+Sesión HttpOnly, Secure en producción y SameSite; tokens almacenados como hash, expiración, CSRF y comprobación de origen. Autorización en cada operación y aislamiento de lecturas por membresía. Crear una tarea o cambiar sus responsables exige seleccionar al menos uno; las membresías y la finalización se protegen también en PostgreSQL. Una baja de comisión o grupo retira las asignaciones de forma transaccional y conserva las tareas, su finalización e historial. Las tareas que se queden sin responsables pueden reasignarse. La reincorporación no restaura automáticamente asignaciones antiguas.
 
 El service worker cachea recursos estáticos y una página de desconexión; no guarda respuestas privadas de la API ni simula escrituras sin conexión. Manifest e iconos de 192/512 px incluidos. La instalación en dispositivos reales requiere servir mediante HTTPS; no se ha probado en iPhone físico ni se certifica todavía el cumplimiento completo WCAG 2.2 AA. Se han preparado foco visible, formularios etiquetados, teclado, diálogo con foco contenido y movimiento reducido.
 
