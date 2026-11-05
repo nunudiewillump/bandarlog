@@ -1,20 +1,6 @@
-@font-face {
-  font-family: 'Nunito Sans';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/public-fonts/nunito-sans-latin-400-normal.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Nunito Sans';
-  font-style: normal;
-  font-weight: 800;
-  font-display: swap;
-  src: url('/public-fonts/nunito-sans-latin-800-normal.woff2') format('woff2');
-}
 :root {
   color-scheme: light;
-  font-family: 'Nunito Sans', system-ui, sans-serif;
+  font-family: var(--font-interface);
   color: #24352b;
   background: #faf8f2;
   font-synthesis: weight;
@@ -104,11 +90,12 @@ svg {
   gap: 24px;
 }
 .public-brand {
+  font-family: var(--font-brand);
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  font-weight: 800;
-  letter-spacing: -0.035em;
+  font-weight: 400;
+  letter-spacing: 0;
   text-decoration: none;
   font-size: 25px;
 }
@@ -143,7 +130,7 @@ svg {
   border-radius: 9px;
   text-decoration: none;
   font:
-    800 17px 'Nunito Sans',
+    800 17px 'Poppins',
     sans-serif;
   cursor: pointer;
   margin-top: 28px;
@@ -227,7 +214,7 @@ svg {
   background: #fffefb;
   color: #24352b;
   font:
-    400 17px 'Nunito Sans',
+    400 17px 'Poppins',
     sans-serif;
   min-height: 48px;
 }
@@ -301,7 +288,7 @@ svg {
   color: #52675a;
   background: #edf0e5;
   font:
-    800 16px 'Nunito Sans',
+    800 16px 'Poppins',
     sans-serif;
 }
 .public-form input:invalid:not(:placeholder-shown) {
@@ -359,7 +346,7 @@ html {
   background: #fffefa;
   color: #24352b;
   font:
-    800 17px 'Nunito Sans',
+    800 17px 'Poppins',
     sans-serif;
   cursor: pointer;
 }
@@ -769,5 +756,12 @@ html {
   }
   .public-forest-copy .public-primary:hover {
     transform: none;
+  }
+}
+
+@media (max-width: 389px) {
+  .public-header .public-brand,
+  .public-landing .public-header .public-brand {
+    font-size: 20px;
   }
 }

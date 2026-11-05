@@ -1,5 +1,5 @@
 :root {
-  font-family: 'Nunito Sans', system-ui, sans-serif;
+  font-family: var(--font-interface);
   color: #24352b;
   background: #faf8f2;
   font-synthesis: none;
@@ -279,9 +279,10 @@ select {
   padding: 27px 14px 16px;
 }
 .brand {
+  font-family: var(--font-brand);
   font-size: 27px;
-  font-weight: 900;
-  letter-spacing: -1.4px;
+  font-weight: 400;
+  letter-spacing: 0;
   color: var(--green);
   text-decoration: none;
 }
@@ -2081,10 +2082,11 @@ td svg {
     display: flex;
     align-items: center;
     gap: 7px;
+    font-family: var(--font-brand);
     font-size: 22px;
-    font-weight: 900;
+    font-weight: 400;
     color: var(--green);
-    letter-spacing: -0.7px;
+    letter-spacing: 0;
     padding: 0;
   }
   .mobile-brand img {

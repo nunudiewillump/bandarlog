@@ -3,7 +3,7 @@ const GROUP_BASE = location.pathname.match(/^\/g\/[a-f0-9]{32}(?=\/|$)/)?.[0] ||
 const CACHE_FAMILY = GROUP_BASE
   ? 'bandarlog-static-' + GROUP_BASE.split('/')[2] + '-'
   : 'bandarlog-static-';
-const CACHE = CACHE_FAMILY + 'v6';
+const CACHE = CACHE_FAMILY + 'v7';
 // Keep the legacy install on its original origin and IndexedDB namespace.
 const SHELL = GROUP_BASE ? GROUP_BASE + '/' : '/acceso';
 self.addEventListener('install', (e) => {
@@ -12,6 +12,14 @@ self.addEventListener('install', (e) => {
       const cache = await caches.open(CACHE);
       await cache.addAll([
         '/offline.html',
+        '/typography.css',
+        '/public-fonts/bungee-latin-400-normal.woff2',
+        '/public-fonts/poppins-latin-400-normal.woff2',
+        '/public-fonts/poppins-latin-500-normal.woff2',
+        '/public-fonts/poppins-latin-600-normal.woff2',
+        '/public-fonts/poppins-latin-700-normal.woff2',
+        '/public-fonts/poppins-latin-800-normal.woff2',
+        '/public-fonts/poppins-latin-900-normal.woff2',
         '/icon-192.png',
         '/offline-store.js',
         '/offline-store.js?v=5',
@@ -116,12 +124,17 @@ self.addEventListener('fetch', (e) => {
   }
   if (
     url.pathname.startsWith('/assets/') ||
+    url.pathname === '/typography.css' ||
     /\.(png|svg|webp|woff2)$/.test(url.pathname) ||
     url.pathname === '/offline-store.js'
   ) {
     e.respondWith(
       caches.open(CACHE).then(async (cache) => {
-        const hit = await cache.match(e.request);
+        // Font bytes are public and identical for every Origin. Preview servers
+        // may add Vary: Origin; that must not hide the installation precache.
+        const hit = await cache.match(e.request, {
+          ignoreVary: url.pathname.startsWith('/public-fonts/'),
+        });
         if (hit) return hit;
         const response = await fetch(e.request);
         if (response.ok) await cache.put(e.request, response.clone());

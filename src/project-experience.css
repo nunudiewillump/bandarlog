@@ -20,6 +20,17 @@
     font-size: 12px;
   }
 }
+@media (max-width: 359px) {
+  .bottom-nav {
+    padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
+  }
+  .bottom-nav button {
+    padding-inline: 0;
+  }
+  .bottom-nav button span {
+    font-size: 11px;
+  }
+}
 /* Dark forest is the canvas. Every working surface keeps paper and dark ink. */
 @media (min-width: 1024px), (min-width: 768px) and (min-height: 600px) {
   body,
