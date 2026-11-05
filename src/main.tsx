@@ -289,7 +289,13 @@ function App() {
   const bootup = async () => {
     setBootError('');
     try {
-      const [health, session] = await Promise.all([api('/health'), api('/me')]);
+      const [healthResult, sessionResult] = await Promise.allSettled([api('/health'), api('/me')]);
+      // An unauthenticated session can return before the health check. Keep the
+      // loading state until both settle, and show service failures before login.
+      if (healthResult.status === 'rejected') throw healthResult.reason;
+      if (sessionResult.status === 'rejected') throw sessionResult.reason;
+      const health = healthResult.value,
+        session = sessionResult.value;
       setDevelopment(health.mail === 'development');
       setCSRF(session.csrf);
       setMe(session.user);
