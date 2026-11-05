@@ -458,3 +458,65 @@ test('only the owner review link can authorize activation; rejection creates no 
   assert.equal(last.length, 1);
   assert.ok(!last[0].body.includes('/confirmar-grupo'));
 });
+
+test('root resumes valid legacy and private-group sessions without granting access from a navigation hint', async () => {
+  const group = await createGroup('Grupo recordado', 'remembered@example.test');
+  const me = await call('/api/me', 'GET', undefined, group);
+  const hintCookie = me.headers
+    .getSetCookie()
+    .find((value) => value.startsWith('bandarlog_entry='))!;
+  assert.ok(hintCookie.includes('HttpOnly'));
+  assert.match(hintCookie, /Path=\/(?:;|$)/);
+  const hint = hintCookie.split(';')[0];
+  const rootSession = { ...group, base: '', cookie: hint };
+  const resumed = await call('/', 'GET', undefined, rootSession);
+  assert.equal(resumed.status, 303);
+  assert.equal(resumed.headers.get('location'), group.base + '/');
+  assert.match(resumed.headers.get('cache-control')!, /no-store/);
+  assert.match(resumed.headers.get('vary')!, /Cookie/);
+  assert.equal(
+    (await call('/api/me', 'GET', undefined, { ...group, cookie: hint })).status,
+    401,
+    'navigation hint is never an API credential',
+  );
+  assert.equal((await call('/privacidad', 'GET', undefined, rootSession)).status, 200);
+  const loggedOut = await call(
+    '/api/logout',
+    'POST',
+    {},
+    { ...group, cookie: group.cookie + '; ' + hint },
+  );
+  assert.equal(loggedOut.status, 200);
+  assert.equal(
+    (await call('/', 'GET', undefined, rootSession)).status,
+    200,
+    'revoked session returns the public landing',
+  );
+
+  const challenge = await call('/api/auth/code/request', 'POST', { email: 'alex@example.test' });
+  assert.equal(challenge.status, 200);
+  const mail = (await call('/api/dev/mail')).body
+    .filter((m: any) => m.email === 'alex@example.test' && /\b\d{6}\b/.test(m.body))
+    .at(-1);
+  const verified = await call('/api/auth/code/verify', 'POST', {
+    challengeId: challenge.body.challengeId,
+    code: mail.body.match(/\b(\d{6})\b/)[1],
+  });
+  assert.equal(verified.status, 200);
+  const legacyCookie = verified.headers
+    .getSetCookie()
+    .find((value) => value.startsWith('bandarlog='))!
+    .split(';')[0];
+  const oldInstall = { base: '', cookie: legacyCookie, csrf: '', userId: '' };
+  const legacyRoot = await call('/', 'GET', undefined, oldInstall);
+  assert.equal(legacyRoot.status, 303);
+  assert.equal(legacyRoot.headers.get('location'), '/acceso');
+  assert.equal(
+    (await call('/api/me', 'GET', undefined, oldInstall)).body.user.email,
+    'alex@example.test',
+  );
+  const manifest = (await call('/manifest.webmanifest')).body;
+  assert.equal(manifest.id, '/');
+  assert.equal(manifest.start_url, '/acceso');
+  assert.equal(manifest.scope, '/');
+});

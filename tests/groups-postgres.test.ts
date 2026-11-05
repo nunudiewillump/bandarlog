@@ -90,6 +90,7 @@ test(
         GMAIL_CLIENT_ID: 'test-only-client',
         GMAIL_CLIENT_SECRET: 'test-only-secret',
         GMAIL_REFRESH_TOKEN: 'test-only-refresh',
+        BOOTSTRAP_EMAIL: 'bootstrap-entry@example.test',
         GOOGLE_LOGIN_CLIENT_ID: '',
         GOOGLE_LOGIN_CLIENT_SECRET: '',
       },
@@ -111,7 +112,13 @@ test(
       }
       assert.ok(ready, logs);
       const { request: httpRequest } = await import('node:http');
-      const request = (path: string, host = 'bandarlog.app', method = 'GET', body?: string) =>
+      const request = (
+        path: string,
+        host = 'bandarlog.app',
+        method = 'GET',
+        body?: string,
+        cookie?: string,
+      ) =>
         new Promise<{ status: number; headers: Headers; text: () => Promise<string> }>(
           (resolve, reject) => {
             const q = httpRequest(
@@ -122,6 +129,7 @@ test(
                 method,
                 headers: {
                   Host: host,
+                  ...(cookie ? { Cookie: cookie } : {}),
                   ...(body
                     ? { 'Content-Type': 'application/json', Origin: 'https://' + host }
                     : {}),
@@ -135,7 +143,11 @@ test(
                     status: response.statusCode!,
                     headers: new Headers(
                       Object.entries(response.headers).flatMap(([k, v]) =>
-                        typeof v === 'string' ? [[k, v]] : [],
+                        typeof v === 'string'
+                          ? [[k, v]]
+                          : Array.isArray(v)
+                            ? v.map((value) => [k, value])
+                            : [],
                       ),
                     ),
                     text: async () => content,
@@ -155,6 +167,52 @@ test(
       assert.equal(policy.status, 200);
       assert.match(await policy.text(), /darguinenagimenez@gmail.com/);
       const legacy = 'bandarlog-production.up.railway.app';
+      const { Client } = await import('pg');
+      const { createHash } = await import('node:crypto');
+      const client = new Client({ connectionString: testUrl });
+      await client.connect();
+      try {
+        const token = 'c'.repeat(64);
+        await client.query(
+          "insert into users(id, group_id, name, email, role) values ('entry-production-user','rosales-702','Legacy test','legacy-entry@example.test','member') on conflict(id) do update set disabled_at=null",
+        );
+        await client.query(
+          "insert into sessions(id, group_id, user_id, csrf, renewed_at, expires, absolute_expires_at) values ($1,'rosales-702','entry-production-user','test-only', now()-interval '2 days',now()+interval '1 day',now()+interval '2 days') on conflict(id) do update set renewed_at=excluded.renewed_at, expires=excluded.expires, absolute_expires_at=excluded.absolute_expires_at",
+          [createHash('sha256').update(token).digest('hex')],
+        );
+        for (const host of ['bandarlog.app', legacy]) {
+          const resumed = await request('/', host, 'GET', undefined, 'bandarlog=' + token);
+          assert.equal(resumed.status, 303);
+          assert.equal(
+            resumed.headers.get('location'),
+            '/acceso',
+            'the legacy session stays on its current origin',
+          );
+          assert.match(resumed.headers.get('cache-control')!, /no-store/);
+        }
+        const renewed = await request('/api/me', legacy, 'GET', undefined, 'bandarlog=' + token);
+        assert.equal(renewed.status, 200);
+        const hint = renewed.headers
+          .getSetCookie()
+          .find((value) => value.startsWith('bandarlog_entry='))!;
+        assert.ok(hint.includes('Secure') && hint.includes('HttpOnly'));
+        assert.ok(
+          Number(hint.match(/Max-Age=(\d+)/)![1]) > 1.8 * 86400,
+          'the navigation hint uses the renewed deadline, capped by absolute expiry',
+        );
+        await client.query("update users set disabled_at=now() where id='entry-production-user'");
+        assert.equal(
+          (await request('/', 'bandarlog.app', 'GET', undefined, 'bandarlog=' + token)).status,
+          200,
+        );
+        assert.equal(
+          (await request('/', legacy, 'GET', undefined, 'bandarlog=' + token)).status,
+          308,
+        );
+      } finally {
+        await client.end();
+      }
+
       const link = await request('/?token=test-only-token&task=old-task', legacy);
       assert.equal(link.status, 308);
       assert.equal(

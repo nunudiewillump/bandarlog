@@ -84,3 +84,8 @@ Inicio ofrece una práctica individual después del onboarding a toda persona qu
 ## Grupos independientes y publicación
 
 Bandarlog usa `bandarlog.app` como dominio público. La página sin ID informa sobre el producto y ofrece entrada por ID y solicitud gratuita de grupo, aprobación expresa del responsable y posterior activación con correo verificado. Cada grupo dispone de administradores, miembros, proyectos, comisiones, tareas, avisos, historial y tutorial propios. El ID privado identifica el espacio y no sustituye la autenticación ni los permisos. El grupo inicial conserva sus IDs y relaciones y puede continuar temporalmente en `/acceso`; Administración encuentra el nuevo enlace en Perfil → Configurar grupo. La pañoleta toma los dos colores del grupo, editables solo por Administración. Privacidad y condiciones son públicas y se sirven sin JavaScript. La página de suscripción es una demostración explícita: no cambia planes ni tiene pagos. Detalles de aislamiento y activación en [publicación](docs/publicacion.md).
+
+
+## Reanudar una instalación existente
+
+La raíz recupera una sesión vigente del grupo inicial en `/acceso` dentro de su dominio actual. Las sesiones privadas recuerdan su espacio con un indicador HttpOnly sin nombre ni correo que nunca sirve como credencial de API. Se validan cuenta activa, grupo y caducidad antes de redirigir. Las instalaciones existentes mantienen su identidad y su IndexedDB; la caché estática se actualiza sin trasladar sesiones o colas entre dominios. Conservar el dominio antiguo mientras existan PWAs instaladas allí. Detalles en [entrada recordada](docs/forest-landing/implementation.md).

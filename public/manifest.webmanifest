@@ -3,7 +3,7 @@
   "name": "Bandarlog — Comisiones que avanzan",
   "short_name": "Bandarlog",
   "lang": "es",
-  "start_url": "/",
+  "start_url": "/acceso",
   "scope": "/",
   "display": "standalone",
   "background_color": "#103b2d",
