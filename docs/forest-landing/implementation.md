@@ -1,34 +1,40 @@
-# Portada ilustrada · Forest Experience
+# Portada ilustrada y acceso recordado · Forest Experience
 
-## Dirección y alcance
+## Dirección
 
-La entrada pública representa la coordinación scout como un puesto de trabajo en un claro del bosque. Conserva la marca, Nunito Sans local, crema y verde bosque. El propósito y la acción permanecen visibles: «Menos lío. Más grupo.», «Proyectos, comisiones y tareas scout.» y «Entrar a mi grupo». La explicación extensa continúa en `/presentacion`.
+La entrada conserva marca, Nunito Sans local, crema y verde bosque. El propósito y la acción siguen siendo «Menos lío. Más grupo.», «Proyectos, comisiones y tareas scout.» y «Entrar a mi grupo». La explicación extensa continúa en `/presentacion`.
 
-En escritorio, el mono, teclado, mesa y taburete ocupan aproximadamente la mitad izquierda. El título pasa a primer plano sobre el borde de la escena y el acceso queda despejado a la derecha. En móvil, el orden es texto, acceso e ilustración a ancho completo. Los controles mantienen 44 px como mínimo y el pie respeta el área segura inferior.
+La escena al teclado ocupa aproximadamente la mitad izquierda del escritorio. En móvil, texto y acceso preceden a la ilustración a ancho completo. El pie queda al fondo de la ventana con flex y altura mínima, y continúa en el flujo cuando el contenido necesita scroll: no es fijo ni tapa controles.
 
-La petición posterior del usuario prevalece sobre el primer experimento gráfico: la copa usa **exactamente** `shared/forest-art.ts` (haya/roble) y el lenguaje de nervios y colores de `BotanicalCanopy`. Tres planos de hojas, ramas laterales y sombras de solape dan profundidad. Las flores y bellotas son geometría SVG 2D discreta. No se incorpora la copa generada durante la exploración ni la liana suspendida de la portada anterior. La liana de celebración dentro de la aplicación no cambia.
+La copa utiliza exactamente las siluetas `shared/forest-art.ts` y los nervios/colores de `BotanicalCanopy`. Cuatro planos, más grupos de hojas, ramas laterales y fases distintas de balanceo aportan densidad y movimiento. Las flores y bellotas son geometría SVG 2D. No se incorpora follaje generado ni se modifica la copa operativa dentro de la aplicación.
 
-## Ilustración y movimiento
+## Animación real del mono
 
-Recurso original generado con la herramienta de imágenes a partir de la identidad de `public/monkey-wave-2d.png`: mono marrón, cara crema, pañoleta rosa/morada, mesa de madera, teclado, ordenador verde, helecho y plátano. Dos poses registradas muestran concentración y sonrisa. No es un modelo 3D ni un servicio de generación en tiempo de ejecución.
+Se sustituye el montaje de dos escenas por una marioneta 2D con piezas originales generadas a partir de la identidad de `public/monkey-wave-2d.png`. Las piezas están en `rig/`: cuerpo/mesa, cabeza y dos brazos. Los colores planos y el contorno siguen el lenguaje de la interfaz; la pañoleta es rosa/morada.
 
-Los cuatro WebP locales de `public/landing/` ofrecen las dos poses en 480 y 887 px, con transparencia real. El navegador selecciona según ancho y densidad; cada pose se descarga una vez aunque se reutilice para la capa de manos. Total aproximado de las dos poses: 99 KB a 480 px o 257 KB a 887 px. El fichero fuente permanece en el espacio de generación de esta sesión; los derivados publicados son los recursos utilizados por la app.
+`scripts/render-keyboard-animation.mjs` articula brazos alternos, cabeza, mirada, boca y parpadeos, con la mesa siempre estable. Produce 120 fotogramas a 15 fps para un ciclo de ocho segundos: tecleo, giro con sonrisa y regreso al teclado. Se codifican como un solo WebP animado en 480/768 px; el codificador puede agrupar fotogramas idénticos. No hay fundido entre dos escenas ni dos imágenes superpuestas en el DOM. El render requiere `sharp` y `ffmpeg` únicamente en la máquina que prepara los recursos; producción sirve archivos locales y no instala ni ejecuta FFmpeg.
 
-El ciclo CSS dura 14 s: tecleo breve con manos y pausa para mirar/sonreír durante unos 2 s. La capa de manos se oculta al mostrar la sonrisa. El movimiento de ramas es pequeño y desfasado entre planos; hojas y un plátano caen ocasionalmente y no interceptan clics. No hay sonidos, scripts externos, dependencias nuevas ni código del cliente de la aplicación en esta página.
+La imagen estática se muestra desde el HTML. Un pequeño script propio carga y decodifica la animación antes de sustituirla; el acceso no espera a esa descarga. Con movimiento reducido, sin JavaScript, fuera de pantalla o con la pestaña oculta se conserva una ilustración completa y estática. No hay control visible de pausa, por petición del usuario. No se añaden dependencias del cliente, sonido, analítica externa ni generación de imágenes en ejecución. Los recursos de dos poses del PR21 se conservan para compatibilidad con HTML previamente guardado, pero la nueva portada no los utiliza.
 
-«Pausar animación» es un checkbox nativo que detiene la escena y muestra la sonrisa. Funciona sin JavaScript mediante `:has()`. La preferencia no se guarda entre visitas. `prefers-reduced-motion` muestra esa misma ilustración estática, sin hojas que caigan, sin alterar la composición.
+Procedencia, hashes, dimensiones y tamaño de los recursos actuales en `artwork.json`.
 
-## Compatibilidad y verificación
+## Acceso recordado y PWA antigua
 
-No cambian autenticación, autorización, solicitudes de grupo, aprobación del titular, base de datos ni rutas privadas. Las páginas legales mantienen su cabecera estática y siguen disponibles sin sesión o JavaScript.
+`/` comprueba una sesión antigua válida del grupo inicial antes de mostrar la portada y redirige a `/acceso` **en el mismo origen**. Las instalaciones antiguas conservan el ID y scope `/`; su manifiesto utiliza `/acceso` para futuros arranques. Los grupos privados mantienen su URL y scope propios. No cambian IDs, roles, datos ni pertenencias.
 
-Verificaciones específicas de este cambio:
+Los accesos nuevos y `/api/me` establecen una cookie HttpOnly necesaria de navegación (`bandarlog_entry`), que contiene el ID privado del grupo y un identificador opaco de sesión, sin nombre o correo. La raíz comprueba en servidor el grupo, la cuenta activa y ambas caducidades de la sesión. El indicador no es una credencial válida para la API: el destino sigue requiriendo la cookie de sesión existente. El cierre de sesión revoca la sesión y retira su indicador; una cuenta desactivada o una sesión caducada no se recupera. No hay nuevas tablas, secretos ni migraciones.
+
+Las respuestas de la raíz son privadas, no se almacenan en caché y varían por Cookie. Los enlaces de invitación y acciones con parámetros conservan su flujo. Las páginas legales permanecen públicas incluso con sesión abierta.
+
+El service worker cambia su caché estática a v6 y conserva `/acceso` como shell del grupo inicial. No cambia IndexedDB, la cola de escrituras ni sus nombres. No se borra ni mueve información entre dominios. Hay que mantener el origen antiguo de Railway operativo y en `LEGACY_APP_ORIGINS` mientras existan instalaciones antiguas. Si la sesión expiró, es necesario identificarse de nuevo; las cookies de un dominio no pueden transferirse silenciosamente a otro.
+
+## Comprobaciones específicas
 
 - Build TypeScript/Vite.
-- Seis pruebas de `forest-landing.spec.ts`: 320, 390, 768 y 1440 px, imágenes decodificadas, ausencia de overflow, acceso sin interferencias, ciclo/sonrisa, pausa por teclado, movimiento reducido y modo sin JavaScript.
-- Dos recorridos públicos de `publication.spec.ts`: presentación, privacidad y demo a 390/1440 px sin JavaScript.
-- Caso API público de `groups-api.test.ts`: portada anónima, páginas públicas, solicitud validada y demo sin cobros.
+- Sesiones: recuperación antigua/privada, aislamiento, expiración inactiva/absoluta, baja de usuario y revocación al cerrar sesión; pruebas criptográficas de autenticación existentes.
+- API de grupos: raíz anónima, retorno a grupo activo, cookie HttpOnly, indicador sin capacidad de autenticación, invitaciones y aislamiento.
+- PostgreSQL local con un propietario sin superusuario: arranque de producción, dominios nuevo/antiguo y cuenta desactivada.
+- Recurso animado: muchos fotogramas reales, ciclo de ocho segundos, movimiento efectivo, mesa estable y póster completo.
+- Navegador: composición 320/390/768/1440 px, pie al fondo en ventana alta, acceso/legales sin JavaScript, movimiento reducido y pestaña oculta; reanudación de la PWA inicial y conservación de su cuenta offline; grupos privados y sus cachés; aceptación de invitaciones.
 
-La revisión visual se hace en capturas reales de Chromium, con una tanda inicial y una confirmación tras las correcciones. Las capturas viven en `artifacts/forest-landing/`. No se afirma comprobación en iPhone/Android físicos, Safari o correo real. No se ejecuta toda la suite porque el alcance es la portada SSR y su hoja de estilos; no cambia la estructura ni permisos de la app.
-
-Dirección y revisión independiente aplicadas con las skills [Designly Director](skill://plugins_6a80500711748191bee28e0649499efa/designly-director/SKILL.md), [Composition Director](skill://plugins_6a80500711748191bee28e0649499efa/composition-director/SKILL.md), [Brand Intelligence](skill://plugins_6a80500711748191bee28e0649499efa/brand-intelligence/SKILL.md) y [Visual QA](skill://plugins_6a80500711748191bee28e0649499efa/visual-qa/SKILL.md), junto con Impeccable. El motor local de Impeccable no se ejecutó por permisos; se leyó el contexto directamente y no se atribuyen resultados a ese motor.
+La cobertura se amplía a sesiones, dominios y sincronización porque cambian la selección de entrada y el shell del service worker. No se ejecuta de rutina toda la suite. Las capturas reales están en `artifacts/forest-landing/`; no sustituyen una comprobación en Safari o dispositivos físicos. No se ha fusionado ni desplegado esta revisión.

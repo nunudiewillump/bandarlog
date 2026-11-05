@@ -3,8 +3,9 @@ const GROUP_BASE = location.pathname.match(/^\/g\/[a-f0-9]{32}(?=\/|$)/)?.[0] ||
 const CACHE_FAMILY = GROUP_BASE
   ? 'bandarlog-static-' + GROUP_BASE.split('/')[2] + '-'
   : 'bandarlog-static-';
-const CACHE = CACHE_FAMILY + 'v5';
-const SHELL = GROUP_BASE + '/';
+const CACHE = CACHE_FAMILY + 'v6';
+// Keep the legacy install on its original origin and IndexedDB namespace.
+const SHELL = GROUP_BASE ? GROUP_BASE + '/' : '/acceso';
 self.addEventListener('install', (e) => {
   e.waitUntil(
     (async () => {

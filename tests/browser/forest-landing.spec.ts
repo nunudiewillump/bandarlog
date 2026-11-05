@@ -21,7 +21,7 @@ async function expectDecodedScene(page: Page) {
     .poll(() =>
       page.locator('.public-keyboard-scene img').evaluateAll(
         (images) =>
-          images.length >= 2 &&
+          images.length === 1 &&
           images.every((element) => {
             const image = element as HTMLImageElement;
             return image.complete && image.naturalWidth > 0;
@@ -131,57 +131,58 @@ for (const width of [320, 390, 768, 1440]) {
   });
 }
 
-test('typing becomes a smile, can be paused by keyboard, and respects reduced motion', async ({
+test('animated puppet has one image, honors reduced motion and stops when the page is hidden', async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1440, height: 950 });
+  await page.setViewportSize({ width: 1440, height: 1400 });
   await page.goto('/');
   await expectDecodedScene(page);
-  const working = page.locator('.public-keyboard-working-frame');
-  const smile = page.locator('.public-keyboard-smile-frame');
-  const hands = page.locator('.public-keyboard-hands');
-  await expect(hands).toHaveCSS('animation-name', /public-typing/);
-  await holdPose(page, 1000);
-  await expect(working).toHaveCSS('opacity', '1');
-  await expect(smile).toHaveCSS('opacity', '0');
-  await holdPose(page, 12500);
-  await expect(working).toHaveCSS('opacity', '0');
-  await expect(smile).toHaveCSS('opacity', '1');
-  await expect(hands).toHaveCSS('opacity', '0');
-  await mkdir('artifacts/forest-landing', { recursive: true });
-  await page.screenshot({ path: 'artifacts/forest-landing/smile-1440.png', fullPage: true });
-
-  const pause = page.getByRole('checkbox', { name: 'Pausar animación', exact: true });
-  await pause.focus();
-  await page.keyboard.press('Space');
-  await expect(pause).toBeChecked();
-  await expect(hands).toHaveCSS('animation-name', 'none');
-  await expect(smile).toHaveCSS('opacity', '1');
-  await expect(page.locator('.public-falling-stage')).toBeHidden();
-  await page.keyboard.press('Space');
-  await expect(pause).not.toBeChecked();
-  await expect(hands).toHaveCSS('animation-name', /public-typing/);
-
+  const image = page.locator('.public-monkey-animation');
+  await expect(page.getByRole('checkbox', { name: 'Pausar animación' })).toHaveCount(0);
+  await expect
+    .poll(() => image.evaluate((el) => (el as HTMLImageElement).currentSrc))
+    .toContain('animated-768.webp');
+  const footer = await page.locator('.public-footer').boundingBox();
+  expect(Math.abs(footer!.y + footer!.height - 1400)).toBeLessThan(2);
   const sceneBefore = await page.locator('.public-keyboard-scene').boundingBox();
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await expect(hands).toHaveCSS('animation-name', 'none');
-  await expect(smile).toHaveCSS('opacity', '1');
-  await expect(working).toHaveCSS('opacity', '0');
+  await expect
+    .poll(() => image.evaluate((el) => (el as HTMLImageElement).currentSrc))
+    .toContain('poster.webp');
   await expect(page.locator('.public-falling-stage')).toBeHidden();
   expect(await page.locator('.public-keyboard-scene').boundingBox()).toEqual(sceneBefore);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect(page.locator('body')).toHaveAttribute('data-motion-paused', '');
+  await expect(image).toHaveAttribute('src', '/landing/monkey-keyboard-poster.webp');
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect
+    .poll(() => image.evaluate((el) => (el as HTMLImageElement).currentSrc))
+    .toContain('animated-768.webp');
 });
 
 test.describe('forest entrance without JavaScript', () => {
   test.use({ javaScriptEnabled: false });
-  test('keeps the illustration, pause control and access usable', async ({ page }) => {
+  test('keeps the complete static illustration and access usable', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
     await expect(page.getByRole('heading', { name: /Menos lío/ })).toBeVisible();
     await expectDecodedScene(page);
-    const pause = page.getByRole('checkbox', { name: 'Pausar animación', exact: true });
-    await pause.check();
-    await expect(page.locator('.public-keyboard-hands')).toHaveCSS('animation-name', 'none');
-    await expect(page.locator('.public-keyboard-smile-frame')).toHaveCSS('opacity', '1');
+    await expect(page.getByRole('checkbox', { name: 'Pausar animación' })).toHaveCount(0);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await expect
+      .poll(() =>
+        page
+          .locator('.public-monkey-animation')
+          .evaluate((el) => (el as HTMLImageElement).currentSrc),
+      )
+      .toContain('poster.webp');
     await page.getByRole('link', { name: 'Entrar a mi grupo', exact: true }).click();
     await expect(page.getByLabel('ID de grupo', { exact: true })).toBeVisible();
   });

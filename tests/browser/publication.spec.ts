@@ -56,9 +56,15 @@ test.describe('public website without JavaScript or login', () => {
         fullPage: true,
         animations: 'disabled',
       });
-      await expect(page.locator('.public-keyboard-hands')).not.toHaveCSS('animation-name', 'none');
+      await expect(page.locator('.public-keyboard-scene img')).toHaveCount(1);
       await page.emulateMedia({ reducedMotion: 'reduce' });
-      await expect(page.locator('.public-keyboard-hands')).toHaveCSS('animation-name', 'none');
+      await expect
+        .poll(() =>
+          page
+            .locator('.public-keyboard-scene img')
+            .evaluate((el) => (el as HTMLImageElement).currentSrc),
+        )
+        .toContain('poster.webp');
       await expect(page.locator('.public-falling-stage')).toBeHidden();
       await page.getByRole('link', { name: 'Sobre Bandarlog', exact: true }).click();
       await expect(
@@ -104,6 +110,9 @@ test('group signup, path-scoped sessions, profile colors and offline storage sta
   await expect(page.locator('.mobile-focus')).toBeVisible();
   const baseA = new URL(page.url()).pathname.replace(/\/$/, '');
   const a = await page.request.get(baseA + '/api/me').then((r) => r.json());
+  await page.goto('/');
+  await expect(page).toHaveURL(new RegExp(baseA + '/$'));
+  await expect(page.locator('.mobile-focus')).toBeVisible();
   const project = await page.request.post(baseA + '/api/projects', {
     headers: { 'X-CSRF-Token': a.csrf },
     data: { name: 'Proyecto solo del bosque', starts: '2027-01-01', ends: '2027-12-31' },

@@ -1,6 +1,7 @@
 import express from 'express';
 import { readFile } from 'node:fs/promises';
 import { publicSite, renderPublicForm, renderPublicHome } from './public-site.js';
+import { ENTRY_COOKIE, requestCookie, rememberEntry, rememberedEntry } from './remembered-entry.js';
 import { publicInfo } from '../shared/public-info.js';
 import { groupContext, groupPath, groupUrl, type Group } from './group-context.js';
 import { groupRegistrationRoutes, groupResolver, groupColor } from './groups.js';
@@ -71,7 +72,10 @@ site.use((q, r, next) => {
     '/robots.txt',
     '/sitemap.xml',
   ].includes(q.path);
-  const anonymousHome = q.path === '/' && !q.headers.cookie?.includes('bandarlog=');
+  const anonymousHome =
+    q.path === '/' &&
+    !requestCookie(q.headers.cookie, 'bandarlog') &&
+    !requestCookie(q.headers.cookie, ENTRY_COOKIE);
   if (
     oldHost &&
     ['GET', 'HEAD'].includes(q.method) &&
@@ -430,6 +434,7 @@ function sessionCookie(r: express.Response, raw: string, expires = Date.now() + 
     maxAge: Math.max(0, expires - Date.now()),
     path: groupPath() || '/',
   });
+  rememberEntry(r, groupContext.getStore()!, hash(raw), expires, prod);
 }
 const cookie = (q: express.Request, name: string) =>
   q.headers.cookie
@@ -802,7 +807,7 @@ app.get('/manifest.webmanifest', (_q, r) => {
       name: 'Bandarlog · ' + group.name,
       short_name: 'Bandarlog',
       lang: 'es',
-      start_url: base + '/',
+      start_url: base ? base + '/' : '/acceso',
       scope: base + '/',
       display: 'standalone',
       background_color: '#103b2d',
@@ -865,7 +870,10 @@ app.use('/api', async (q, r, n) => {
         ),
       )
       .returning();
-    if (renewed.length) sessionCookie(r, raw, +new Date(expires));
+    if (renewed.length) {
+      r.locals.session = renewed[0];
+      sessionCookie(r, raw, +new Date(expires));
+    }
   }
   n();
 });
@@ -1154,7 +1162,14 @@ app.patch('/api/group', async (q, r) => {
   await ownerDb.update(s.groups).set(input).where(eq(s.groups.id, groupContext.getStore()!.id));
   r.json({ ok: true });
 });
-app.get('/api/me', (_q, r) =>
+app.get('/api/me', (_q, r) => {
+  rememberEntry(
+    r,
+    groupContext.getStore()!,
+    r.locals.session.id,
+    Math.min(+new Date(r.locals.session.expires), +new Date(r.locals.session.absoluteExpiresAt)),
+    prod,
+  );
   r.json({
     user: r.locals.user,
     group: groupContext.getStore(),
@@ -1163,8 +1178,8 @@ app.get('/api/me', (_q, r) =>
     googleEnabled: Boolean(
       process.env.GOOGLE_LOGIN_CLIENT_ID && process.env.GOOGLE_LOGIN_CLIENT_SECRET,
     ),
-  }),
-);
+  });
+});
 app.post('/api/onboarding', async (q, r) => {
   const input = parse(
     z.object({ name: text, avatarUrl: z.string().nullable().optional() }),
@@ -1190,8 +1205,13 @@ app.post('/api/onboarding', async (q, r) => {
   });
   r.json({ ok: true });
 });
-app.post('/api/logout', async (_q, r) => {
+app.post('/api/logout', async (q, r) => {
   await db.delete(s.sessions).where(eq(s.sessions.id, r.locals.session.id));
+  if (
+    requestCookie(q.headers.cookie, ENTRY_COOKIE) ===
+    groupContext.getStore()!.privateId + '.' + r.locals.session.id
+  )
+    r.clearCookie(ENTRY_COOKIE, { path: '/' });
   r.clearCookie('bandarlog', { path: groupPath() || '/' }).json({ ok: true });
 });
 app.patch('/api/profile', async (q, r) => {
@@ -2240,7 +2260,8 @@ if (!prod)
     r.json(await ownerDb.select().from(s.platformMail).orderBy(s.platformMail.createdAt)),
   );
 site.use('/g/:groupId', groupResolver(ownerDb), app);
-site.get('/', (q, r, next) => {
+site.get('/', async (q, r, next) => {
+  r.set('Cache-Control', 'private, no-store').vary('Cookie');
   const legacyQuery = [
     'token',
     'task',
@@ -2260,6 +2281,11 @@ site.get('/', (q, r, next) => {
       );
     return next();
   }
+  const entry = await rememberedEntry(ownerDb, q.headers.cookie, legacyGroup.id);
+  if (entry) return r.redirect(303, entry);
+  if (requestCookie(q.headers.cookie, ENTRY_COOKIE)) r.clearCookie(ENTRY_COOKIE, { path: '/' });
+  if (prod && legacyOrigins.includes('https://' + (q.get('host') || '').toLowerCase()))
+    return r.redirect(308, appUrl + q.originalUrl);
   r.type('html').send(renderPublicHome(appUrl));
 });
 site.use(async (q, r, next) => {

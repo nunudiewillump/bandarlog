@@ -365,6 +365,10 @@ html {
 }
 .public-landing {
   background: #faf8f2;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
 }
 .public-landing .public-header {
   overflow: visible;
@@ -405,27 +409,32 @@ html {
 }
 .public-landing .public-canopy-twig {
   transform-origin: 0 0;
-  animation: public-bough-breathe 8s ease-in-out infinite alternate;
+  animation: public-bough-breathe 4.5s ease-in-out infinite alternate;
 }
 .public-landing .public-canopy-plane-1 .public-canopy-twig {
   animation-delay: -4s;
-  animation-duration: 11s;
+  animation-duration: 6.5s;
 }
 .public-landing .public-canopy-plane-2 .public-canopy-twig {
   animation-delay: -2s;
-  animation-duration: 9s;
+  animation-duration: 5.5s;
 }
 .public-landing .public-canopy-corner {
   transform-origin: 0 0;
-  animation: public-bough-breathe 12s ease-in-out infinite alternate;
+  animation: public-bough-breathe 7s ease-in-out infinite alternate;
 }
 .public-forest-home {
   overflow: clip;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 .public-forest-hero {
   position: relative;
   isolation: isolate;
   max-width: 1536px;
+  width: 100%;
+  flex: 1;
   margin: 0 auto;
   min-height: 710px;
   min-height: max(710px, calc(100svh - 225px));
@@ -516,21 +525,6 @@ html {
   display: block;
   object-fit: contain;
 }
-.public-keyboard-working-frame {
-  opacity: 1;
-  animation: public-working 14s linear infinite;
-}
-.public-keyboard-smile-frame {
-  opacity: 0;
-  animation: public-smile 14s linear infinite;
-}
-.public-keyboard-hands {
-  clip-path: polygon(35% 53%, 57% 53%, 57% 64%, 35% 64%);
-  animation:
-    public-typing 0.18s steps(2, end) infinite alternate,
-    public-working 14s linear infinite;
-}
-/* The smile is above the typing layer, so the occasional pause really stops the hands. */
 .public-forest-clearing {
   position: absolute;
   bottom: 0;
@@ -585,36 +579,6 @@ html {
   animation-duration: 47s;
   width: 34px;
 }
-.public-motion-control {
-  position: absolute;
-  bottom: 24px;
-  right: max(32px, env(safe-area-inset-right));
-  z-index: 3;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  color: #425f4d;
-  font-size: 13px;
-  cursor: pointer;
-  user-select: none;
-}
-.public-motion-control input {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  accent-color: #124d38;
-  cursor: pointer;
-}
-.public-motion-control svg {
-  width: 15px;
-  height: 15px;
-}
-.public-motion-control:focus-within {
-  outline: 3px solid #e8a33c;
-  outline-offset: 4px;
-  border-radius: 4px;
-}
 .public-landing .public-footer {
   position: relative;
   padding: 24px max(32px, calc((100vw - 1280px) / 2));
@@ -639,46 +603,10 @@ html {
 }
 @keyframes public-bough-breathe {
   from {
-    transform: rotate(-1deg);
+    transform: rotate(-2.7deg);
   }
   to {
-    transform: rotate(1.4deg);
-  }
-}
-@keyframes public-working {
-  0%,
-  79% {
-    opacity: 1;
-  }
-  80%,
-  95% {
-    opacity: 0;
-  }
-  96%,
-  100% {
-    opacity: 1;
-  }
-}
-@keyframes public-smile {
-  0%,
-  79% {
-    opacity: 0;
-  }
-  80%,
-  95% {
-    opacity: 1;
-  }
-  96%,
-  100% {
-    opacity: 0;
-  }
-}
-@keyframes public-typing {
-  from {
-    transform: translateY(-1px) rotate(-0.1deg);
-  }
-  to {
-    transform: translateY(1.5px) rotate(0.1deg);
+    transform: rotate(3.7deg);
   }
 }
 @keyframes public-forest-fall {
@@ -754,7 +682,7 @@ html {
     display: flex;
     flex-direction: column;
     min-height: 0;
-    padding-bottom: 55px;
+    padding-bottom: 26px;
   }
   .public-forest-copy {
     margin: 52px 24px 0;
@@ -796,11 +724,6 @@ html {
     height: 150px;
     bottom: 35px;
   }
-  .public-motion-control {
-    right: 24px;
-    bottom: 10px;
-    font-size: 12px;
-  }
   .public-falling {
     width: 23px;
     height: 32px;
@@ -816,34 +739,27 @@ html {
     line-height: 1.5;
   }
 }
-/* Pausing works without JavaScript. Reduced motion keeps the same smiling illustration. */
-.public-landing:has(#public-motion-pause:checked) .public-canopy *,
-.public-landing:has(#public-motion-pause:checked) .public-keyboard-scene picture,
-.public-landing:has(#public-motion-pause:checked) .public-falling {
-  animation: none;
+/* Movement preferences and page visibility need no visible pause control. */
+.public-canopy-twig-1 {
+  animation-delay: -1.5s !important;
 }
-.public-landing:has(#public-motion-pause:checked) .public-keyboard-working-frame,
-.public-landing:has(#public-motion-pause:checked) .public-keyboard-hands {
-  opacity: 0;
+.public-canopy-twig-2 {
+  animation-delay: -3s !important;
 }
-.public-landing:has(#public-motion-pause:checked) .public-keyboard-smile-frame {
-  opacity: 1;
+.public-canopy-twig-3 {
+  animation-delay: -4.5s !important;
 }
-.public-landing:has(#public-motion-pause:checked) .public-falling-stage {
+.public-landing[data-motion-paused] .public-canopy *,
+.public-landing[data-motion-paused] .public-falling {
+  animation-play-state: paused;
+}
+.public-landing[data-motion-paused] .public-falling-stage {
   visibility: hidden;
 }
 @media (prefers-reduced-motion: reduce) {
   .public-canopy *,
-  .public-keyboard-scene picture,
   .public-falling {
     animation: none;
-  }
-  .public-keyboard-working-frame,
-  .public-keyboard-hands {
-    opacity: 0;
-  }
-  .public-keyboard-smile-frame {
-    opacity: 1;
   }
   .public-falling-stage {
     display: none;
@@ -853,8 +769,5 @@ html {
   }
   .public-forest-copy .public-primary:hover {
     transform: none;
-  }
-  .public-motion-control {
-    display: none;
   }
 }
