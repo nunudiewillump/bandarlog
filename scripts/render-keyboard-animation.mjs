@@ -9,21 +9,29 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 const execute = promisify(execFile);
+const assetSizes = {};
 const assets = Object.fromEntries(
   await Promise.all(
-    ['base', 'head', 'arm-left', 'arm-right'].map(async (name) => [
-      name,
-      'data:image/png;base64,' +
-        (
-          await sharp(await readFile(`docs/forest-landing/rig/${name}.webp`))
-            .png()
-            .toBuffer()
-        ).toString('base64'),
-    ]),
+    ['base', 'head', 'arm-left', 'arm-right'].map(async (name) => {
+      const source = sharp(await readFile(`docs/forest-landing/rig/${name}.webp`));
+      const { width, height } = await source.metadata();
+      assetSizes[name] = { width, height };
+      return [name, 'data:image/png;base64,' + (await source.png().toBuffer()).toString('base64')];
+    }),
   ),
 );
-const image = (name, x, y, width, height) =>
-  `<image xlink:href="${assets[name]}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="none"/>`;
+const image = (name, x, y, width, height, aspect = 'none') =>
+  `<image xlink:href="${assets[name]}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="${aspect}"/>`;
+// Arms keep their native aspect ratio. Flattening them merges the shoulders/forearms.
+const armImage = (name, x, y, width) =>
+  image(
+    name,
+    x,
+    y,
+    width,
+    (width * assetSizes[name].height) / assetSizes[name].width,
+    'xMinYMin meet',
+  );
 const ease = (t) => {
   const v = Math.min(1, Math.max(0, t));
   return v * v * (3 - 2 * v);
@@ -37,16 +45,16 @@ const blink = (t) =>
 function scene(t) {
   const look = ease((t - 4.4) / 0.8) * (1 - ease((t - 6.4) / 0.8));
   const type = 1 - look;
-  const left = type * (Math.sin(t * Math.PI * 5.5) * 2.1 - 0.8);
-  const right = type * (Math.sin(t * Math.PI * 5.5 + Math.PI) * 2.1 - 0.8) - look * 5;
+  const left = -15 + type * (Math.sin(t * Math.PI * 5.5) * 2.1 - 0.8);
+  const right = -10 + type * (Math.sin(t * Math.PI * 5.5 + Math.PI) * 2.1 - 0.8) - look * 5;
   const headAngle = 7 * type - 3 * look;
   const gazeX = 9 * type,
     gazeY = 7 * type;
   const eyes = blink(t);
   return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="768" height="768" viewBox="0 0 768 768">
     ${image('base', 72, 301, 606, 424)}
-    <g transform="rotate(${right} 309 388)">${image('arm-right', 278, 376, 162, 80)}</g>
-    <g transform="rotate(${left} 280 398)">${image('arm-left', 235, 385, 204, 85)}</g>
+    <g transform="rotate(${right} 311 357)">${armImage('arm-right', 288, 350, 140)}</g>
+    <g transform="rotate(${left} 255 363)">${armImage('arm-left', 220, 355, 170)}</g>
     <g transform="rotate(${headAngle} 278 336)">
       ${image('head', 105, 44, 342, 297)}
       <g transform="translate(105 44) scale(.684)">
@@ -60,11 +68,14 @@ function scene(t) {
   </svg>`;
 }
 if (process.argv.includes('--poster-only')) {
+  await mkdir('public/landing/arms-v2', { recursive: true });
   await sharp(Buffer.from(scene(5.6)))
     .webp({ quality: 88, effort: 6 })
-    .toFile('public/landing/monkey-keyboard-poster.webp');
+    .toFile('public/landing/arms-v2/monkey-keyboard-poster.webp');
   process.exit(0);
 }
+const output = 'public/landing/arms-v2';
+await mkdir(output, { recursive: true });
 const folder = await mkdtemp(join(tmpdir(), 'bandarlog-keyboard-frames-'));
 try {
   await mkdir('public/landing', { recursive: true });
@@ -101,14 +112,14 @@ try {
         '0',
         '-an',
         '-y',
-        `public/landing/monkey-keyboard-animated-${width}.webp`,
+        `public/landing/arms-v2/monkey-keyboard-animated-${width}.webp`,
       ],
       { maxBuffer: 1024 * 1024 },
     );
   }
   await sharp(Buffer.from(scene(5.6)))
     .webp({ quality: 88, effort: 6 })
-    .toFile('public/landing/monkey-keyboard-poster.webp');
+    .toFile('public/landing/arms-v2/monkey-keyboard-poster.webp');
   console.log(
     'Rendered 120 articulated frames at 15 fps, 8-second seamless loop; desktop/mobile WebP plus reduced-motion poster.',
   );

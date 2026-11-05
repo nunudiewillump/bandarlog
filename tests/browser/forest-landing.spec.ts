@@ -157,7 +157,7 @@ test('animated puppet has one image, honors reduced motion and stops when the pa
     document.dispatchEvent(new Event('visibilitychange'));
   });
   await expect(page.locator('body')).toHaveAttribute('data-motion-paused', '');
-  await expect(image).toHaveAttribute('src', '/landing/monkey-keyboard-poster.webp');
+  await expect(image).toHaveAttribute('src', '/landing/arms-v2/monkey-keyboard-poster.webp');
   await page.evaluate(() => {
     Object.defineProperty(document, 'hidden', { value: false, configurable: true });
     document.dispatchEvent(new Event('visibilitychange'));
