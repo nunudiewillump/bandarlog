@@ -24,8 +24,51 @@ export function createMailTransport(
     });
     return { kind: 'smtp', sendMail: (message: MailInput) => smtp.sendMail(message) };
   }
+  if (provider === 'resend') {
+    if (!env.RESEND_API_KEY) throw new Error('MAIL_TRANSPORT=resend requiere RESEND_API_KEY.');
+    return {
+      kind: 'resend',
+      async sendMail(message: MailInput) {
+        // Bandarlog queues one recipient per message. Keep this explicit:
+        // Nodemailer's address objects/arrays are not part of the current sending path.
+        if (typeof message.from !== 'string' || typeof message.to !== 'string' || !message.subject)
+          throw new Error('El correo requiere remitente y destinatario individuales y asunto.');
+        if (typeof message.text !== 'string' && typeof message.html !== 'string')
+          throw new Error('El correo requiere texto o HTML.');
+        const sender = message.from;
+        const recipients = [message.to];
+        // Notifications already carry a stable internal Message-ID. Map it to
+        // Resend's 24-hour idempotency key instead of trying to override its Message-ID.
+        const internalId = (message.headers as Record<string, unknown> | undefined)?.['Message-ID'];
+        const notificationId =
+          typeof internalId === 'string'
+            ? /^<([a-f0-9-]{36})@bandarlog\.local>$/.exec(internalId)?.[1]
+            : undefined;
+        const response = await request('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+            ...(notificationId ? { 'Idempotency-Key': `bandarlog-notification/${notificationId}` } : {}),
+          },
+          body: JSON.stringify({
+            from: sender,
+            to: recipients,
+            subject: message.subject,
+            ...(typeof message.text === 'string' ? { text: message.text } : {}),
+            ...(typeof message.html === 'string' ? { html: message.html } : {}),
+          }),
+          signal: AbortSignal.timeout(15000),
+        });
+        if (!response.ok) throw new Error(`Resend rechazó el envío (${response.status}).`);
+        const result = (await response.json()) as { id?: string };
+        if (!result.id) throw new Error('Resend no confirmó el identificador del mensaje.');
+        return { messageId: result.id };
+      },
+    };
+  }
   if (provider !== 'gmail_api')
-    throw new Error('MAIL_TRANSPORT debe ser smtp, gmail_api o preview.');
+    throw new Error('MAIL_TRANSPORT debe ser smtp, gmail_api, resend o preview.');
   const composer = nodemailer.createTransport({
     streamTransport: true,
     buffer: true,
