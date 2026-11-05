@@ -298,7 +298,32 @@ export function hasArtworkAssociation(
     );
   });
 }
+const artworkChoices = new Map<string, ArtworkEntry>();
 export function selectArtwork(
+  input: {
+    name: string;
+    description?: string;
+    theme: ArtworkTheme;
+    key?: string | null;
+    seed?: string;
+  },
+  extra: ArtworkEntry[] = [],
+) {
+  // Pure, bounded computation cache. Include the whole custom catalogue so edits
+  // and different groups cannot reuse another catalogue's selection or URLs.
+  const key = JSON.stringify([input, extra]);
+  if (key.length <= 16384) {
+    const hit = artworkChoices.get(key);
+    if (hit) return hit;
+  }
+  const choice = chooseArtwork(input, extra);
+  if (key.length <= 16384) {
+    if (artworkChoices.size >= 512) artworkChoices.delete(artworkChoices.keys().next().value!);
+    artworkChoices.set(key, choice);
+  }
+  return choice;
+}
+function chooseArtwork(
   input: {
     name: string;
     description?: string;

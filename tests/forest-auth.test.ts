@@ -193,10 +193,17 @@ test('five wrong guesses lock the challenge and a resend cooldown preserves the 
     429,
   );
   const resend = await challenge('laura@example.test');
-  assert.equal(
-    (await request('/auth/code/request', 'POST', { email: 'laura@example.test' })).status,
-    429,
-  );
+  const paused = await request('/auth/code/request', 'POST', { email: 'laura@example.test' });
+  assert.equal(paused.status, 429);
+  assert.equal(paused.body.challengeId, resend.id);
+  assert.ok(paused.body.retryAfter > 0 && paused.body.retryAfter <= 60);
+  assert.ok(paused.body.expiresIn > 0 && paused.body.expiresIn <= 600);
+  assert.equal(paused.body.code, undefined);
+  const unknown = await request('/auth/code/request', 'POST', {
+    email: 'unknown-forest@example.test',
+  });
+  assert.equal(unknown.status, 429);
+  assert.deepEqual(Object.keys(unknown.body).sort(), Object.keys(paused.body).sort());
   assert.equal(
     (await request('/auth/code/verify', 'POST', { challengeId: resend.id, code: resend.code }))
       .status,

@@ -1,11 +1,12 @@
 import { test, after, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, type ChildProcess } from 'node:child_process';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 let server: ChildProcess, dir: string;
 const base = 'http://127.0.0.1:3099/api';
+const samples: { action: string; status: number; ms: number }[] = [];
 let admin: { cookie: string; csrf: string }, member: { cookie: string; csrf: string };
 async function request(
   path: string,
@@ -14,6 +15,7 @@ async function request(
   auth = admin,
   mutation?: string,
 ) {
+  const started = performance.now();
   const r = await fetch(base + path, {
     method,
     headers: {
@@ -23,11 +25,18 @@ async function request(
     },
     body: body ? JSON.stringify(body) : undefined,
   });
-  return {
+  const result = {
     status: r.status,
     body: await r.json(),
     cookie: r.headers.get('set-cookie')?.split(';')[0] || '',
   };
+  if (process.env.BANDARLOG_BENCHMARK_OUTPUT)
+    samples.push({
+      action: method + ' ' + path.replace(/[a-f0-9]{8}-[a-f0-9-]{27,}/g, ':id'),
+      status: r.status,
+      ms: performance.now() - started,
+    });
+  return result;
 }
 const sessionCache = new Map<string, { cookie: string; csrf: string; token: string }>();
 async function login(email: string) {
@@ -84,6 +93,15 @@ after(async () => {
     await new Promise((r) => server.once('exit', r));
   }
   if (dir) await rm(dir, { recursive: true, force: true });
+  if (process.env.BANDARLOG_BENCHMARK_OUTPUT)
+    await writeFile(
+      process.env.BANDARLOG_BENCHMARK_OUTPUT,
+      JSON.stringify(
+        { environment: 'isolated-local-PGlite; real HTTP; no remote email', samples },
+        null,
+        2,
+      ),
+    );
 });
 test('login tokens are single use; unauthenticated and CSRF mutations are denied', async () => {
   const a = await login('ana@example.test');
@@ -166,7 +184,32 @@ test('task responsibility, blocking, completion, audit and membership removal st
     200,
   );
   assert.equal((await request(`/tasks/${tid}`, 'PATCH', { responsibleIds: [] })).status, 400);
-  assert.equal((await request(`/commissions/cocina/members/carlos`, 'DELETE')).status, 409);
+  assert.equal((await request(`/commissions/cocina/members/carlos`, 'DELETE')).status, 200);
+  assert.equal(
+    (
+      await request(
+        `/tasks/${tid}`,
+        'PATCH',
+        { status: 'done' },
+        await login('carlos@example.test'),
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (await request('/commissions/cocina/members', 'POST', { userIds: ['carlos'] })).status,
+    200,
+  );
+  assert.equal(
+    (await request('/data')).body.assignments.some(
+      (a: any) => a.taskId === tid && a.userId === 'carlos',
+    ),
+    false,
+  );
+  assert.equal(
+    (await request(`/tasks/${tid}`, 'PATCH', { responsibleIds: ['alex', 'carlos'] })).status,
+    200,
+  );
   assert.equal(
     (
       await request(
@@ -979,20 +1022,89 @@ test('only administrators add or remove users and removal revokes access while p
     assert.equal((await request('/users/miguel', 'DELETE', undefined, actor)).status, 403);
   }
   assert.equal((await request('/users/alex', 'DELETE')).status, 400);
-  assert.equal((await request('/users/carlos', 'DELETE')).status, 409);
+  const acceptInvitation = async () => {
+    const mails = (await request('/dev/mail')).body;
+    const mail = mails
+      .filter(
+        (m: any) => m.email === 'removed-user@example.test' && m.subject.includes('Te invitan'),
+      )
+      .at(-1);
+    const token = new URL(mail.body.match(/^https?:\/\/\S+$/m)[0]).searchParams.get('token');
+    const accepted = await request('/auth/verify', 'POST', { token });
+    assert.equal(accepted.status, 200);
+    const auth = { cookie: accepted.cookie, csrf: '' };
+    auth.csrf = (await request('/me', 'GET', undefined, auth)).body.csrf;
+    return auth;
+  };
   await request('/invitations', 'POST', { email: 'removed-user@example.test' });
-  const targetSession = await login('removed-user@example.test');
+  const targetSession = await acceptInvitation();
   const target = (await request('/data')).body.users.find(
     (u: any) => u.email === 'removed-user@example.test',
   );
-  assert.equal((await request(`/users/${target.id}`, 'DELETE')).status, 200);
+  await request('/commissions/cocina/members', 'POST', { userIds: [target.id] });
+  const assigned = await request('/tasks', 'POST', {
+    title: 'Responsable que sale del grupo',
+    commissionId: 'cocina',
+    due: new Date(Date.now() + 86400000).toISOString(),
+    responsibleIds: [target.id],
+  });
+  assert.equal(assigned.status, 201);
+  const completed = await request('/tasks', 'POST', {
+    title: 'Historial conservado tras la baja',
+    commissionId: 'cocina',
+    due: new Date(Date.now() + 86400000).toISOString(),
+    responsibleIds: [target.id],
+  });
+  assert.equal(
+    (await request(`/tasks/${completed.body.id}`, 'PATCH', { status: 'done' }, targetSession))
+      .status,
+    200,
+  );
+  const removal = await request(`/users/${target.id}`, 'DELETE');
+  assert.equal(removal.status, 200, JSON.stringify(removal.body));
   assert.equal((await request('/me', 'GET', undefined, targetSession)).status, 401);
-  const removed = (await request('/data')).body.users.find((u: any) => u.id === target.id);
+  const afterRemoval = (await request('/data')).body;
+  const removed = afterRemoval.users.find((u: any) => u.id === target.id);
   assert.ok(removed.disabledAt);
-  assert.equal((await request('/invitations', 'POST', { email: target.email })).status, 201);
+  assert.equal(
+    afterRemoval.assignments.some((a: any) => a.userId === target.id),
+    false,
+  );
+  assert.equal(
+    afterRemoval.tasks.find((t: any) => t.id === completed.body.id).completedBy,
+    target.id,
+  );
+  assert.ok(
+    afterRemoval.activity.some(
+      (a: any) => a.taskId === assigned.body.id && a.kind === 'unassigned',
+    ),
+  );
+  assert.equal(
+    (await request('/invitations', 'POST', { email: target.email, projectId: 'camp' })).status,
+    201,
+  );
   assert.equal(
     (await request('/data')).body.users.find((u: any) => u.id === target.id).role,
     'member',
+  );
+  const rejoined = await acceptInvitation();
+  assert.equal((await request('/data', 'GET', undefined, rejoined)).body.assignments.length, 0);
+  await request('/commissions/cocina/members', 'POST', { userIds: [target.id] });
+  assert.equal(
+    (await request('/data')).body.assignments.some((a: any) => a.userId === target.id),
+    false,
+  );
+  assert.equal(
+    (await request(`/tasks/${assigned.body.id}`, 'PATCH', { status: 'done' }, rejoined)).status,
+    403,
+  );
+  assert.equal(
+    (await request(`/tasks/${assigned.body.id}`, 'PATCH', { responsibleIds: [target.id] })).status,
+    200,
+  );
+  assert.equal(
+    (await request(`/tasks/${assigned.body.id}`, 'PATCH', { status: 'done' }, rejoined)).status,
+    200,
   );
   await request('/users/ana/role', 'PATCH', { role: 'member' });
 });

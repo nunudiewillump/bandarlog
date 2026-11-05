@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { generateKeyPairSync, sign } from 'node:crypto';
 import {
   codeVerifier,
+  codeRequestId,
   equalSecret,
   googleEmailAuthoritative,
   verifyGoogleToken,
@@ -32,6 +33,24 @@ test('short codes are keyed and bound to challenge and recipient', () => {
   );
   assert.equal(equalSecret(digest, digest), true);
   assert.equal(equalSecret(digest, 'short'), false);
+});
+
+test('recoverable request references bind secret, group, email and canonical request time', () => {
+  const args = [
+    'test-private',
+    'group-a',
+    'person@example.test',
+    '2026-11-05T12:00:00.123Z',
+  ] as const;
+  const id = codeRequestId(...args);
+  assert.match(id, /^[a-f0-9]{64}$/);
+  assert.equal(codeRequestId(...args), id);
+  assert.equal(codeRequestId(args[0], args[1], args[2], '2026-11-05 12:00:00.123+00'), id);
+  for (let i = 0; i < 4; i++) {
+    const changed: [string, string, string, string] = [...args];
+    changed[i] = i === 3 ? '2026-11-05T12:00:01.123Z' : 'different';
+    assert.notEqual(codeRequestId(...changed), id);
+  }
 });
 
 test('Google ID tokens require signature, issuer, audience, expiry and the browser nonce', () => {

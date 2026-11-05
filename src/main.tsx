@@ -1,6 +1,6 @@
 import { groupBasePath, groupChannel } from './group-location';
 import { useTutorial, TutorialInvitation, TutorialMission } from './Tutorial';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AnimatedCounter } from './AnimatedCounter';
 import {
   MobileHome,
@@ -16,6 +16,7 @@ import { ForestHeader } from './ForestHeader';
 import { BotanicalCanopy } from './BotanicalCanopy';
 import { smartFocus } from './focus';
 import { AuthScreen } from './AuthScreen';
+import { taskPeople } from './task-people';
 import { Onboarding } from './Onboarding';
 import { artworkThemes, inferArtworkTheme } from '../shared/scout-catalog';
 import { projectTypes, projectType, projectTypeName, projectView } from '../shared/project-types';
@@ -288,9 +289,8 @@ function App() {
   const bootup = async () => {
     setBootError('');
     try {
-      const health = await api('/health');
+      const [health, session] = await Promise.all([api('/health'), api('/me')]);
       setDevelopment(health.mail === 'development');
-      const session = await api('/me');
       setCSRF(session.csrf);
       setMe(session.user);
       setDevelopment(session.development);
@@ -395,13 +395,12 @@ function App() {
   };
   const cOf = (t: Task) => data.commissions.find((c) => c.id === t.commissionId)!;
   const pOf = (c: Commission) => data.projects.find((p) => p.id === c.projectId);
-  const usersOf = (t: Task) =>
-    data.assignments
-      .filter((a) => a.taskId === t.id)
-      .map((a) => data.users.find((u) => u.id === a.userId)!);
-  const myTasks = data.tasks.filter((t) =>
-    data.assignments.some((a) => a.taskId === t.id && a.userId === me?.id),
+  const taskUsers = useMemo(
+    () => taskPeople(data),
+    [data.users, data.tasks, data.members, data.assignments],
   );
+  const usersOf = (t: Task) => taskUsers.get(t.id) || [];
+  const myTasks = data.tasks.filter((t) => usersOf(t).some((user) => user.id === me?.id));
   let scoped = data.tasks.filter(
     (t) =>
       (!project || cOf(t)?.projectId === project) && (!commission || t.commissionId === commission),
@@ -712,6 +711,7 @@ function App() {
                       <Avatar key={u.id} user={u} small />
                     ))}
                   </div>
+                  {!usersOf(t).length && <small>Sin responsables</small>}
                 </td>
                 <td className={overdue(t) ? 'late-text' : ''}>
                   {date(t.due)}
@@ -2183,7 +2183,7 @@ function App() {
                       <small>
                         {usersOf(detail)
                           .map((u) => u.name)
-                          .join(', ')}
+                          .join(', ') || 'Sin responsables'}
                       </small>
                     </dd>
                   </div>
@@ -2595,8 +2595,8 @@ function People() {
               <details className="person-removal">
                 <summary className="text-link danger">Eliminar usuario</summary>
                 <p>
-                  Se retirará el acceso de {u.name}. Su historial se conserva. Reasigna antes sus
-                  tareas pendientes.
+                  Se retirará el acceso de {u.name} y se quitarán sus asignaciones. Su historial se
+                  conserva; las tareas que queden sin responsables se podrán reasignar.
                 </p>
                 <button
                   className="secondary danger"

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { taskPeople } from './task-people';
 import { CalendarDays, Tent, Check, LockKeyhole, ChevronRight, Leaf } from 'lucide-react';
 import { AnimatedCounter } from './AnimatedCounter';
 import { BananaLoader } from './BananaLoader';
@@ -61,14 +62,18 @@ export function MobileTasks({
   pending: Set<string>;
   canManage: (id: string) => boolean;
 }) {
+  const people = useMemo(
+    () => taskPeople(data),
+    [data.users, data.tasks, data.members, data.assignments],
+  );
   return (
     <div className="mobile-task-rows">
       {tasks.length ? (
         tasks.map((task) => {
           const commission = data.commissions.find((c) => c.id === task.commissionId);
           const project = data.projects.find((p) => p.id === commission?.projectId);
-          const assignments = data.assignments.filter((a) => a.taskId === task.id);
-          const own = assignments.some((a) => a.userId === me.id);
+          const assigned = people.get(task.id) || [];
+          const own = assigned.some((user) => user.id === me.id);
           const writable = project?.archived !== 'true' && (own || canManage(task.commissionId));
           return (
             <div
@@ -108,10 +113,7 @@ export function MobileTasks({
                 <ProjectIdentity project={project} commission={commission?.name} />
                 {!own && (
                   <span className="task-assigned-to">
-                    Responsable:{' '}
-                    {assignments
-                      .map((a) => data.users.find((u) => u.id === a.userId)?.name || 'Miembro')
-                      .join(', ') || 'Sin asignación'}
+                    Responsable: {assigned.map((user) => user.name).join(', ') || 'Sin asignación'}
                   </span>
                 )}
                 <span className="mobile-task-meta">
