@@ -1,7 +1,8 @@
 import { groupBasePath } from './group-location';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, Mail } from 'lucide-react';
-import { api } from './api';
+import { api, ApiError } from './api';
+import { pendingAccess, rememberAccess, forgetAccess } from './pending-access';
 import { ForestHeader } from './ForestHeader';
 import { BananaLoader } from './BananaLoader';
 export function AuthScreen({
@@ -16,12 +17,19 @@ export function AuthScreen({
   onToken: (token: string) => void;
 }) {
   const [groupName, setGroupName] = useState('');
+  const [initial] = useState(() => {
+    const saved = pendingAccess();
+    const requested = new URLSearchParams(location.search).get('email');
+    return saved && (!requested || requested.trim().toLowerCase() === saved.email) ? saved : null;
+  });
   const [email, setEmail] = useState(() =>
-    (new URLSearchParams(location.search).get('email') || '').slice(0, 254),
+    (new URLSearchParams(location.search).get('email') || initial?.email || '').slice(0, 254),
   );
-  const [challenge, setChallenge] = useState(''),
+  const [challenge, setChallenge] = useState(initial?.challengeId || ''),
     [code, setCode] = useState(''),
-    [wait, setWait] = useState(0),
+    [wait, setWait] = useState(
+      initial ? Math.max(0, Math.ceil((initial.resendAt - Date.now()) / 1000)) : 0,
+    ),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(
       new URLSearchParams(location.search).get('auth_error') === 'google_email_verify'
@@ -59,7 +67,31 @@ export function AuthScreen({
       setChallenge(r.challengeId);
       setCode('');
       setWait(r.resendAfter || 60);
+      rememberAccess(
+        email.trim().toLowerCase(),
+        r.challengeId,
+        r.expiresIn || 600,
+        r.resendAfter || 60,
+      );
     } catch (e) {
+      if (e instanceof ApiError && e.status === 429) {
+        const recovery = e.recovery;
+        setWait(Number.isFinite(recovery.retryAfter) ? Math.max(1, recovery.retryAfter!) : 60);
+        if (
+          typeof recovery.challengeId === 'string' &&
+          /^[a-f0-9]{64}$/.test(recovery.challengeId) &&
+          Number.isFinite(recovery.expiresIn) &&
+          recovery.expiresIn! > 0
+        ) {
+          setChallenge(recovery.challengeId);
+          rememberAccess(
+            email.trim().toLowerCase(),
+            recovery.challengeId,
+            recovery.expiresIn!,
+            recovery.retryAfter || 60,
+          );
+        }
+      }
       setError((e as Error).message);
     } finally {
       setBusy(false);
@@ -74,6 +106,7 @@ export function AuthScreen({
         'POST',
         token ? { token } : { challengeId: challenge, code },
       );
+      forgetAccess();
       await onAuthenticated();
     } catch (e) {
       setError((e as Error).message);
@@ -89,10 +122,13 @@ export function AuthScreen({
           <button
             type="button"
             className="text-link auth-back"
+            disabled={busy}
             onClick={() => {
               setChallenge('');
               setCode('');
               setError('');
+              setWait(0);
+              forgetAccess();
             }}
           >
             <ArrowLeft size={16} />
@@ -151,7 +187,9 @@ export function AuthScreen({
             <button className="primary" disabled={busy || code.length !== 6}>
               Entrar
             </button>
-            <p className="hint">El código caduca en 10 minutos.</p>
+            <p className="hint">
+              Introduce el último código recibido. Caduca a los 10 minutos de solicitarlo.
+            </p>
             <button
               className="text-link"
               type="button"
@@ -185,6 +223,7 @@ export function AuthScreen({
                 <input
                   type="email"
                   autoComplete="email"
+                  disabled={busy}
                   required
                   placeholder="nombre@ejemplo.com"
                   value={email}

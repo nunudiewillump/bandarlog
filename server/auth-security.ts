@@ -3,6 +3,20 @@ export const CODE_LIFETIME = 10 * 60000;
 export const SESSION_IDLE = 30 * 86400000;
 export const SESSION_ABSOLUTE = 90 * 86400000;
 export const SESSION_RENEW_INTERVAL = 86400000;
+// Reconstruct a request reference during cooldown without storing it in plaintext.
+// This is not a login credential: verification still requires the one-time code.
+export function codeRequestId(secret: string, groupId: string, email: string, requestedAt: string) {
+  return createHmac('sha256', secret)
+    .update(
+      JSON.stringify([
+        'bandarlog-code-request-v1',
+        groupId,
+        email,
+        new Date(requestedAt).toISOString(),
+      ]),
+    )
+    .digest('hex');
+}
 export function codeVerifier(secret: string, challenge: string, email: string, code: string) {
   return createHmac('sha256', secret)
     .update(JSON.stringify([challenge, email, code]))

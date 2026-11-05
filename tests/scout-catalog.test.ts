@@ -106,3 +106,16 @@ test('automatic icons prioritize the nearest name, independent of seed and misle
   );
   assert.equal(selectArtwork({ name: 'Logistca', theme: 'scout' }).family, 'logistica');
 });
+test('cached choices react to catalogue edits and keep custom assets from different catalogues separate', () => {
+  const input = { name: 'Colección propia', theme: 'scout' as const, key: 'custom-shared-id' };
+  const base = {
+    ...selectArtwork({ name: 'Material', theme: 'scout' }),
+    id: input.key,
+    name: input.name,
+  };
+  const first = { ...base, iconUrl: '/group-a/icon', mascotUrl: '/group-a/mascot' };
+  const second = { ...base, iconUrl: '/group-b/icon', mascotUrl: '/group-b/mascot' };
+  assert.equal(selectArtwork(input, [first]).iconUrl, first.iconUrl);
+  assert.equal(selectArtwork(input, [second]).iconUrl, second.iconUrl);
+  assert.equal(selectArtwork(input, [first]).iconUrl, first.iconUrl);
+});

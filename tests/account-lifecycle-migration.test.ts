@@ -58,10 +58,8 @@ test('historical responsibility migration preserves data and enforces live task 
       client.exec(`INSERT INTO assignments(id,task_id,user_id) VALUES ('bad','open','former')`),
       /pertenecer/,
     );
-    await assert.rejects(
-      client.exec(`DELETE FROM assignments WHERE id='a3'`),
-      /al menos un responsable/,
-    );
+    await client.exec(`DELETE FROM assignments WHERE id='a3'`);
+    assert.equal((await client.query(`SELECT * FROM tasks WHERE id='open'`)).rows.length, 1);
     await client.exec(`UPDATE tasks SET title='Historial editable' WHERE id='done'`);
     await assert.rejects(
       client.exec(

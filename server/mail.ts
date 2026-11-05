@@ -1,7 +1,11 @@
+import { createResendTransport, type ResendSend } from './resend-mail.js';
 import nodemailer from 'nodemailer';
 import type Mail from 'nodemailer/lib/mailer/index.js';
 
-type MailInput = Pick<Mail.Options, 'from' | 'to' | 'subject' | 'text' | 'html' | 'headers'>;
+export type MailInput = Pick<
+  Mail.Options,
+  'from' | 'to' | 'subject' | 'text' | 'html' | 'headers'
+> & { idempotencyKey?: string };
 export function mailProvider(env: NodeJS.ProcessEnv = process.env) {
   return env.MAIL_TRANSPORT || (env.SMTP_HOST ? 'smtp' : 'preview');
 }
@@ -9,9 +13,11 @@ export function mailProvider(env: NodeJS.ProcessEnv = process.env) {
 export function createMailTransport(
   env: NodeJS.ProcessEnv = process.env,
   request: typeof fetch = fetch,
+  resendSend?: ResendSend,
 ) {
   const provider = mailProvider(env);
   if (provider === 'preview') return null;
+  if (provider === 'resend') return createResendTransport(env, resendSend);
   if (provider === 'smtp') {
     const smtp = nodemailer.createTransport({
       host: env.SMTP_HOST,
@@ -25,7 +31,7 @@ export function createMailTransport(
     return { kind: 'smtp', sendMail: (message: MailInput) => smtp.sendMail(message) };
   }
   if (provider !== 'gmail_api')
-    throw new Error('MAIL_TRANSPORT debe ser smtp, gmail_api o preview.');
+    throw new Error('MAIL_TRANSPORT debe ser resend, smtp, gmail_api o preview.');
   const composer = nodemailer.createTransport({
     streamTransport: true,
     buffer: true,

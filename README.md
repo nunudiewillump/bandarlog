@@ -28,7 +28,7 @@ Playwright usa `/usr/bin/chromium` en este entorno; para otro equipo, ajusta `ex
 
 ## Producción: Railway y Neon
 
-Pasos de configuración: [Despliegue en Neon y Railway](docs/despliegue.md). Railway Free, Trial y Hobby no admiten SMTP; para mantener un remitente Gmail utiliza `MAIL_TRANSPORT=gmail_api`.
+Pasos de configuración: [Despliegue en Neon y Railway](docs/despliegue.md). Railway Free, Trial y Hobby no admiten SMTP; utiliza `MAIL_TRANSPORT=resend` con API HTTPS y dominio verificado, o conserva `gmail_api` si necesitas el remitente antiguo.
 
 `railway.toml` contiene build, arranque y healthcheck. `npm start` ejecuta migraciones y sirve la API y `dist` desde un solo proceso. Configura en Railway:
 
@@ -40,8 +40,9 @@ Pasos de configuración: [Despliegue en Neon y Railway](docs/despliegue.md). Rai
 | `BOOTSTRAP_EMAIL` | Primer administrador; solo se usa si no hay usuarios |
 | `AUTH_CHALLENGE_SECRET` | **Obligatorio nuevo:** secreto privado estable y aleatorio de al menos 32 caracteres para verificar códigos |
 | `GOOGLE_LOGIN_CLIENT_ID`, `GOOGLE_LOGIN_CLIENT_SECRET` | Opcionales y conjuntos; cliente web independiente para iniciar sesión con Google |
-| `MAIL_TRANSPORT` | `gmail_api` para Gmail por HTTPS; `smtp` solo si el alojamiento lo permite |
-| `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` | Credenciales OAuth privadas si se usa Gmail API |
+| `MAIL_TRANSPORT` | `resend` para Resend HTTPS; alternativamente `gmail_api` o `smtp` |
+| `RESEND_API_KEY` | Clave privada de envío de Resend cuando `MAIL_TRANSPORT=resend` |
+| `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` | Credenciales OAuth privadas solo si se usa Gmail API |
 | `SMTP_HOST`, `SMTP_PORT` | Servidor de correo: 587 con STARTTLS obligatorio, o 465 con TLS |
 | `SMTP_USER`, `SMTP_PASS` | Autenticación del proveedor; contraseña guardada como secreto |
 | `MAIL_FROM` | Nombre y correo de remitente autorizado |
@@ -51,9 +52,11 @@ Las pruebas de este cambio son locales y aisladas; no validan la configuración 
 
 ## Correo del grupo
 
-Remitente previsto: **Bandarlog <XXXX@correodegrupo.com>**.
+Remitente de producción recomendado: **Bandarlog <notifications@bandarlog.app>**, con `bandarlog.app` verificado en Resend. La dirección no implica un buzón de recepción. Configura `MAIL_TRANSPORT=resend`, `MAIL_FROM=Bandarlog <notifications@bandarlog.app>` y `RESEND_API_KEY` (secreto en Railway). Resend usa HTTPS, no SMTP; no cambies el proveedor hasta fusionar y desplegar el código compatible.
 
 Para Gmail: `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_USER=grupo@example.org`, `MAIL_FROM=Bandarlog <grupo@example.org>`. Activa verificación en dos pasos en Google y crea una contraseña de aplicación para `SMTP_PASS`; no uses la contraseña habitual ni la incluyas en Git, chat o capturas. La disponibilidad de contraseñas de aplicación depende de las políticas de la cuenta. Configúrala en los secretos/variables privadas del alojamiento. Railway solo permite SMTP en el plan Pro o superior. En Free, Trial y Hobby hay que usar `MAIL_TRANSPORT=gmail_api` con OAuth; una contraseña de aplicación no sirve para la API. No se ha comprobado el acceso a esa cuenta ni se ha enviado correo desde ella.
+
+Resend reutiliza el ID estable de cada notificación como clave de idempotencia durante 24 horas; los mensajes de plataforma sin ese identificador mantienen la protección de la cola existente. Los correos que quedaron en estado `preview` o `sending` requieren revisión, nunca reenvío masivo automático.
 
 El proceso comprueba vencimientos cada minuto y genera el resumen por proyecto una vez por semana (a partir del lunes, en la primera ejecución disponible). La API de Gmail compone mensajes MIME y renueva el token OAuth mediante HTTPS; nunca consulta la bandeja de entrada. Las fechas se presentan en Europe/Madrid y las fechas límite se guardan como instantes UTC. Los formularios indican cuando usan la zona horaria del dispositivo. Los eventos tienen claves de deduplicación; cada mensaje se reclama antes de enviarse, con un máximo de cinco intentos y Message-ID estable. Una caída durante un envío puede dejar un mensaje en `sending`: requiere revisión del registro antes de reenviarlo, porque SMTP no garantiza exactamente un envío ante respuestas ambiguas. Sin SMTP los mensajes quedan en `preview`, no se consideran enviados ni se mandan automáticamente al configurar después un proveedor.
 
@@ -72,7 +75,7 @@ npm run import -- examples/import.json --apply  # importar explícitamente a la 
 
 ## Seguridad y alcance
 
-Sesión HttpOnly, Secure en producción y SameSite; tokens almacenados como hash, expiración, CSRF y comprobación de origen. Autorización en cada operación y aislamiento de lecturas por membresía. Responsables obligatorios, membresías y finalización protegidos también por restricciones y triggers diferidos de PostgreSQL. Reasignación y cambios de membresía transaccionales. La retirada de miembros exige reasignar antes todas sus tareas para conservar la integridad.
+Sesión HttpOnly, Secure en producción y SameSite; tokens almacenados como hash, expiración, CSRF y comprobación de origen. Autorización en cada operación y aislamiento de lecturas por membresía. Crear una tarea o cambiar sus responsables exige seleccionar al menos uno; las membresías y la finalización se protegen también en PostgreSQL. Una baja de comisión o grupo retira las asignaciones de forma transaccional y conserva las tareas, su finalización e historial. Las tareas que se queden sin responsables pueden reasignarse. La reincorporación no restaura automáticamente asignaciones antiguas.
 
 El service worker cachea recursos estáticos y una página de desconexión; no guarda respuestas privadas de la API ni simula escrituras sin conexión. Manifest e iconos de 192/512 px incluidos. La instalación en dispositivos reales requiere servir mediante HTTPS; no se ha probado en iPhone físico ni se certifica todavía el cumplimiento completo WCAG 2.2 AA. Se han preparado foco visible, formularios etiquetados, teclado, diálogo con foco contenido y movimiento reducido.
 
@@ -144,3 +147,5 @@ Proyecto, comisión y tarea reúnen sus ajustes en el engranaje de la cabecera. 
 El origen de producción es `https://bandarlog.app`. Sin ID se muestra información pública; cada grupo nuevo tiene su espacio `/g/ID-privado/`, con cuentas y datos separados. La solicitud de grupos es gratuita, exige aprobación previa del responsable de Bandarlog y verifica después el correo de su primer administrador. La suscripción en `/suscripcion-demo` es solo una maqueta funcional de lectura, sin contratación ni cobros. Configuración, migración del grupo inicial, DNS y Google: [publicación y grupos](docs/publicacion.md).
 
 `npm run publication:check` comprueba las páginas públicas sin enviar correos. El desarrollo local mantiene `localhost`; no se deben reemplazar las URLs de pruebas por producción.
+
+Resend utiliza el SDK oficial y conserva las colas y el HTML de los mensajes existentes. Opcionalmente admite una plantilla publicada (`RESEND_TEMPLATE_ID`) y un buzón de respuestas (`MAIL_REPLY_TO`). Los errores temporales se reintentan con espera exponencial y `Retry-After`; los errores definitivos se detienen. Cada mensaje conserva su clave de idempotencia y registra el ID del proveedor. `sent` significa aceptado, no necesariamente entregado. Configuración completa, DNS y límites: [Resend](docs/resend.md).

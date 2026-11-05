@@ -4,16 +4,42 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public status = 0,
+    public readonly recovery: {
+      retryAfter?: number;
+      challengeId?: string;
+      expiresIn?: number;
+    } = {},
   ) {
     super(message);
   }
 }
 let csrf = '';
 let latestDataRequest = 0;
+let writeVersion = 0;
+const pendingReads = new Map<string, { version: number; promise: Promise<any> }>();
 export const setCSRF = (value: string) => {
   csrf = value;
 };
-export async function api(path: string, method = 'GET', body?: unknown) {
+export function api(path: string, method = 'GET', body?: unknown): Promise<any> {
+  if (method !== 'GET') {
+    writeVersion++;
+    return request(path, method, body).finally(() => {
+      writeVersion++;
+    });
+  }
+  if (!['/data', '/me', '/health', '/auth/config'].includes(path))
+    return request(path, method, body);
+  const key = groupBasePath() + path;
+  const current = pendingReads.get(key);
+  if (current?.version === writeVersion) return current.promise;
+  const promise = request(path, method, body).finally(() => {
+    if (pendingReads.get(key)?.promise === promise) pendingReads.delete(key);
+  });
+  pendingReads.set(key, { version: writeVersion, promise });
+  return promise;
+}
+async function request(path: string, method: string, body?: unknown) {
+  const readVersion = writeVersion;
   let response: Response;
   const dataRequest = path === '/data' && method === 'GET' ? ++latestDataRequest : 0;
   const mutation = method !== 'GET' ? crypto.randomUUID() : '';
@@ -54,8 +80,13 @@ export async function api(path: string, method = 'GET', body?: unknown) {
     .json()
     .catch(() => ({ error: 'No se ha podido leer la respuesta. Vuelve a intentarlo.' }));
   if (!response.ok)
-    throw new ApiError(data.error || 'No se pudo completar la operación.', response.status);
+    throw new ApiError(data.error || 'No se pudo completar la operación.', response.status, {
+      retryAfter: data.retryAfter,
+      challengeId: data.challengeId,
+      expiresIn: data.expiresIn,
+    });
   if (dataRequest && dataRequest !== latestDataRequest) return data;
-  if (method === 'GET' && ['/me', '/data'].includes(path)) return offline.remember(path, data);
+  if (method === 'GET' && readVersion === writeVersion && ['/me', '/data'].includes(path))
+    return offline.remember(path, data);
   return data;
 }
