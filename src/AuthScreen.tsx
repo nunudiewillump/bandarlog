@@ -122,6 +122,7 @@ export function AuthScreen({
           <button
             type="button"
             className="text-link auth-back"
+            disabled={busy}
             onClick={() => {
               setChallenge('');
               setCode('');
@@ -222,6 +223,7 @@ export function AuthScreen({
                 <input
                   type="email"
                   autoComplete="email"
+                  disabled={busy}
                   required
                   placeholder="nombre@ejemplo.com"
                   value={email}
