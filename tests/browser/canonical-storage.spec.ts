@@ -1,12 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 const source = await readFile('public/offline-store.js', 'utf8');
-for (const [enabled, legacyUser] of [
-  [true, 'user'],
-  [true, 'other-user'],
-  [false, 'user'],
+for (const [enabled, legacyUser, hasLegacyJob] of [
+  [true, 'user', true],
+  [true, 'user', false],
+  [true, 'other-user', true],
+  [false, 'user', true],
 ] as const) {
-  test(`canonical storage keeps pending IDs and isolates legacy migration (bridge=${enabled}, source=${legacyUser})`, async ({
+  test(`canonical storage keeps pending IDs and isolates legacy migration (bridge=${enabled}, source=${legacyUser}, pending=${hasLegacyJob})`, async ({
     page,
   }) => {
     const privateId = 'd'.repeat(32),
@@ -19,7 +20,7 @@ for (const [enabled, legacyUser] of [
     );
     await page.goto(base);
     await page.evaluate(
-      async ({ privateId, legacyUser, enabled }) => {
+      async ({ privateId, legacyUser, enabled, hasLegacyJob }) => {
         (window as any).BANDARLOG_LEGACY_STORAGE = enabled;
         const seed = async (name: string, userId: string, jobs: any[]) => {
           const db = await new Promise<IDBDatabase>((resolve, reject) => {
@@ -35,6 +36,7 @@ for (const [enabled, legacyUser] of [
                 me: { user: { id: userId }, group: { privateId }, csrf: '' },
                 data: { tasks: [], commissions: [], members: [], assignments: [], activity: [] },
                 queue: jobs,
+                error: name === 'bandarlog-offline' ? 'Fallo anterior' : '',
               },
               'active',
             );
@@ -51,14 +53,16 @@ for (const [enabled, legacyUser] of [
           method: 'PATCH',
           body: { status: 'done' },
         });
-        await seed('bandarlog-offline', legacyUser, [
-          job('legacy-job', legacyUser, '2026-11-01T00:00:00Z'),
-        ]);
+        await seed(
+          'bandarlog-offline',
+          legacyUser,
+          hasLegacyJob ? [job('legacy-job', legacyUser, '2026-11-01T00:00:00Z')] : [],
+        );
         await seed('bandarlog-offline-' + privateId, 'user', [
           job('canonical-job', 'user', '2026-11-02T00:00:00Z'),
         ]);
       },
-      { privateId, legacyUser, enabled },
+      { privateId, legacyUser, enabled, hasLegacyJob },
     );
     await page.addScriptTag({ content: source });
     const result = await page.evaluate(async (privateId) => {
@@ -97,11 +101,15 @@ for (const [enabled, legacyUser] of [
       };
     }, privateId);
     const migrated = enabled && legacyUser === 'user';
+    const movedJob = migrated && hasLegacyJob;
     expect(result.canonical.queue.map((job: any) => job.id)).toEqual(
-      migrated ? ['legacy-job', 'canonical-job'] : ['canonical-job'],
+      movedJob ? ['legacy-job', 'canonical-job'] : ['canonical-job'],
     );
-    expect(result.legacy.queue.map((job: any) => job.id)).toEqual(migrated ? [] : ['legacy-job']);
+    expect(result.legacy.queue.map((job: any) => job.id)).toEqual(
+      movedJob || !hasLegacyJob ? [] : ['legacy-job'],
+    );
     expect(result.canonical.me.csrf).toBe('');
+    expect(result.canonical.error || '').toBe(movedJob ? 'Fallo anterior' : '');
     expect(result.afterCanonical).toBeFalsy();
     expect(result.afterLegacy?.user?.id || null).toBe(migrated ? null : legacyUser);
   });

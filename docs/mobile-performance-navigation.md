@@ -41,7 +41,7 @@ Los service workers, cachés y snapshots necesarios para las instalaciones anter
 
 ## Verificación y medición
 
-Se han aprobado 44 casos distintos Node/API y 33 recorridos de navegador seleccionados. Se amplía la cobertura a permisos, separación entre grupos, correo, historial y sincronización porque cambian navegación, sesión y almacenamiento compartidos. No se ejecuta manualmente toda la suite ni se modifica la política de CI.
+Se han aprobado 44 casos distintos Node/API y 34 recorridos de navegador seleccionados. Se amplía la cobertura a permisos, separación entre grupos, correo, historial y sincronización porque cambian navegación, sesión y almacenamiento compartidos. No se ejecuta manualmente toda la suite ni se modifica la política de CI.
 
 Se compara la versión anterior con esta implementación usando el mismo fixture, seis cambios de orientación y una ralentización de CPU de 4× en Chromium. Las medidas incluyen el protocolo de automatización y dos frames; son una comparación local, no una promesa de latencia en dispositivos físicos o en Neon/Railway. Evidencia en `artifacts/performance/orientation-before.json` y `orientation-after.json`; las capturas comparan el SVG y la versión precalculada.
 

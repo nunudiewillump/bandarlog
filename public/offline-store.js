@@ -215,7 +215,7 @@
           const ids = new Set(state.queue.map((job) => job.id));
           state.queue.push(...jobs.filter((job) => !ids.has(job.id)));
           state.queue.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-          if (!state.error && source.error) state.error = source.error;
+          if (jobs.length && !state.error && source.error) state.error = source.error;
         });
         const moved = new Set(jobs.map((job) => job.id));
         if (moved.size)
