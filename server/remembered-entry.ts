@@ -65,7 +65,7 @@ export async function rememberedEntry(
         ),
       )
       .limit(1);
-    if (entry) return entry.groupId === legacyGroupId ? '/acceso' : '/g/' + entry.privateId + '/';
+    if (entry) return '/g/' + entry.privateId + '/';
   }
   return null;
 }

@@ -15,6 +15,14 @@ async function preparedUser(page: Page, role = 'member') {
     overdueWeekly: true,
     weekly: false,
   });
+  const group = {
+    id: 'group-fixture',
+    privateId: 'e'.repeat(32),
+    name: 'Grupo de prueba',
+    colorPrimary: '#d75a9e',
+    colorSecondary: '#7b3d93',
+    plan: 'free',
+  };
   const profileChanges: Record<string, unknown>[] = [];
   await page.route('**/api/**', async (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -23,9 +31,9 @@ async function preparedUser(page: Page, role = 'member') {
       return route.fulfill({ json: { googleEnabled: false, codeEnabled: true } });
     if (path === '/api/me')
       return route.fulfill({
-        json: { user: fixture.user, csrf: 'desktop-only-fixture', development: false },
+        json: { user: fixture.user, group, csrf: 'desktop-only-fixture', development: false },
       });
-    if (path === '/api/data') return route.fulfill({ json: fixture.summary() });
+    if (path === '/api/data') return route.fulfill({ json: { ...fixture.summary(), group } });
     if (path === '/api/profile' && route.request().method() === 'PATCH') {
       const change = route.request().postDataJSON();
       profileChanges.push(change);
@@ -54,7 +62,7 @@ for (const width of [320, 390])
     const information = page.getByRole('region', { name: 'Información personal' });
     await expect(information).toContainText('Scouter Prueba');
     await expect(information).toContainText('mobile@example.test');
-    await expect(information).toContainText('Rosales del Canal 702');
+    await expect(information).toContainText('Grupo de prueba');
     await expect(information.locator('.profile-neckerchief')).toBeVisible();
     await expect(page.getByRole('textbox')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Guardar perfil', exact: true })).toHaveCount(0);

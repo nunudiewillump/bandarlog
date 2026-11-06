@@ -112,7 +112,7 @@ export function ProfilePanel({
                 <dt>Grupo Scout</dt>
                 <dd className="profile-group">
                   <Neckerchief group={group} />
-                  <span>{group?.name || 'Rosales del Canal 702'}</span>
+                  <span>{group?.name || 'Tu grupo'}</span>
                 </dd>
               </div>
             </dl>

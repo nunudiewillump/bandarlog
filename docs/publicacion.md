@@ -24,7 +24,7 @@ El usuario de despliegue de Neon debe ser propietario de la base y tener permiso
 
 ### Grupo inicial y enlaces antiguos
 
-`/acceso` conserva el acceso por correo al grupo inicial para migrar sesiones y enlaces ya enviados. No registra personas desconocidas ni concede permisos por conocer esa ruta. Tras entrar, Administración encuentra el nuevo enlace en Perfil → Configurar grupo y lo comparte por los canales privados del grupo.
+`/acceso` redirige ahora a `/g/ID/` también para el grupo inicial, conservando los parámetros de los enlaces enviados. La sesión existente sigue siendo válida; las API anteriores continúan como transporte compatible para instalaciones y colas antiguas. No registra personas desconocidas ni concede permisos por conocer esa ruta. Tras entrar, Administración encuentra el nuevo enlace en Perfil → Configurar grupo y lo comparte por los canales privados del grupo.
 
 El cambio de dominio no mueve cookies, permisos push ni IndexedDB entre orígenes. **Sincroniza lo pendiente en el origen antiguo antes de cambiar o desinstalar la PWA.** Se conserva el acceso heredado y su API para que no queden cambios pendientes inaccesibles. Los orígenes antiguos solo se admiten como origen de solicitudes cuando el Host coincide y se trata del grupo inicial; se sigue exigiendo sesión y CSRF. Las páginas públicas y los enlaces anónimos del origen antiguo redirigen al nuevo dominio. No se reenvían formularios o credenciales mediante redirecciones de POST.
 
@@ -78,3 +78,5 @@ Los cambios de variables y OAuth externos no se han realizado desde este entorno
 Las pruebas específicas cubren solicitud, aprobación o rechazo solo con el enlace enviado al responsable, activación posterior con correo confirmado, origen de formularios, reutilización de enlaces, aislamiento entre grupos, correo compartido con roles distintos, sesiones, referencias cruzadas, datos y métricas, migración conservando IDs y funcionamiento de la PWA por grupo. El escenario real de correos requiere una comprobación autorizada con la cuenta remitente después de actualizar Google. La prueba local PostgreSQL se ejecuta con `TEST_POSTGRES_URL` apuntando exclusivamente a una base de pruebas local dedicada; sin ella se omite de la suite normal.
 
 La demo no genera facturas ni pagos. No hay soporte de facturación real, alta en tiendas de aplicaciones o aprobación automática de Google. El resultado es una PWA instalable y la web pública necesaria para presentar el servicio.
+
+La normalización actual de rutas, recuperación de colas y límites de compatibilidad se detalla en [rendimiento y navegación canónica](mobile-performance-navigation.md). No se modifican IDs ni historiales.

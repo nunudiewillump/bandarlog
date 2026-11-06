@@ -3,7 +3,13 @@ type PendingAccess = { email: string; challengeId: string; expiresAt: number; re
 const key = () => 'bandarlog:pending-access:' + groupBasePath();
 export function pendingAccess(): PendingAccess | null {
   try {
-    const value = JSON.parse(sessionStorage.getItem(key()) || 'null');
+    const legacyKey = 'bandarlog:pending-access:';
+    const migrate =
+      Boolean(groupBasePath()) &&
+      (globalThis as typeof globalThis & { BANDARLOG_LEGACY_STORAGE?: boolean })
+        .BANDARLOG_LEGACY_STORAGE === true &&
+      !sessionStorage.getItem(key());
+    const value = JSON.parse(sessionStorage.getItem(migrate ? legacyKey : key()) || 'null');
     if (
       value &&
       typeof value.email === 'string' &&
@@ -11,8 +17,13 @@ export function pendingAccess(): PendingAccess | null {
       Number.isFinite(value.expiresAt) &&
       Number.isFinite(value.resendAt) &&
       value.expiresAt > Date.now()
-    )
+    ) {
+      if (migrate) {
+        sessionStorage.setItem(key(), JSON.stringify(value));
+        sessionStorage.removeItem(legacyKey);
+      }
       return value;
+    }
     forgetAccess();
   } catch {
     /* Storage restrictions must not block online sign-in. */

@@ -41,7 +41,10 @@ test('remembered entry preserves legacy sessions, isolates groups, and rejects e
       });
     }
     assert.equal(await rememberedEntry(db, undefined, legacy.id), null);
-    assert.equal(await rememberedEntry(db, 'bandarlog=' + raw, legacy.id), '/acceso');
+    assert.equal(
+      await rememberedEntry(db, 'bandarlog=' + raw, legacy.id),
+      '/g/' + legacy.privateId + '/',
+    );
     assert.equal(
       await rememberedEntry(db, 'bandarlog=' + rawOther, legacy.id),
       null,

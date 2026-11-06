@@ -851,9 +851,9 @@ test('coordination extends the catalogue with a validated pair stored in the dat
   const added = catalogue.find((item: any) => item.id === created.body.id);
   assert.equal(added.name, input.name);
   assert.equal(added.collection, 'christmas');
-  assert.match(added.iconUrl, /^\/api\/artwork\/assets\//);
+  assert.match(added.iconUrl, /^\/g\/[a-f0-9]{32}\/api\/artwork\/assets\//);
   assert.equal(added.iconData, undefined);
-  const response = await fetch(base + '/artwork/assets/' + created.body.id + '/icon', {
+  const response = await fetch(new URL(added.iconUrl, base), {
     headers: { cookie: admin.cookie },
   });
   assert.equal(response.status, 200);
