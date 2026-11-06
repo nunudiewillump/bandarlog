@@ -54,6 +54,22 @@ html:root {
 .botanical-mobile-fill {
   display: none;
 }
+.forest-brand-word {
+  position: relative;
+  isolation: isolate;
+}
+.botanical-brand-fill {
+  display: none;
+  position: absolute;
+  left: 5px;
+  top: -26px;
+  width: 72px;
+  height: 57px;
+  z-index: -1;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 2px #07271940);
+  mask-image: linear-gradient(to bottom, transparent 0 20%, #000 40%);
+}
 .botanical-bough {
   transform-box: fill-box;
   transform-origin: 50% 12%;
@@ -64,13 +80,13 @@ html:root {
   top: 0;
   height: calc(137px + var(--forest-safe-top));
 }
-.has-mobile-breeze .botanical-bough {
-  animation: botanical-breeze 2.2s ease-in-out both;
+.has-canopy-breeze .botanical-bough {
+  animation: botanical-breeze 3.6s ease-in-out both;
 }
-.has-mobile-breeze .botanical-bough[data-depth='1'] {
+.has-canopy-breeze .botanical-bough[data-depth='1'] {
   animation-delay: 80ms;
 }
-.has-mobile-breeze .botanical-bough[data-depth='2'] {
+.has-canopy-breeze .botanical-bough[data-depth='2'] {
   animation-delay: 160ms;
 }
 @keyframes botanical-breeze {
@@ -79,12 +95,12 @@ html:root {
     transform: translate3d(var(--bough-x, 0px), var(--bough-y, 0px), 0) rotate(var(--bough-r, 0deg));
   }
   30% {
-    transform: translate3d(calc(var(--bough-x, 0px) + 4px), calc(var(--bough-y, 0px) + 2px), 0)
-      rotate(calc(var(--bough-r, 0deg) + 3deg));
+    transform: translate3d(calc(var(--bough-x, 0px) + 1px), calc(var(--bough-y, 0px) + 0.35px), 0)
+      rotate(calc(var(--bough-r, 0deg) + 0.45deg));
   }
   65% {
-    transform: translate3d(calc(var(--bough-x, 0px) - 3px), var(--bough-y, 0px), 0)
-      rotate(calc(var(--bough-r, 0deg) - 2deg));
+    transform: translate3d(calc(var(--bough-x, 0px) - 0.75px), var(--bough-y, 0px), 0)
+      rotate(calc(var(--bough-r, 0deg) - 0.35deg));
   }
 }
 .ambient-leaf-layer {
@@ -156,7 +172,8 @@ html:root {
     background: linear-gradient(to bottom, #103b2d 0 2px, #103b2db3 35%, #103b2d00 100%);
   }
   .botanical-header .botanical-upper-crown,
-  .botanical-header .botanical-mobile-fill {
+  .botanical-header .botanical-mobile-fill,
+  .botanical-header .botanical-brand-fill {
     display: block;
   }
   html.mobile-pwa-no-zoom,

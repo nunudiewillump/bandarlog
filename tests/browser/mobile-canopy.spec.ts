@@ -54,8 +54,9 @@ test('larger brand marks fit at phone and desktop widths; badges match and proje
 }) => {
   test.setTimeout(60000);
   const palettes: Record<string, unknown>[] = [];
-  for (const width of [320, 1024, 1440]) {
+  for (const width of [320, 393, 1024, 1440]) {
     await prepare(page, width);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     const brand = page.locator(width < 768 ? '.forest-brand:visible' : '.sidebar-brand:visible');
     const icon = brand.locator('img');
     const box = await icon.boundingBox();
@@ -65,6 +66,33 @@ test('larger brand marks fit at phone and desktop widths; badges match and proje
       width: element.clientWidth,
     }));
     expect(brandSize.content).toBeLessThanOrEqual(brandSize.width + 1);
+    if (width < 768) {
+      const fill = brand.locator('.botanical-brand-fill');
+      await expect(fill).toBeVisible();
+      await expect(fill.locator('.botanical-leaf-silhouette')).toHaveCount(2);
+      const coverage = await brand.locator('.forest-brand-word').evaluate((word) => {
+        const text = [...word.childNodes].find(
+          (node) => node.nodeType === Node.TEXT_NODE && node.textContent!.includes('Bandarlog'),
+        )!;
+        const index = text.textContent!.indexOf('n');
+        const range = document.createRange();
+        range.setStart(text, index);
+        range.setEnd(text, index + 1);
+        const rect = range.getBoundingClientRect();
+        const leaves = [...word.querySelectorAll<SVGGeometryElement>('.botanical-leaf-silhouette')];
+        return [-3, 0, 3]
+          .flatMap((dx) =>
+            [-8, -4].map((dy) => {
+              const point = new DOMPoint(rect.x + rect.width / 2 + dx, rect.y + dy);
+              return leaves.some((leaf) =>
+                leaf.isPointInFill(point.matrixTransform(leaf.getScreenCTM()!.inverse())),
+              );
+            }),
+          )
+          .filter(Boolean).length;
+      });
+      expect(coverage).toBeGreaterThanOrEqual(4);
+    }
     const colors: Record<string, unknown> = {};
     for (const status of ['pending', 'done']) {
       const badge = page.locator('.badge.' + status + ':visible').first();
@@ -98,7 +126,7 @@ test('larger brand marks fit at phone and desktop widths; badges match and proje
     );
     await page.screenshot({ path: 'artifacts/mobile-canopy/projects-' + width + '.png' });
   }
-  expect(palettes[0]).toEqual(palettes[2]);
+  expect(palettes[0]).toEqual(palettes[3]);
 });
 
 test('desktop scrollbars and public brand use the same forest palette as the application', async ({
@@ -255,104 +283,134 @@ test.describe('touch and installed mobile layout', () => {
       },
     );
 
-  test('touch moves nearby app leaves; a breeze runs every 15 seconds and respects reduced motion and preferences', async ({
-    page,
-  }) => {
-    await page.clock.install();
-    await prepare(page);
-    const surface = page.locator('.app-forest-header .botanical-decoration');
-    await page.clock.runFor(100);
-    await page.dispatchEvent('.app-forest-header', 'pointerdown', {
-      pointerType: 'touch',
-      clientX: 160,
-      clientY: 90,
-      pointerId: 1,
-      bubbles: true,
-    });
-    await page.clock.runFor(50);
-    expect(
-      await surface
-        .locator('.botanical-bough')
-        .evaluateAll((boughs) =>
-          boughs.some(
-            (bough) =>
-              Math.abs(parseFloat((bough as SVGElement).style.getPropertyValue('--bough-x'))) > 0.2,
+  for (const [random, delay] of [
+    [0, 5000],
+    [0.999, 14990],
+  ] as const) {
+    test(`touch and pen leave the app canopy still; gentle breeze starts after ${delay}ms`, async ({
+      page,
+    }) => {
+      const now = new Date('2026-11-06T12:00:00Z');
+      await page.clock.install({ time: now });
+      await page.clock.pauseAt(now);
+      await page.addInitScript((random) => {
+        Math.random = () => random;
+      }, random);
+      await prepare(page);
+      const header = page.locator('.app-forest-header');
+      const boughs = header.locator('.botanical-bough');
+      for (const pointerType of ['touch', 'pen']) {
+        for (const event of ['pointerdown', 'pointermove', 'pointerup']) {
+          await page.dispatchEvent('.app-forest-header', event, {
+            pointerType,
+            clientX: 160,
+            clientY: 70,
+            pointerId: 1,
+            bubbles: true,
+          });
+        }
+      }
+      await page.clock.runFor(50);
+      expect(
+        await boughs.evaluateAll((elements) =>
+          elements.every((element) =>
+            ['--bough-x', '--bough-y', '--bough-r'].every(
+              (property) => !(element as SVGElement).style.getPropertyValue(property),
+            ),
           ),
         ),
-    ).toBe(true);
-    await page.dispatchEvent('.app-forest-header', 'pointerup', {
-      pointerType: 'touch',
-      bubbles: true,
+      ).toBe(true);
+      await page.clock.runFor(delay - 51);
+      await expect(header).not.toHaveClass(/has-canopy-breeze/);
+      await page.clock.runFor(1);
+      await expect(header).toHaveClass(/has-canopy-breeze/);
+      const motion = await boughs.first().evaluate((element) => {
+        const animation = element.getAnimations()[0];
+        animation.currentTime = 1080;
+        const matrix = new DOMMatrix(getComputedStyle(element).transform);
+        return {
+          x: matrix.e,
+          y: matrix.f,
+          angle: (Math.atan2(matrix.b, matrix.a) * 180) / Math.PI,
+          duration: animation.effect!.getTiming().duration,
+        };
+      });
+      expect(motion.duration).toBe(3600);
+      expect(Math.abs(motion.x)).toBeLessThanOrEqual(1.1);
+      expect(Math.abs(motion.y)).toBeLessThanOrEqual(1.1);
+      expect(Math.abs(motion.angle)).toBeLessThanOrEqual(0.5);
+      await page.clock.runFor(4000);
+      await expect(header).not.toHaveClass(/has-canopy-breeze/);
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.clock.runFor(30_000);
+      await expect(header).not.toHaveClass(/has-canopy-breeze/);
+      await page.emulateMedia({ reducedMotion: 'no-preference' });
+      await page.getByRole('button', { name: 'Perfil', exact: true }).click();
+      await page.locator('.profile-preferences > summary').click();
+      await page.getByLabel('Mostrar copa y hojas', { exact: true }).click();
+      await expect(page.locator('.botanical-decoration, .botanical-brand-fill')).toHaveCount(0);
+      await page.clock.runFor(30_000);
+      await expect(page.locator('.ambient-leaf')).toHaveCount(0);
     });
-    await page.clock.runFor(14_000);
-    await expect(surface).not.toHaveClass(/has-mobile-breeze/);
-    await page.clock.runFor(1300);
-    await expect(surface).toHaveClass(/has-mobile-breeze/);
-    await page.clock.runFor(2500);
-    await expect(surface).not.toHaveClass(/has-mobile-breeze/);
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.clock.runFor(30_000);
-    await expect(surface).not.toHaveClass(/has-mobile-breeze/);
-    await page.emulateMedia({ reducedMotion: 'no-preference' });
-    await page.getByRole('button', { name: 'Perfil', exact: true }).click();
-    await page.locator('.profile-preferences > summary').click();
-    await page.getByLabel('Mostrar copa y hojas', { exact: true }).click();
-    await expect(page.locator('.botanical-decoration')).toHaveCount(0);
-    await page.clock.runFor(30_000);
-    await expect(page.locator('.ambient-leaf')).toHaveCount(0);
-  });
+  }
 
-  test('public mobile canopy reacts to touch, breathes every 15 seconds and remains fixed while scrolling', async ({
+  test('public canopy ignores touch and uses a gentle 5–15 second breeze on mobile and desktop', async ({
     page,
   }) => {
-    await page.clock.install();
-    await page.setViewportSize({ width: 320, height: 844 });
-    await page.goto('/');
-    const header = page.locator('.public-header');
-    expect((await header.locator('.public-brand img').boundingBox())!.width).toBe(40);
-    await page.dispatchEvent('.public-header', 'pointerdown', {
-      pointerType: 'touch',
-      clientX: 140,
-      clientY: 75,
-      pointerId: 1,
-      bubbles: true,
+    const now = new Date('2026-11-06T12:00:00Z');
+    await page.clock.install({ time: now });
+    await page.clock.pauseAt(now);
+    await page.addInitScript(() => {
+      Math.random = () => 0.999;
     });
-    await page.clock.runFor(100);
-    expect(
-      await header
-        .locator('.public-canopy-twig')
-        .evaluateAll((twigs) =>
-          twigs.some(
-            (twig) =>
-              Math.abs(parseFloat((twig as SVGElement).style.getPropertyValue('--bough-x'))) > 0.2,
+    for (const width of [320, 1440]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.goto('/');
+      const header = page.locator('.public-header');
+      for (const event of ['pointerdown', 'pointermove', 'pointerup'])
+        await page.dispatchEvent('.public-header', event, {
+          pointerType: 'touch',
+          clientX: 140,
+          clientY: 75,
+          pointerId: 1,
+          bubbles: true,
+        });
+      await page.clock.runFor(100);
+      expect(
+        await header
+          .locator('.public-canopy-twig')
+          .evaluateAll((elements) =>
+            elements.every(
+              (element) => !(element as SVGElement).style.getPropertyValue('--bough-x'),
+            ),
           ),
-        ),
-    ).toBe(true);
-    await page.dispatchEvent('.public-header', 'pointerup', {
-      pointerType: 'touch',
-      bubbles: true,
-    });
-    await page.clock.runFor(15_100);
-    await expect(header).toHaveClass(/has-mobile-breeze/);
-    const twig = header.locator('.public-canopy-twig').first();
-    await expect(twig).toHaveCSS('animation-delay', '0s');
-    await expect(twig).toHaveCSS('animation-play-state', 'running');
-    const gust = await twig.evaluate((element) => {
-      const animation = element.getAnimations()[0];
-      if (!animation) return null;
-      animation.currentTime = 800;
-      return getComputedStyle(element).transform;
-    });
-    expect(gust).not.toBeNull();
-    expect(gust).not.toBe('matrix(1, 0, 0, 1, 0, 0)');
-    await page.evaluate(() => scrollTo(0, 250));
-    expect((await header.boundingBox())!.y).toBe(0);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
-      true,
-    );
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.clock.runFor(30_000);
-    await expect(header).not.toHaveClass(/has-mobile-breeze/);
+      ).toBe(true);
+      await expect(header.locator('.public-canopy-twig').first()).toHaveCSS(
+        'animation-name',
+        'none',
+      );
+      await page.clock.runFor(14889);
+      await expect(header).not.toHaveClass(/has-canopy-breeze/);
+      await page.clock.runFor(1);
+      await expect(header).toHaveClass(/has-canopy-breeze/);
+      const twig = header.locator('.public-canopy-twig').first();
+      await expect(twig).toHaveCSS('animation-duration', '3.6s');
+      const angle = await twig.evaluate((element) => {
+        element.getAnimations()[0].currentTime = 1080;
+        const matrix = new DOMMatrix(getComputedStyle(element).transform);
+        return (Math.atan2(matrix.b, matrix.a) * 180) / Math.PI;
+      });
+      expect(Math.abs(angle)).toBeGreaterThan(0.1);
+      expect(Math.abs(angle)).toBeLessThanOrEqual(0.5);
+      if (width === 320) {
+        await page.evaluate(() => scrollTo(0, 250));
+        expect((await header.boundingBox())!.y).toBe(0);
+      }
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.clock.runFor(30_000);
+      await expect(header).not.toHaveClass(/has-canopy-breeze/);
+      await page.emulateMedia({ reducedMotion: 'no-preference' });
+    }
   });
 
   test('daily and weekly reminder switches persist independently in the mobile profile', async ({

@@ -51,6 +51,21 @@ function BotanicalLeaf({
     </g>
   );
 }
+/** A small pair of the existing leaves closes the opening above the brand's N. */
+export function BrandCanopyFill() {
+  return (
+    <svg className="botanical-brand-fill" viewBox="0 0 96 76" aria-hidden="true" focusable="false">
+      <g className="botanical-bough" data-depth="2">
+        <g transform="translate(31 -4) rotate(150) scale(.65)">
+          <BotanicalLeaf shape="beech" colors={FRONT_COLORS[0]} />
+        </g>
+        <g transform="translate(65 -12) rotate(211) scale(.66)">
+          <BotanicalLeaf shape="oak" colors={FRONT_COLORS[2]} />
+        </g>
+      </g>
+    </svg>
+  );
+}
 const BRANCHES = [19, 18, 17].map((count, depth) =>
   Array.from({ length: count }, (_, index) => {
     const colors: LeafColors =
@@ -111,10 +126,7 @@ export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
     if (!header) return;
     const reduced = matchMedia('(prefers-reduced-motion: reduce)');
     const finePointer = matchMedia('(hover: hover) and (pointer: fine)');
-    const mobile = matchMedia(
-      '(max-width: 767px), (orientation: landscape) and (max-height: 599px) and (max-width: 1023px)',
-    );
-    const boughs = [...surface.current.querySelectorAll<SVGGElement>('.botanical-bough')];
+    const boughs = [...header.querySelectorAll<SVGGElement>('.botanical-bough')];
     let timer = 0,
       breezeTimer = 0,
       breezeEnd = 0,
@@ -147,7 +159,7 @@ export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
       clearTimeout(timer);
       clearTimeout(breezeTimer);
       clearTimeout(breezeEnd);
-      decoration.classList.remove('has-mobile-breeze');
+      header.classList.remove('has-canopy-breeze');
       timer = 0;
       cancelAnimationFrame(frame);
       frame = 0;
@@ -157,18 +169,18 @@ export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
     };
     const scheduleBreeze = () => {
       clearTimeout(breezeTimer);
-      if (reduced.matches || !mobile.matches || !visible()) return;
-      breezeTimer = window.setTimeout(() => {
-        if (!reduced.matches && mobile.matches && visible()) {
-          decoration.classList.add('has-mobile-breeze');
-          clearTimeout(breezeEnd);
-          breezeEnd = window.setTimeout(
-            () => decoration.classList.remove('has-mobile-breeze'),
-            2400,
-          );
-        }
-        scheduleBreeze();
-      }, 15000);
+      if (reduced.matches || !visible()) return;
+      breezeTimer = window.setTimeout(
+        () => {
+          if (!reduced.matches && visible()) {
+            header.classList.add('has-canopy-breeze');
+            clearTimeout(breezeEnd);
+            breezeEnd = window.setTimeout(() => header.classList.remove('has-canopy-breeze'), 4000);
+          }
+          scheduleBreeze();
+        },
+        5000 + Math.random() * 10000,
+      );
     };
     const schedule = () => {
       clearTimeout(timer);
@@ -212,11 +224,7 @@ export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
       );
     };
     const pointerMove = (event: PointerEvent) => {
-      if (
-        reduced.matches ||
-        (!finePointer.matches && !['touch', 'pen'].includes(event.pointerType)) ||
-        !visible()
-      )
+      if (reduced.matches || !finePointer.matches || event.pointerType !== 'mouse' || !visible())
         return;
       pointer = { x: event.clientX, y: event.clientY };
       if (frame) return;
@@ -252,19 +260,6 @@ export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
       frame = 0;
       reset();
     };
-    const touchMove = (event: PointerEvent) => {
-      if (!['touch', 'pen'].includes(event.pointerType) || reduced.matches || !visible()) return;
-      const rect = header.getBoundingClientRect();
-      if (event.clientY < rect.top - 24 || event.clientY > rect.bottom + 64) {
-        if (pointer) leave();
-        return;
-      }
-      if (!pointer) cacheAnchors();
-      pointerMove(event);
-    };
-    const touchEnd = (event: PointerEvent) => {
-      if (pointer && ['touch', 'pen'].includes(event.pointerType)) leave();
-    };
     const changed = () => {
       if (reduced.matches || !visible()) stop();
       else {
@@ -277,16 +272,10 @@ export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
       reset();
       changed();
     };
-    header.addEventListener('pointerenter', cacheAnchors, { passive: true });
     header.addEventListener('pointermove', pointerMove, { passive: true });
     header.addEventListener('pointerleave', leave, { passive: true });
-    document.addEventListener('pointerdown', touchMove, { passive: true });
-    document.addEventListener('pointermove', touchMove, { passive: true });
-    document.addEventListener('pointerup', touchEnd, { passive: true });
-    document.addEventListener('pointercancel', touchEnd, { passive: true });
     document.addEventListener('visibilitychange', changed);
     reduced.addEventListener('change', changed);
-    mobile.addEventListener('change', changed);
     const observer = new ResizeObserver(resized);
     observer.observe(header);
     const intersection = new IntersectionObserver(changed);
@@ -297,20 +286,14 @@ export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
       clearTimeout(timer);
       clearTimeout(breezeTimer);
       clearTimeout(breezeEnd);
-      decoration.classList.remove('has-mobile-breeze');
+      header.classList.remove('has-canopy-breeze');
       cancelAnimationFrame(frame);
       reset();
       if (activeLeafOwner === id) activeLeafOwner = null;
-      header.removeEventListener('pointerenter', cacheAnchors);
       header.removeEventListener('pointermove', pointerMove);
       header.removeEventListener('pointerleave', leave);
-      document.removeEventListener('pointerdown', touchMove);
-      document.removeEventListener('pointermove', touchMove);
-      document.removeEventListener('pointerup', touchEnd);
-      document.removeEventListener('pointercancel', touchEnd);
       document.removeEventListener('visibilitychange', changed);
       reduced.removeEventListener('change', changed);
-      mobile.removeEventListener('change', changed);
       observer.disconnect();
       intersection.disconnect();
     };

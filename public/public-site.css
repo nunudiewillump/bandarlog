@@ -399,19 +399,10 @@ html {
 }
 .public-landing .public-canopy-twig {
   transform-origin: 0 0;
-  animation: public-bough-breathe 4.5s ease-in-out infinite alternate;
 }
-.public-landing .public-canopy-plane-1 .public-canopy-twig {
-  animation-delay: -4s;
-  animation-duration: 6.5s;
-}
-.public-landing .public-canopy-plane-2 .public-canopy-twig {
-  animation-delay: -2s;
-  animation-duration: 5.5s;
-}
+
 .public-landing .public-canopy-corner {
   transform-origin: 0 0;
-  animation: public-bough-breathe 7s ease-in-out infinite alternate;
 }
 .public-forest-home {
   overflow: clip;
@@ -591,14 +582,6 @@ html {
   font-size: 13px;
   gap: 14px 22px;
 }
-@keyframes public-bough-breathe {
-  from {
-    transform: rotate(-2.7deg);
-  }
-  to {
-    transform: rotate(3.7deg);
-  }
-}
 @keyframes public-forest-fall {
   0% {
     transform: translate3d(0, -15px, 0) rotate(-30deg);
@@ -730,15 +713,7 @@ html {
   }
 }
 /* Movement preferences and page visibility need no visible pause control. */
-.public-canopy-twig-1 {
-  animation-delay: -1.5s !important;
-}
-.public-canopy-twig-2 {
-  animation-delay: -3s !important;
-}
-.public-canopy-twig-3 {
-  animation-delay: -4.5s !important;
-}
+
 .public-landing[data-motion-paused] .public-canopy *,
 .public-landing[data-motion-paused] .public-falling {
   animation-play-state: paused;
@@ -822,27 +797,23 @@ html {
     transform: translate3d(var(--bough-x, 0px), var(--bough-y, 0px), 0) rotate(var(--bough-r, 0deg));
     transition: transform 500ms ease-out;
   }
-  .public-header.has-mobile-breeze .public-canopy-twig,
-  .public-header.has-mobile-breeze .public-canopy-corner {
-    animation: public-mobile-breeze 2.4s ease-in-out both;
-  }
-  .public-header .public-canopy-twig {
-    /* Desktop's negative stagger must not skip the short mobile gust. */
-    animation-delay: 0s !important;
-  }
 }
-@keyframes public-mobile-breeze {
+.public-header.has-canopy-breeze .public-canopy-twig,
+.public-header.has-canopy-breeze .public-canopy-corner {
+  animation: public-canopy-breeze 3.6s ease-in-out both;
+}
+@keyframes public-canopy-breeze {
   0%,
   100% {
     transform: translate3d(var(--bough-x, 0px), var(--bough-y, 0px), 0) rotate(var(--bough-r, 0deg));
   }
   30% {
-    transform: translate3d(calc(var(--bough-x, 0px) + 4px), calc(var(--bough-y, 0px) + 2px), 0)
-      rotate(calc(var(--bough-r, 0deg) + 3deg));
+    transform: translate3d(calc(var(--bough-x, 0px) + 1px), calc(var(--bough-y, 0px) + 0.35px), 0)
+      rotate(calc(var(--bough-r, 0deg) + 0.45deg));
   }
   65% {
-    transform: translate3d(calc(var(--bough-x, 0px) - 3px), var(--bough-y, 0px), 0)
-      rotate(calc(var(--bough-r, 0deg) - 2deg));
+    transform: translate3d(calc(var(--bough-x, 0px) - 0.75px), var(--bough-y, 0px), 0)
+      rotate(calc(var(--bough-r, 0deg) - 0.35deg));
   }
 }
 @media (prefers-reduced-motion: reduce) {
