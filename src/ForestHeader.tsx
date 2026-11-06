@@ -25,7 +25,7 @@ export function ForestHeader({
           type="button"
           aria-label="Bandarlog, inicio"
         >
-          <img src="/brand-mark.webp" alt="" width="32" height="32" />
+          <img src="/brand-mark.webp" alt="" width="44" height="44" />
           <span>Bandarlog</span>
         </button>
         {avatar && (

@@ -206,6 +206,7 @@ export function ProfilePanel({
                     current.updates !== false && 'actualizaciones',
                     current.onDue !== false && 'vencimiento',
                     current.overdueWeekly !== false && 'vencidas cada semana',
+                    current.overdueDaily === true && 'vencidas cada día',
                   ]
                     .filter(Boolean)
                     .join(' · ') || 'Sin avisos adicionales.'}
@@ -244,7 +245,7 @@ export function ProfilePanel({
               />
               Mostrar copa y hojas
             </label>
-            <p>Incluye el movimiento al pasar el ratón y las hojas que caen.</p>
+            <p>Reacción al toque o al ratón, brisa y hojas que caen.</p>
           </section>
         </div>
       </details>

@@ -20,6 +20,8 @@ colors:
   blue: "#276cae"
   focus-control: "#e8a33c"
   focus-field: "#21865c"
+  scrollbar-thumb: "#386c4c"
+  scrollbar-track: "#edf0e5"
 typography:
   brand:
     fontFamily: "'Bungee', 'Poppins', sans-serif"
@@ -123,7 +125,7 @@ La autoridad visual es la propuesta refinada Codex aprobada en `7088637`, actual
 
 **Key Characteristics:**
 
-- Copa orgánica compacta en flujo normal y navegación móvil estable.
+- Copa orgánica compacta anclada arriba en móvil y navegación estable.
 - Verde bosque, crema y contraste de texto funcional.
 - Poppins local, nombres que envuelven y listas continuas.
 - Identidad 2D discreta y celebración breve tras guardar.
@@ -175,7 +177,7 @@ La jerarquía normativa del frontmatter describe el sistema móvil/acceso: `head
 
 El ámbito Forest operativo se activa con `(max-width: 767px)` **o** `(orientation: landscape) and (max-height: 599px) and (max-width: 1023px)`. No simplificarlo a una única regla de ancho: una pantalla horizontal de 844×390 utiliza la experiencia móvil. Los límites son inclusivos. Fuera de ese ámbito se conserva la composición operativa tablet/desktop.
 
-En móvil el contenido usa padding superior de 28px, laterales de 20px y reserva inferior de `calc(110px + env(safe-area-inset-bottom))`. Hasta 389px de ancho, los laterales bajan a 16px. La cabecera usa un interior flexible de al menos 64px, ancho máximo de 1180px y borde inferior SVG de 17px; permanece en flujo normal y puede salir del viewport al desplazar. La marca tiene icono de 32px y el acceso a Perfil un objetivo de 44×44px.
+En móvil el contenido usa padding superior de 28px, laterales de 20px y reserva inferior de `calc(110px + env(safe-area-inset-bottom))`. Hasta 389px de ancho, los laterales bajan a 16px. La cabecera usa un interior flexible de al menos 64px, ancho máximo de 1180px y borde inferior SVG de 17px; conserva su espacio inicial y permanece anclada arriba al desplazar en móvil. La marca tiene icono de 44px y el acceso a Perfil un objetivo de 44×44px.
 
 La navegación inferior es fija, cinco columnas iguales, altura mínima de 72px, objetivos de al menos 44px de ancho y 52px de alto, más padding y área segura inferior. En landscape bajo la misma condición móvil: cabecera interior de 52px, navegación mínima de 64px, botones con icono y etiqueta en fila, y reserva inferior del contenido de 100px. Toast y Deshacer se colocan por encima de la barra con área segura.
 
@@ -183,7 +185,7 @@ Las filas de tarea usan divisores y padding vertical de 14px; las filas de comis
 
 Acceso y onboarding usan el nuevo mundo a todos los anchos: columna centrada de máximo 540px, padding 36px 24px 48px; a partir de 768px, 48px 40px. La copa de esas superficies pasa a laterales de 36px en ancho amplio. El corte de 389px reduce sus laterales a 16px; landscape reduce el padding superior a 24px.
 
-La estructura desktop conserva sidebar de 218px, de 190px hasta 1250px y rail de 72px entre 768px y 1023px cuando no prevalece el ámbito landscape móvil. La implementación desktop añade lateral claro, foco por rol, listas de comisión comparables y un resumen compacto que deja ver las tareas. Los ajustes concretos de anchura viven en desktop-forest.css. No convertir estas pantallas en una ampliación de la composición móvil.
+La estructura desktop utiliza sidebar de 226px, de 180px entre 1024px y 1279px y rail de 72px entre 768px y 1023px cuando no prevalece el ámbito landscape móvil. La implementación desktop añade lateral claro, foco por rol, listas de comisión comparables y un resumen compacto que deja ver las tareas. Los ajustes concretos de anchura viven en desktop-forest.css. No convertir estas pantallas en una ampliación de la composición móvil.
 
 ## Elevation & Depth
 
@@ -207,7 +209,7 @@ El foco de botones, enlaces y summary utiliza contorno de 3px y separación de 3
 
 ### Chips
 
-Los badges operativos móviles usan texto de 12px y padding de 3px 8px. Dentro de los metadatos de fila de tarea pasan a texto sin fondo ni padding: el estado sigue visible sin competir con el título. No copiar una cápsula de estado a cada línea de contexto.
+Los badges operativos móviles usan texto de 12px y padding de 3px 8px. Las tareas usan las mismas etiquetas en móvil y escritorio, con radio de 4px y peso 800: Pendiente conserva la superficie neutra y Terminada la superficie y tinta verdes. No se retiran sus fondos en los metadatos móviles.
 
 ### Cards / Containers
 
@@ -282,3 +284,15 @@ La celebración al terminar tareas personales conserva el contenido de Inicio y 
 La presentación pública conserva Forest Experience: Poppins local, verde bosque, papel crema, marca 2D y las mismas siluetas de hojas. La portada se limita a «Menos lío. Más grupo.», una línea sobre proyectos, comisiones y tareas y el acceso. La composición vigente utiliza una única ilustración original del mono al teclado, anclada a una mesa, en aproximadamente la mitad izquierda del escritorio. El titular queda en primer plano y la entrada a la derecha. En móvil, texto y acceso preceden a una escena amplia debajo; no se reduce la composición desktop. Las hojas de haya y roble existentes forman cuatro planos más poblados y ramas laterales, con pequeñas flores y bellotas 2D; no se introducen siluetas nuevas. El mono es una animación articulada de ocho segundos con tecleo, giro, sonrisa y parpadeo, codificada como WebP animado. El render une piezas 2D de colores planos, sin fundir dos escenas ni mover la mesa. La imagen estática aparece antes de decodificar la animación. No hay pausa visible; movimiento reducido, pestaña oculta y salida de pantalla conservan una ilustración estática. Sin JavaScript también se conserva la ilustración y el acceso. El pie permanece al fondo de la ventana y en el flujo si hay más contenido. Ver [portada ilustrada](docs/forest-landing/implementation.md). La solicitud de grupo vive como enlace discreto en el pie y nunca activa una cuenta sin aprobación del responsable. Las páginas legales priorizan lectura y siguen disponibles sin sesión o JavaScript. El registro pide nombre del grupo, correo y nombre del primer administrador y dos colores de pañoleta. La suscripción de ejemplo señala su naturaleza ficticia antes de cualquier precio y mantiene deshabilitada toda contratación. La identidad del grupo se muestra en acceso, cabecera, manifiesto PWA y perfil; sus ajustes no aparecen sin rol de Administración.
 
 La explicación extensa del servicio y de Gmail se mantiene en `/presentacion` para la verificación de Google; no se añade a la portada animada.
+
+## Enmienda vigente: identidad, copa móvil y avisos diarios
+
+La cabeza del logotipo conserva el recurso original y gana tamaño: 44px en la app y la barra lateral amplia, 36px en el lateral compacto y 48px en la cabecera pública desktop (40px en su versión móvil). No se cambia la cabeza ni la articulación de la ilustración al teclado. Las tarjetas de proyecto móviles centran un único icono de 36px dentro de su fondo.
+
+La copa móvil permanece anclada al borde superior con posición sticky; el contenido se desplaza debajo del borde orgánico. Solo los controles reservan el área segura. No hay un relleno adicional del body ni una capa opaca sobre el notch. La PWA conserva viewport-fit=cover, black-translucent en iOS y theme-color verde oscuro para Android. El blanco de los iconos nativos depende del sistema y no se atribuye a una captura de navegador.
+
+La reacción sigue las coordenadas de toque o lápiz cerca de la copa con listeners pasivos, sin impedir el scroll. Un dedo suspendido no produce eventos de proximidad en los navegadores habituales. La brisa dura unos 2,4 segundos y se activa cada 15 segundos en móvil; no modifica la caída ocasional de hojas/plátanos de 17–50 segundos. Se detiene con movimiento reducido, página oculta o efectos de bosque desactivados. La portada pública comparte este comportamiento táctil y su cabecera queda también anclada.
+
+Las barras de desplazamiento usan pista de papel vegetal y tirador verde bosque, con hover más oscuro. No se cambian las superficies claras ni el contraste del escritorio.
+
+Perfil incorpora un aviso diario opcional para tareas vencidas, desactivado por defecto e independiente del semanal por decisión del usuario. La clave diaria se limita a un aviso por tarea, destinatario y día de Madrid, incluso al editar una fecha vencida; los demás avisos conservan sus claves anteriores. Ver implementación, fuentes y límites en docs/mobile-canopy-reminders.md.

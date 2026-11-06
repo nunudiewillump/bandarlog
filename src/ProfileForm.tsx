@@ -83,6 +83,7 @@ export function ProfileForm({
             reminderDays: [...new Set(days)].sort((a, b) => b - a),
             onDue: form.get('onDue') === 'on',
             overdueWeekly: form.get('overdueWeekly') === 'on',
+            overdueDaily: form.get('overdueDaily') === 'on',
             ...(['admin', 'coordination'].includes(user.role)
               ? { weekly: form.get('weekly') === 'on' }
               : {}),
@@ -221,6 +222,14 @@ export function ProfileForm({
               defaultChecked={current.overdueWeekly !== false}
             />
             Un recordatorio semanal mientras siga vencida
+          </label>
+          <label className="checkbox-line">
+            <input
+              type="checkbox"
+              name="overdueDaily"
+              defaultChecked={current.overdueDaily === true}
+            />
+            Un recordatorio diario mientras siga vencida
           </label>
           {['admin', 'coordination'].includes(user.role) && (
             <label className="checkbox-line">

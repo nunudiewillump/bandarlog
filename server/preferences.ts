@@ -8,6 +8,7 @@ export const preferenceSchema = z.object({
   reminderDays: z.array(z.number().int().min(1).max(90)).max(10).default([7, 3]),
   onDue: z.boolean().default(true),
   overdueWeekly: z.boolean().default(true),
+  overdueDaily: z.boolean().default(false),
 });
 export function preferences(value: string | unknown) {
   let input = value;
@@ -49,6 +50,11 @@ export function reminderEvents(
     result.push({
       label: 'Recordatorio semanal · tarea vencida',
       key: `overdue-week-${Math.floor(-days / 7)}`,
+    });
+  if (target < at && p.overdueDaily)
+    result.push({
+      label: 'Recordatorio diario · tarea vencida',
+      key: 'overdue-day-' + dayNumber(at),
     });
   return result;
 }

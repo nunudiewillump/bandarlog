@@ -30,8 +30,9 @@
   padding: 0;
 }
 .forest-brand img {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
+  flex: none;
   object-fit: contain;
 }
 .forest-profile {
@@ -276,6 +277,14 @@
   .app-forest-header {
     display: block;
   }
+  .forest-canopy.botanical-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  }
+  html {
+    scroll-padding-top: calc(var(--forest-safe-top, 0px) + 140px);
+  }
   .workspace > .topbar {
     display: none;
   }
@@ -492,15 +501,19 @@
     line-height: 20px;
   }
   .mobile-task-meta .badge {
-    padding: 0;
-    background: none;
-    color: #52675a;
+    padding: 3px 8px;
   }
-  .mobile-task-meta .badge.blocked {
-    color: #805006;
+  .project-card .project-art {
+    display: grid;
+    place-items: center;
+    gap: 0;
   }
-  .mobile-task-meta .badge.done {
-    color: #124d38;
+  .project-card .project-art > svg:first-child {
+    width: 36px;
+    height: 36px;
+  }
+  .project-card .project-art > svg:last-child:not(:first-child) {
+    display: none;
   }
   .task-assigned-to {
     font-size: 12px;

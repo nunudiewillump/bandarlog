@@ -71,7 +71,7 @@ function canopy(landing = false) {
 function shell(title: string, path: string, body: string, appUrl: string, description: string) {
   const origin = esc(appUrl);
   const landing = path === '/';
-  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#103b2d"><meta name="description" content="${esc(description)}"><link rel="canonical" href="${origin}${path}"><link rel="icon" href="/icon.svg"><link rel="preload" href="/public-fonts/poppins-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/public-fonts/bungee-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="/typography.css"><link rel="stylesheet" href="/public-site.css"><title>${esc(title)} · Bandarlog</title></head><body class="public-site${landing ? ' public-landing' : ''}"><a class="public-skip" href="#contenido">Saltar al contenido</a><header class="public-header">${canopy(landing)}<nav aria-label="Principal"><a class="public-brand" href="/"><img src="/brand-mark.webp" alt="" width="36" height="36">Bandarlog</a><a class="public-enter" href="/entrar">Entrar ${icon(ArrowRight)}</a></nav></header>${body}${landing ? '<script src="/landing-motion.js" defer></script>' : ''}<footer class="public-footer"><a class="public-brand" href="/"><img src="/brand-mark.webp" alt="" width="26" height="26">Bandarlog</a><nav aria-label="Información pública"><a href="/presentacion">Sobre Bandarlog</a><a href="/privacidad">Privacidad</a><a href="/condiciones">Condiciones de uso</a><a href="/crear-grupo">Solicitar un grupo</a><a href="/privacidad#contacto">Contacto</a></nav></footer></body></html>`;
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#103b2d"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Bandarlog"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="/icon-192.png"><meta name="description" content="${esc(description)}"><link rel="canonical" href="${origin}${path}"><link rel="icon" href="/icon.svg"><link rel="preload" href="/public-fonts/poppins-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/public-fonts/bungee-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="/typography.css"><link rel="stylesheet" href="/public-site.css"><title>${esc(title)} · Bandarlog</title></head><body class="public-site${landing ? ' public-landing' : ''}"><a class="public-skip" href="#contenido">Saltar al contenido</a><header class="public-header">${canopy(landing)}<nav aria-label="Principal"><a class="public-brand" href="/"><img src="/brand-mark.webp" alt="" width="36" height="36">Bandarlog</a><a class="public-enter" href="/entrar">Entrar ${icon(ArrowRight)}</a></nav></header>${body}<script src="/landing-motion.js" defer></script><footer class="public-footer"><a class="public-brand" href="/"><img src="/brand-mark.webp" alt="" width="26" height="26">Bandarlog</a><nav aria-label="Información pública"><a href="/presentacion">Sobre Bandarlog</a><a href="/privacidad">Privacidad</a><a href="/condiciones">Condiciones de uso</a><a href="/crear-grupo">Solicitar un grupo</a><a href="/privacidad#contacto">Contacto</a></nav></footer></body></html>`;
 }
 const introduction = `Bandarlog es una aplicación de coordinación para grupos y equipos. Reúne proyectos, comisiones y tareas para que cada persona sepa qué tiene que hacer y el equipo pueda seguir su avance.`;
 function home() {
@@ -159,7 +159,13 @@ export function renderPublicPage(path: (typeof publicPaths)[number], appUrl: str
       appUrl,
       'Titular, acceso y condiciones de uso de Bandarlog para grupos y equipos.',
     );
-  return shell('Proyectos y tareas para grupos y equipos', path, information(), appUrl, introduction);
+  return shell(
+    'Proyectos y tareas para grupos y equipos',
+    path,
+    information(),
+    appUrl,
+    introduction,
+  );
 }
 export function publicSite(appUrl: string) {
   const router = express.Router();

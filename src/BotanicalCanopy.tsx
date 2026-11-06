@@ -106,12 +106,18 @@ export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
   useEffect(() => {
     setFalling([]);
     if (!enabled || !surface.current) return;
-    const header = surface.current.closest('header');
+    const decoration = surface.current;
+    const header = decoration.closest('header');
     if (!header) return;
     const reduced = matchMedia('(prefers-reduced-motion: reduce)');
     const finePointer = matchMedia('(hover: hover) and (pointer: fine)');
+    const mobile = matchMedia(
+      '(max-width: 767px), (orientation: landscape) and (max-height: 599px) and (max-width: 1023px)',
+    );
     const boughs = [...surface.current.querySelectorAll<SVGGElement>('.botanical-bough')];
     let timer = 0,
+      breezeTimer = 0,
+      breezeEnd = 0,
       frame = 0,
       pointer: { x: number; y: number } | null = null;
     let anchors: { x: number; y: number }[] = [];
@@ -139,12 +145,30 @@ export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
     };
     const stop = () => {
       clearTimeout(timer);
+      clearTimeout(breezeTimer);
+      clearTimeout(breezeEnd);
+      decoration.classList.remove('has-mobile-breeze');
       timer = 0;
       cancelAnimationFrame(frame);
       frame = 0;
       pointer = null;
       reset();
       clearLeaf();
+    };
+    const scheduleBreeze = () => {
+      clearTimeout(breezeTimer);
+      if (reduced.matches || !mobile.matches || !visible()) return;
+      breezeTimer = window.setTimeout(() => {
+        if (!reduced.matches && mobile.matches && visible()) {
+          decoration.classList.add('has-mobile-breeze');
+          clearTimeout(breezeEnd);
+          breezeEnd = window.setTimeout(
+            () => decoration.classList.remove('has-mobile-breeze'),
+            2400,
+          );
+        }
+        scheduleBreeze();
+      }, 15000);
     };
     const schedule = () => {
       clearTimeout(timer);
@@ -188,7 +212,12 @@ export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
       );
     };
     const pointerMove = (event: PointerEvent) => {
-      if (reduced.matches || !finePointer.matches || !visible()) return;
+      if (
+        reduced.matches ||
+        (!finePointer.matches && !['touch', 'pen'].includes(event.pointerType)) ||
+        !visible()
+      )
+        return;
       pointer = { x: event.clientX, y: event.clientY };
       if (frame) return;
       frame = requestAnimationFrame(() => {
@@ -223,9 +252,25 @@ export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
       frame = 0;
       reset();
     };
+    const touchMove = (event: PointerEvent) => {
+      if (!['touch', 'pen'].includes(event.pointerType) || reduced.matches || !visible()) return;
+      const rect = header.getBoundingClientRect();
+      if (event.clientY < rect.top - 24 || event.clientY > rect.bottom + 64) {
+        if (pointer) leave();
+        return;
+      }
+      if (!pointer) cacheAnchors();
+      pointerMove(event);
+    };
+    const touchEnd = (event: PointerEvent) => {
+      if (pointer && ['touch', 'pen'].includes(event.pointerType)) leave();
+    };
     const changed = () => {
       if (reduced.matches || !visible()) stop();
-      else schedule();
+      else {
+        schedule();
+        scheduleBreeze();
+      }
     };
     const resized = () => {
       anchors = [];
@@ -235,23 +280,37 @@ export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
     header.addEventListener('pointerenter', cacheAnchors, { passive: true });
     header.addEventListener('pointermove', pointerMove, { passive: true });
     header.addEventListener('pointerleave', leave, { passive: true });
+    document.addEventListener('pointerdown', touchMove, { passive: true });
+    document.addEventListener('pointermove', touchMove, { passive: true });
+    document.addEventListener('pointerup', touchEnd, { passive: true });
+    document.addEventListener('pointercancel', touchEnd, { passive: true });
     document.addEventListener('visibilitychange', changed);
     reduced.addEventListener('change', changed);
+    mobile.addEventListener('change', changed);
     const observer = new ResizeObserver(resized);
     observer.observe(header);
     const intersection = new IntersectionObserver(changed);
     intersection.observe(header);
     schedule();
+    scheduleBreeze();
     return () => {
       clearTimeout(timer);
+      clearTimeout(breezeTimer);
+      clearTimeout(breezeEnd);
+      decoration.classList.remove('has-mobile-breeze');
       cancelAnimationFrame(frame);
       reset();
       if (activeLeafOwner === id) activeLeafOwner = null;
       header.removeEventListener('pointerenter', cacheAnchors);
       header.removeEventListener('pointermove', pointerMove);
       header.removeEventListener('pointerleave', leave);
+      document.removeEventListener('pointerdown', touchMove);
+      document.removeEventListener('pointermove', touchMove);
+      document.removeEventListener('pointerup', touchEnd);
+      document.removeEventListener('pointercancel', touchEnd);
       document.removeEventListener('visibilitychange', changed);
       reduced.removeEventListener('change', changed);
+      mobile.removeEventListener('change', changed);
       observer.disconnect();
       intersection.disconnect();
     };

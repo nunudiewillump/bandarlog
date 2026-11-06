@@ -213,19 +213,16 @@ body,
     clip-path: inset(50%);
   }
 }
+/* The canopy paints behind the status bar. Its controls alone reserve the safe
+   inset; a second body inset would leave a flat strip above the leaves. */
 @media (display-mode: standalone) {
-  html:root {
+  body {
+    padding-top: 0;
     background: #103b2d;
   }
-  body {
-    padding-top: env(safe-area-inset-top, 0px);
-  }
-  .forest-canopy.botanical-header {
-    padding-top: 0;
-  }
-  .forest-canopy.botanical-header.has-foliage {
-    background: linear-gradient(to bottom, #103b2d 0, #103b2d 67px, transparent 67px);
-  }
+}
+html.mobile-pwa-no-zoom body {
+  background: #103b2d;
 }
 
 .loading {
