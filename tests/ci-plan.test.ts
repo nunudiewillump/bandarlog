@@ -13,12 +13,15 @@ test('a landing-only edit selects public flows and asset/API checks, without tas
   ]);
   assert.equal(plan.full, false);
   assert.deepEqual(plan.node, ['tests/groups-api.test.ts', 'tests/landing-animation.test.ts']);
-  assert.deepEqual(plan.browser, [
+  const browser = [
     'tests/browser/forest-landing.spec.ts',
     'tests/browser/publication.spec.ts',
     'tests/browser/remembered-entry.spec.ts',
     'tests/browser/typography.spec.ts',
-  ]);
+  ];
+  if (inventory().browser.includes('tests/browser/mobile-canopy.spec.ts'))
+    browser.push('tests/browser/mobile-canopy.spec.ts');
+  assert.deepEqual(plan.browser, browser.sort());
 });
 
 test('documentation needs no runtime suites while a changed test runs itself', () => {
@@ -61,6 +64,17 @@ test('global UI changes cover every browser journey without repeating unrelated 
     assert.equal(plan.full, false);
     assert.deepEqual(plan.node, []);
     assert.deepEqual(plan.browser, inventory().browser);
+  }
+});
+
+test('mobile canopy regressions are included when that independently introduced suite is present', () => {
+  const available = inventory();
+  if (!available.browser.includes('tests/browser/mobile-canopy.spec.ts'))
+    available.browser.push('tests/browser/mobile-canopy.spec.ts');
+  for (const path of ['src/BotanicalCanopy.tsx', 'src/ProfileForm.tsx', 'server/preferences.ts']) {
+    const plan = selectTests([path], available);
+    assert.equal(plan.full, false);
+    assert.ok(plan.browser.includes('tests/browser/mobile-canopy.spec.ts'));
   }
 });
 

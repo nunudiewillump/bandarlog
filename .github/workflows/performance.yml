@@ -8,7 +8,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   benchmark:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       MAIL_TRANSPORT: preview
@@ -21,7 +21,19 @@ jobs:
           cache: npm
       - run: npm ci --include=dev
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
+      - name: Descargar Chromium sin reinstalar dependencias del sistema
+        timeout-minutes: 3
+        run: npx playwright install --only-shell chromium
+      - name: Verificar navegador y completar solo dependencias ausentes
+        timeout-minutes: 3
+        run: |
+          probe_browser() {
+            node --input-type=module -e 'import { chromium } from "playwright"; const browser = await chromium.launch({ args: ["--no-sandbox"] }); await browser.close();'
+          }
+          if ! probe_browser; then
+            npx playwright install-deps chromium
+            probe_browser
+          fi
       - name: Presupuesto visual de 100 ms (medición informativa)
         id: ui
         continue-on-error: true

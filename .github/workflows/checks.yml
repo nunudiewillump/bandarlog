@@ -15,7 +15,7 @@ env:
   ARTWORK_WORKER_URL: ''
 jobs:
   prepare:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
       browser: ${{ steps.plan.outputs.browser }}
@@ -54,7 +54,7 @@ jobs:
   browser:
     needs: prepare
     if: needs.prepare.outputs.browser_count != '0'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     strategy:
       fail-fast: false
@@ -75,7 +75,19 @@ jobs:
           path: dist
       - name: Añadir recursos públicos a la compilación compartida
         run: cp -a public/. dist/
-      - run: npx playwright install --with-deps chromium
+      - name: Descargar Chromium sin reinstalar dependencias del sistema
+        timeout-minutes: 3
+        run: npx playwright install --only-shell chromium
+      - name: Verificar navegador y completar solo dependencias ausentes
+        timeout-minutes: 3
+        run: |
+          probe_browser() {
+            node --input-type=module -e 'import { chromium } from "playwright"; const browser = await chromium.launch({ args: ["--no-sandbox"] }); await browser.close();'
+          }
+          if ! probe_browser; then
+            npx playwright install-deps chromium
+            probe_browser
+          fi
       - name: Pruebas del archivo afectado
         run: npx playwright test "$CI_BROWSER_FILE"
         env:
@@ -106,7 +118,7 @@ jobs:
   checks:
     if: always()
     needs: [prepare, browser]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5

@@ -12,7 +12,7 @@ El plan compara la base del PR con el contenido integrado que GitHub entrega al 
 - Documentación y capturas no activan suites funcionales; las piezas fuente de la animación sí.
 - Instalación limpia, tipos y compilación siguen siendo obligatorios en todos los casos. La aplicación se compila una sola vez y los bloques de navegador comparten el resultado.
 
-Cada archivo de Playwright tiene su propio job, con un máximo de cuatro en paralelo. **Re-run failed jobs** repite los jobs fallidos y el check final dependiente, sin repetir los archivos que ya pasaron. Cada job usa su propio runner, base de pruebas y caché de navegador. Solo se guardan capturas nuevas o modificadas, además de errores y trazas; no se duplican las capturas históricas del repositorio.
+Cada archivo de Playwright tiene su propio job, con un máximo de cuatro en paralelo. Los runners se fijan en Ubuntu 24.04: se descarga solo Chromium headless y se comprueba su arranque; apt se ejecuta únicamente si faltan dependencias, con un límite de tres minutos. Esto evita reinstalaciones de casi diez minutos observadas durante la migración de ubuntu-latest a Ubuntu 26. **Re-run failed jobs** repite los jobs fallidos y el check final dependiente, sin repetir los archivos que ya pasaron. Cada job usa su propio runner, base de pruebas y caché de navegador. Solo se guardan capturas nuevas o modificadas, además de errores y trazas; no se duplican las capturas históricas del repositorio.
 
 El check final falla si la preparación o algún bloque necesario falla, se cancela o no entrega un resultado coherente. No se emite evidencia reutilizable antes de superar ese control.
 
@@ -43,3 +43,5 @@ El mismo workflow guarda tiempos HTTP de la API en api.json. Usa una base PGlite
 ## Mantener el mapa
 
 Al añadir un módulo o una relación entre áreas, revisar su regla y las pruebas correspondientes. Una ruta desconocida activa cobertura completa hasta que exista un mapa revisable. No usar excepciones para silenciar fallos reales. Para añadir una comprobación obligatoria nueva, incluirla en las dependencias del check final antes de emitir evidencia.
+
+La suite móvil añadida en otro PR se incorpora al mapa cuando está presente en el checkout; ambos órdenes de integración quedan cubiertos sin copiar ese trabajo en este PR.

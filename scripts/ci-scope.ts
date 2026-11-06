@@ -97,6 +97,27 @@ export function selectTests(paths: string[], available = inventory(), forceFull 
   const reasons: string[] = [];
   let full = forceFull;
   for (const path of paths) {
+    // This regression file is introduced separately; either merge order works.
+    if (
+      available.browser.includes('tests/browser/mobile-canopy.spec.ts') &&
+      ([
+        'src/BotanicalCanopy.tsx',
+        'src/ForestHeader.tsx',
+        'src/botanical-canopy.css',
+        'src/ProfileForm.tsx',
+        'src/ProfilePanel.tsx',
+        'src/MobileUX.tsx',
+        'src/pwa.ts',
+        'server/preferences.ts',
+        'server/public-site.ts',
+        'public/public-site.css',
+        'public/landing-motion.js',
+        'public/typography.css',
+        'src/desktop-forest.css',
+      ].includes(path) ||
+        path.startsWith('public/public-fonts/'))
+    )
+      browser.add('tests/browser/mobile-canopy.spec.ts');
     if (
       /^(artifacts\/|docs\/(?!forest-landing\/rig\/).*\.(md|json|png|webp)$)/.test(path) ||
       /^(README|PRODUCT|DESIGN|AGENTS)\.md$/.test(path)
