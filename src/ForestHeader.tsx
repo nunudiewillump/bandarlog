@@ -14,31 +14,33 @@ export function ForestHeader({
   effectsEnabled?: boolean;
 }) {
   return (
-    <header
-      className={`forest-canopy botanical-header ${effectsEnabled ? 'has-foliage' : ''} ${className}`}
-    >
-      <BotanicalCanopy enabled={effectsEnabled} />
-      <div className="forest-canopy-inner">
-        <button
-          className="forest-brand"
-          onClick={onHome}
-          type="button"
-          aria-label="Bandarlog, inicio"
-        >
-          <img src="/brand-mark.webp" alt="" width="44" height="44" />
-          <span>Bandarlog</span>
-        </button>
-        {avatar && (
+    <div className="forest-header-slot">
+      <header
+        className={`forest-canopy botanical-header ${effectsEnabled ? 'has-foliage' : ''} ${className}`}
+      >
+        <BotanicalCanopy enabled={effectsEnabled} />
+        <div className="forest-canopy-inner">
           <button
+            className="forest-brand"
+            onClick={onHome}
             type="button"
-            className="forest-profile"
-            aria-label="Mi perfil"
-            onClick={onProfile}
+            aria-label="Bandarlog, inicio"
           >
-            {avatar}
+            <img src="/brand-mark.webp" alt="" width="44" height="44" />
+            <span>Bandarlog</span>
           </button>
-        )}
-      </div>
-    </header>
+          {avatar && (
+            <button
+              type="button"
+              className="forest-profile"
+              aria-label="Mi perfil"
+              onClick={onProfile}
+            >
+              {avatar}
+            </button>
+          )}
+        </div>
+      </header>
+    </div>
   );
 }

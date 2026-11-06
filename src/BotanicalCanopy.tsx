@@ -346,8 +346,14 @@ export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
             ))}
           </defs>
           <path
+            className="botanical-backing"
             d="M0 0H1920V71C1680 62 1510 74 1300 63C1030 73 830 59 590 69C390 56 180 74 0 66Z"
             fill="#103b2d"
+          />
+          <use
+            className="botanical-mobile-fill"
+            href={`#${id}-front-crown`}
+            transform="translate(62 -34)"
           />
           {BRANCHES.map((branches, depth) => (
             <g
