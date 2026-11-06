@@ -40,6 +40,21 @@ test('pending access survives reload with expiry and group isolation, without st
   forgetAccess();
 });
 
+test('only the verified initial-group bootstrap recovers an existing pending code challenge', () => {
+  location.pathname = '/acceso';
+  rememberAccess('legacy@example.test', 'a'.repeat(64), 600, 60);
+  location.pathname = '/g/' + 'c'.repeat(32) + '/';
+  Object.assign(globalThis, { BANDARLOG_LEGACY_STORAGE: true });
+  try {
+    assert.equal(pendingAccess()?.email, 'legacy@example.test');
+    assert.equal(stored.has('bandarlog:pending-access:'), false);
+    forgetAccess();
+  } finally {
+    Object.assign(globalThis, { BANDARLOG_LEGACY_STORAGE: false });
+    location.pathname = '/acceso';
+  }
+});
+
 test('simultaneous reads share a request but never remain cached after settling', async () => {
   const original = globalThis.fetch;
   let count = 0,

@@ -13,7 +13,11 @@ export const groupPath = () =>
   groupContext.getStore() && !groupContext.getStore()!.legacyAccess
     ? `/g/${groupContext.getStore()!.privateId}`
     : '';
-export const groupUrl = (origin: string) => origin + groupPath() + '/';
+export const canonicalGroupPath = () => {
+  const group = groupContext.getStore();
+  return group ? `/g/${group.privateId}` : '';
+};
+export const groupUrl = (origin: string) => origin + canonicalGroupPath() + '/';
 const activate = async (client: any, group: Group) => {
   await client.query("select set_config('bandarlog.group_id', $1, true)", [group.id]);
   // The API role is not the table owner and cannot bypass the RLS policies.

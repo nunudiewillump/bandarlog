@@ -32,35 +32,57 @@ export async function projectSummaries(
           ),
         )
     : [];
-  const now = Date.now();
-  const summarize = (items: typeof rows) => {
-    const open = items.filter((item) => item.status !== 'done');
-    return {
-      total: items.length,
-      open: open.length,
-      done: items.length - open.length,
-      blocked: open.filter((item) => item.status === 'blocked').length,
-      overdue: open.filter((item) => +new Date(item.due) < now).length,
-      nextDue:
-        open
-          .filter((item) => +new Date(item.due) >= now)
-          .map((item) => item.due)
-          .sort()[0] || null,
-    };
-  };
-  return projects.map((project) => {
-    const members = groups.filter((group) => group.projectId === project.id);
-    const ids = new Set(members.map((group) => group.id));
-    return {
-      id: project.id,
-      name: project.name,
-      type: project.type,
-      ...summarize(rows.filter((row) => ids.has(row.commissionId))),
-      commissions: members.map((group) => ({
-        id: group.id,
-        name: group.name,
-        ...summarize(rows.filter((row) => row.commissionId === group.id)),
-      })),
-    };
+  return summarizeProjects(projects, groups, rows);
+}
+export function summarizeProjects(
+  projects: { id: string; name: string; type: string }[],
+  groups: { id: string; name: string; projectId: string }[],
+  rows: { commissionId: string; status: string; due: string }[],
+  now = Date.now(),
+) {
+  const empty = () => ({
+    total: 0,
+    open: 0,
+    done: 0,
+    blocked: 0,
+    overdue: 0,
+    nextDue: null as string | null,
   });
+  const byProject = new Map(
+    projects.map((project) => [
+      project.id,
+      {
+        ...project,
+        ...empty(),
+        commissions: [] as ({ id: string; name: string } & ReturnType<typeof empty>)[],
+      },
+    ]),
+  );
+  const byCommission = new Map<
+    string,
+    { project: ReturnType<typeof empty>; summary: ReturnType<typeof empty> }
+  >();
+  for (const group of groups) {
+    const project = byProject.get(group.projectId);
+    if (!project) continue;
+    const summary = { id: group.id, name: group.name, ...empty() };
+    project.commissions.push(summary);
+    byCommission.set(group.id, { project, summary });
+  }
+  for (const row of rows) {
+    const entry = byCommission.get(row.commissionId);
+    if (!entry) continue;
+    for (const summary of [entry.summary, entry.project]) {
+      summary.total++;
+      if (row.status === 'done') {
+        summary.done++;
+        continue;
+      }
+      summary.open++;
+      if (row.status === 'blocked') summary.blocked++;
+      if (+new Date(row.due) < now) summary.overdue++;
+      else if (!summary.nextDue || row.due < summary.nextDue) summary.nextDue = row.due;
+    }
+  }
+  return [...byProject.values()];
 }

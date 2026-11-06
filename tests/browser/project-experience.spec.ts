@@ -222,9 +222,12 @@ for (const installed of [false, true])
         pinch: pinch.defaultPrevented,
         single: single.defaultPrevented,
         multi: multi.defaultPrevented,
+        nativePan: CSS.supports('touch-action', 'pan-x pan-y'),
       };
     });
-    expect(events).toEqual({ pinch: installed, single: false, multi: installed });
+    expect(events.pinch).toBe(installed);
+    expect(events.single).toBe(false);
+    expect(events.multi).toBe(installed && !events.nativePan);
     await page.setViewportSize({ width: 1440, height: 1000 });
     await expect(meta).not.toHaveAttribute('content', /maximum-scale|user-scalable/);
     expect(

@@ -29,12 +29,53 @@
       type="font/woff2"
       crossorigin
     />
+    <link
+      rel="preload"
+      href="/public-fonts/poppins-latin-700-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/public-fonts/poppins-latin-800-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <link rel="stylesheet" href="/typography.css" />
+    <style>
+      body {
+        margin: 0;
+        background: #faf8f2;
+      }
+      #root {
+        min-height: 100svh;
+      }
+      .initial-loading {
+        min-height: 100svh;
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        gap: 12px;
+        color: #124d38;
+        background: #faf8f2;
+        font:
+          16px system-ui,
+          sans-serif;
+      }
+    </style>
     <title>Bandarlog · Comisiones que avanzan</title>
   </head>
   <body>
-    <div id="root"></div>
-    <script src="/offline-store.js?v=5"></script>
+    <div id="root">
+      <div class="initial-loading" role="status" aria-label="Cargando Bandarlog…">
+        <img src="/banana-loading.svg" width="48" height="48" alt="" /><span
+          >Cargando Bandarlog…</span
+        >
+      </div>
+    </div>
+    <script src="./offline-store.js?v=6"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
