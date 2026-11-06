@@ -350,7 +350,11 @@ export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
             fill="#103b2d"
           />
           {BRANCHES.map((branches, depth) => (
-            <g key={depth} filter={`url(#${id}-leaf-shadow-${depth})`}>
+            <g
+              key={depth}
+              id={depth === 2 ? `${id}-front-crown` : undefined}
+              filter={`url(#${id}-leaf-shadow-${depth})`}
+            >
               {branches.map((branch) => (
                 <g
                   key={branch.index}
@@ -381,6 +385,12 @@ export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
               ))}
             </g>
           ))}
+          {/* Reuse the actual leaves above the controls, including the status area. */}
+          <use
+            className="botanical-upper-crown"
+            href={`#${id}-front-crown`}
+            transform="translate(0 -72)"
+          />
         </svg>
       </div>
       {falling.length > 0 &&

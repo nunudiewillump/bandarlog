@@ -36,6 +36,16 @@ Los navegadores no detectan la cercanía de un dedo suspendido: la respuesta se 
 
 Las capturas con 47px/24px son simulaciones de áreas seguras en Chromium, no capturas de la barra nativa de iOS o Android. Queda comprobar el acabado de los iconos del sistema en PWAs instaladas en dispositivos físicos. No se eliminan sesiones, IndexedDB o cambios pendientes.
 
+### Corrección del borde superior tras PR29
+
+La captura de un iPhone instalado mostró que seguía apareciendo una franja uniforme sobre la copa. Comprobar que el contenedor empezaba en y=0 no demostraba que las hojas se dibujasen detrás de la barra nativa.
+
+En móvil, la decoración del header de la aplicación se ancla ahora con `position: fixed; top: 0` al viewport, independiente de la caja sticky que reserva el espacio de los controles. Un `use` SVG reutiliza la capa frontal original, desplazada hacia arriba, para que la parte superior tenga hojas visibles, con sus mismas siluetas, nervios y movimiento. No se añaden imágenes, librerías ni otro gradiente. En escritorio esta capa superior permanece oculta y se conserva la posición anterior. La preferencia de apariencia sigue retirando todo el follaje.
+
+Se conservan las dos condiciones documentadas por Apple: `black-translucent` para presentar contenido detrás de la barra y `viewport-fit=cover` para extender el viewport. Solo los controles reservan el inset; no se desplaza el body ni se ocultan las notificaciones del sistema. Referencia adicional: [WebKit: Designing Websites for iPhone X](https://webkit.org/blog/7929/designing-websites-for-iphone-x/).
+
+Las pruebas verifican también la posición fija, la variación de color de las hojas renderizadas dentro del área segura simulada, los controles accesibles y el scroll táctil. Esto no sustituye una comprobación de la PWA instalada en un iPhone: queda confirmar allí el resultado antes de decidir si hace falta la alternativa del gradiente. La guía de ITNEXT sigue devolviendo HTTP 403. No se borran instalaciones, sesiones o datos para forzar la actualización.
+
 ## Verificación acotada
 
 - Cuatro pruebas de preferencias: valores anteriores, independencia, finalización, opt-out y día de Madrid cruzando el horario de verano.

@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
+import sharp from 'sharp';
 import { mobileFixture } from '../fixtures/mobile';
 
 async function prepare(page: Page, width = 390, view = 'tasks') {
@@ -152,8 +153,24 @@ test.describe('touch and installed mobile layout', () => {
         await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(16, 59, 45)');
         const header = page.locator('.app-forest-header');
         const leaves = header.locator('.botanical-decoration');
+        await expect(leaves).toHaveCSS('position', 'fixed');
         expect((await header.boundingBox())!.y).toBe(0);
         expect((await leaves.boundingBox())!.y).toBe(0);
+        // Check rendered leaves, not just the box: the former native status strip was flat.
+        await page.emulateMedia({ reducedMotion: 'reduce' });
+        const { data, info } = await sharp(
+          await page.screenshot({ clip: { x: 0, y: 0, width: 390, height: inset } }),
+        )
+          .raw()
+          .toBuffer({ resolveWithObject: true });
+        for (const y of [4, Math.floor(inset / 2), inset - 4]) {
+          const greens = Array.from(
+            { length: info.width },
+            (_, x) => data[(y * info.width + x) * info.channels + 1],
+          );
+          expect(Math.max(...greens) - Math.min(...greens)).toBeGreaterThan(15);
+          expect(greens.filter((green) => green > 67).length).toBeGreaterThan(30);
+        }
         expect((await header.locator('.forest-brand').boundingBox())!.y).toBeGreaterThanOrEqual(
           inset,
         );
