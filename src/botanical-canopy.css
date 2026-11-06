@@ -3,10 +3,14 @@ html:root {
   background: #103b2d;
   --forest-safe-top: env(safe-area-inset-top, 0px);
 }
+.forest-header-slot {
+  --forest-header-row: 68px;
+  --forest-header-tail: 36px;
+}
 .forest-canopy.botanical-header {
   background: #103b2d;
   padding-top: var(--forest-safe-top);
-  padding-bottom: 36px;
+  padding-bottom: var(--forest-header-tail, 36px);
   color: #fff;
 }
 .forest-canopy.botanical-header.has-foliage {
@@ -19,7 +23,7 @@ html:root {
 }
 .botanical-header .forest-canopy-inner {
   z-index: 2;
-  min-height: 68px;
+  min-height: var(--forest-header-row, 68px);
 }
 .botanical-header .forest-brand {
   color: #fff;
@@ -46,7 +50,8 @@ html:root {
   height: 100%;
   overflow: visible;
 }
-.botanical-upper-crown {
+.botanical-upper-crown,
+.botanical-mobile-fill {
   display: none;
 }
 .botanical-bough {
@@ -135,15 +140,28 @@ html:root {
 }
 @media (max-width: 767px),
   (orientation: landscape) and (max-height: 599px) and (max-width: 1023px) {
-  .botanical-header .botanical-decoration {
-    /* Paint from the viewport edge, independent of the sticky controls' safe-area position. */
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
+  .forest-header-slot {
+    /* Reserve exactly the fixed header's space without moving it with the document. */
+    height: calc(var(--forest-safe-top) + var(--forest-header-row) + var(--forest-header-tail));
   }
-  .botanical-header .botanical-upper-crown {
+  .forest-canopy.botanical-header.has-foliage {
+    background: transparent;
+  }
+  .botanical-header .botanical-backing {
+    display: none;
+  }
+  .botanical-header .botanical-decoration::after {
+    /* Blend with an opaque native status bar instead of promising paint behind it. */
+    height: calc(56px + var(--forest-safe-top));
+    background: linear-gradient(to bottom, #103b2d 0 2px, #103b2db3 35%, #103b2d00 100%);
+  }
+  .botanical-header .botanical-upper-crown,
+  .botanical-header .botanical-mobile-fill {
     display: block;
+  }
+  html.mobile-pwa-no-zoom,
+  html.mobile-pwa-no-zoom body {
+    overscroll-behavior-y: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {

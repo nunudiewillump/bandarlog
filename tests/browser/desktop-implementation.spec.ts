@@ -207,11 +207,14 @@ test('installed PWA declares a dark forest status area and preserves safe-area l
   ).toBe('rgb(16, 59, 45)');
   const headerPaint = await page.locator('.forest-canopy:visible').evaluate((element) => ({
     fill: getComputedStyle(element).backgroundImage,
+    blend: getComputedStyle(element.querySelector('.botanical-decoration')!, '::after')
+      .backgroundImage,
     statusMask: getComputedStyle(document.documentElement, '::before').content,
     leavesTop: element.querySelector('.botanical-decoration')!.getBoundingClientRect().top,
     headerTop: element.getBoundingClientRect().top,
   }));
-  expect(headerPaint.fill).toContain('rgb(16, 59, 45)');
+  expect(headerPaint.fill).toBe('none');
+  expect(headerPaint.blend).toContain('rgb(16, 59, 45)');
   expect(headerPaint.statusMask).toBe('none');
   expect(headerPaint.leavesTop).toBe(headerPaint.headerTop);
   const offline = await (await page.request.get('/offline.html')).text();

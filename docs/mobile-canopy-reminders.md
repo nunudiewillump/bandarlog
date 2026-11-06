@@ -3,7 +3,7 @@
 ## Cambios
 
 - Se amplía el mono del logotipo en la aplicación, el acceso, la barra lateral y las páginas públicas, conservando Bungee y el recurso 2D original. No se modifica el mono al teclado ni sus brazos.
-- La cabecera móvil permanece anclada arriba, incluidas las hojas. Su posición sticky conserva el espacio inicial y deja pasar el contenido bajo el borde. Se respetan móvil vertical, landscape y áreas seguras laterales.
+- La cabecera móvil permanece anclada arriba, incluidas las hojas. La cabecera completa tiene posición fija; un espacio en el flujo conserva su altura inicial y deja pasar el contenido bajo el borde. Se respetan móvil vertical, landscape y áreas seguras laterales.
 - El toque y el deslizamiento cercanos mueven las ramas, también en la portada. La interacción usa eventos pasivos y un único requestAnimationFrame por actualización; no impide el scroll ni mueve los controles.
 - Una brisa de unos 2,4 segundos se activa cada 15 segundos. Se respeta movimiento reducido, visibilidad y la preferencia de apariencia. Las caídas conservan 17–50 segundos y sus probabilidades anteriores.
 - Las etiquetas de Pendiente y Terminada conservan el mismo fondo, tinta, peso, radio y padding en móvil y escritorio. La fecha vencida mantiene su aviso propio.
@@ -22,7 +22,11 @@ Las pruebas de API verifican persistencia, rechazo de tipos inválidos, independ
 
 ## Notch y sistemas móviles
 
-La franja plana tenía dos causas: el body añadía un segundo inset y un pseudo-elemento opaco cubría la zona superior. Ahora el follaje empieza en y=0 y solo los controles reservan safe-area-inset-top. El fondo de la PWA instalada es verde oscuro, mientras las superficies de la aplicación conservan sus colores.
+La cabecera móvil completa (hojas, nombre y foto) se fija al viewport. Un contenedor reserva exactamente la altura de los controles, el área segura y el margen inferior, manteniendo la posición inicial del contenido. La decoración es absoluta dentro de esa misma cabecera: no puede separarse de los controles al tirar de la página. La PWA móvil instalada usa `overscroll-behavior-y: none` en la raíz y el body para evitar el rebote exterior, sin bloquear el scroll normal, cancelar gestos táctiles ni ocultar overflow.
+
+En el dispositivo iOS de referencia sigue apareciendo una barra nativa opaca. Se aplica la alternativa aprobada: la copa empieza con el verde exacto `#103b2d` y deja aparecer progresivamente las hojas mediante un gradiente. No se afirma que el contenido web alcance una región nativa que el sistema no exponga.
+
+El follaje móvil reutiliza las hojas originales en una capa desplazada horizontalmente que rellena los huecos. Se retiran el fondo rectangular de la cabecera con hojas y su respaldo plano SVG, para que no asomen bloques verdes por debajo de la silueta. La cabecera sin efectos conserva un fondo sólido. El escritorio mantiene sus capas, geometría y fondos anteriores.
 
 Se mantienen viewport-fit=cover, las capacidades de web app, el título, el icono de inicio y apple-mobile-web-app-status-bar-style=black-translucent. En Android se conserva theme-color y el mismo verde del manifiesto. No se fuerza fullscreen: deben seguir visibles las notificaciones y los controles del sistema.
 
@@ -36,15 +40,9 @@ Los navegadores no detectan la cercanía de un dedo suspendido: la respuesta se 
 
 Las capturas con 47px/24px son simulaciones de áreas seguras en Chromium, no capturas de la barra nativa de iOS o Android. Queda comprobar el acabado de los iconos del sistema en PWAs instaladas en dispositivos físicos. No se eliminan sesiones, IndexedDB o cambios pendientes.
 
-### Corrección del borde superior tras PR29
+Las pruebas móviles incluyen arrastre descendente desde el inicio, subida normal, controles accesibles, tamaño del espacio reservado y ausencia de bloqueo del body. Se comprueba que el borde superior renderizado coincide con el verde de la barra y que aparecen píxeles de follaje tras la transición, excluyendo el color crema del contenido. Se cubren insets simulados de 47px, 24px y 0px; este último comprueba también el caso sin área segura expuesta. Las capturas son de datos ficticios y no reproducen la barra nativa del dispositivo.
 
-La captura de un iPhone instalado mostró que seguía apareciendo una franja uniforme sobre la copa. Comprobar que el contenedor empezaba en y=0 no demostraba que las hojas se dibujasen detrás de la barra nativa.
-
-En móvil, la decoración del header de la aplicación se ancla ahora con `position: fixed; top: 0` al viewport, independiente de la caja sticky que reserva el espacio de los controles. Un `use` SVG reutiliza la capa frontal original, desplazada hacia arriba, para que la parte superior tenga hojas visibles, con sus mismas siluetas, nervios y movimiento. No se añaden imágenes, librerías ni otro gradiente. En escritorio esta capa superior permanece oculta y se conserva la posición anterior. La preferencia de apariencia sigue retirando todo el follaje.
-
-Se conservan las dos condiciones documentadas por Apple: `black-translucent` para presentar contenido detrás de la barra y `viewport-fit=cover` para extender el viewport. Solo los controles reservan el inset; no se desplaza el body ni se ocultan las notificaciones del sistema. Referencia adicional: [WebKit: Designing Websites for iPhone X](https://webkit.org/blog/7929/designing-websites-for-iphone-x/).
-
-Las pruebas verifican también la posición fija, la variación de color de las hojas renderizadas dentro del área segura simulada, los controles accesibles y el scroll táctil. Esto no sustituye una comprobación de la PWA instalada en un iPhone: queda confirmar allí el resultado antes de decidir si hace falta la alternativa del gradiente. La guía de ITNEXT sigue devolviendo HTTP 403. No se borran instalaciones, sesiones o datos para forzar la actualización.
+La implementación sigue los metadatos de Apple y [WebKit: Designing Websites for iPhone X](https://webkit.org/blog/7929/designing-websites-for-iphone-x/). La guía de ITNEXT sigue devolviendo HTTP 403. Queda confirmar el resultado final y el rebote en la PWA instalada de iOS; no se requiere borrar sesiones ni reinstalar para los cambios de CSS.
 
 ## Verificación acotada
 
@@ -54,3 +52,7 @@ Las pruebas verifican también la posición fija, la variación de color de las 
 - TypeScript/Vite y revisión visual de móvil/escritorio. Se amplía la selección de recorridos porque cambian estilos globales y la posición de la cabecera; no se ejecuta manualmente toda la suite.
 
 La revisión mecánica conserva advertencias previas sobre tamaños fuera de escala y un borde lateral de una sección pública que este encargo no modifica. Capturas nuevas en artifacts/mobile-canopy/. Sin merge ni despliegue.
+
+## Verificación de cabecera fija y transición
+
+Se ejecutan los recorridos específicos de copa y PWA, más regresiones seleccionadas de acceso, primer perfil, apariencia, móvil horizontal y scroll al completar/deshacer. Se amplía esa selección porque ForestHeader es compartido por la aplicación, el acceso y el onboarding. No se ejecuta manualmente toda la suite. La comprobación del rebote nativo de WebKit en un iPhone físico sigue pendiente; los gestos CDP validan el comportamiento del navegador de prueba.

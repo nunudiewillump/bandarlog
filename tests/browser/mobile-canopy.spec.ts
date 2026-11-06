@@ -120,13 +120,16 @@ test.describe('touch and installed mobile layout', () => {
   test.use({ isMobile: true, hasTouch: true });
   for (const [platform, inset] of [
     ['ios', 47],
+    ['ios-zero-inset', 0],
     ['android', 24],
   ] as const)
     test(
-      platform + ' standalone reserves controls but lets the fixed canopy paint to the top',
+      platform +
+        ' standalone keeps the header together during pull-down and blends with the status bar',
       async ({ page }) => {
         await page.addInitScript((platform) => {
-          if (platform === 'ios') Object.defineProperty(navigator, 'standalone', { value: true });
+          if (platform.startsWith('ios'))
+            Object.defineProperty(navigator, 'standalone', { value: true });
           else {
             const original = window.matchMedia.bind(window);
             window.matchMedia = (query) => {
@@ -153,24 +156,42 @@ test.describe('touch and installed mobile layout', () => {
         await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(16, 59, 45)');
         const header = page.locator('.app-forest-header');
         const leaves = header.locator('.botanical-decoration');
-        await expect(leaves).toHaveCSS('position', 'fixed');
+        await expect(header).toHaveCSS('position', 'fixed');
+        await expect(leaves).toHaveCSS('position', 'absolute');
+        await expect(header).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+        await expect(header.locator('.botanical-backing')).toHaveCSS('display', 'none');
+        await expect(page.locator('html')).toHaveCSS('overscroll-behavior-y', 'none');
+        await expect(page.locator('body')).toHaveCSS('overscroll-behavior-y', 'none');
         expect((await header.boundingBox())!.y).toBe(0);
         expect((await leaves.boundingBox())!.y).toBe(0);
-        // Check rendered leaves, not just the box: the former native status strip was flat.
+        const slot = await page.locator('.forest-header-slot').boundingBox();
+        expect(slot!.height).toBe((await header.boundingBox())!.height);
+        // The first row blends with native green; real leaves emerge below the transition.
         await page.emulateMedia({ reducedMotion: 'reduce' });
         const { data, info } = await sharp(
-          await page.screenshot({ clip: { x: 0, y: 0, width: 390, height: inset } }),
+          await page.screenshot({ clip: { x: 0, y: 0, width: 390, height: 137 + inset } }),
         )
           .raw()
           .toBuffer({ resolveWithObject: true });
-        for (const y of [4, Math.floor(inset / 2), inset - 4]) {
-          const greens = Array.from(
-            { length: info.width },
-            (_, x) => data[(y * info.width + x) * info.channels + 1],
-          );
-          expect(Math.max(...greens) - Math.min(...greens)).toBeGreaterThan(15);
-          expect(greens.filter((green) => green > 67).length).toBeGreaterThan(30);
+        for (let x = 0; x < info.width; x++) {
+          const offset = x * info.channels;
+          expect(Math.abs(data[offset] - 16)).toBeLessThanOrEqual(1);
+          expect(Math.abs(data[offset + 1] - 59)).toBeLessThanOrEqual(1);
+          expect(Math.abs(data[offset + 2] - 45)).toBeLessThanOrEqual(1);
         }
+        const leafRow = 56 + inset;
+        const greens = Array.from(
+          { length: info.width },
+          (_, x) => data[(leafRow * info.width + x) * info.channels + 1],
+        );
+        expect(Math.max(...greens) - Math.min(...greens)).toBeGreaterThan(15);
+        const leafPixels = greens.filter((green, x) => {
+          const offset = (leafRow * info.width + x) * info.channels;
+          return (
+            green > 67 && green < 170 && green > data[offset] * 1.2 && green > data[offset + 2]
+          );
+        });
+        expect(leafPixels.length).toBeGreaterThan(30);
         expect((await header.locator('.forest-brand').boundingBox())!.y).toBeGreaterThanOrEqual(
           inset,
         );
@@ -187,6 +208,23 @@ test.describe('touch and installed mobile layout', () => {
         await page.screenshot({
           path: 'artifacts/mobile-canopy/' + platform + '-simulated-safe-area.png',
         });
+        const touch = await page.context().newCDPSession(page);
+        const brandY = (await header.locator('.forest-brand').boundingBox())!.y;
+        await touch.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [{ x: 190, y: 220 }],
+        });
+        for (const y of [280, 360, 440, 520]) {
+          await touch.send('Input.dispatchTouchEvent', {
+            type: 'touchMove',
+            touchPoints: [{ x: 190, y }],
+          });
+          expect((await header.boundingBox())!.y).toBe(0);
+          expect((await leaves.boundingBox())!.y).toBe(0);
+          expect((await header.locator('.forest-brand').boundingBox())!.y).toBe(brandY);
+        }
+        await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        expect(await page.evaluate(() => scrollY)).toBe(0);
         await page.evaluate(() => scrollTo(0, 500));
         expect(await page.evaluate(() => scrollY)).toBeGreaterThan(200);
         expect((await header.boundingBox())!.y).toBe(0);
@@ -199,7 +237,6 @@ test.describe('touch and installed mobile layout', () => {
             );
           }),
         ).toBe(true);
-        const touch = await page.context().newCDPSession(page);
         const before = await page.evaluate(() => scrollY);
         await touch.send('Input.dispatchTouchEvent', {
           type: 'touchStart',
