@@ -18,6 +18,8 @@ Solicita acceso con `alex@example.test` (administración) o `laura@example.test`
 
 ## Comprobaciones
 
+La CI selecciona las pruebas afectadas por cada PR y amplía la cobertura ante cambios transversales. Al integrar puede reutilizar una validación del mismo contenido exacto; tipos y compilación siguen siendo obligatorios. El rendimiento tiene un workflow manual independiente. Ver [criterios de CI y reintentos](docs/ci-checks.md).
+
 ```sh
 npm run build     # TypeScript y compilación
 npm test          # API e importación, bases aisladas temporales

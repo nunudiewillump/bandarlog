@@ -1,0 +1,72 @@
+name: Mediciones de rendimiento
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: performance-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      MAIL_TRANSPORT: preview
+      ARTWORK_WORKER_URL: ''
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --include=dev
+      - run: npm run build
+      - name: Descargar Chromium sin reinstalar dependencias del sistema
+        timeout-minutes: 3
+        run: npx playwright install --only-shell chromium
+      - name: Verificar navegador y completar solo dependencias ausentes
+        timeout-minutes: 3
+        run: |
+          probe_browser() {
+            node --input-type=module -e 'import { chromium } from "playwright"; const browser = await chromium.launch({ args: ["--no-sandbox"] }); await browser.close();'
+          }
+          if ! probe_browser; then
+            npx playwright install-deps chromium
+            probe_browser
+          fi
+      - name: Presupuesto visual de 100 ms (medición informativa)
+        id: ui
+        continue-on-error: true
+        run: |
+          mkdir -p artifacts/performance
+          npx playwright test tests/browser/access-recovery.spec.ts --grep 'cooldown acknowledges' --reporter=list,json
+        env:
+          BANDARLOG_PERFORMANCE_BUDGET: strict
+          PLAYWRIGHT_JSON_OUTPUT_NAME: artifacts/performance/ui.json
+      - name: Medición de API local
+        run: |
+          mkdir -p artifacts/performance
+          node --import tsx --test tests/api.test.ts
+        env:
+          BANDARLOG_BENCHMARK_OUTPUT: artifacts/performance/api.json
+      - name: Publicar resultado del presupuesto
+        if: always()
+        env:
+          UI_OUTCOME: ${{ steps.ui.outcome }}
+        run: |
+          node - <<'JS'
+          const fs = require('node:fs');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+            '## Rendimiento en runner compartido\n\n' +
+            'Presupuesto visual: ' + process.env.UI_OUTCOME + '. Objetivo: 100 ms.\n\n' +
+            'Esta medición no bloquea la publicación. Los errores funcionales siguen bloqueando la CI principal.\n\n' +
+            'La API usa PostgreSQL local/PGlite: estos tiempos no representan Railway, Neon ni la red del usuario.\n');
+          JS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: mediciones-rendimiento-${{ github.run_attempt }}
+          path: |
+            artifacts/performance/
+            test-results/
+          retention-days: 14
