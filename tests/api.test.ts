@@ -1702,3 +1702,88 @@ test('tutorial stays isolated, persists per user, deduplicates retry receipts an
     [2, 1, 1, 1, 0],
   );
 });
+
+test('daily overdue reminders persist independently, deduplicate deadline edits and respect opt-out', async () => {
+  const saved = JSON.parse((await request('/me')).body.user.preferences);
+  const taskIds: string[] = [];
+  const create = async (title: string) => {
+    const result = await request('/tasks', 'POST', {
+      title,
+      commissionId: 'cocina',
+      description: 'Solo base aislada',
+      due: new Date(Date.now() - 10 * 86400000).toISOString(),
+      responsibleIds: ['alex'],
+    });
+    assert.equal(result.status, 201);
+    taskIds.push(result.body.id);
+    return result.body.id as string;
+  };
+  const scheduled = async (title: string) =>
+    (await request('/dev/mail')).body.filter(
+      (mail: any) => mail.email === 'alex@example.test' && mail.subject.endsWith(': ' + title),
+    );
+  try {
+    assert.equal(
+      (
+        await request('/profile', 'PATCH', {
+          notifications: true,
+          creation: false,
+          updates: false,
+          weekly: false,
+          onDue: false,
+          reminderDays: [],
+          overdueWeekly: true,
+          overdueDaily: true,
+        })
+      ).status,
+      200,
+    );
+    assert.equal(JSON.parse((await request('/me')).body.user.preferences).overdueDaily, true);
+    assert.equal((await request('/profile', 'PATCH', { overdueDaily: 'true' })).status, 400);
+    const title = 'Tarea de prueba de recordatorios diarios';
+    const taskId = await create(title);
+    assert.equal((await request('/notifications/process', 'POST', {}, member)).status, 403);
+    await request('/notifications/process', 'POST', {});
+    let notices = await scheduled(title);
+    assert.equal(notices.filter((m: any) => m.subject.startsWith('Recordatorio diario')).length, 1);
+    assert.equal(
+      notices.filter((m: any) => m.subject.startsWith('Recordatorio semanal')).length,
+      1,
+    );
+    await request('/notifications/process', 'POST', {});
+    assert.equal((await scheduled(title)).length, 2);
+    await request('/profile', 'PATCH', { overdueDaily: false, overdueWeekly: false });
+    await request('/tasks/' + taskId, 'PATCH', {
+      due: new Date(Date.now() - 11 * 86400000).toISOString(),
+    });
+    const optional = 'Tarea vencida con avisos optativos';
+    const optionalId = await create(optional);
+    await request('/notifications/process', 'POST', {});
+    assert.equal((await scheduled(title)).length, 2);
+    assert.equal((await scheduled(optional)).length, 0);
+    await request('/profile', 'PATCH', { overdueDaily: true });
+    await request('/notifications/process', 'POST', {});
+    notices = await scheduled(title);
+    assert.equal(notices.filter((m: any) => m.subject.startsWith('Recordatorio diario')).length, 1);
+    assert.equal(
+      notices.filter((m: any) => m.subject.startsWith('Recordatorio semanal')).length,
+      1,
+    );
+    notices = await scheduled(optional);
+    assert.equal(notices.length, 1);
+    assert.ok(notices[0].subject.startsWith('Recordatorio diario'));
+    await request('/tasks/' + optionalId, 'PATCH', {
+      due: new Date(Date.now() - 12 * 86400000).toISOString(),
+    });
+    await request('/notifications/process', 'POST', {});
+    assert.equal((await scheduled(optional)).length, 1);
+    await request('/profile', 'PATCH', { notifications: false });
+    const muted = 'Tarea vencida con correo desactivado';
+    await create(muted);
+    await request('/notifications/process', 'POST', {});
+    assert.equal((await scheduled(muted)).length, 0);
+  } finally {
+    for (const taskId of taskIds) await request('/tasks/' + taskId, 'DELETE', {});
+    await request('/profile', 'PATCH', saved);
+  }
+});

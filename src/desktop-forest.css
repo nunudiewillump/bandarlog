@@ -55,7 +55,7 @@
     font-size: 15px;
   }
   .sidebar {
-    width: 218px;
+    width: 226px;
     padding: 28px 14px 18px;
     background: #edf0e5;
     color: #304d38;
@@ -68,10 +68,12 @@
     margin-bottom: 38px;
     padding: 0;
     min-height: 44px;
+    gap: 6px;
   }
   .sidebar-brand img {
-    width: 31px;
-    height: 31px;
+    width: 44px;
+    height: 44px;
+    flex: none;
   }
   .sidebar nav {
     gap: 6px;
@@ -123,7 +125,7 @@
     font-size: 12px;
   }
   .workspace {
-    margin-left: 218px;
+    margin-left: 226px;
     min-width: 0;
   }
   .app-forest-header {
@@ -1043,7 +1045,7 @@
 }
 @media (min-width: 1024px) and (max-width: 1279px) {
   .sidebar {
-    width: 168px;
+    width: 180px;
     padding-left: 10px;
     padding-right: 10px;
   }
@@ -1053,8 +1055,8 @@
     padding: 0;
   }
   .sidebar-brand img {
-    width: 25px;
-    height: 25px;
+    width: 36px;
+    height: 36px;
   }
   .sidebar nav button {
     font-size: 14px;
@@ -1079,7 +1081,7 @@
     font-size: 11px;
   }
   .workspace {
-    margin-left: 168px;
+    margin-left: 180px;
   }
   .topbar-content {
     padding-left: 30px;

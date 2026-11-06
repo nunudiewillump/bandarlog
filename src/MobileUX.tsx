@@ -118,7 +118,7 @@ export function MobileTasks({
                 )}
                 <span className="mobile-task-meta">
                   <span className={overdue(task) ? 'late-text' : ''}>{date(task.due)}</span>
-                  <span className={`badge ${task.status} ${overdue(task) ? 'late-text' : ''}`}>
+                  <span className={`badge ${overdue(task) ? 'overdue' : task.status}`}>
                     {overdue(task) ? 'Vencida' : labels[task.status]}
                   </span>
                 </span>

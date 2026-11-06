@@ -1,19 +1,11 @@
 /* The installed PWA's status area shares the canopy's darkest green. */
 html:root {
   background: #103b2d;
-}
-html::before {
-  content: '';
-  position: fixed;
-  inset: 0 0 auto;
-  height: env(safe-area-inset-top, 0px);
-  background: #103b2d;
-  z-index: 500;
-  pointer-events: none;
+  --forest-safe-top: env(safe-area-inset-top, 0px);
 }
 .forest-canopy.botanical-header {
   background: #103b2d;
-  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: var(--forest-safe-top);
   padding-bottom: 36px;
   color: #fff;
 }
@@ -21,8 +13,8 @@ html::before {
   background: linear-gradient(
     to bottom,
     #103b2d 0,
-    #103b2d calc(env(safe-area-inset-top, 0px) + 67px),
-    transparent calc(env(safe-area-inset-top, 0px) + 67px)
+    #103b2d calc(var(--forest-safe-top) + 67px),
+    transparent calc(var(--forest-safe-top) + 67px)
   );
 }
 .botanical-header .forest-canopy-inner {
@@ -61,8 +53,31 @@ html::before {
   transition: transform 500ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 .botanical-header .botanical-decoration {
-  top: env(safe-area-inset-top, 0px);
-  height: 137px;
+  top: 0;
+  height: calc(137px + var(--forest-safe-top));
+}
+.has-mobile-breeze .botanical-bough {
+  animation: botanical-breeze 2.2s ease-in-out both;
+}
+.has-mobile-breeze .botanical-bough[data-depth='1'] {
+  animation-delay: 80ms;
+}
+.has-mobile-breeze .botanical-bough[data-depth='2'] {
+  animation-delay: 160ms;
+}
+@keyframes botanical-breeze {
+  0%,
+  100% {
+    transform: translate3d(var(--bough-x, 0px), var(--bough-y, 0px), 0) rotate(var(--bough-r, 0deg));
+  }
+  30% {
+    transform: translate3d(calc(var(--bough-x, 0px) + 4px), calc(var(--bough-y, 0px) + 2px), 0)
+      rotate(calc(var(--bough-r, 0deg) + 3deg));
+  }
+  65% {
+    transform: translate3d(calc(var(--bough-x, 0px) - 3px), var(--bough-y, 0px), 0)
+      rotate(calc(var(--bough-r, 0deg) - 2deg));
+  }
 }
 .ambient-leaf-layer {
   position: fixed;
@@ -119,6 +134,7 @@ html::before {
   .botanical-bough {
     transform: none !important;
     transition: none !important;
+    animation: none !important;
   }
   .ambient-leaf-layer {
     display: none !important;

@@ -1316,6 +1316,7 @@ app.patch('/api/profile', async (q, r) => {
         reminderDays: z.array(z.number().int().min(1).max(90)).max(10).optional(),
         onDue: z.boolean().optional(),
         overdueWeekly: z.boolean().optional(),
+        overdueDaily: z.boolean().optional(),
       })
       .refine(
         (value) => Object.values(value).some((field) => field !== undefined),
@@ -2243,11 +2244,15 @@ async function reminders() {
       for (const assignment of assigned.filter((a) => a.taskId === t.id)) {
         const u = recipients.find((u) => u.id === assignment.userId);
         if (!u) continue;
-        for (const event of reminderEvents(t.due, t.status, preferences(u.preferences)))
-          await taskMail(db, t, event.label, `scheduled-${event.key}-${t.id}-${t.due}`, {
+        for (const event of reminderEvents(t.due, t.status, preferences(u.preferences))) {
+          // Daily means once per Madrid day even if an overdue deadline is edited.
+          // The other schedules retain their existing per-deadline identity.
+          const suffix = event.key.startsWith('overdue-day-') ? '' : '-' + t.due;
+          await taskMail(db, t, event.label, 'scheduled-' + event.key + '-' + t.id + suffix, {
             recipientId: u.id,
             event: 'scheduled',
           });
+        }
       }
     }
     const localDate = new Intl.DateTimeFormat('en-CA', {

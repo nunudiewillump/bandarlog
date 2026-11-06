@@ -872,12 +872,13 @@ select {
 .badge {
   display: inline-flex;
   padding: 5px 8px;
-  border-radius: 7px;
+  border-radius: 4px;
   background: #f1f0ea;
-  font-size: 10px;
+  font-size: 12px;
+  line-height: 18px;
   white-space: nowrap;
   color: #4d554c;
-  font-weight: 650;
+  font-weight: 800;
 }
 .badge.in_progress {
   background: #e4f1fc;
@@ -1940,8 +1941,8 @@ td svg {
     justify-content: center;
   }
   .sidebar-brand img {
-    width: 35px;
-    height: 35px;
+    width: 44px;
+    height: 44px;
   }
   .nav-caption,
   .sidebar-note,
@@ -2749,23 +2750,23 @@ input[type='checkbox'] {
 }
 * {
   scrollbar-width: thin;
-  scrollbar-color: #94af9b #f3f1e8;
+  scrollbar-color: #386c4c #edf0e5;
 }
 ::-webkit-scrollbar {
   width: 9px;
   height: 9px;
 }
 ::-webkit-scrollbar-track {
-  background: #f3f1e8;
+  background: #edf0e5;
   border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #94af9b;
-  border: 2px solid #f3f1e8;
+  background: #386c4c;
+  border: 2px solid #edf0e5;
   border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #608c72;
+  background: #124d38;
 }
 .select-control {
   display: inline-flex;
@@ -3466,7 +3467,7 @@ input[type='file']::file-selector-button {
   flex-wrap: wrap;
 }
 .mobile-task-meta .badge {
-  font-size: 11px;
+  font-size: 12px;
 }
 .task-assigned-to {
   font-size: 12px;
