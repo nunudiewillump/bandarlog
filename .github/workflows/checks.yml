@@ -6,16 +6,62 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: checks-${{ github.ref }}
   cancel-in-progress: true
+env:
+  MAIL_TRANSPORT: preview
+  ARTWORK_WORKER_URL: ''
 jobs:
-  checks:
+  prepare:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      MAIL_TRANSPORT: preview
-      ARTWORK_WORKER_URL: ''
+    timeout-minutes: 10
+    outputs:
+      browser: ${{ steps.plan.outputs.browser }}
+      browser_count: ${{ steps.plan.outputs.browser_count }}
+      tree: ${{ steps.plan.outputs.tree }}
+      reused: ${{ steps.plan.outputs.reused }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --include=dev
+      - id: plan
+        name: Seleccionar cobertura y comprobar evidencia previa
+        run: node --import tsx scripts/ci-plan.ts
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Pruebas Node afectadas
+        run: node --import tsx scripts/ci-run-node.ts
+        env:
+          CI_NODE_TESTS: ${{ steps.plan.outputs.node }}
+      - run: npm run build
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: steps.plan.outputs.browser_count != '0'
+        with:
+          name: web-build
+          path: |
+            dist/index.html
+            dist/assets/
+          retention-days: 1
+          overwrite: true
+          if-no-files-found: error
+  browser:
+    needs: prepare
+    if: needs.prepare.outputs.browser_count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        file: ${{ fromJSON(needs.prepare.outputs.browser) }}
+    name: navegador (${{ matrix.file }})
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
@@ -23,14 +69,60 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: npm ci --include=dev
-      - run: npm test
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: web-build
+          path: dist
+      - name: Añadir recursos públicos a la compilación compartida
+        run: cp -a public/. dist/
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      - name: Pruebas del archivo afectado
+        run: npx playwright test "$CI_BROWSER_FILE"
+        env:
+          CI_BROWSER_FILE: ${{ matrix.file }}
+      - name: Recoger solo capturas creadas o actualizadas en este bloque
+        if: always()
+        run: |
+          node - <<'JS'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const cp = require('node:child_process');
+          const files = cp.execFileSync('git', ['ls-files', '-m', '-o', '--exclude-standard', '-z', '--', 'artifacts/'], {encoding: 'utf8'}).split('\0').filter(Boolean);
+          for (const file of new Set(files)) {
+            if (!fs.existsSync(file) || !fs.lstatSync(file).isFile()) continue;
+            const target = path.join('ci-captures', file);
+            fs.mkdirSync(path.dirname(target), {recursive: true});
+            fs.copyFileSync(file, target);
+          }
+          JS
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
-          name: capturas-y-resultados
+          name: navegador-${{ strategy.job-index }}-intento-${{ github.run_attempt }}
           path: |
-            artifacts/
+            ci-captures/
             test-results/
           retention-days: 7
+  checks:
+    if: always()
+    needs: [prepare, browser]
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: Comprobar resultados y registrar el contenido verificado
+        run: node scripts/ci-finalize.mjs
+        env:
+          PREPARE_RESULT: ${{ needs.prepare.result }}
+          BROWSER_RESULT: ${{ needs.browser.result }}
+          BROWSER_COUNT: ${{ needs.prepare.outputs.browser_count }}
+          REUSED_RUN: ${{ needs.prepare.outputs.reused }}
+          VERIFIED_TREE: ${{ needs.prepare.outputs.tree }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: github.event_name == 'pull_request'
+        with:
+          name: ci-verified-tree
+          path: verified-tree.json
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
