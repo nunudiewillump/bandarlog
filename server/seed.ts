@@ -2,7 +2,7 @@ import * as s from './schema.js';
 import type { Database } from './db.js';
 export async function seed(storage: Database) {
   await storage.transaction(async (db: any) => {
-    if ((await db.select().from(s.users)).length) return;
+    if ((await db.select({ id: s.users.id }).from(s.users).limit(1)).length) return;
     if (process.env.NODE_ENV === 'production') {
       const email = process.env.BOOTSTRAP_EMAIL;
       if (!email) throw new Error('BOOTSTRAP_EMAIL es obligatorio para la primera instalación');

@@ -1,3 +1,4 @@
+import { IdleJobs, nextMadridMidnight } from './idle-jobs.js';
 import { publicUsers } from './public-users.js';
 import { pageRequest, CursorError } from './pagination.js';
 import { measureRequests, measureJob, flushMetrics } from './metrics.js';
@@ -106,6 +107,21 @@ const push = await pushService(db, appUrl, ownerDb);
 const app = express();
 app.disable('x-powered-by');
 app.use('/api', measureRequests);
+const liveViews = new Map<express.Response, string>();
+app.use('/api', (q, r, next) => {
+  if (q.path === '/tutorial' || q.path.startsWith('/tutorial/')) return next();
+  const changedGroupId = groupContext.getStore()?.id;
+  if (!['GET', 'HEAD'].includes(q.method) || q.path === '/auth/google/callback')
+    r.on('finish', () => {
+      if (r.statusCode < 400) {
+        reminderJobs.schedule('reminders', undefined, Date.now() + 15 * 60000);
+        for (const [view, groupId] of liveViews)
+          if (groupId === changedGroupId) view.write('event: changed\ndata: {}\n\n');
+      }
+    });
+  next();
+});
+
 app.use(helmet({ contentSecurityPolicy: prod ? undefined : false }));
 app.use(express.json({ limit: '256kb' }));
 app.use('/api', (_q, r, n) => {
@@ -230,7 +246,7 @@ async function queuePlatform(
     .onConflictDoNothing();
 }
 let platformSending = false;
-async function deliverPlatform() {
+async function deliverPlatformNow() {
   if (!mailTransport || platformSending) return;
   platformSending = true;
   try {
@@ -240,6 +256,7 @@ async function deliverPlatform() {
       .where(
         and(
           eq(s.platformMail.status, 'pending'),
+          sql`${s.platformMail.attempts}::integer < 5`,
           sql`(${s.platformMail.nextAttemptAt} is null or ${s.platformMail.nextAttemptAt} <= now())`,
         ),
       );
@@ -307,7 +324,7 @@ async function deliverPush() {
     pushing.delete(key);
   }
 }
-async function deliver() {
+async function deliverNow() {
   await deliverPush().catch(() =>
     console.error('No se pudieron enviar los avisos al dispositivo.'),
   );
@@ -321,6 +338,7 @@ async function deliver() {
       .where(
         and(
           eq(s.notifications.status, 'pending'),
+          sql`${s.notifications.attempts}::integer < 5`,
           sql`(${s.notifications.nextAttemptAt} is null or ${s.notifications.nextAttemptAt} <= now())`,
         ),
       )
@@ -388,6 +406,7 @@ async function health(_q: express.Request, r: express.Response) {
     database: process.env.DATABASE_URL ? 'postgresql' : 'pglite',
   });
 }
+site.get('/api/live', (_q, r) => r.set('Cache-Control', 'no-store').json({ ok: true }));
 site.get('/api/health', health);
 app.get('/api/health', health);
 app.post('/api/auth/request', async (q, r) => {
@@ -1007,7 +1026,6 @@ app.post(
     }
   },
 );
-const liveViews = new Map<express.Response, string>();
 app.get('/api/events', (q, r) => {
   r.set({
     'Content-Type': 'text/event-stream',
@@ -1016,24 +1034,18 @@ app.get('/api/events', (q, r) => {
     'X-Accel-Buffering': 'no',
   });
   r.flushHeaders();
-  r.write('event: ready\ndata: {}\n\n');
+  const configured = Number(process.env.SSE_RECONCILE_SECONDS?.trim() || '120');
+  const reconcileAfterMs =
+    Number.isFinite(configured) && (configured === 0 || configured >= 15)
+      ? Math.min(configured, 3600) * 1000
+      : 120000;
+  r.write('event: ready\ndata: ' + JSON.stringify({ reconcileAfterMs }) + '\n\n');
   liveViews.set(r, groupContext.getStore()!.id);
   const timer = setInterval(() => r.write(': keepalive\n\n'), 25000);
   q.on('close', () => {
     clearInterval(timer);
     liveViews.delete(r);
   });
-});
-app.use('/api', (q, r, next) => {
-  if (q.path === '/tutorial' || q.path.startsWith('/tutorial/')) return next();
-  const changedGroupId = groupContext.getStore()?.id;
-  if (!['GET', 'HEAD'].includes(q.method))
-    r.on('finish', () => {
-      if (r.statusCode < 400)
-        for (const [view, groupId] of liveViews)
-          if (groupId === changedGroupId) view.write('event: changed\ndata: {}\n\n');
-    });
-  next();
 });
 const globalManage = (u: any) => u.role === 'admin' || u.role === 'coordination';
 async function activeAccount(tx: any, uid: string) {
@@ -2339,6 +2351,7 @@ app.get('/api/notifications', async (q, r) => {
 });
 const scheduling = new Set<string>();
 async function reminders() {
+  let nextCheck = nextMadridMidnight();
   const key = groupContext.getStore()!.id;
   if (scheduling.has(key)) return;
   scheduling.add(key);
@@ -2373,7 +2386,12 @@ async function reminders() {
       for (const assignment of assigned.filter((a) => a.taskId === t.id)) {
         const u = recipients.find((u) => u.id === assignment.userId);
         if (!u) continue;
-        for (const event of reminderEvents(t.due, t.status, preferences(u.preferences))) {
+        const pref = preferences(u.preferences);
+        if (!u.disabledAt && pref.notifications && (pref.onDue || pref.overdueDaily)) {
+          const due = +new Date(t.due) + 1000;
+          if (due > Date.now()) nextCheck = Math.min(nextCheck, due);
+        }
+        for (const event of reminderEvents(t.due, t.status, pref)) {
           // Daily means once per Madrid day even if an overdue deadline is edited.
           // The other schedules retain their existing per-deadline identity.
           const suffix = event.key.startsWith('overdue-day-') ? '' : '-' + t.due;
@@ -2413,34 +2431,86 @@ async function reminders() {
         );
       }
     }
+    return nextCheck;
   } finally {
     scheduling.delete(key);
   }
 }
-let maintenanceRunning = false;
-let nextReminders = 0;
-const timer = setInterval(() => {
-  if (maintenanceRunning) return;
-  maintenanceRunning = true;
-  void measureJob('maintenance', async () => {
-    const runReminders = Date.now() >= nextReminders;
-    for (const group of await ownerDb
-      .select()
-      .from(s.groups)
-      .where(sql`${s.groups.plan} <> 'audit-archived'`))
-      await groupContext.run(group, async () => {
-        if (runReminders) await reminders();
-        await deliver();
-      });
-    if (runReminders) nextReminders = Date.now() + 15 * 60000;
-    await deliverPlatform();
-  })
-    .catch(() => console.error('No se pudo completar el mantenimiento.'))
-    .finally(() => {
-      maintenanceRunning = false;
-    });
-}, 5 * 60000);
-timer.unref();
+// An empty queue has no retry timer. Persisted work is recovered at startup and hourly.
+const deliveryJobs = new IdleJobs<Group>(
+  async (group) =>
+    groupContext.run(group, async () => {
+      await measureJob('delivery', deliverNow);
+      const result = await db.execute(sql`select least(
+    (select min(coalesce(next_attempt_at, now())) from notifications where ${Boolean(mailTransport)} and status='pending' and attempts::integer<5),
+    (select now()+interval '1 minute' from push_outbox where sent_at is null limit 1)
+  ) as next_at`);
+      const at = result.rows[0]?.next_at;
+      return at ? Math.max(Date.now() + 1000, +new Date(String(at))) : null;
+    }),
+  () => console.error('No se pudo completar la entrega pendiente.'),
+);
+async function deliver() {
+  const group = groupContext.getStore();
+  if (!group) throw Error('Falta el contexto privado del grupo.');
+  await deliveryJobs.wake(group.id, group);
+}
+const platformJobs = new IdleJobs<void>(
+  async () => {
+    await measureJob('platform-delivery', deliverPlatformNow);
+    if (!mailTransport) return null;
+    const result = await ownerDb.execute(
+      sql`select min(coalesce(next_attempt_at, now())) as next_at from platform_mail where status='pending' and attempts::integer<5`,
+    );
+    const at = result.rows[0]?.next_at;
+    return at ? Math.max(Date.now() + 1000, +new Date(String(at))) : null;
+  },
+  () => console.error('No se pudo completar el correo pendiente.'),
+);
+async function deliverPlatform() {
+  await platformJobs.wake('platform', undefined);
+}
+const activeGroups = () =>
+  ownerDb
+    .select()
+    .from(s.groups)
+    .where(sql`${s.groups.plan} <> 'audit-archived'`);
+const reminderJobs = new IdleJobs<void>(
+  async () =>
+    measureJob('reminders', async () => {
+      let next = nextMadridMidnight();
+      for (const group of await activeGroups())
+        await groupContext.run(group, async () => {
+          next = Math.min(next, (await reminders()) ?? next);
+          await deliver();
+        });
+      return next;
+    }),
+  () => console.error('No se pudieron revisar los recordatorios.'),
+);
+const recoveryJobs = new IdleJobs<void>(
+  async () =>
+    measureJob('outbox-recovery', async () => {
+      // Metadata only: no idle per-group SELECTs, no message bodies or images.
+      const pending = await ownerDb.execute(sql`select distinct group_id from (
+    select group_id from notifications where ${Boolean(mailTransport)} and status='pending' and attempts::integer<5
+    union select group_id from push_outbox where sent_at is null
+  ) q`);
+      const ids = pending.rows.map((row) => String(row.group_id));
+      if (ids.length)
+        for (const group of await ownerDb
+          .select()
+          .from(s.groups)
+          .where(and(inArray(s.groups.id, ids), sql`${s.groups.plan} <> 'audit-archived'`)))
+          await groupContext.run(group, deliver);
+      await deliverPlatform();
+      return Date.now() + 3600000;
+    }),
+  () => console.error('No se pudo recuperar el trabajo pendiente.'),
+);
+// These callbacks run after the server starts; shutdown cancels all future work.
+reminderJobs.schedule('reminders', undefined, Date.now() + 1000);
+recoveryJobs.schedule('recovery', undefined, Date.now() + 1000);
 app.use('/api', (_q, r) => r.status(404).json({ error: 'Ruta no encontrada.' }));
 if (prod) {
   app.use(express.static('dist', { index: false }));
@@ -2542,7 +2612,10 @@ const server = site.listen(Number(process.env.PORT || 3001), '0.0.0.0', () =>
 );
 process.on('SIGTERM', () => {
   flushMetrics();
-  clearInterval(timer);
+  deliveryJobs.stop();
+  platformJobs.stop();
+  reminderJobs.stop();
+  recoveryJobs.stop();
   for (const view of liveViews.keys()) view.end();
   server.close(() => void close().then(() => process.exit(0)));
 });
