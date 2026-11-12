@@ -554,13 +554,117 @@ test('root resumes valid legacy and private-group sessions without granting acce
   const oldInstall = { base: '', cookie: legacyCookie, csrf: '', userId: '' };
   const legacyRoot = await call('/', 'GET', undefined, oldInstall);
   assert.equal(legacyRoot.status, 303);
-  assert.equal(legacyRoot.headers.get('location'), '/acceso');
+  const canonical =
+    '/g/' + (await call('/api/me', 'GET', undefined, oldInstall)).body.group.privateId + '/';
+  assert.equal(legacyRoot.headers.get('location'), canonical);
+  assert.equal(
+    (await call('/acceso?task=kept&action=done', 'GET', undefined, oldInstall)).headers.get(
+      'location',
+    ),
+    canonical + '?task=kept&action=done',
+  );
+  assert.equal(
+    (await call('/?view=camp&project=kept', 'GET', undefined, oldInstall)).headers.get('location'),
+    canonical + '?view=camp&project=kept',
+  );
+  const scoped = { ...oldInstall, base: canonical.slice(0, -1) };
+  assert.equal(
+    (await call('/api/me', 'GET', undefined, scoped)).body.user.email,
+    'alex@example.test',
+  );
+  assert.match(
+    (await call('/offline-store.js', 'GET', undefined, scoped)).body,
+    /BANDARLOG_LEGACY_STORAGE = true/,
+  );
+  assert.match((await call('/offline-store.js')).body, /BANDARLOG_LEGACY_STORAGE = false/);
+  assert.match(
+    (await call('/offline-store.js', 'GET', undefined, group)).body,
+    /BANDARLOG_LEGACY_STORAGE = false/,
+  );
   assert.equal(
     (await call('/api/me', 'GET', undefined, oldInstall)).body.user.email,
     'alex@example.test',
   );
+  const before = (await call('/api/data', 'GET', undefined, oldInstall)).body;
+  const after = (await call('/api/data', 'GET', undefined, scoped)).body;
+  for (const collection of [
+    'tasks',
+    'projects',
+    'commissions',
+    'assignments',
+    'projectMembers',
+    'projectSummaries',
+  ])
+    assert.deepEqual(
+      after[collection],
+      before[collection],
+      collection + ' preserves IDs, fields and history across routes',
+    );
+  oldInstall.csrf = (await call('/api/me', 'GET', undefined, oldInstall)).body.csrf;
+  const historyPath = '/api/activity?limit=1&taskId=' + before.tasks[0].id;
+  for (const body of ['Compatibilidad raíz', 'Compatibilidad canónica'])
+    assert.equal(
+      (await call('/api/tasks/' + before.tasks[0].id + '/comments', 'POST', { body }, oldInstall))
+        .status,
+      201,
+    );
+  const legacyHistory = await call(historyPath, 'GET', undefined, oldInstall);
+  const scopedHistory = await call(historyPath, 'GET', undefined, scoped);
+  assert.equal(legacyHistory.status, 200);
+  assert.equal(scopedHistory.status, 200);
+  assert.equal(legacyHistory.body.items.length, 1);
+  assert.ok(legacyHistory.body.nextCursor);
+  assert.deepEqual(
+    scopedHistory.body,
+    legacyHistory.body,
+    'history IDs and cursor survive canonical navigation',
+  );
+  const followingPage =
+    historyPath + '&cursor=' + encodeURIComponent(legacyHistory.body.nextCursor);
+  const nextLegacy = await call(followingPage, 'GET', undefined, oldInstall);
+  const nextScoped = await call(followingPage, 'GET', undefined, scoped);
+  assert.equal(nextScoped.status, 200);
+  assert.deepEqual(nextScoped.body, nextLegacy.body);
+  assert.notEqual(nextScoped.body.items[0].id, legacyHistory.body.items[0].id);
+  assert.equal((await call('', 'GET', undefined, scoped)).headers.get('location'), canonical);
   const manifest = (await call('/manifest.webmanifest')).body;
   assert.equal(manifest.id, '/');
-  assert.equal(manifest.start_url, '/acceso');
+  assert.equal(manifest.start_url, canonical);
   assert.equal(manifest.scope, '/');
+  const canonicalChallenge = await call(
+    '/api/auth/code/request',
+    'POST',
+    { email: 'ana@example.test' },
+    scoped,
+  );
+  assert.equal(canonicalChallenge.status, 200);
+  const canonicalMail = (await call('/api/dev/mail', 'GET', undefined, scoped)).body
+    .filter((mail: any) => mail.email === 'ana@example.test' && /\b\d{6}\b/.test(mail.body))
+    .at(-1);
+  const canonicalVerified = await call(
+    '/api/auth/code/verify',
+    'POST',
+    {
+      challengeId: canonicalChallenge.body.challengeId,
+      code: canonicalMail.body.match(/\b(\d{6})\b/)[1],
+    },
+    scoped,
+  );
+  assert.equal(canonicalVerified.status, 200);
+  const aliases = canonicalVerified.headers
+    .getSetCookie()
+    .filter((value) => value.startsWith('bandarlog='));
+  assert.equal(
+    aliases.length,
+    2,
+    'initial group retains the old PWA cookie only as compatibility transport',
+  );
+  assert.ok(aliases.some((value) => value.includes('Path=' + scoped.base)));
+  assert.equal(aliases[0].split(';')[0], aliases[1].split(';')[0]);
+  const signed = { ...scoped, cookie: aliases[0].split(';')[0] };
+  const canonicalMe = (await call('/api/me', 'GET', undefined, signed)).body;
+  assert.equal(canonicalMe.user.id, 'ana');
+  const exit = await call('/api/logout', 'POST', {}, { ...signed, csrf: canonicalMe.csrf });
+  assert.equal(exit.status, 200);
+  assert.equal((await call('/api/me', 'GET', undefined, { ...signed, base: '' })).status, 401);
 });

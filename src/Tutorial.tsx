@@ -62,6 +62,14 @@ export function useTutorial(user: User | null) {
       locked.current = true;
       setBusy(true);
       setError('');
+      // Keep a controlled checkbox responsive while persisting; current stays confirmed.
+      if (input.action === 'check' && current.current)
+        setProgress({
+          ...current.current,
+          steps: current.current.steps.map((done, index) =>
+            index === input.index ? input.done : done,
+          ) as [boolean, boolean],
+        });
       try {
         const needsVersion = !['shown', 'open', 'skip'].includes(input.action);
         const result = (await api('/tutorial', 'POST', {
@@ -74,6 +82,7 @@ export function useTutorial(user: User | null) {
         return result;
       } catch (e) {
         if (owner.current === id) {
+          if (input.action === 'check') setProgress(current.current);
           setError((e as Error).message);
           if (e instanceof ApiError && e.status === 409) {
             const next = await api('/tutorial').catch(() => null);

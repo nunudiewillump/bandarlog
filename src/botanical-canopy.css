@@ -50,6 +50,19 @@ html:root {
   height: 100%;
   overflow: visible;
 }
+.botanical-mobile-picture {
+  display: none;
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 0;
+}
+.botanical-mobile-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center bottom;
+}
 .botanical-upper-crown,
 .botanical-mobile-fill {
   display: none;
@@ -81,6 +94,9 @@ html:root {
   height: calc(137px + var(--forest-safe-top));
 }
 .has-canopy-breeze .botanical-bough {
+  animation: botanical-breeze 3.6s ease-in-out both;
+}
+.has-canopy-breeze .botanical-mobile-picture {
   animation: botanical-breeze 3.6s ease-in-out both;
 }
 .has-canopy-breeze .botanical-bough[data-depth='1'] {
@@ -160,6 +176,15 @@ html:root {
     /* Reserve exactly the fixed header's space without moving it with the document. */
     height: calc(var(--forest-safe-top) + var(--forest-header-row) + var(--forest-header-tail));
   }
+  .botanical-header .botanical-decoration {
+    contain: layout paint;
+  }
+  .botanical-header .is-raster-ready .botanical-mobile-picture {
+    display: block;
+  }
+  .botanical-header .is-raster-ready > .botanical-art {
+    display: none;
+  }
   .forest-canopy.botanical-header.has-foliage {
     background: transparent;
   }
@@ -182,7 +207,8 @@ html:root {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .botanical-bough {
+  .botanical-bough,
+  .botanical-mobile-picture {
     transform: none !important;
     transition: none !important;
     animation: none !important;

@@ -296,3 +296,8 @@ La copa no responde al toque ni al lápiz. Conserva la interacción de cursor en
 Las barras de desplazamiento usan pista de papel vegetal y tirador verde bosque, con hover más oscuro. No se cambian las superficies claras ni el contraste del escritorio.
 
 Perfil incorpora un aviso diario opcional para tareas vencidas, desactivado por defecto e independiente del semanal por decisión del usuario. La clave diaria se limita a un aviso por tarea, destinatario y día de Madrid, incluso al editar una fecha vencida; los demás avisos conservan sus claves anteriores. Ver implementación, fuentes y límites en docs/mobile-canopy-reminders.md.
+
+
+## Rendimiento móvil y navegación común
+
+La copa móvil puede precalcularse sin pérdida desde su SVG original y conserva este como alternativa hasta disponer de la imagen. Su composición mantiene la dirección visual, el relleno sobre la N y la brisa ligera; no se rediseñan los recursos. El scroll sigue siendo nativo, las barras móviles se ocultan y las superficies de carga son crema desde el primer frame. Todos los grupos usan `/g/ID/`, sin una entrada especial del grupo inicial en la página pública. La compatibilidad de sesión y datos antiguos se concentra en el transporte y en una migración local verificada. Detalles y evidencias en [rendimiento y navegación](docs/mobile-performance-navigation.md).

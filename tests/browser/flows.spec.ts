@@ -819,10 +819,20 @@ test('coordination uploads a new matching pair and can use it after reloading', 
   await dialog.getByRole('button', { name: 'Guardar y utilizar' }).click();
   await expect(dialog).not.toBeVisible();
   await page.reload();
-  await expect(page.locator('.commission-icon img')).toHaveAttribute(
+  const artwork = page.locator('.commission-icon img');
+  const session = await page.request.get('/api/me').then((response) => response.json());
+  const groupPath = `/g/${session.group.privateId}`;
+  expect(groupPath).toMatch(/^\/g\/[a-f0-9]{32}$/);
+  await expect(artwork).toHaveAttribute(
     'src',
-    /^\/api\/artwork\/assets\//,
+    new RegExp(`^${groupPath}/api/artwork/assets/[^/]+/icon$`),
   );
+  await expect(artwork).toBeVisible();
+  await expect
+    .poll(() =>
+      artwork.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0),
+    )
+    .toBe(true);
   await expect(page.locator('.commission-mascot')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: /^Equipo QA/ })).toBeVisible();
   if (

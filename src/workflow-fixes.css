@@ -218,11 +218,7 @@ body,
 @media (display-mode: standalone) {
   body {
     padding-top: 0;
-    background: #103b2d;
   }
-}
-html.mobile-pwa-no-zoom body {
-  background: #103b2d;
 }
 
 .loading {

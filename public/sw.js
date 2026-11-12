@@ -1,9 +1,9 @@
-importScripts('/offline-store.js?v=5');
+importScripts('./offline-store.js?v=6');
 const GROUP_BASE = location.pathname.match(/^\/g\/[a-f0-9]{32}(?=\/|$)/)?.[0] || '';
 const CACHE_FAMILY = GROUP_BASE
   ? 'bandarlog-static-' + GROUP_BASE.split('/')[2] + '-'
   : 'bandarlog-static-';
-const CACHE = CACHE_FAMILY + 'v7';
+const CACHE = CACHE_FAMILY + 'v8';
 // Keep the legacy install on its original origin and IndexedDB namespace.
 const SHELL = GROUP_BASE ? GROUP_BASE + '/' : '/acceso';
 self.addEventListener('install', (e) => {
@@ -21,8 +21,9 @@ self.addEventListener('install', (e) => {
         '/public-fonts/poppins-latin-800-normal.woff2',
         '/public-fonts/poppins-latin-900-normal.woff2',
         '/icon-192.png',
+        '/banana-loading.svg',
         '/offline-store.js',
-        '/offline-store.js?v=5',
+        GROUP_BASE + '/offline-store.js?v=6',
         GROUP_BASE + '/manifest.webmanifest',
       ]);
       const shell = await fetch(SHELL, { cache: 'reload' });
@@ -113,12 +114,15 @@ self.addEventListener('fetch', (e) => {
           }
           return response;
         })
-        .catch(
-          async () =>
-            ((await BandarlogOffline.cached('/me').catch(() => null)) &&
-              (await caches.match(SHELL))) ||
-            (await caches.match('/offline.html')),
-        ),
+        .catch(async () => {
+          const session = await BandarlogOffline.cached('/me').catch(() => null);
+          if (!GROUP_BASE && /^[a-f0-9]{32}$/.test(session?.group?.privateId || '')) {
+            const canonical = '/g/' + session.group.privateId + '/';
+            if (await caches.match(canonical))
+              return Response.redirect(new URL(canonical, location.origin), 302);
+          }
+          return (session && (await caches.match(SHELL))) || (await caches.match('/offline.html'));
+        }),
     );
     return;
   }
@@ -126,14 +130,17 @@ self.addEventListener('fetch', (e) => {
     url.pathname.startsWith('/assets/') ||
     url.pathname === '/typography.css' ||
     /\.(png|svg|webp|woff2)$/.test(url.pathname) ||
-    url.pathname === '/offline-store.js'
+    url.pathname === GROUP_BASE + '/offline-store.js'
   ) {
     e.respondWith(
       caches.open(CACHE).then(async (cache) => {
-        // Font bytes are public and identical for every Origin. Preview servers
-        // may add Vary: Origin; that must not hide the installation precache.
+        // Public asset bytes are identical for every Origin. Vary: Origin must
+        // not hide the installation precache. Private API requests never reach here.
         const hit = await cache.match(e.request, {
-          ignoreVary: url.pathname.startsWith('/public-fonts/'),
+          ignoreVary:
+            url.pathname.startsWith('/public-fonts/') ||
+            url.pathname.startsWith('/assets/') ||
+            /\.(png|svg|webp)$/.test(url.pathname),
         });
         if (hit) return hit;
         const response = await fetch(e.request);
