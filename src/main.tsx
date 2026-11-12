@@ -255,6 +255,7 @@ function App() {
     let refreshAgain = false;
     let scheduled: ReturnType<typeof setTimeout> | undefined;
     let streamHealthy = false;
+    let reconcileAfterMs = 120000;
     let lastPeriodic = Date.now();
     const refresh = () => {
       clearTimeout(scheduled);
@@ -289,8 +290,16 @@ function App() {
     if (channel) channel.onmessage = refresh;
     const stream =
       typeof EventSource !== 'undefined' ? new EventSource(groupBasePath() + '/api/events') : null;
-    stream?.addEventListener('ready', () => {
+    stream?.addEventListener('ready', (event) => {
       streamHealthy = true;
+      reconcileAfterMs = 120000;
+      try {
+        const value = JSON.parse((event as MessageEvent).data).reconcileAfterMs;
+        if (typeof value === 'number' && Number.isFinite(value) && (value === 0 || value >= 15000))
+          reconcileAfterMs = Math.min(value, 3600000);
+      } catch {
+        /* Older servers retain the conservative reconciliation. */
+      }
       refresh();
     });
     stream?.addEventListener('error', () => {
@@ -299,7 +308,10 @@ function App() {
     stream?.addEventListener('changed', refresh);
     // SSE is process-local. Retain a slow reconciliation for other replicas.
     const timer = setInterval(() => {
-      if (Date.now() - lastPeriodic >= (streamHealthy ? 120000 : 15000)) {
+      if (
+        (!streamHealthy || reconcileAfterMs > 0) &&
+        Date.now() - lastPeriodic >= (streamHealthy ? reconcileAfterMs : 15000)
+      ) {
         lastPeriodic = Date.now();
         refresh();
       }
