@@ -1,3 +1,4 @@
+import { publicUsers } from './public-users.js';
 import { pageRequest, CursorError } from './pagination.js';
 import { measureRequests, measureJob, flushMetrics } from './metrics.js';
 import express from 'express';
@@ -901,7 +902,11 @@ app.use('/api', async (q, r, n) => {
       ),
     );
   if (!session) return r.status(401).json({ error: 'Tu sesión ha caducado.' });
-  const [user] = await db.select().from(s.users).where(eq(s.users.id, session.userId));
+  const { avatarUrl: _avatar, ...authColumns } = getTableColumns(s.users);
+  const [user] = await db
+    .select(q.path === '/me' ? getTableColumns(s.users) : authColumns)
+    .from(s.users)
+    .where(eq(s.users.id, session.userId));
   if (!user || user.disabledAt) return r.sendStatus(401);
   r.locals.user = user;
   r.locals.session = session;
@@ -1525,11 +1530,11 @@ app.get('/api/data', async (_q, r) => {
       ...visibleMembers.map((m) => m.userId),
       ...visibleProjectMembers.map((m) => m.userId),
     ]);
-    const { preferences: _preferences, ...publicUserColumns } = getTableColumns(s.users);
-    const us = await db
-      .select(publicUserColumns)
-      .from(s.users)
-      .where(globalManage(u) ? undefined : inArray(s.users.id, [...uids]));
+    const us = await publicUsers(
+      db,
+      groupContext.getStore()!.id,
+      globalManage(u) ? undefined : [...uids],
+    );
     const responsibleIds = visibleMembers
       .filter((m) => m.userId === u.id && m.role === 'responsible')
       .map((m) => m.commissionId);
@@ -2338,18 +2343,31 @@ async function reminders() {
   if (scheduling.has(key)) return;
   scheduling.add(key);
   try {
-    const allTasks = await db
-      .select()
-      .from(s.tasks)
-      .where(sql`${s.tasks.deletedAt} is null`);
     const activeCommissions = await db
       .select({ id: s.commissions.id })
       .from(s.commissions)
       .innerJoin(s.projects, eq(s.projects.id, s.commissions.projectId))
       .where(and(eq(s.projects.archived, 'false'), sql`${s.commissions.deletedAt} is null`));
-    const ts = allTasks.filter((t) => activeCommissions.some((c) => c.id === t.commissionId));
-    const assigned = await db.select().from(s.assignments),
-      recipients = await db.select().from(s.users);
+    const ts = activeCommissions.length
+      ? await db
+          .select()
+          .from(s.tasks)
+          .where(
+            and(
+              sql`${s.tasks.deletedAt} is null`,
+              inArray(
+                s.tasks.commissionId,
+                activeCommissions.map((c) => c.id),
+              ),
+            ),
+          )
+      : [];
+    const openIds = ts.filter((t) => t.status !== 'done').map((t) => t.id);
+    const assigned = openIds.length
+      ? await db.select().from(s.assignments).where(inArray(s.assignments.taskId, openIds))
+      : [];
+    const { avatarUrl: _avatar, ...recipientColumns } = getTableColumns(s.users);
+    const recipients = await db.select(recipientColumns).from(s.users);
     for (const t of ts) {
       if (t.status === 'done') continue;
       for (const assignment of assigned.filter((a) => a.taskId === t.id)) {
@@ -2375,7 +2393,7 @@ async function reminders() {
     const week = new Date(localDate + 'T12:00:00Z');
     week.setUTCDate(week.getUTCDate() - ((week.getUTCDay() + 6) % 7));
     const stamp = week.toISOString().slice(0, 10);
-    const us = await db.select().from(s.users);
+    const us = recipients;
     const ps = await db.select().from(s.projects);
     const cs = await db.select().from(s.commissions);
     for (const u of us) {
