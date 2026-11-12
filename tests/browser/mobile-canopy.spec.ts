@@ -181,7 +181,7 @@ test.describe('touch and installed mobile layout', () => {
         );
         await expect(page.locator('html')).toHaveClass(/mobile-pwa-no-zoom/);
         await expect(page.locator('body')).toHaveCSS('padding-top', '0px');
-        await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(16, 59, 45)');
+        await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(250, 248, 242)');
         const header = page.locator('.app-forest-header');
         const leaves = header.locator('.botanical-decoration');
         await expect(header).toHaveCSS('position', 'fixed');
@@ -324,7 +324,8 @@ test.describe('touch and installed mobile layout', () => {
       await expect(header).not.toHaveClass(/has-canopy-breeze/);
       await page.clock.runFor(1);
       await expect(header).toHaveClass(/has-canopy-breeze/);
-      const motion = await boughs.first().evaluate((element) => {
+      await expect(header.locator('.botanical-decoration')).toHaveClass(/is-raster-ready/);
+      const motion = await header.locator('.botanical-mobile-picture').evaluate((element) => {
         const animation = element.getAnimations()[0];
         animation.currentTime = 1080;
         const matrix = new DOMMatrix(getComputedStyle(element).transform);

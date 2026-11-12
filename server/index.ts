@@ -7,7 +7,13 @@ import { readFile } from 'node:fs/promises';
 import { publicSite, renderPublicForm, renderPublicHome } from './public-site.js';
 import { ENTRY_COOKIE, requestCookie, rememberEntry, rememberedEntry } from './remembered-entry.js';
 import { publicInfo } from '../shared/public-info.js';
-import { groupContext, groupPath, groupUrl, type Group } from './group-context.js';
+import {
+  groupContext,
+  groupPath,
+  groupUrl,
+  canonicalGroupPath,
+  type Group,
+} from './group-context.js';
 import { groupRegistrationRoutes, groupResolver, groupColor } from './groups.js';
 import {
   tutorialCommand,
@@ -502,6 +508,15 @@ function sessionCookie(r: express.Response, raw: string, expires = Date.now() + 
     maxAge: Math.max(0, expires - Date.now()),
     path: groupPath() || '/',
   });
+  // The initial group's former root PWA can still synchronize its existing queue.
+  if (groupContext.getStore()?.id === legacyGroup.id && groupPath())
+    r.cookie('bandarlog', raw, {
+      httpOnly: true,
+      secure: prod,
+      sameSite: 'lax',
+      maxAge: Math.max(0, expires - Date.now()),
+      path: '/',
+    });
   rememberEntry(r, groupContext.getStore()!, hash(raw), expires, prod);
 }
 const cookie = (q: express.Request, name: string) =>
@@ -881,7 +896,19 @@ if (!prod)
     r.json(await db.select().from(s.notifications).orderBy(s.notifications.createdAt));
   });
 for (const file of ['sw.js', 'offline-store.js', 'offline.html'])
-  app.get('/' + file, (_q, r) => r.sendFile('public/' + file, { root: process.cwd() }));
+  app.get('/' + file, async (_q, r) => {
+    if (file === 'offline-store.js') {
+      const legacy = groupContext.getStore()?.id === legacyGroup.id && Boolean(groupPath());
+      return r
+        .set('Cache-Control', 'no-store')
+        .type('js')
+        .send(
+          `globalThis.BANDARLOG_LEGACY_STORAGE = ${legacy};\n` +
+            (await readFile('public/' + file, 'utf8')),
+        );
+    }
+    r.sendFile('public/' + file, { root: process.cwd() });
+  });
 app.get('/manifest.webmanifest', (_q, r) => {
   const group = groupContext.getStore()!,
     base = groupPath() || '';
@@ -892,7 +919,7 @@ app.get('/manifest.webmanifest', (_q, r) => {
       name: 'Bandarlog · ' + group.name,
       short_name: 'Bandarlog',
       lang: 'es',
-      start_url: base ? base + '/' : '/acceso',
+      start_url: canonicalGroupPath() + '/',
       scope: base + '/',
       display: 'standalone',
       background_color: '#103b2d',
@@ -1212,7 +1239,7 @@ async function taskMail(
         payload: JSON.stringify({
           title: subject,
           body: `${t.title} · ${c.name}`,
-          url: `${groupPath()}/?task=${t.id}`,
+          url: `${canonicalGroupPath()}/?task=${t.id}`,
           tag: `task-${t.id}`,
         }),
       })
@@ -1321,6 +1348,7 @@ app.post('/api/logout', async (q, r) => {
     groupContext.getStore()!.privateId + '.' + r.locals.session.id
   )
     r.clearCookie(ENTRY_COOKIE, { path: '/' });
+  if (groupContext.getStore()?.id === legacyGroup.id) r.clearCookie('bandarlog', { path: '/' });
   r.clearCookie('bandarlog', { path: groupPath() || '/' }).json({ ok: true });
 });
 app.patch('/api/profile', async (q, r) => {
@@ -1380,8 +1408,8 @@ async function extraArtwork(storage: Pick<Database, 'select'> = db) {
     collection: entry.collection as ArtworkTheme,
     familyName: artworkCatalog.find((a) => a.family === entry.family)?.familyName || 'Scouts',
     icon: 'Palette',
-    iconUrl: `/api/artwork/assets/${entry.id}/icon`,
-    mascotUrl: `/api/artwork/assets/${entry.id}/mascot`,
+    iconUrl: `${canonicalGroupPath()}/api/artwork/assets/${entry.id}/icon`,
+    mascotUrl: `${canonicalGroupPath()}/api/artwork/assets/${entry.id}/mascot`,
   }));
 }
 app.get('/api/artwork/catalog', async (_q, r) =>
@@ -1537,6 +1565,7 @@ app.get('/api/data', async (_q, r) => {
             ),
           )
       : [];
+    const projectsById = new Map(visibleProjects.map((project) => [project.id, project]));
     const uids = new Set([
       u.id,
       ...visibleMembers.map((m) => m.userId),
@@ -1567,15 +1596,13 @@ app.get('/api/data', async (_q, r) => {
     const summaries = await projectSummaries(db, visibleProjects);
     return {
       projectSummaries: summaries,
-      campSummaries: summaries.filter((summary) =>
-        visibleProjects.some((p) => p.id === summary.id && p.type === 'camp'),
-      ),
+      campSummaries: summaries.filter((summary) => projectsById.get(summary.id)?.type === 'camp'),
       artworkEnabled: true,
       artworkThemes,
       projects: visibleProjects.map((p) => ({ ...p, artworkTheme: projectArtworkTheme(p) })),
       projectMembers: visibleProjectMembers,
       commissions: cs.map((c) => {
-        const theme = projectArtworkTheme(visibleProjects.find((p) => p.id === c.projectId)!);
+        const theme = projectArtworkTheme(projectsById.get(c.projectId)!);
         const artworkLocked = hasArtworkAssociation(c.name, theme, catalogueExtra);
         const artwork = selectArtwork(
           {
@@ -2513,11 +2540,20 @@ reminderJobs.schedule('reminders', undefined, Date.now() + 1000);
 recoveryJobs.schedule('recovery', undefined, Date.now() + 1000);
 app.use('/api', (_q, r) => r.status(404).json({ error: 'Ruta no encontrada.' }));
 if (prod) {
-  app.use(express.static('dist', { index: false }));
-  app.get('/{*path}', async (_q, r) => {
-    const html = await readFile('dist/index.html', 'utf8');
+  const spaHtml = await readFile('dist/index.html', 'utf8');
+  app.use(
+    express.static('dist', {
+      index: false,
+      setHeaders(response, file) {
+        const path = file.replaceAll('\\', '/');
+        if (path.includes('/assets/') || /\/canopy\/mobile-[a-f0-9]{10}-[123]x\.webp$/.test(path))
+          response.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      },
+    }),
+  );
+  app.get('/{*path}', (_q, r) => {
     r.type('html').send(
-      html.replace('/manifest.webmanifest', groupPath() + '/manifest.webmanifest'),
+      spaHtml.replace('/manifest.webmanifest', groupPath() + '/manifest.webmanifest'),
     );
   });
 }
@@ -2559,6 +2595,17 @@ if (!prod)
     r.json(await ownerDb.select().from(s.platformMail).orderBy(s.platformMail.createdAt)),
   );
 site.use('/g/:groupId', groupResolver(ownerDb), app);
+site.get('/acceso', (q, r) =>
+  r
+    .set('Cache-Control', 'no-store')
+    .redirect(
+      303,
+      '/g/' +
+        legacyGroup.privateId +
+        '/' +
+        (q.originalUrl.includes('?') ? q.originalUrl.slice(q.originalUrl.indexOf('?')) : ''),
+    ),
+);
 site.get('/', async (q, r, next) => {
   r.set('Cache-Control', 'private, no-store').vary('Cookie');
   const legacyQuery = [
@@ -2571,15 +2618,11 @@ site.get('/', async (q, r, next) => {
     'email',
     'action',
   ].some((key) => typeof q.query[key] === 'string');
-  if (legacyQuery) {
-    if (!prod)
-      return r.redirect(
-        303,
-        '/acceso' +
-          (q.originalUrl.includes('?') ? q.originalUrl.slice(q.originalUrl.indexOf('?')) : ''),
-      );
-    return next();
-  }
+  if (legacyQuery)
+    return r.redirect(
+      303,
+      '/g/' + legacyGroup.privateId + '/' + q.originalUrl.slice(q.originalUrl.indexOf('?')),
+    );
   const entry = await rememberedEntry(ownerDb, q.headers.cookie, legacyGroup.id);
   if (entry) return r.redirect(303, entry);
   if (requestCookie(q.headers.cookie, ENTRY_COOKIE)) r.clearCookie(ENTRY_COOKIE, { path: '/' });

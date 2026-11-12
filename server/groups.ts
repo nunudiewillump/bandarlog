@@ -321,6 +321,13 @@ export function groupResolver(owner: any) {
     }
     const [group] = await owner.select().from(s.groups).where(eq(s.groups.privateId, key));
     if (!group) return r.status(404).type('text').send('Grupo no encontrado.');
+    if (['GET', 'HEAD'].includes(q.method) && q.originalUrl.split('?')[0] === canonical)
+      return r.redirect(
+        308,
+        canonical +
+          '/' +
+          (q.originalUrl.includes('?') ? q.originalUrl.slice(q.originalUrl.indexOf('?')) : ''),
+      );
     r.set({ 'X-Robots-Tag': 'noindex, nofollow', 'Cache-Control': 'no-store' });
     groupContext.run(group, next);
   };

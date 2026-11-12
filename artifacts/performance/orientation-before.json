@@ -1,0 +1,18 @@
+{
+  "cpuSlowdown": 4,
+  "rotations": 6,
+  "roundTripAndTwoFramesMs": [
+    155.82940499999995,
+    165.3956330000001,
+    182.27489400000013,
+    166.54443999999967,
+    194.5884970000002,
+    170.74550499999987
+  ],
+  "durations": {
+    "ScriptDuration": 5.65,
+    "LayoutDuration": 30.04,
+    "RecalcStyleDuration": 155.11,
+    "TaskDuration": 890.88
+  }
+}

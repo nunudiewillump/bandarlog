@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './botanical-canopy.css';
+import { mobileCanopy } from './canopy-assets';
 import { BananaArtwork } from './BananaLoader';
 import { leafPaths as SHAPES } from '../shared/forest-art';
 
@@ -110,7 +111,92 @@ type FallingLeaf = {
 // Mobile and desktop headers coexist; only one ambient fall batch may exist.
 let activeLeafOwner: string | null = null;
 
-export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
+const CanopyDrawing = memo(function CanopyDrawing({ id }: { id: string }) {
+  return (
+    <svg
+      className="botanical-art"
+      viewBox="0 0 1920 170"
+      preserveAspectRatio="xMidYMax slice"
+      focusable="false"
+    >
+      <defs>
+        {BRANCHES.map((_, depth) => (
+          <filter
+            key={depth}
+            id={`${id}-leaf-shadow-${depth}`}
+            x="-30%"
+            y="-30%"
+            width="170%"
+            height="180%"
+          >
+            <feDropShadow
+              dx="0"
+              dy={3 + depth}
+              stdDeviation={2 + depth * 0.4}
+              floodColor="#072719"
+              floodOpacity={0.35 + depth * 0.07}
+            />
+          </filter>
+        ))}
+      </defs>
+      <path
+        className="botanical-backing"
+        d="M0 0H1920V71C1680 62 1510 74 1300 63C1030 73 830 59 590 69C390 56 180 74 0 66Z"
+        fill="#103b2d"
+      />
+      <use
+        className="botanical-mobile-fill"
+        href={`#${id}-front-crown`}
+        transform="translate(62 -34)"
+      />
+      {BRANCHES.map((branches, depth) => (
+        <g
+          key={depth}
+          id={depth === 2 ? `${id}-front-crown` : undefined}
+          filter={`url(#${id}-leaf-shadow-${depth})`}
+        >
+          {branches.map((branch) => (
+            <g
+              key={branch.index}
+              transform={`translate(${branch.x.toFixed(1)} ${branch.y.toFixed(1)})`}
+            >
+              <g className="botanical-bough" data-depth={depth}>
+                <path
+                  d="M-27-12Q-3-2 20 9"
+                  stroke={['#0e3021', '#173d27', '#294f2e'][depth]}
+                  strokeWidth={3.2 - depth * 0.5}
+                  fill="none"
+                  strokeLinecap="round"
+                />
+                {branch.leaves.map((leaf, index) => (
+                  <g
+                    key={index}
+                    transform={`translate(${leaf.x} ${leaf.y}) rotate(${leaf.angle}) scale(${leaf.scale})`}
+                  >
+                    <BotanicalLeaf shape={leaf.shape} colors={branch.colors} veins={depth > 0} />
+                  </g>
+                ))}
+              </g>
+            </g>
+          ))}
+        </g>
+      ))}
+      {/* Reuse the actual leaves above the controls, including the status area. */}
+      <use
+        className="botanical-upper-crown"
+        href={`#${id}-front-crown`}
+        transform="translate(0 -72)"
+      />
+    </svg>
+  );
+});
+
+export const BotanicalCanopy = memo(function BotanicalCanopy({
+  enabled = true,
+}: {
+  enabled?: boolean;
+}) {
+  const [rasterReady, setRasterReady] = useState(false);
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const surface = useRef<HTMLDivElement>(null);
   const [falling, setFalling] = useState<FallingLeaf[]>([]);
@@ -120,13 +206,19 @@ export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
   }, [id]);
   useEffect(() => {
     setFalling([]);
-    if (!enabled || !surface.current) return;
+    if (!enabled) {
+      setRasterReady(false);
+      return;
+    }
+    if (!surface.current) return;
     const decoration = surface.current;
     const header = decoration.closest('header');
     if (!header) return;
     const reduced = matchMedia('(prefers-reduced-motion: reduce)');
     const finePointer = matchMedia('(hover: hover) and (pointer: fine)');
-    const boughs = [...header.querySelectorAll<SVGGElement>('.botanical-bough')];
+    const boughs = finePointer.matches
+      ? [...header.querySelectorAll<SVGGElement>('.botanical-bough')]
+      : [];
     let timer = 0,
       breezeTimer = 0,
       breezeEnd = 0,
@@ -269,15 +361,13 @@ export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
     };
     const resized = () => {
       anchors = [];
-      reset();
-      changed();
+      if (pointer) leave();
     };
     header.addEventListener('pointermove', pointerMove, { passive: true });
     header.addEventListener('pointerleave', leave, { passive: true });
     document.addEventListener('visibilitychange', changed);
     reduced.addEventListener('change', changed);
-    const observer = new ResizeObserver(resized);
-    observer.observe(header);
+    window.addEventListener('resize', resized, { passive: true });
     const intersection = new IntersectionObserver(changed);
     intersection.observe(header);
     schedule();
@@ -294,93 +384,37 @@ export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
       header.removeEventListener('pointerleave', leave);
       document.removeEventListener('visibilitychange', changed);
       reduced.removeEventListener('change', changed);
-      observer.disconnect();
+      window.removeEventListener('resize', resized);
       intersection.disconnect();
     };
   }, [enabled, id, clearLeaf]);
   if (!enabled) return null;
   return (
     <>
-      <div ref={surface} className="botanical-decoration" aria-hidden="true">
-        <svg
-          className="botanical-art"
-          viewBox="0 0 1920 170"
-          preserveAspectRatio="xMidYMax slice"
-          focusable="false"
-        >
-          <defs>
-            {BRANCHES.map((_, depth) => (
-              <filter
-                key={depth}
-                id={`${id}-leaf-shadow-${depth}`}
-                x="-30%"
-                y="-30%"
-                width="170%"
-                height="180%"
-              >
-                <feDropShadow
-                  dx="0"
-                  dy={3 + depth}
-                  stdDeviation={2 + depth * 0.4}
-                  floodColor="#072719"
-                  floodOpacity={0.35 + depth * 0.07}
-                />
-              </filter>
-            ))}
-          </defs>
-          <path
-            className="botanical-backing"
-            d="M0 0H1920V71C1680 62 1510 74 1300 63C1030 73 830 59 590 69C390 56 180 74 0 66Z"
-            fill="#103b2d"
+      <div
+        ref={surface}
+        className={`botanical-decoration ${rasterReady ? 'is-raster-ready' : ''}`}
+        aria-hidden="true"
+      >
+        <picture className="botanical-mobile-picture">
+          <source
+            media="(max-width: 767px), (orientation: landscape) and (max-height: 599px) and (max-width: 1023px)"
+            srcSet={mobileCanopy.srcSet}
           />
-          <use
-            className="botanical-mobile-fill"
-            href={`#${id}-front-crown`}
-            transform="translate(62 -34)"
+          <img
+            className="botanical-mobile-art"
+            src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+            alt=""
+            decoding="async"
+            fetchPriority="high"
+            draggable={false}
+            onError={() => setRasterReady(false)}
+            onLoad={(event) => {
+              setRasterReady(event.currentTarget.naturalWidth > 1);
+            }}
           />
-          {BRANCHES.map((branches, depth) => (
-            <g
-              key={depth}
-              id={depth === 2 ? `${id}-front-crown` : undefined}
-              filter={`url(#${id}-leaf-shadow-${depth})`}
-            >
-              {branches.map((branch) => (
-                <g
-                  key={branch.index}
-                  transform={`translate(${branch.x.toFixed(1)} ${branch.y.toFixed(1)})`}
-                >
-                  <g className="botanical-bough" data-depth={depth}>
-                    <path
-                      d="M-27-12Q-3-2 20 9"
-                      stroke={['#0e3021', '#173d27', '#294f2e'][depth]}
-                      strokeWidth={3.2 - depth * 0.5}
-                      fill="none"
-                      strokeLinecap="round"
-                    />
-                    {branch.leaves.map((leaf, index) => (
-                      <g
-                        key={index}
-                        transform={`translate(${leaf.x} ${leaf.y}) rotate(${leaf.angle}) scale(${leaf.scale})`}
-                      >
-                        <BotanicalLeaf
-                          shape={leaf.shape}
-                          colors={branch.colors}
-                          veins={depth > 0}
-                        />
-                      </g>
-                    ))}
-                  </g>
-                </g>
-              ))}
-            </g>
-          ))}
-          {/* Reuse the actual leaves above the controls, including the status area. */}
-          <use
-            className="botanical-upper-crown"
-            href={`#${id}-front-crown`}
-            transform="translate(0 -72)"
-          />
-        </svg>
+        </picture>
+        <CanopyDrawing id={id} />
       </div>
       {falling.length > 0 &&
         createPortal(
@@ -418,4 +452,4 @@ export function BotanicalCanopy({ enabled = true }: { enabled?: boolean }) {
         )}
     </>
   );
-}
+});

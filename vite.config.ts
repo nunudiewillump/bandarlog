@@ -1,7 +1,18 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: 'canonical-group-trailing-slash',
+      configureServer(server) {
+        server.middlewares.use(groupSlash);
+      },
+      configurePreviewServer(server) {
+        server.middlewares.use(groupSlash);
+      },
+    },
+  ],
   server: {
     host: '0.0.0.0',
     proxy: Object.fromEntries(
@@ -25,3 +36,18 @@ export default defineConfig({
   },
   build: { outDir: 'dist' },
 });
+
+function groupSlash(
+  req: { url?: string },
+  res: {
+    writeHead: (status: number, headers: Record<string, string>) => unknown;
+    end: () => unknown;
+  },
+  next: () => void,
+) {
+  const match = req.url?.match(/^(\/g\/[a-f0-9]{32})(\?.*)?$/);
+  if (match) {
+    res.writeHead(308, { Location: match[1] + '/' + (match[2] || '') });
+    res.end();
+  } else next();
+}

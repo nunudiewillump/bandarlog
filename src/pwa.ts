@@ -26,8 +26,12 @@ export function installMobilePwaZoom() {
   standalone.addEventListener('change', update);
   document.addEventListener('gesturestart', gesture, { passive: false });
   document.addEventListener('gesturechange', gesture, { passive: false });
-  document.addEventListener('touchstart', touch, { passive: false });
-  document.addEventListener('touchmove', touch, { passive: false });
+  // Modern browsers constrain zoom in CSS without blocking every single-finger pan.
+  const touchFallback = !CSS.supports('touch-action', 'pan-x pan-y');
+  if (touchFallback) {
+    document.addEventListener('touchstart', touch, { passive: false });
+    document.addEventListener('touchmove', touch, { passive: false });
+  }
   update();
   return () => {
     mobile.removeEventListener('change', update);

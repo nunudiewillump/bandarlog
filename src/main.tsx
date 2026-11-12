@@ -1,5 +1,6 @@
 import { PagedActivity } from './PagedActivity';
 import { groupBasePath, groupChannel } from './group-location';
+import { readNavigation, navigationURL } from './navigation';
 import { useTutorial, TutorialInvitation, TutorialMission } from './Tutorial';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AnimatedCounter } from './AnimatedCounter';
@@ -78,6 +79,7 @@ import './forest.css';
 import './desktop-forest.css';
 import './workflow-fixes.css';
 import './project-experience.css';
+import './mobile-performance.css';
 import { DeviceNotifications } from './DeviceNotifications';
 import { Workload } from './Workload';
 import { SyncStatus } from './SyncStatus';
@@ -178,6 +180,7 @@ function App() {
     operations = useRef(0),
     taskLocks = useRef(new Set<string>());
   const detailScroll = useRef({ x: 0, y: 0 });
+  const navigationScroll = useRef(new Map<string, { x: number; y: number }>());
   const lastAnnounced = useRef(false);
   const celebrationSequence = useRef(0);
   const celebrationId = celebrations[0];
@@ -200,13 +203,17 @@ function App() {
   }, [undo]);
   useEffect(() => {
     const pop = () => {
-      const params = new URLSearchParams(location.search);
-      setSelected(params.get('task') || '');
-      setPendingAction(params.get('action') || '');
-      if (!params.get('task'))
-        requestAnimationFrame(() =>
-          window.scrollTo(detailScroll.current.x, detailScroll.current.y),
-        );
+      const route = readNavigation(location.search);
+      setView(route.view);
+      setProject(route.project);
+      setCommission(route.commission);
+      setSelected(route.view === 'tutorial' ? '' : route.task);
+      setPendingAction(route.view === 'tutorial' ? '' : route.action);
+      if (!route.task)
+        requestAnimationFrame(() => {
+          const scroll = navigationScroll.current.get(location.href) || { x: 0, y: 0 };
+          window.scrollTo(scroll.x, scroll.y);
+        });
     };
     window.addEventListener('popstate', pop);
     return () => window.removeEventListener('popstate', pop);
@@ -221,11 +228,16 @@ function App() {
   } catch {
     /* Legacy malformed preferences use the default. */
   }
-  const canManage = (cid: string) =>
-    manage ||
-    data.members.some(
-      (m) => m.commissionId === cid && m.userId === me?.id && m.role === 'responsible',
-    );
+  const managedCommissions = useMemo(
+    () =>
+      new Set(
+        data.members
+          .filter((member) => member.userId === me?.id && member.role === 'responsible')
+          .map((member) => member.commissionId),
+      ),
+    [data.members, me?.id],
+  );
+  const canManage = (cid: string) => manage || managedCommissions.has(cid);
   const load = async () => {
     const sequence = ++loadSequence.current;
     let next: Data;
@@ -335,39 +347,35 @@ function App() {
   const bootup = async () => {
     setBootError('');
     try {
-      const [healthResult, sessionResult] = await Promise.allSettled([api('/health'), api('/me')]);
-      // An unauthenticated session can return before the health check. Keep the
-      // loading state until both settle, and show service failures before login.
+      const sessionRequest = api('/me');
+      const dataRequest = sessionRequest.then((session) => {
+        setCSRF(session.csrf);
+        return load();
+      });
+      const [healthResult, sessionResult, dataResult] = await Promise.allSettled([
+        api('/health'),
+        sessionRequest,
+        dataRequest,
+      ]);
       if (healthResult.status === 'rejected') throw healthResult.reason;
       if (sessionResult.status === 'rejected') throw sessionResult.reason;
-      const health = healthResult.value,
-        session = sessionResult.value;
-      setDevelopment(health.mail === 'development');
-      setCSRF(session.csrf);
-      setMe(session.user);
+      if (dataResult.status === 'rejected') throw dataResult.reason;
+      const session = sessionResult.value;
+      const visible = dataResult.value.users.find((user) => user.id === session.user.id);
+      setMe({ ...session.user, ...visible });
       setDevelopment(session.development);
-      await load();
-      const p = new URLSearchParams(location.search);
-      if (p.get('task') && p.get('view') !== 'tutorial') {
-        setSelected(p.get('task')!);
-        setPendingAction(p.get('action') || '');
+      const route = readNavigation(location.search);
+      setView(route.view);
+      setProject(route.project);
+      setCommission(route.commission);
+      if (route.task && route.view !== 'tutorial') {
+        setSelected(route.task);
+        setPendingAction(route.action);
       }
-      if (p.get('project')) {
-        setProject(p.get('project')!);
-        setView('project');
-      }
-      if (p.get('commission')) {
-        setCommission(p.get('commission')!);
-        setView('commission');
-      }
-      if (p.get('view')) {
-        const nextView = projectView(p.get('view')!);
-        setView(nextView);
-        if (nextView !== p.get('view')) {
-          const route = new URL(location.href);
-          route.searchParams.set('view', nextView);
-          history.replaceState({}, '', route);
-        }
+      const url = new URL(location.href);
+      if (url.searchParams.has('view') && url.searchParams.get('view') !== route.view) {
+        url.searchParams.set('view', route.view);
+        history.replaceState({}, '', url);
       }
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
@@ -428,7 +436,10 @@ function App() {
       setSelected('');
       setPendingAction('');
     }
-    if (v === 'tutorial' || view === 'tutorial') requestAnimationFrame(() => window.scrollTo(0, 0));
+    navigationScroll.current.set(location.href, { x: scrollX, y: scrollY });
+    setSelected('');
+    setPendingAction('');
+    requestAnimationFrame(() => window.scrollTo(0, 0));
     setView(v);
     setProject(p);
     setCommission(c);
@@ -438,27 +449,38 @@ function App() {
     setAssignee('');
     setDeadline('');
     setSidebar(false);
-    const route = new URL(location.href);
-    route.search = '';
-    if (v !== 'home') route.searchParams.set('view', v);
-    if (p) route.searchParams.set('project', p);
-    if (c) route.searchParams.set('commission', c);
-    history.replaceState({}, '', route);
+    const route = navigationURL(location.href, v, p, c);
+    if (route.href !== location.href) history.pushState({}, '', route);
   };
-  const cOf = (t: Task) => data.commissions.find((c) => c.id === t.commissionId)!;
-  const pOf = (c: Commission) => data.projects.find((p) => p.id === c.projectId);
+  const commissionsById = useMemo(
+    () => new Map(data.commissions.map((c) => [c.id, c])),
+    [data.commissions],
+  );
+  const projectsById = useMemo(() => new Map(data.projects.map((p) => [p.id, p])), [data.projects]);
+  const tasksByCommission = useMemo(() => {
+    const result = new Map<string, Task[]>();
+    for (const task of data.tasks) {
+      const rows = result.get(task.commissionId) || [];
+      rows.push(task);
+      result.set(task.commissionId, rows);
+    }
+    return result;
+  }, [data.tasks]);
+  const cOf = (t: Task) => commissionsById.get(t.commissionId)!;
+  const pOf = (c: Commission) => projectsById.get(c.projectId);
   const taskUsers = useMemo(
     () => taskPeople(data),
     [data.users, data.tasks, data.members, data.assignments],
   );
   const usersOf = (t: Task) => taskUsers.get(t.id) || [];
   const myTasks = data.tasks.filter((t) => usersOf(t).some((user) => user.id === me?.id));
+  const myTaskIds = new Set(myTasks.map((task) => task.id));
   let scoped = data.tasks.filter(
     (t) =>
       (!project || cOf(t)?.projectId === project) && (!commission || t.commissionId === commission),
   );
   if (['tasks', 'alerts'].includes(view) && !manage)
-    scoped = scoped.filter((t) => canManage(t.commissionId) || myTasks.includes(t));
+    scoped = scoped.filter((t) => canManage(t.commissionId) || myTaskIds.has(t.id));
   if (view === 'alerts')
     scoped = scoped.filter(
       (t) =>
@@ -498,6 +520,7 @@ function App() {
   }
   const openTask = (t: Task) => {
     detailScroll.current = { x: window.scrollX, y: window.scrollY };
+    navigationScroll.current.set(location.href, detailScroll.current);
     setSelected(t.id);
     setPendingAction('');
     setError('');
@@ -798,7 +821,7 @@ function App() {
     <div className="commission-list">
       {cs.length ? (
         cs.map((c) => {
-          const ts = data.tasks.filter((t) => t.commissionId === c.id);
+          const ts = tasksByCommission.get(c.id) || [];
           return (
             <button
               key={c.id}
@@ -1364,7 +1387,7 @@ function App() {
                 <Menu size={22} />
               </button>
               <div className="breadcrumbs">
-                <span>{data.group?.name || 'Rosales del Canal 702'}</span>
+                <span>{data.group?.name || 'Tu grupo'}</span>
                 <ChevronRight size={13} />
                 <span>
                   {activeCommission?.name ||

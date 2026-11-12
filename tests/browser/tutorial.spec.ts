@@ -142,6 +142,55 @@ test('existing user discovers the real persisted tutorial at 320px, with no real
   await page.screenshot({ path: 'artifacts/tutorial/mission-320.png' });
 });
 
+test('practice checkbox responds immediately, rolls back failed saves and confirms successful saves', async ({
+  page,
+}) => {
+  const mock = await fixture(page);
+  await page.goto('/acceso');
+  await page
+    .locator('.tutorial-invite')
+    .getByRole('button', { name: 'Empezar', exact: true })
+    .click();
+  await expect(page.getByRole('button', { name: 'Completar', exact: true })).toBeEnabled();
+  const step = page.getByRole('checkbox', {
+    name: 'Completar paso: Comprobar la cantimplora',
+    exact: true,
+  });
+  let release: (() => void) | undefined;
+  let fail = true;
+  await page.route('**/api/tutorial', async (route) => {
+    if (route.request().method() !== 'POST' || route.request().postDataJSON().action !== 'check')
+      return route.fallback();
+    await new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    if (fail) return route.fulfill({ status: 503, json: { error: 'Guardado no disponible' } });
+    return route.fallback();
+  });
+  await step.check();
+  await expect(step).toBeChecked();
+  await expect(step).toBeDisabled();
+  expect(mock.progress().steps[0]).toBe(false);
+  await expect.poll(() => typeof release).toBe('function');
+  release!();
+  await expect(step).not.toBeChecked();
+  await expect(step).toBeEnabled();
+  await expect(page.getByRole('alert').first()).toContainText('Guardado no disponible');
+  fail = false;
+  release = undefined;
+  await step.check();
+  await expect(step).toBeChecked();
+  await expect(step).toBeDisabled();
+  expect(mock.progress().steps[0]).toBe(false);
+  await expect.poll(() => typeof release).toBe('function');
+  release!();
+  await expect(step).toBeEnabled();
+  await expect(step).toBeChecked();
+  expect(mock.progress().steps[0]).toBe(true);
+  expect(mock.calls.filter((call) => call.body.action === 'check')).toHaveLength(1);
+  expect(mock.calls.every((call) => call.path === '/api/tutorial')).toBe(true);
+});
+
 test('onboarding precedes discovery, omission persists and replay is in Profile Help', async ({
   page,
 }) => {
