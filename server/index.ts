@@ -1,3 +1,5 @@
+import { pageRequest, CursorError } from './pagination.js';
+import { measureRequests, measureJob, flushMetrics } from './metrics.js';
 import express from 'express';
 import { readFile } from 'node:fs/promises';
 import { publicSite, renderPublicForm, renderPublicHome } from './public-site.js';
@@ -16,7 +18,7 @@ import {
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import { randomBytes, randomInt, createHash, randomUUID } from 'node:crypto';
-import { eq, and, inArray, sql } from 'drizzle-orm';
+import { eq, and, inArray, sql, getTableColumns } from 'drizzle-orm';
 import { z } from 'zod';
 import { createMailTransport } from './mail.js';
 import { mailFailure, MailDeliveryError } from './resend-mail.js';
@@ -102,6 +104,7 @@ site.use(publicSite(appUrl));
 const push = await pushService(db, appUrl, ownerDb);
 const app = express();
 app.disable('x-powered-by');
+app.use('/api', measureRequests);
 app.use(helmet({ contentSecurityPolicy: prod ? undefined : false }));
 app.use(express.json({ limit: '256kb' }));
 app.use('/api', (_q, r, n) => {
@@ -296,7 +299,7 @@ async function deliverPush() {
       .where(sql`${s.pushOutbox.sentAt} is null`)
       .limit(100);
     for (const entry of pending) {
-      if (await push.send(entry.userId, JSON.parse(entry.payload)))
+      if (await push.send(entry.userId, JSON.parse(entry.payload), entry.id))
         await db.update(s.pushOutbox).set({ sentAt: now() }).where(eq(s.pushOutbox.id, entry.id));
     }
   } finally {
@@ -319,7 +322,8 @@ async function deliver() {
           eq(s.notifications.status, 'pending'),
           sql`(${s.notifications.nextAttemptAt} is null or ${s.notifications.nextAttemptAt} <= now())`,
         ),
-      );
+      )
+      .limit(100);
     for (const m of pending) {
       if (Number(m.attempts) >= 5) continue;
       const claimed = await db
@@ -1409,17 +1413,77 @@ app.get('/api/artwork/assets/:id/:kind', async (q, r) => {
   if (!entry) return fail(404, 'Ilustración no encontrada.');
   r.type('image/webp').send(Buffer.from(entry.data.split(',')[1], 'base64'));
 });
+function visibleTaskIds(user: any) {
+  return db
+    .select({ id: s.tasks.id })
+    .from(s.tasks)
+    .innerJoin(s.commissions, eq(s.commissions.id, s.tasks.commissionId))
+    .where(
+      and(
+        sql`${s.tasks.deletedAt} is null`,
+        sql`${s.commissions.deletedAt} is null`,
+        globalManage(user)
+          ? undefined
+          : sql`exists (select 1 from ${s.members} where ${s.members.commissionId} = ${s.commissions.id} and ${s.members.userId} = ${user.id})`,
+      ),
+    );
+}
+app.get('/api/activity', async (q, r) => {
+  const filter = parse(
+    z.object({ taskId: text.optional(), commissionId: text.optional() }),
+    q.query,
+  );
+  const page = pageRequest(q.query, [
+    groupContext.getStore()!.id,
+    r.locals.user.id,
+    'activity',
+    filter,
+  ]);
+  const rows = await db
+    .select()
+    .from(s.activity)
+    .where(
+      and(
+        inArray(s.activity.taskId, visibleTaskIds(r.locals.user)),
+        filter.taskId ? eq(s.activity.taskId, filter.taskId) : undefined,
+        filter.commissionId
+          ? inArray(
+              s.activity.taskId,
+              db
+                .select({ id: s.tasks.id })
+                .from(s.tasks)
+                .where(eq(s.tasks.commissionId, filter.commissionId)),
+            )
+          : undefined,
+        page.before(s.activity.createdAt, s.activity.id),
+      ),
+    )
+    .orderBy(sql`${s.activity.createdAt} desc`, sql`${s.activity.id} desc`)
+    .limit(page.limit + 1);
+  r.json(page.finish(rows));
+});
 app.get('/api/data', async (_q, r) => {
   const response = await db.transaction(async (tx) => {
     const db = tx as unknown as Database;
     const catalogueExtra = await extraArtwork(db);
     const u = r.locals.user;
-    const memberships = await db.select().from(s.members);
-    const cs = (await db.select().from(s.commissions)).filter(
-      (c) =>
-        !c.deletedAt &&
-        (globalManage(u) || memberships.some((m) => m.userId === u.id && m.commissionId === c.id)),
-    );
+    const cs = await db
+      .select()
+      .from(s.commissions)
+      .where(
+        and(
+          sql`${s.commissions.deletedAt} is null`,
+          globalManage(u)
+            ? undefined
+            : inArray(
+                s.commissions.id,
+                db
+                  .select({ id: s.members.commissionId })
+                  .from(s.members)
+                  .where(eq(s.members.userId, u.id)),
+              ),
+        ),
+      );
     const cids = cs.map((c) => c.id);
     const ts = cids.length
       ? await db
@@ -1428,25 +1492,47 @@ app.get('/api/data', async (_q, r) => {
           .where(and(inArray(s.tasks.commissionId, cids), sql`${s.tasks.deletedAt} is null`))
       : [];
     const tids = ts.map((t) => t.id);
-    const visibleMembers = memberships.filter((m) => cids.includes(m.commissionId));
-    const projectMemberships = await db.select().from(s.projectMembers);
-    const visibleProjects = (await db.select().from(s.projects)).filter(
-      (p) =>
-        globalManage(u) ||
-        cs.some((c) => c.projectId === p.id) ||
-        projectMemberships.some((m) => m.projectId === p.id && m.userId === u.id),
-    );
-    const visibleProjectMembers = projectMemberships.filter((m) =>
-      visibleProjects.some((p) => p.id === m.projectId),
-    );
+    const visibleMembers = cids.length
+      ? await db.select().from(s.members).where(inArray(s.members.commissionId, cids))
+      : [];
+    const visibleProjects = await db
+      .select()
+      .from(s.projects)
+      .where(
+        globalManage(u)
+          ? undefined
+          : sql`(
+      ${inArray(
+        s.projects.id,
+        cs.map((c) => c.projectId),
+      )} or
+      ${s.projects.id} in (select ${s.projectMembers.projectId} from ${s.projectMembers} where ${s.projectMembers.userId} = ${u.id})
+    )`,
+      );
+    const visibleProjectMembers = visibleProjects.length
+      ? await db
+          .select()
+          .from(s.projectMembers)
+          .where(
+            inArray(
+              s.projectMembers.projectId,
+              visibleProjects.map((p) => p.id),
+            ),
+          )
+      : [];
     const uids = new Set([
       u.id,
       ...visibleMembers.map((m) => m.userId),
       ...visibleProjectMembers.map((m) => m.userId),
     ]);
-    const us = (await db.select().from(s.users))
-      .filter((x) => globalManage(u) || uids.has(x.id))
-      .map(({ preferences, ...x }) => x);
+    const { preferences: _preferences, ...publicUserColumns } = getTableColumns(s.users);
+    const us = await db
+      .select(publicUserColumns)
+      .from(s.users)
+      .where(globalManage(u) ? undefined : inArray(s.users.id, [...uids]));
+    const responsibleIds = visibleMembers
+      .filter((m) => m.userId === u.id && m.role === 'responsible')
+      .map((m) => m.commissionId);
     const activeUsers = new Set(us.filter((user) => !user.disabledAt).map((user) => user.id));
     const taskCommissions = new Map(ts.map((task) => [task.id, task.commissionId]));
     const memberKeys = new Set(
@@ -1500,21 +1586,25 @@ app.get('/api/data', async (_q, r) => {
       tasks: ts,
       assignments,
       activity: tids.length
-        ? await db.select().from(s.activity).where(inArray(s.activity.taskId, tids))
+        ? await db
+            .select()
+            .from(s.activity)
+            .where(inArray(s.activity.taskId, tids))
+            .orderBy(sql`${s.activity.createdAt} desc`, sql`${s.activity.id} desc`)
+            .limit(100)
         : [],
-      invitations: (await db.select().from(s.invitations))
-        .filter(
-          (i) =>
-            globalManage(u) ||
-            visibleMembers.some(
-              (m) =>
-                m.commissionId === i.commissionId && m.userId === u.id && m.role === 'responsible',
-            ),
-        )
-        .map((i) => ({
-          ...i,
-          status: i.status === 'pending' && new Date(i.expires) < new Date() ? 'expired' : i.status,
-        })),
+      invitations: (globalManage(u) || responsibleIds.length
+        ? await db
+            .select()
+            .from(s.invitations)
+            .where(
+              globalManage(u) ? undefined : inArray(s.invitations.commissionId, responsibleIds),
+            )
+        : []
+      ).map((i) => ({
+        ...i,
+        status: i.status === 'pending' && new Date(i.expires) < new Date() ? 'expired' : i.status,
+      })),
     };
   });
   r.json(response);
@@ -2151,7 +2241,15 @@ app.get('/api/directory', async (q, r) => {
       role: s.users.role,
       disabledAt: s.users.disabledAt,
     })
-    .from(s.users);
+    .from(s.users)
+    .where(
+      and(
+        sql`${s.users.disabledAt} is null`,
+        sql`position(${search} in lower(${s.users.name} || ' ' || ${s.users.email})) > 0`,
+      ),
+    )
+    .orderBy(s.users.id)
+    .limit(20);
   r.json(
     users
       .filter((u) => !u.disabledAt && `${u.name} ${u.email}`.toLowerCase().includes(search))
@@ -2216,10 +2314,23 @@ app.post('/api/notifications/process', async (_q, r) => {
   await deliver();
   r.json({ ok: true, mode: mailTransport?.kind || 'preview' });
 });
-app.get('/api/notifications', async (_q, r) => {
+app.get('/api/notifications', async (q, r) => {
   if (!globalManage(r.locals.user)) fail(403, 'Solo coordinación.');
-  const all = await db.select().from(s.notifications);
-  r.json(all.map(({ body, ...m }) => m));
+  const page = pageRequest(q.query, [
+    groupContext.getStore()!.id,
+    r.locals.user.id,
+    'notifications',
+  ]);
+  const { body: _body, ...columns } = getTableColumns(s.notifications);
+  const rows = await db
+    .select(columns)
+    .from(s.notifications)
+    .where(page.before(s.notifications.createdAt, s.notifications.id))
+    .orderBy(sql`${s.notifications.createdAt} desc`, sql`${s.notifications.id} desc`)
+    .limit(page.limit + 1);
+  const result = page.finish(rows);
+  if (result.nextCursor) r.set('X-Next-Cursor', result.nextCursor);
+  r.json(q.query.page === '1' ? result : result.items);
 });
 const scheduling = new Set<string>();
 async function reminders() {
@@ -2288,18 +2399,29 @@ async function reminders() {
     scheduling.delete(key);
   }
 }
+let maintenanceRunning = false;
+let nextReminders = 0;
 const timer = setInterval(() => {
-  void (async () => {
-    for (const group of await ownerDb.select().from(s.groups))
+  if (maintenanceRunning) return;
+  maintenanceRunning = true;
+  void measureJob('maintenance', async () => {
+    const runReminders = Date.now() >= nextReminders;
+    for (const group of await ownerDb
+      .select()
+      .from(s.groups)
+      .where(sql`${s.groups.plan} <> 'audit-archived'`))
       await groupContext.run(group, async () => {
-        await expireTutorials(db).catch(() => console.error('No se pudo actualizar el tutorial.'));
-        await reminders()
-          .then(deliver)
-          .catch(() => console.error('No se pudieron procesar las notificaciones.'));
+        if (runReminders) await reminders();
+        await deliver();
       });
+    if (runReminders) nextReminders = Date.now() + 15 * 60000;
     await deliverPlatform();
-  })().catch(() => console.error('No se pudo completar el mantenimiento.'));
-}, 60000);
+  })
+    .catch(() => console.error('No se pudo completar el mantenimiento.'))
+    .finally(() => {
+      maintenanceRunning = false;
+    });
+}, 5 * 60000);
 timer.unref();
 app.use('/api', (_q, r) => r.status(404).json({ error: 'Ruta no encontrada.' }));
 if (prod) {
@@ -2313,7 +2435,7 @@ if (prod) {
 }
 app.use((error: any, _q: any, r: any, _n: any) => {
   const status =
-    error instanceof Problem
+    error instanceof Problem || error instanceof CursorError
       ? error.status
       : error instanceof z.ZodError
         ? 400
@@ -2326,7 +2448,7 @@ app.use((error: any, _q: any, r: any, _n: any) => {
     error:
       error instanceof z.ZodError
         ? 'Revisa los campos obligatorios y su formato.'
-        : error instanceof Problem
+        : error instanceof Problem || error instanceof CursorError
           ? error.message
           : status === 409
             ? 'Ya existe un registro con estos datos.'
@@ -2401,6 +2523,7 @@ const server = site.listen(Number(process.env.PORT || 3001), '0.0.0.0', () =>
   ),
 );
 process.on('SIGTERM', () => {
+  flushMetrics();
   clearInterval(timer);
   for (const view of liveViews.keys()) view.end();
   server.close(() => void close().then(() => process.exit(0)));

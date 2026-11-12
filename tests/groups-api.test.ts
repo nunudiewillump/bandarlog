@@ -242,6 +242,50 @@ test('independent groups can share an owner email without sharing sessions, role
     a,
   );
   assert.equal(task.status, 201);
+  for (let i = 0; i < 8; i++)
+    assert.equal(
+      (await call('/api/tasks/' + task.body.id + '/comments', 'POST', { body: 'Page ' + i }, a))
+        .status,
+      201,
+    );
+  const firstPage = await call('/api/activity?limit=3&taskId=' + task.body.id, 'GET', undefined, a);
+  assert.equal(firstPage.status, 200);
+  assert.equal(firstPage.body.items.length, 3);
+  assert.ok(firstPage.body.nextCursor);
+  const secondPage = await call(
+    '/api/activity?limit=3&taskId=' +
+      task.body.id +
+      '&cursor=' +
+      encodeURIComponent(firstPage.body.nextCursor),
+    'GET',
+    undefined,
+    a,
+  );
+  assert.equal(secondPage.status, 200);
+  assert.equal(
+    new Set([...firstPage.body.items, ...secondPage.body.items].map((item: any) => item.id)).size,
+    6,
+  );
+  assert.equal(
+    (await call('/api/activity?taskId=' + task.body.id, 'GET', undefined, b)).body.items.length,
+    0,
+  );
+  assert.equal(
+    (
+      await call(
+        '/api/activity?limit=3&taskId=' +
+          task.body.id +
+          '&cursor=' +
+          encodeURIComponent(firstPage.body.nextCursor),
+        'GET',
+        undefined,
+        b,
+      )
+    ).status,
+    400,
+  );
+  assert.equal((await call('/api/activity?limit=101', 'GET', undefined, a)).status, 400);
+
   assert.equal(
     (await call('/api/commissions/' + commission.body.id, 'PATCH', { name: 'No' }, b)).status,
     404,

@@ -1,3 +1,4 @@
+import { PagedActivity } from './PagedActivity';
 import { groupBasePath, groupChannel } from './group-location';
 import { useTutorial, TutorialInvitation, TutorialMission } from './Tutorial';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -250,22 +251,59 @@ function App() {
   useEffect(() => {
     if (!me) return;
     let active = true;
+    let refreshing = false;
+    let refreshAgain = false;
+    let scheduled: ReturnType<typeof setTimeout> | undefined;
+    let streamHealthy = false;
+    let lastPeriodic = Date.now();
     const refresh = () => {
-      if (
-        active &&
-        navigator.onLine &&
-        document.visibilityState === 'visible' &&
-        !operations.current
-      )
-        void load().catch(() => {});
+      clearTimeout(scheduled);
+      scheduled = setTimeout(() => {
+        if (!active) return;
+        if (refreshing) {
+          refreshAgain = true;
+          return;
+        }
+        if (
+          active &&
+          navigator.onLine &&
+          document.visibilityState === 'visible' &&
+          !operations.current &&
+          !refreshing
+        ) {
+          refreshing = true;
+          void load()
+            .catch(() => {})
+            .finally(() => {
+              refreshing = false;
+              if (active && refreshAgain) {
+                refreshAgain = false;
+                refresh();
+              }
+            });
+        }
+      }, 150);
     };
     const channel =
       typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(groupChannel()) : null;
     if (channel) channel.onmessage = refresh;
     const stream =
       typeof EventSource !== 'undefined' ? new EventSource(groupBasePath() + '/api/events') : null;
+    stream?.addEventListener('ready', () => {
+      streamHealthy = true;
+      refresh();
+    });
+    stream?.addEventListener('error', () => {
+      streamHealthy = false;
+    });
     stream?.addEventListener('changed', refresh);
-    const timer = setInterval(refresh, 15000);
+    // SSE is process-local. Retain a slow reconciliation for other replicas.
+    const timer = setInterval(() => {
+      if (Date.now() - lastPeriodic >= (streamHealthy ? 120000 : 15000)) {
+        lastPeriodic = Date.now();
+        refresh();
+      }
+    }, 15000);
     window.addEventListener('focus', refresh);
     window.addEventListener('online', refresh);
     window.addEventListener('bandarlog:data', refresh);
@@ -273,6 +311,7 @@ function App() {
     return () => {
       active = false;
       clearInterval(timer);
+      clearTimeout(scheduled);
       channel?.close();
       stream?.close();
       window.removeEventListener('focus', refresh);
@@ -1932,16 +1971,12 @@ function App() {
                   {tab === 'people' && <People />}
                   {tab === 'activity' && (
                     <div className="activity-list">
-                      {!data.activity.some((a) => scoped.some((t) => t.id === a.taskId)) && (
-                        <MobileEmpty
-                          title="Sin actividad todavía"
-                          detail="Aquí aparecerán las actualizaciones y comentarios de las tareas."
-                        />
-                      )}
-                      {data.activity
-                        .filter((a) => scoped.some((t) => t.id === a.taskId))
-                        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-                        .map((a) => (
+                      <PagedActivity
+                        initial={data.activity.filter((a) => scoped.some((t) => t.id === a.taskId))}
+                        commissionId={commission}
+                        revision={data}
+                      >
+                        {(a) => (
                           <article key={a.id}>
                             <Avatar user={data.users.find((u) => u.id === a.userId)} small />
                             <div>
@@ -1953,7 +1988,8 @@ function App() {
                               </small>
                             </div>
                           </article>
-                        ))}
+                        )}
+                      </PagedActivity>
                     </div>
                   )}
                 </section>
@@ -2232,10 +2268,12 @@ function App() {
                 />
                 <h3>Actividad reciente</h3>
                 <div className="activity-list">
-                  {data.activity
-                    .filter((a) => a.taskId === detail.id)
-                    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-                    .map((a) => (
+                  <PagedActivity
+                    initial={data.activity.filter((a) => a.taskId === detail.id)}
+                    taskId={detail.id}
+                    revision={data}
+                  >
+                    {(a) => (
                       <article key={a.id}>
                         <Avatar user={data.users.find((u) => u.id === a.userId)} small />
                         <div>
@@ -2244,7 +2282,8 @@ function App() {
                           <p>{a.body}</p>
                         </div>
                       </article>
-                    ))}
+                    )}
+                  </PagedActivity>
                 </div>
                 {(canManage(detail.commissionId) || usersOf(detail).some((u) => u.id === me.id)) &&
                   pOf(cOf(detail))?.archived !== 'true' && (
