@@ -341,3 +341,16 @@ export const tutorialProgress = pgTable('tutorial_progress', {
   version: integer().notNull().default(0),
   lastActivityAt: timestamp('last_activity_at', { withTimezone: true, mode: 'string' }),
 });
+
+export const pushDeliveries = pgTable('push_deliveries', {
+  groupId: groupColumn(),
+  id: text().primaryKey(),
+  outboxId: text('outbox_id')
+    .notNull()
+    .references(() => pushOutbox.id),
+  subscriptionId: text('subscription_id').notNull(),
+  claimedAt: timestamp('claimed_at', { withTimezone: true, mode: 'string' }).notNull(),
+  sentAt: timestamp('sent_at', { withTimezone: true, mode: 'string' }),
+  nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true, mode: 'string' }),
+  attempts: integer().notNull().default(0),
+});
