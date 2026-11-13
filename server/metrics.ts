@@ -133,10 +133,15 @@ export function measuredClient<T extends object>(client: T): T {
             } finally {
               if (s) s.poolWaitMs += performance.now() - start;
             }
+            let failure;
             try {
               return await (measuredClient(connection) as any).query(...args);
+            } catch (error) {
+              failure = error;
+              throw error;
             } finally {
-              connection.release();
+              // Match Pool.query: discard failed connections instead of recycling them.
+              connection.release(failure);
             }
           };
           const result = execute();

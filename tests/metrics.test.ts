@@ -67,3 +67,34 @@ test('callback and rejected driver queries preserve behavior and nested duration
     console.log = original;
   }
 });
+
+test('instrumented pool preserves callback results and discards a failed connection', async () => {
+  const failure = new Error('test query failed');
+  const released: unknown[] = [];
+  let fail = true;
+  const pool = measuredClient({
+    totalCount: 1,
+    connect: async () => ({
+      query: async () => {
+        if (fail) throw failure;
+        return { rows: [] };
+      },
+      release: (error?: unknown) => released.push(error),
+    }),
+    query: (..._args: any[]): any => {
+      throw Error('must acquire through the observer');
+    },
+  });
+  await assert.rejects(pool.query('select 1'), failure);
+  assert.equal(released[0], failure);
+  fail = false;
+  await new Promise<void>((resolve, reject) =>
+    pool.query('select 1', (error: unknown, result: any) => {
+      if (error) return reject(error);
+      assert.deepEqual(result, { rows: [] });
+      resolve();
+    }),
+  );
+  assert.equal(released.length, 2);
+  assert.equal(released[1], undefined);
+});

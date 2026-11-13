@@ -2,7 +2,7 @@
 
 ## Estado y alcance
 
-Implementación en `perf/neon-iteration-two`, desde main `cb8626170ffa0a349feee899f42bd82c95af4a72`. Código medido: `728caba`. Cambios revisables y probados localmente; **no desplegados**, ni integrados en main para evitar activar el despliegue automático. Se agrupan en una PR porque autenticación, difusión y planificadores comparten `server/index.ts` y conviene revisar sus interacciones. Sin dependencias nuevas, migraciones, restauraciones ni modificaciones de infraestructura productiva.
+Implementación en `perf/neon-iteration-two`, desde main `cb8626170ffa0a349feee899f42bd82c95af4a72`. Código medido: `728caba`; después se añadió la conservación del descarte de conexiones fallidas del pool, validada con callbacks y PostgreSQL real, sin alterar el camino de consultas correctas. Cambios revisables y probados localmente; **no desplegados**, ni integrados en main para evitar activar el despliegue automático. Se agrupan en una PR porque autenticación, difusión y planificadores comparten `server/index.ts` y conviene revisar sus interacciones. Sin dependencias nuevas, migraciones, restauraciones ni modificaciones de infraestructura productiva.
 
 Contraste de solo lectura del 13/11:
 
@@ -79,7 +79,7 @@ Aún no han transcurrido siete días representativos posteriores al despliegue d
 ## Validación ejecutada
 
 - 46 pruebas dirigidas de API, grupos, acceso cliente, preferencias, entregas y Resend: aprobadas. Tras compartir el cálculo de recordatorios y tipar su contexto, se repitieron los 29 casos de API afectados: aprobados.
-- 18 casos dirigidos de métricas, coordinación de snapshots, planificación, seguridad de autenticación y offline: aprobados, incluyendo SQL de elegibilidad push sobre PostgreSQL 18 real.
+- 19 casos dirigidos de métricas, coordinación de snapshots, planificación, seguridad de autenticación y offline: aprobados, incluyendo SQL de elegibilidad push sobre PostgreSQL 18 real.
 - Dos pruebas PostgreSQL reales: diez grupos concurrentes, lectura/escritura ajena rechazada, mismo correo, rollback, rol local, devolución de conexiones, renovación de sesión y rutas públicas. Se actualizó la expectativa de acceso canónico ya introducida por PR #33; no cambió ese comportamiento.
 - Once recorridos de navegador en base limpia: inicio sin duplicados, carrera de arranque, eventos, fallback, dos ventanas, cola offline/idempotencia, sesión expirada, conflicto de versión, tareas y scroll. Cuatro recorridos de roles también aprobados.
 - Build/typecheck y `git diff --check`: aprobados. CI obligatoria se conserva; su resultado se referencia en la PR.
