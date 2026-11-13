@@ -1,3 +1,5 @@
+import { SnapshotRefresh, covers } from './snapshot-refresh';
+import { snapshotRevision } from './api';
 import { PagedActivity } from './PagedActivity';
 import { groupBasePath, groupChannel } from './group-location';
 import { readNavigation, navigationURL } from './navigation';
@@ -238,7 +240,7 @@ function App() {
     [data.members, me?.id],
   );
   const canManage = (cid: string) => manage || managedCommissions.has(cid);
-  const load = async () => {
+  const fetchSnapshot = async () => {
     const sequence = ++loadSequence.current;
     let next: Data;
     try {
@@ -260,6 +262,9 @@ function App() {
     }
     return dataRef.current;
   };
+  const snapshots = useRef<SnapshotRefresh<Data> | null>(null);
+  if (!snapshots.current) snapshots.current = new SnapshotRefresh(fetchSnapshot, snapshotRevision);
+  const load = (revision?: string) => snapshots.current!.read(revision);
   useEffect(() => {
     if (!me) return;
     let active = true;
@@ -269,7 +274,17 @@ function App() {
     let streamHealthy = false;
     let reconcileAfterMs = 120000;
     let lastPeriodic = Date.now();
-    const refresh = () => {
+    let requestedRevision: string | undefined;
+    const refresh = (event?: Event | MessageEvent) => {
+      let revision: string | undefined;
+      try {
+        revision = JSON.parse((event as MessageEvent)?.data || '{}').revision;
+      } catch {
+        /* conservative refresh */
+      }
+      if (!revision && event instanceof CustomEvent) revision = event.detail?.revision;
+      if (revision && covers(snapshotRevision(dataRef.current), revision)) return;
+      requestedRevision = revision;
       clearTimeout(scheduled);
       scheduled = setTimeout(() => {
         if (!active) return;
@@ -277,15 +292,9 @@ function App() {
           refreshAgain = true;
           return;
         }
-        if (
-          active &&
-          navigator.onLine &&
-          document.visibilityState === 'visible' &&
-          !operations.current &&
-          !refreshing
-        ) {
+        if (active && navigator.onLine && document.visibilityState === 'visible' && !refreshing) {
           refreshing = true;
-          void load()
+          void load(requestedRevision)
             .catch(() => {})
             .finally(() => {
               refreshing = false;
@@ -312,7 +321,7 @@ function App() {
       } catch {
         /* Older servers retain the conservative reconciliation. */
       }
-      refresh();
+      refresh(event);
     });
     stream?.addEventListener('error', () => {
       streamHealthy = false;
@@ -415,7 +424,7 @@ function App() {
     try {
       await fn();
       await load();
-      notifyDataChanged();
+      notifyDataChanged(snapshotRevision(dataRef.current));
       setToast(
         (await offline.status()).pending
           ? 'Guardado en este dispositivo. Pendiente de sincronizar.'

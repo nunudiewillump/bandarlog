@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { connect } from '../server/db';
 import { groupContext } from '../server/group-context';
 import * as s from '../server/schema';
-import { sql } from 'drizzle-orm';
+import { sql, eq } from 'drizzle-orm';
 
 test(
   'PostgreSQL pooled queries and transactions retain the correct group and reset the role',
@@ -21,7 +21,7 @@ test(
     try {
       const groups = await ownerDb
         .insert(s.groups)
-        .values([{ name: 'Pooled group A' }, { name: 'Pooled group B' }])
+        .values(Array.from({ length: 10 }, (_, n) => ({ name: `Pooled group ${n}` })))
         .returning();
       for (const group of groups)
         await groupContext.run(group, async () => {
@@ -40,6 +40,17 @@ test(
               const rows = await db.select().from(s.users);
               assert.equal(rows.length, 1);
               assert.equal(rows[0].groupId, group.id);
+              const foreign = groups.find((g) => g.id !== group.id)!;
+              assert.equal(
+                (
+                  await db
+                    .update(s.users)
+                    .set({ name: 'Forbidden' })
+                    .where(eq(s.users.id, foreign.id))
+                    .returning()
+                ).length,
+                0,
+              );
               await db.transaction(async (tx) => {
                 const r = await tx.execute(sql`select current_user as role`);
                 assert.equal(r.rows[0].role, 'bandarlog_group_app');
@@ -170,9 +181,14 @@ test(
       const { Client } = await import('pg');
       const { createHash } = await import('node:crypto');
       const client = new Client({ connectionString: testUrl });
+      let canonical = '';
       await client.connect();
       try {
         const token = 'c'.repeat(64);
+        const groupRow = await client.query(
+          "select private_id from scout_groups where id='rosales-702'",
+        );
+        canonical = '/g/' + groupRow.rows[0].private_id + '/';
         await client.query(
           "insert into users(id, group_id, name, email, role) values ('entry-production-user','rosales-702','Legacy test','legacy-entry@example.test','member') on conflict(id) do update set disabled_at=null",
         );
@@ -185,8 +201,8 @@ test(
           assert.equal(resumed.status, 303);
           assert.equal(
             resumed.headers.get('location'),
-            '/acceso',
-            'the legacy session stays on its current origin',
+            canonical,
+            'the legacy session resumes its canonical group on the current origin',
           );
           assert.match(resumed.headers.get('cache-control')!, /no-store/);
         }
@@ -220,7 +236,7 @@ test(
         'https://bandarlog.app/?token=test-only-token&task=old-task',
       );
       assert.equal((await request('/api/health', legacy)).status, 200);
-      assert.equal((await request('/acceso', legacy)).status, 200);
+      assert.equal((await request('/acceso', legacy)).headers.get('location'), canonical);
       const invalid = await request(
         '/api/auth/code/request',
         legacy,
@@ -232,7 +248,7 @@ test(
       assert.equal((await request('/suscripcion-demo', legacy, 'POST', '{}')).status, 404);
     } finally {
       child.kill('SIGTERM');
-      await new Promise((r) => child.once('exit', r));
+      if (child.exitCode === null) await new Promise((r) => child.once('exit', r));
     }
   },
 );

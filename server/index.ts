@@ -1,3 +1,4 @@
+import { pendingPushWork } from './push-work.js';
 import { IdleJobs, nextMadridMidnight } from './idle-jobs.js';
 import { publicUsers } from './public-users.js';
 import { pageRequest, CursorError } from './pagination.js';
@@ -69,6 +70,10 @@ await seed(ownerDb);
 const [legacyGroup] = await ownerDb.select().from(s.groups).where(eq(s.groups.id, 'rosales-702'));
 const site = express();
 site.disable('x-powered-by');
+// Start before groupResolver so its owner query belongs to the request.
+site.use((q, r, next) =>
+  /^(?:\/g\/[^/]+)?\/api(?:\/|$)/.test(q.path) ? measureRequests(q, r, next) : next(),
+);
 site.use(helmet({ contentSecurityPolicy: prod ? undefined : false }));
 site.use((q, r, next) => {
   const oldHost = prod && legacyOrigins.includes('https://' + (q.get('host') || '').toLowerCase());
@@ -112,17 +117,37 @@ site.use(publicSite(appUrl));
 const push = await pushService(db, appUrl, ownerDb);
 const app = express();
 app.disable('x-powered-by');
-app.use('/api', measureRequests);
+
 const liveViews = new Map<express.Response, string>();
+// Bounded process-local hints. Eviction/restart changes the epoch, forcing reconciliation.
+const liveRevisions = new Map<string, { epoch: string; value: number }>();
+const groupRevision = () => {
+  const id = groupContext.getStore()!.id;
+  let revision = liveRevisions.get(id);
+  if (!revision) {
+    if (liveRevisions.size >= 512) liveRevisions.delete(liveRevisions.keys().next().value!);
+    revision = { epoch: randomUUID(), value: 0 };
+    liveRevisions.set(id, revision);
+  }
+  return revision;
+};
+const dataRevision = () => {
+  const r = groupRevision();
+  return `${r.epoch}:${r.value}`;
+};
 app.use('/api', (q, r, next) => {
   if (q.path === '/tutorial' || q.path.startsWith('/tutorial/')) return next();
   const changedGroupId = groupContext.getStore()?.id;
   if (!['GET', 'HEAD'].includes(q.method) || q.path === '/auth/google/callback')
     r.on('finish', () => {
       if (r.statusCode < 400) {
-        reminderJobs.schedule('reminders', undefined, Date.now() + 15 * 60000);
+        const group = groupContext.getStore();
+        if (group) reminderJobs.schedule(group.id, group, Date.now() + 15 * 60000);
+        groupRevision().value++;
+        const revision = dataRevision();
         for (const [view, groupId] of liveViews)
-          if (groupId === changedGroupId) view.write('event: changed\ndata: {}\n\n');
+          if (groupId === changedGroupId)
+            view.write('event: changed\ndata: ' + JSON.stringify({ revision }) + '\n\n');
       }
     });
   next();
@@ -320,8 +345,10 @@ async function deliverPush() {
     const pending = await db
       .select()
       .from(s.pushOutbox)
-      .where(sql`${s.pushOutbox.sentAt} is null`)
-      .limit(100);
+      .where(
+        sql`${s.pushOutbox.id} in (select id from (${pendingPushWork}) work where ready_at<=now() order by ready_at,id limit 100)`,
+      )
+      .orderBy(s.pushOutbox.id);
     for (const entry of pending) {
       if (await push.send(entry.userId, JSON.parse(entry.payload), entry.id))
         await db.update(s.pushOutbox).set({ sentAt: now() }).where(eq(s.pushOutbox.id, entry.id));
@@ -937,9 +964,14 @@ app.use('/api', async (q, r, n) => {
     .find((x) => x.startsWith('bandarlog='))
     ?.slice(10);
   if (!raw) return r.status(401).json({ error: 'Inicia sesión para continuar.' });
-  const [session] = await db
-    .select()
+  const { avatarUrl: _avatar, ...authColumns } = getTableColumns(s.users);
+  const [account] = await db
+    .select({
+      session: s.sessions,
+      user: q.path === '/me' ? getTableColumns(s.users) : authColumns,
+    })
     .from(s.sessions)
+    .innerJoin(s.users, eq(s.users.id, s.sessions.userId))
     .where(
       and(
         eq(s.sessions.id, hash(raw)),
@@ -947,13 +979,9 @@ app.use('/api', async (q, r, n) => {
         sql`${s.sessions.absoluteExpiresAt}>now()`,
       ),
     );
-  if (!session) return r.status(401).json({ error: 'Tu sesión ha caducado.' });
-  const { avatarUrl: _avatar, ...authColumns } = getTableColumns(s.users);
-  const [user] = await db
-    .select(q.path === '/me' ? getTableColumns(s.users) : authColumns)
-    .from(s.users)
-    .where(eq(s.users.id, session.userId));
-  if (!user || user.disabledAt) return r.sendStatus(401);
+  if (!account) return r.status(401).json({ error: 'Tu sesión ha caducado.' });
+  const { session, user } = account;
+  if (user.disabledAt) return r.sendStatus(401);
   r.locals.user = user;
   r.locals.session = session;
   if (!['GET', 'HEAD'].includes(q.method)) {
@@ -1066,7 +1094,11 @@ app.get('/api/events', (q, r) => {
     Number.isFinite(configured) && (configured === 0 || configured >= 15)
       ? Math.min(configured, 3600) * 1000
       : 120000;
-  r.write('event: ready\ndata: ' + JSON.stringify({ reconcileAfterMs }) + '\n\n');
+  r.write(
+    'event: ready\ndata: ' +
+      JSON.stringify({ reconcileAfterMs, revision: dataRevision() }) +
+      '\n\n',
+  );
   liveViews.set(r, groupContext.getStore()!.id);
   const timer = setInterval(() => r.write(': keepalive\n\n'), 25000);
   q.on('close', () => {
@@ -1147,21 +1179,65 @@ async function removeAssignments(tx: any, uid: string, actor: string, name: stri
     })),
   );
 }
+type MailRecipient = Pick<
+  typeof s.users.$inferSelect,
+  'id' | 'name' | 'email' | 'disabledAt' | 'preferences'
+>;
+type TaskMailContext = {
+  rows: { user: MailRecipient }[];
+  commission:
+    Pick<typeof s.commissions.$inferSelect, 'id' | 'name' | 'projectId' | 'deletedAt'> | undefined;
+  project: Pick<typeof s.projects.$inferSelect, 'name'> | undefined;
+};
 async function taskMail(
   tx: any,
   t: any,
   subject: string,
   key: string,
-  options: { recipientId?: string; event?: 'creation' | 'updates' | 'scheduled' } = {},
+  options: {
+    recipientId?: string;
+    event?: 'creation' | 'updates' | 'scheduled';
+    context?: TaskMailContext;
+  } = {},
 ) {
-  const rows = await tx
-    .select({ user: s.users })
-    .from(s.assignments)
-    .innerJoin(s.users, eq(s.users.id, s.assignments.userId))
-    .where(eq(s.assignments.taskId, t.id));
-  const [c] = await tx.select().from(s.commissions).where(eq(s.commissions.id, t.commissionId));
+  const rows =
+    options.context?.rows ??
+    (await tx
+      .select({
+        user: {
+          id: s.users.id,
+          name: s.users.name,
+          email: s.users.email,
+          disabledAt: s.users.disabledAt,
+          preferences: s.users.preferences,
+        },
+      })
+      .from(s.assignments)
+      .innerJoin(s.users, eq(s.users.id, s.assignments.userId))
+      .where(eq(s.assignments.taskId, t.id)));
+  const c = options.context
+    ? options.context.commission
+    : (
+        await tx
+          .select({
+            id: s.commissions.id,
+            name: s.commissions.name,
+            projectId: s.commissions.projectId,
+            deletedAt: s.commissions.deletedAt,
+          })
+          .from(s.commissions)
+          .where(eq(s.commissions.id, t.commissionId))
+      )[0];
   if (!c || c.deletedAt) return;
-  const [p] = await tx.select().from(s.projects).where(eq(s.projects.id, c.projectId));
+  const p = options.context
+    ? options.context.project
+    : (
+        await tx
+          .select({ name: s.projects.name })
+          .from(s.projects)
+          .where(eq(s.projects.id, c.projectId))
+      )[0];
+  if (!p) return;
   for (const { user } of rows) {
     if (user.disabledAt) continue;
     const pref = preferences(user.preferences);
@@ -1508,6 +1584,8 @@ app.get('/api/activity', async (q, r) => {
   r.json(page.finish(rows));
 });
 app.get('/api/data', async (_q, r) => {
+  // Capture before reading, so a concurrent change cannot be acknowledged prematurely.
+  r.set('X-Data-Revision', dataRevision());
   const response = await db.transaction(async (tx) => {
     const db = tx as unknown as Database;
     const catalogueExtra = await extraArtwork(db);
@@ -2376,18 +2454,29 @@ app.get('/api/notifications', async (q, r) => {
   if (result.nextCursor) r.set('X-Next-Cursor', result.nextCursor);
   r.json(q.query.page === '1' ? result : result.items);
 });
-const scheduling = new Set<string>();
+const scheduling = new Map<string, Promise<number>>();
 async function reminders() {
-  let nextCheck = nextMadridMidnight();
   const key = groupContext.getStore()!.id;
-  if (scheduling.has(key)) return;
-  scheduling.add(key);
-  try {
-    const activeCommissions = await db
-      .select({ id: s.commissions.id })
-      .from(s.commissions)
-      .innerJoin(s.projects, eq(s.projects.id, s.commissions.projectId))
-      .where(and(eq(s.projects.archived, 'false'), sql`${s.commissions.deletedAt} is null`));
+  const existing = scheduling.get(key);
+  if (existing) return existing;
+  const work = (async () => {
+    let nextCheck = nextMadridMidnight();
+    const ps = await db
+      .select({ id: s.projects.id, name: s.projects.name, archived: s.projects.archived })
+      .from(s.projects);
+    const cs = await db
+      .select({
+        id: s.commissions.id,
+        name: s.commissions.name,
+        projectId: s.commissions.projectId,
+        deletedAt: s.commissions.deletedAt,
+      })
+      .from(s.commissions);
+    const projectsById = new Map(ps.map((p) => [p.id, p]));
+    const commissionsById = new Map(cs.map((c) => [c.id, c]));
+    const activeCommissions = cs.filter(
+      (c) => !c.deletedAt && projectsById.get(c.projectId)?.archived === 'false',
+    );
     const ts = activeCommissions.length
       ? await db
           .select()
@@ -2406,12 +2495,37 @@ async function reminders() {
     const assigned = openIds.length
       ? await db.select().from(s.assignments).where(inArray(s.assignments.taskId, openIds))
       : [];
-    const { avatarUrl: _avatar, ...recipientColumns } = getTableColumns(s.users);
-    const recipients = await db.select(recipientColumns).from(s.users);
+    const recipients = await db
+      .select({
+        id: s.users.id,
+        name: s.users.name,
+        email: s.users.email,
+        disabledAt: s.users.disabledAt,
+        preferences: s.users.preferences,
+        role: s.users.role,
+      })
+      .from(s.users);
+    const usersById = new Map(recipients.map((u) => [u.id, u]));
+    const assignedByTask = new Map<string, typeof assigned>();
+    for (const assignment of assigned) {
+      const rows = assignedByTask.get(assignment.taskId) || [];
+      rows.push(assignment);
+      assignedByTask.set(assignment.taskId, rows);
+    }
     for (const t of ts) {
       if (t.status === 'done') continue;
-      for (const assignment of assigned.filter((a) => a.taskId === t.id)) {
-        const u = recipients.find((u) => u.id === assignment.userId);
+      const taskAssignments = assignedByTask.get(t.id) || [];
+      const commission = commissionsById.get(t.commissionId);
+      const context = {
+        rows: taskAssignments.flatMap((a) => {
+          const user = usersById.get(a.userId);
+          return user ? [{ user }] : [];
+        }),
+        commission,
+        project: commission && projectsById.get(commission.projectId),
+      };
+      for (const assignment of taskAssignments) {
+        const u = usersById.get(assignment.userId);
         if (!u) continue;
         const pref = preferences(u.preferences);
         if (!u.disabledAt && pref.notifications && (pref.onDue || pref.overdueDaily)) {
@@ -2425,6 +2539,7 @@ async function reminders() {
           await taskMail(db, t, event.label, 'scheduled-' + event.key + '-' + t.id + suffix, {
             recipientId: u.id,
             event: 'scheduled',
+            context,
           });
         }
       }
@@ -2439,8 +2554,7 @@ async function reminders() {
     week.setUTCDate(week.getUTCDate() - ((week.getUTCDay() + 6) % 7));
     const stamp = week.toISOString().slice(0, 10);
     const us = recipients;
-    const ps = await db.select().from(s.projects);
-    const cs = await db.select().from(s.commissions);
+
     for (const u of us) {
       const pref = preferences(u.preferences);
       if (u.disabledAt || !globalManage(u) || !pref.notifications || !pref.weekly) continue;
@@ -2459,6 +2573,10 @@ async function reminders() {
       }
     }
     return nextCheck;
+  })();
+  scheduling.set(key, work);
+  try {
+    return await work;
   } finally {
     scheduling.delete(key);
   }
@@ -2470,7 +2588,7 @@ const deliveryJobs = new IdleJobs<Group>(
       await measureJob('delivery', deliverNow);
       const result = await db.execute(sql`select least(
     (select min(coalesce(next_attempt_at, now())) from notifications where ${Boolean(mailTransport)} and status='pending' and attempts::integer<5),
-    (select now()+interval '1 minute' from push_outbox where sent_at is null limit 1)
+    (select min(ready_at) from (${pendingPushWork}) work)
   ) as next_at`);
       const at = result.rows[0]?.next_at;
       return at ? Math.max(Date.now() + 1000, +new Date(String(at))) : null;
@@ -2502,18 +2620,24 @@ const activeGroups = () =>
     .select()
     .from(s.groups)
     .where(sql`${s.groups.plan} <> 'audit-archived'`);
-const reminderJobs = new IdleJobs<void>(
-  async () =>
-    measureJob('reminders', async () => {
-      let next = nextMadridMidnight();
-      for (const group of await activeGroups())
-        await groupContext.run(group, async () => {
-          next = Math.min(next, (await reminders()) ?? next);
-          await deliver();
-        });
-      return next;
-    }),
-  () => console.error('No se pudieron revisar los recordatorios.'),
+const reminderJobs = new IdleJobs<Group>(
+  async (group) =>
+    groupContext.run(group, () =>
+      measureJob('reminders', async () => {
+        const next = await reminders();
+        await deliver();
+        // The global calendar handles midnight; groups only keep actual earlier deadlines.
+        return next && next < nextMadridMidnight() ? next : null;
+      }),
+    ),
+  () => console.error('No se pudieron revisar los recordatorios del grupo.'),
+);
+const calendarJobs = new IdleJobs<void>(
+  async () => {
+    for (const group of await activeGroups()) await reminderJobs.wake(group.id, group);
+    return nextMadridMidnight();
+  },
+  () => console.error('No se pudo revisar el calendario.'),
 );
 const recoveryJobs = new IdleJobs<void>(
   async () =>
@@ -2536,7 +2660,7 @@ const recoveryJobs = new IdleJobs<void>(
   () => console.error('No se pudo recuperar el trabajo pendiente.'),
 );
 // These callbacks run after the server starts; shutdown cancels all future work.
-reminderJobs.schedule('reminders', undefined, Date.now() + 1000);
+calendarJobs.schedule('calendar', undefined, Date.now() + 1000);
 recoveryJobs.schedule('recovery', undefined, Date.now() + 1000);
 app.use('/api', (_q, r) => r.status(404).json({ error: 'Ruta no encontrada.' }));
 if (prod) {
@@ -2658,6 +2782,7 @@ process.on('SIGTERM', () => {
   deliveryJobs.stop();
   platformJobs.stop();
   reminderJobs.stop();
+  calendarJobs.stop();
   recoveryJobs.stop();
   for (const view of liveViews.keys()) view.end();
   server.close(() => void close().then(() => process.exit(0)));

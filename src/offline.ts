@@ -23,10 +23,10 @@ export const offline: Store = {
 export async function clearOffline() {
   await offline.clear();
 }
-export function notifyDataChanged() {
+export function notifyDataChanged(revision?: string) {
   if (typeof BroadcastChannel !== 'undefined') {
     const channel = new BroadcastChannel(groupChannel());
-    channel.postMessage('changed');
+    channel.postMessage(JSON.stringify({ revision }));
     channel.close();
   }
 }
