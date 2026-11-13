@@ -17,7 +17,7 @@ El suelo de 0,25 CU encendido 720 h equivale a 180 CU-h y unos 19,08 USD/mes de 
 - Healthcheck Railway: /api/live no consulta PostgreSQL. /api/health conserva la comprobación de dependencia para diagnóstico. Al arrancar solo se lee un ID para comprobar el seed.
 - El límite de escalado del endpoint productivo pasa de 8 a 1 CU, manteniendo mínimo 0,25 y suspensión de 300 s. Limita el coste de los picos; por sí solo no reduce el consumo cuando ya estaba en 0,25.
 
-No hay nuevas dependencias, migraciones, restauraciones ni cambios de proveedor o credenciales. Se mantienen las copias diarias con siete días y el historial actual de seis horas. Las ramas temporales ya tienen caducidad y están suspendidas.
+No hay nuevas dependencias, migraciones, restauraciones ni cambios de proveedor o credenciales. Se mantienen las copias diarias con siete días y el historial actual de **24 horas**, ampliado después de la PR #35 con autorización explícita. Las ramas temporales ya tienen caducidad y están suspendidas.
 
 ## Validación y estimaciones
 
@@ -25,6 +25,10 @@ Pruebas dirigidas de API, grupos, correo y preferencias: 46 aprobadas. Cinco pru
 
 En un escenario ideal sin usuarios, reintentos, monitores que consulten SQL ni otros procesos, una comprobación horaria con cinco minutos de compute activo produce aproximadamente 15 CU-h/mes, unos 1,59 USD, más comprobaciones de calendario y costes restantes. Una hora de actividad real adicional al día añadiría hasta 7,5 CU-h/mes, unos 0,80 USD, si no coincide con las ventanas ya activas. No es una predicción contractual: debe contrastarse con consumo real y suspensión observada.
 
-Primero se debe comprobar que producción logra suspenderse sin perder avisos. Solo después de medir un periodo representativo se puede decidir si cabe en Free (100 CU-h y 5 GB públicos al mes, cuotas del plan consultado). Cambiar ahora a Free puede suspender el servicio al alcanzar una cuota y exige revisar compatibilidad de backups/retención. No se hace automáticamente.
+Primero se debe comprobar que producción logra suspenderse sin perder avisos. Solo después de medir un periodo representativo se puede decidir si cabe en Free (cuotas y protección a contrastar con el plan vigente). Cambiar ahora a Free puede suspender el servicio al alcanzar una cuota y exige revisar compatibilidad de backups/retención. No se hace automáticamente.
 
-Tarifas verificadas: https://neon.com/pricing y https://docs.railway.com/pricing/plans. Railway factura recursos y un mínimo de plan; bajar límites que no se consumen no reduce ese mínimo. Se conserva una réplica y no se provisionan servicios de caché ni bases nuevas.
+Tarifas verificadas: https://neon.com/pricing y https://docs.railway.com/pricing/plans. La factura y el plan efectivo de Railway no están expuestos por el conector; bajar límites que no se consumen no reduce ese mínimo. Se conserva una réplica y no se provisionan servicios de caché ni bases nuevas.
+
+## Segunda iteración · 13-11-2026
+
+[Implementación, medidas, límites, propuesta de QA y publicación/rollback](neon-iteration-20261113.md). Preparada en PR, todavía sin publicar. La autorización de este plan no incluye despliegue ni cambios productivos. Se conservan 24 h de historial y siete días de copias.
