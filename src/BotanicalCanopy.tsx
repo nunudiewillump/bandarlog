@@ -67,15 +67,29 @@ export function BrandCanopyFill() {
     </svg>
   );
 }
-/** Two existing leaf forms soften the gap below the logo in the mobile header. */
+/** Larger overlapping leaves grow from a shared bough inside the mobile crown. */
 export function BrandUnderLeaves() {
   return (
-    <svg className="botanical-under-brand" viewBox="0 0 110 72" aria-hidden="true" focusable="false">
-      <g transform="translate(25 14) rotate(161) scale(.64)">
-        <BotanicalLeaf shape="beech" colors={FRONT_COLORS[0]} />
-      </g>
-      <g transform="translate(72 10) rotate(204) scale(.58)">
-        <BotanicalLeaf shape="oak" colors={FRONT_COLORS[2]} />
+    <svg
+      className="botanical-under-brand"
+      viewBox="0 0 110 84"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <g className="botanical-bough" data-depth="2">
+        <path
+          d="M25 7Q47-8 72 3"
+          fill="none"
+          stroke="#294f2e"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <g transform="translate(25 7) rotate(161) scale(.86)">
+          <BotanicalLeaf shape="beech" colors={FRONT_COLORS[0]} />
+        </g>
+        <g transform="translate(72 3) rotate(204) scale(.84)">
+          <BotanicalLeaf shape="oak" colors={FRONT_COLORS[2]} />
+        </g>
       </g>
     </svg>
   );
