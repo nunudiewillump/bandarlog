@@ -1,4 +1,5 @@
-import { createHmac, timingSafeEqual, createPublicKey, verify } from 'node:crypto';
+import { promisify } from 'node:util';
+import { createHmac, timingSafeEqual, createPublicKey, verify, pbkdf2 } from 'node:crypto';
 export const CODE_LIFETIME = 10 * 60000;
 export const SESSION_IDLE = 30 * 86400000;
 export const SESSION_ABSOLUTE = 90 * 86400000;
@@ -17,10 +18,32 @@ export function codeRequestId(secret: string, groupId: string, email: string, re
     )
     .digest('hex');
 }
-export function codeVerifier(secret: string, challenge: string, email: string, code: string) {
-  return createHmac('sha256', secret)
+const deriveCode = promisify(pbkdf2);
+export async function codeVerifier(secret: string, challenge: string, email: string, code: string) {
+  const pepper = createHmac('sha256', secret)
     .update(JSON.stringify([challenge, email, code]))
-    .digest('hex');
+    .digest();
+  const salt = createHmac('sha256', secret)
+    .update(JSON.stringify(['otp-salt-v2', challenge, email]))
+    .digest();
+  return 'pbkdf2-v2:' + (await deriveCode(pepper, salt, 600000, 32, 'sha256')).toString('hex');
+}
+export async function verifyCode(
+  secret: string,
+  challenge: string,
+  email: string,
+  code: string,
+  stored: string,
+) {
+  if (stored.startsWith('pbkdf2-v2:'))
+    return equalSecret(stored, await codeVerifier(secret, challenge, email, code));
+  // Compatibility only for an outstanding challenge; caller enforces its original <=10 minute expiry.
+  return equalSecret(
+    stored,
+    createHmac('sha256', secret)
+      .update(JSON.stringify([challenge, email, code]))
+      .digest('hex'),
+  );
 }
 export function equalSecret(left: string, right: string) {
   const a = Buffer.from(left),

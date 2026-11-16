@@ -1,3 +1,5 @@
+import { component } from './components.js';
+import { sessionContext } from './session-context.js';
 import { createHmac } from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
 export type Group = {
@@ -27,6 +29,16 @@ export function configureGroupSigning(secret: string) {
 }
 const activate = async (client: any, group: Group) => {
   if (!group.id) throw new Error('Falta el contexto privado del grupo.');
+  if (component() === 'http') {
+    const bearer = sessionContext.getStore();
+    if (!bearer || !/^[a-f0-9]{64}$/.test(bearer)) throw Error('Falta la prueba de sesión.');
+    await client.query(
+      "select set_config('bandarlog.group_id',$1,true),set_config('bandarlog.session_token',$2,true)",
+      [group.id, bearer],
+    );
+    await client.query('set local role bandarlog_user_app');
+    return;
+  }
   const key = contextSecret || process.env.GROUP_CONTEXT_SECRET;
   if (!key) throw Error('Falta GROUP_CONTEXT_SECRET.');
   const deadline = String(Math.floor(Date.now() / 1000) + 300);
@@ -37,8 +49,18 @@ const activate = async (client: any, group: Group) => {
     "select set_config('bandarlog.group_id',$1,true),set_config('bandarlog.context_deadline',$2,true),set_config('bandarlog.context_proof',$3,true)",
     [group.id, deadline, proof],
   );
+  if (component() === 'identity')
+    await client.query("select set_config('bandarlog.auth_bearer',$1,true)", [
+      sessionContext.getStore() || '',
+    ]);
   // The API role is not the table owner and cannot bypass the RLS policies.
-  await client.query('set local role bandarlog_group_app');
+  await client.query(
+    component() === 'identity'
+      ? 'set local role bandarlog_identity_app'
+      : component() === 'delivery'
+        ? 'set local role bandarlog_delivery_app'
+        : 'set local role bandarlog_group_app',
+  );
 };
 export function scopedPglite(client: any) {
   return new Proxy(client, {

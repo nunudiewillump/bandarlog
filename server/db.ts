@@ -1,4 +1,6 @@
-import { randomBytes } from 'node:crypto';
+import { dispatchSettings } from './dispatch-settings.js';
+import { component, validateComponentSecrets } from './components.js';
+import { randomBytes, createHash } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { drizzle as localDrizzle } from 'drizzle-orm/pglite';
 import { drizzle as remoteDrizzle } from 'drizzle-orm/node-postgres';
@@ -13,40 +15,80 @@ import { mkdir } from 'node:fs/promises';
 import { seed } from './seed.js';
 
 export async function connect() {
+  validateComponentSecrets();
+  const mode = component();
   if (process.env.MIGRATION_DATABASE_URL)
     throw Error('Las credenciales de mantenimiento no deben estar presentes en el runtime HTTP.');
   if (process.env.DATABASE_URL) {
-    configureGroupSigning(process.env.GROUP_CONTEXT_SECRET || '');
+    if (mode !== 'http') configureGroupSigning(process.env.GROUP_CONTEXT_SECRET || '');
+    const applicationRole =
+      mode === 'http'
+        ? 'bandarlog_user_app'
+        : mode === 'identity'
+          ? 'bandarlog_identity_app'
+          : mode === 'delivery'
+            ? 'bandarlog_delivery_app'
+            : 'bandarlog_group_app';
     const pool = measuredClient(new pg.Pool({ connectionString: process.env.DATABASE_URL }));
     try {
       const connection = remoteDrizzle(pool, { schema, logger: queryLogger });
       // Fail before listening if a deployment accidentally injects an owner credential.
       const identity = await connection.execute(sql`select current_user as name,
         exists(select 1 from pg_roles r where pg_has_role(session_user,r.oid,'MEMBER')
-          and (r.rolname not in ('bandarlog_runtime','bandarlog_group_app') or r.rolsuper or r.rolbypassrls or r.rolcreaterole or r.rolcreatedb or r.rolreplication)) as elevated,
+          and (r.rolname not in (${mode === 'http' ? 'bandarlog_http' : mode === 'identity' ? 'bandarlog_identity' : mode === 'delivery' ? 'bandarlog_delivery' : 'bandarlog_runtime'},${mode === 'http' ? 'bandarlog_user_app' : mode === 'identity' ? 'bandarlog_identity_app' : mode === 'delivery' ? 'bandarlog_delivery_app' : 'bandarlog_group_app'}) or r.rolsuper or r.rolbypassrls or r.rolcreaterole or r.rolcreatedb or r.rolreplication or (r.rolname=session_user and r.rolinherit))) as elevated,
         exists(select 1 from pg_class c where c.relnamespace in ('public'::regnamespace,'bandarlog_api'::regnamespace)
-          and pg_has_role(session_user,c.relowner,'MEMBER')) or exists(select 1 from pg_database d where d.datname=current_database() and pg_has_role(session_user,d.datdba,'MEMBER')) as owns_tables`);
+          and pg_has_role(session_user,c.relowner,'MEMBER')) or exists(select 1 from pg_database d where d.datname=current_database() and pg_has_role(session_user,d.datdba,'MEMBER')) or exists(select 1 from pg_namespace n where n.nspname in ('public','bandarlog_api') and pg_has_role(session_user,n.nspowner,'MEMBER')) or exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','bandarlog_api') and pg_has_role(session_user,p.proowner,'MEMBER')) or has_schema_privilege(${applicationRole},'public','CREATE') or has_schema_privilege(${applicationRole},'bandarlog_api','CREATE') or has_database_privilege(${applicationRole},current_database(),'CREATE') or exists(select 1 from pg_class c where c.relnamespace='public'::regnamespace and c.relkind='r' and has_table_privilege(${applicationRole},c.oid,'TRUNCATE,TRIGGER')) as owns_tables`);
       const role = identity.rows[0];
-      if (role.name !== 'bandarlog_runtime' || role.elevated || role.owns_tables)
+      if (
+        role.name !==
+          (mode === 'http'
+            ? 'bandarlog_http'
+            : mode === 'identity'
+              ? 'bandarlog_identity'
+              : mode === 'delivery'
+                ? 'bandarlog_delivery'
+                : 'bandarlog_runtime') ||
+        role.elevated ||
+        role.owns_tables
+      )
         throw Error('DATABASE_URL debe usar la identidad runtime sin privilegios administrativos.');
+      if (
+        mode === 'http' &&
+        process.env.NODE_ENV === 'production' &&
+        !(await connection.execute(sql`select bandarlog_api.mfa_enforced() as enabled`)).rows[0]
+          ?.enabled
+      )
+        throw Error('La activación segura requiere MFA habilitado en PostgreSQL.');
       const db = remoteDrizzle(scopedPool(pool) as pg.Pool, { schema, logger: queryLogger });
-      await groupContext.run(
-        {
-          id: 'runtime-readiness',
-          privateId: '',
-          name: '',
-          colorPrimary: '',
-          colorSecondary: '',
-          plan: '',
-        },
-        async () => await db.execute(sql`select bandarlog_api.current_group()`),
-      );
-      return { db, global: globalOperations(connection, db), close: () => pool.end() };
+      if (mode !== 'http')
+        await groupContext.run(
+          {
+            id: 'runtime-readiness',
+            privateId: '',
+            name: '',
+            colorPrimary: '',
+            colorSecondary: '',
+            plan: '',
+          },
+          async () => await db.execute(sql`select bandarlog_api.current_group()`),
+        );
+      const global = globalOperations(connection, db);
+      if (mode !== 'development') {
+        const settings = dispatchSettings(process.env, mode === 'delivery'),
+          fingerprint = createHash('sha256').update(settings.fingerprint).digest('hex');
+        if (mode === 'delivery') await global.registerDispatchKey(settings.id, fingerprint);
+        else if ((await global.dispatchKeyFingerprint(settings.id)) !== fingerprint)
+          throw Error(
+            'La clave pública de envío no coincide con el emisor. Arranca primero el emisor con su clave activa.',
+          );
+      }
+      return { db, global, close: () => pool.end() };
     } catch (error) {
       await pool.end();
       throw error;
     }
   }
+  if (mode !== 'development') throw Error('Los componentes separados requieren PostgreSQL.');
   if (process.env.NODE_ENV === 'production')
     throw Error('DATABASE_URL es obligatorio en producción');
   const path = process.env.DATA_DIR || '.data';

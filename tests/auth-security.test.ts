@@ -11,25 +11,35 @@ import {
   SESSION_IDLE,
 } from '../server/auth-security';
 
-test('short codes are keyed and bound to challenge and recipient', () => {
-  const digest = codeVerifier(
+test('short codes are keyed and bound to challenge and recipient', async () => {
+  const digest = await codeVerifier(
     'test-secret-not-for-production',
     'challenge-a',
     'member@example.test',
     '123456',
   );
-  assert.equal(digest.length, 64);
+  assert.match(digest,/^pbkdf2-v2:[a-f0-9]{64}$/);
   assert.notEqual(
     digest,
-    codeVerifier('another-secret', 'challenge-a', 'member@example.test', '123456'),
+    await codeVerifier('another-secret', 'challenge-a', 'member@example.test', '123456'),
   );
   assert.notEqual(
     digest,
-    codeVerifier('test-secret-not-for-production', 'challenge-b', 'member@example.test', '123456'),
+    await codeVerifier(
+      'test-secret-not-for-production',
+      'challenge-b',
+      'member@example.test',
+      '123456',
+    ),
   );
   assert.notEqual(
     digest,
-    codeVerifier('test-secret-not-for-production', 'challenge-a', 'another@example.test', '123456'),
+    await codeVerifier(
+      'test-secret-not-for-production',
+      'challenge-a',
+      'another@example.test',
+      '123456',
+    ),
   );
   assert.equal(equalSecret(digest, digest), true);
   assert.equal(equalSecret(digest, 'short'), false);

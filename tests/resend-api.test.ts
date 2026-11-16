@@ -35,6 +35,10 @@ test('delivery migration preserves existing outbox snapshots and group ownership
       assert.equal(row.provider_message_id, null);
       delete row.next_attempt_at;
       delete row.provider_message_id;
+      assert.equal(row.lease_id, null);
+      assert.equal(row.lease_until, null);
+      delete row.lease_id;
+      delete row.lease_until;
       assert.deepEqual(row, old[i].rows[0]);
     }
   } finally {

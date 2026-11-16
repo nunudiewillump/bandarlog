@@ -1,3 +1,8 @@
+import { syntheticPasskey } from './fixtures/webauthn';
+import { exerciseRestore } from './fixtures/restore-postgres';
+import { exerciseServiceBoundary } from './fixtures/service-postgres';
+import { startComponents } from './fixtures/components-postgres';
+import { exerciseActorBoundary } from './fixtures/actor-postgres';
 import { exercisePushWork } from './fixtures/push-work';
 import { randomBytes, createHash as hashForTest } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -32,6 +37,8 @@ before(async () => {
   await migrate(ownerDb, { migrationsFolder: 'migrations' });
   await provisionTestContext(ownerPool);
   await ownerPool.query('alter role bandarlog_runtime login');
+  for (const role of ['http', 'identity', 'delivery'])
+    await ownerPool.query('alter role bandarlog_' + role + ' login');
   await ownerPool.query("select set_config('bandarlog.group_id','rosales-702',false)");
   await seed(ownerDb);
 });
@@ -280,43 +287,9 @@ test('production public pages and legacy-domain redirects preserve safe links wi
   const { spawn } = await import('node:child_process');
   const testUrl = process.env.TEST_POSTGRES_URL!;
   assert.ok(['127.0.0.1', 'localhost'].includes(new URL(testUrl).hostname));
-  const child = spawn(process.execPath, ['--import', 'tsx', 'server/index.ts'], {
-    env: {
-      ...process.env,
-      PORT: '3123',
-      DATABASE_URL: runtimeUrl.toString(),
-      GROUP_CONTEXT_SECRET: TEST_CONTEXT_SECRET,
-      NODE_ENV: 'production',
-      APP_URL: 'https://bandarlog.app',
-      LEGACY_APP_ORIGINS: 'https://bandarlog-production.up.railway.app',
-      AUTH_CHALLENGE_SECRET: 'test-only-production-challenge-secret-32-characters',
-      MAIL_TRANSPORT: 'smtp',
-      SMTP_HOST: '127.0.0.1',
-      SMTP_PORT: '587',
-      SMTP_USER: 'synthetic-only',
-      SMTP_PASS: 'synthetic-only',
-      MAIL_FROM: 'Bandarlog <sender@example.test>',
-      BOOTSTRAP_EMAIL: 'bootstrap-entry@example.test',
-      GOOGLE_LOGIN_CLIENT_ID: '',
-      GOOGLE_LOGIN_CLIENT_SECRET: '',
-    },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  let logs = '';
-  child.stdout.on('data', (x) => (logs += x));
-  child.stderr.on('data', (x) => (logs += x));
+  await ownerPool.query('update bandarlog_api.security_configuration set mfa_enforced=true');
+  const { stop, decode } = await startComponents(testUrl, TEST_CONTEXT_SECRET);
   try {
-    let ready = false;
-    for (let n = 0; n < 100; n++) {
-      try {
-        if ((await fetch('http://127.0.0.1:3123/api/health')).ok) {
-          ready = true;
-          break;
-        }
-      } catch {}
-      await new Promise((r) => setTimeout(r, 100));
-    }
-    assert.ok(ready, logs);
     const { request: httpRequest } = await import('node:http');
     const request = (
       path: string,
@@ -389,6 +362,69 @@ test('production public pages and legacy-domain redirects preserve safe links wi
       } catch {}
       return { status: response.status, data, headers: response.headers };
     }
+    const passkeys = new Map<string, ReturnType<typeof syntheticPasskey>>();
+    async function completePasskey(login: Login) {
+      let status = await api('/api/auth/passkeys/status', 'GET', undefined, login);
+      assert.equal(status.status, 200);
+      if (status.data.reauthenticate) {
+        const raw = login.cookie.slice(login.cookie.indexOf('=') + 1);
+        const [session] = await ownerDb
+          .select()
+          .from(s.sessions)
+          .where(eq(s.sessions.id, hashForTest('sha256').update(raw).digest('hex')));
+        const [user] = await ownerDb.select().from(s.users).where(eq(s.users.id, session.userId));
+        const requested = await api('/api/auth/code/request', 'POST', { email: user.email }, login);
+        assert.equal(requested.status, 200);
+        const mails = (
+          await ownerDb.select().from(s.notifications).where(eq(s.notifications.email, user.email))
+        ).map(decode);
+        const mail = mails.filter((m) => m.body.includes('Tu código de acceso es:')).at(-1)!;
+        const verified = await api(
+          '/api/auth/code/verify',
+          'POST',
+          {
+            challengeId: requested.data.challengeId,
+            code: mail.body.match(/código de acceso es: (\d{6})/)![1],
+          },
+          login,
+        );
+        assert.equal(verified.status, 200);
+        login.cookie = verified.headers
+          .getSetCookie()
+          .find((c) => /^(?:__Host-bandarlog-[a-f0-9]{32}|bandarlog)=/.test(c))!
+          .split(';')[0];
+        status = await api('/api/auth/passkeys/status', 'GET', undefined, login);
+      }
+      assert.equal(status.data.reauthenticate, false);
+      login.csrf = status.data.csrf;
+      const kind = status.data.hasPasskeys ? 'authenticate' : 'register';
+      const options = await api('/api/auth/passkeys/' + kind + '/options', 'POST', {}, login);
+      assert.equal(options.status, 200, JSON.stringify(options.data));
+      let key = passkeys.get(login.base);
+      if (!key) {
+        key = syntheticPasskey();
+        passkeys.set(login.base, key);
+      }
+      const verify = await api(
+        '/api/auth/passkeys/' + kind + '/verify',
+        'POST',
+        {
+          id: options.data.id,
+          response:
+            kind === 'register'
+              ? key.register(options.data.options)
+              : key.authenticate(options.data.options),
+        },
+        login,
+      );
+      assert.equal(verify.status, 200, JSON.stringify(verify.data));
+      login.cookie = verify.headers
+        .getSetCookie()
+        .find((c) => /^(?:__Host-bandarlog-[a-f0-9]{32}|bandarlog)=/.test(c))!
+        .split(';')[0];
+      if (kind === 'register') assert.equal(verify.data.recoveryCodes.length, 10);
+      login.csrf = (await api('/api/me', 'GET', undefined, login)).data.csrf;
+    }
     async function register(name: string): Promise<Login> {
       const email = ('pg-' + name + '@example.test').toLowerCase();
       assert.equal(
@@ -404,6 +440,7 @@ test('production public pages and legacy-domain redirects preserve safe links wi
         202,
       );
       const mail = (await ownerDb.select().from(s.platformMail))
+        .map(decode)
         .filter((m) => m.body.includes(email))
         .at(-1)!;
       const approval = new URL(mail.body.match(/^https?:\/\/\S+$/m)![0]).searchParams.get('token')!;
@@ -437,7 +474,9 @@ test('production public pages and legacy-domain redirects preserve safe links wi
       );
       const activationMail = (
         await ownerDb.select().from(s.platformMail).where(eq(s.platformMail.email, email))
-      ).at(-1)!;
+      )
+        .map(decode)
+        .at(-1)!;
       const activation = new URL(
         activationMail.body.match(/^https?:\/\/\S+$/m)![0],
       ).searchParams.get('token')!;
@@ -457,11 +496,13 @@ test('production public pages and legacy-domain redirects preserve safe links wi
         base: activated.headers.get('location')!.replace(/\/$/, ''),
         cookie: activated.headers
           .getSetCookie()
-          .find((c) => c.startsWith('bandarlog='))!
+          .find((c) => /^(?:__Host-bandarlog-[a-f0-9]{32}|bandarlog)=/.test(c))!
           .split(';')[0],
         csrf: '',
         userId: '',
       };
+      assert.equal((await api('/api/me', 'GET', undefined, login)).status, 428);
+      await completePasskey(login);
       const me = await api('/api/me', 'GET', undefined, login);
       assert.equal(me.status, 200);
       assert.equal(JSON.parse(me.data.user.preferences).foundingAdmin, true);
@@ -493,12 +534,20 @@ test('production public pages and legacy-domain redirects preserve safe links wi
     );
     const returned = await api('/api/auth/google/return', 'POST', { ticket, proof }, a);
     assert.equal(returned.status, 200);
+    a.cookie = returned.headers
+      .getSetCookie()
+      .find((c) => /^(?:__Host-bandarlog-[a-f0-9]{32}|bandarlog)=/.test(c))!
+      .split(';')[0];
+    await completePasskey(a);
     assert.ok(
       returned.headers
         .getSetCookie()
         .some(
           (c) =>
-            c.startsWith('bandarlog=') && c.includes('HttpOnly') && c.includes('Path=' + a.base),
+            /^(?:__Host-bandarlog-[a-f0-9]{32}|bandarlog)=/.test(c) &&
+            c.includes('HttpOnly') &&
+            c.includes('Path=/') &&
+            !c.includes('Domain='),
         ),
     );
     assert.equal((await api('/api/auth/google/return', 'POST', { ticket, proof }, a)).status, 403);
@@ -515,6 +564,12 @@ test('production public pages and legacy-domain redirects preserve safe links wi
       api('/api/auth/google/return', 'POST', { ticket: concurrentTicket, proof }, a),
     ]);
     assert.deepEqual(concurrent.map((r) => r.status).sort(), [200, 403]);
+    a.cookie = concurrent
+      .find((r) => r.status === 200)!
+      .headers.getSetCookie()
+      .find((c) => /^(?:__Host-bandarlog-[a-f0-9]{32}|bandarlog)=/.test(c))!
+      .split(';')[0];
+    await completePasskey(a);
     const expired = randomBytes(32).toString('hex');
     await ownerDb.insert(s.googleHandoffs).values({
       id: digest(expired),
@@ -542,7 +597,7 @@ test('production public pages and legacy-domain redirects preserve safe links wi
     assert.ok(
       linking.headers
         .getSetCookie()
-        .some((c) => c.startsWith('bandarlog_google_link=') && c.includes('HttpOnly')),
+        .some((c) => c.startsWith('__Host-bandarlog-google-link-') && c.includes('HttpOnly')),
     );
     const project = await api(
       '/api/projects',
@@ -645,11 +700,28 @@ test('production public pages and legacy-domain redirects preserve safe links wi
         );
         assert.match(resumed.headers.get('cache-control')!, /no-store/);
       }
-      const renewed = await request('/api/me', legacy, 'GET', undefined, 'bandarlog=' + token);
+      assert.equal(
+        (await request('/api/me', legacy, 'GET', undefined, 'bandarlog=' + token)).status,
+        428,
+        'Legacy sessions require step-up when MFA is enforced',
+      );
+      await client.query("update sessions set assurance='mfa',mfa_verified_at=now() where id=$1", [
+        createHash('sha256').update(token).digest('hex'),
+      ]);
+      const legacyPrivate = (
+        await ownerDb.select().from(s.groups).where(eq(s.groups.id, 'rosales-702'))
+      )[0].privateId;
+      const renewed = await request(
+        '/api/me',
+        legacy,
+        'GET',
+        undefined,
+        '__Host-bandarlog-' + legacyPrivate + '=' + token,
+      );
       assert.equal(renewed.status, 200);
       const hint = renewed.headers
         .getSetCookie()
-        .find((value) => value.startsWith('bandarlog_entry='))!;
+        .find((value) => value.startsWith('__Host-bandarlog_entry='))!;
       assert.ok(hint.includes('Secure') && hint.includes('HttpOnly'));
       assert.ok(
         Number(hint.match(/Max-Age=(\d+)/)![1]) > 1.8 * 86400,
@@ -686,10 +758,7 @@ test('production public pages and legacy-domain redirects preserve safe links wi
     assert.ok(!invalid.headers.get('location'));
     assert.equal((await request('/suscripcion-demo', legacy, 'POST', '{}')).status, 404);
   } finally {
-    if (child.exitCode === null && child.signalCode === null) {
-      child.kill('SIGTERM');
-      await new Promise((r) => child.once('exit', r));
-    }
+    await stop();
   }
 });
 
@@ -715,4 +784,16 @@ test('emergency rollback and signed-policy resume preserve rows and are executab
     await client.query(await readFile('scripts/security/resume-0019.sql', 'utf8'));
     client.release();
   }
+});
+
+test('HTTP LOGIN enforces individual authority, preimage proof and ten concurrent groups', async () => {
+  await exerciseActorBoundary(ownerPool, testUrl!);
+});
+
+test('service LOGINs reject foreign capabilities, forged credentials and group role escalation', async () => {
+  await exerciseServiceBoundary(ownerPool, testUrl!, TEST_CONTEXT_SECRET);
+});
+
+test('a disposable backup restores tasks/history and preserves the HTTP boundary', async () => {
+  await exerciseRestore(ownerPool, testUrl!);
 });

@@ -1,9 +1,9 @@
-importScripts('./offline-store.js?v=6');
+importScripts('./offline-store.js?v=7');
 const GROUP_BASE = location.pathname.match(/^\/g\/[a-f0-9]{32}(?=\/|$)/)?.[0] || '';
 const CACHE_FAMILY = GROUP_BASE
   ? 'bandarlog-static-' + GROUP_BASE.split('/')[2] + '-'
   : 'bandarlog-static-';
-const CACHE = CACHE_FAMILY + 'v8';
+const CACHE = CACHE_FAMILY + 'v9';
 // Keep the legacy install on its original origin and IndexedDB namespace.
 const SHELL = GROUP_BASE ? GROUP_BASE + '/' : '/acceso';
 self.addEventListener('install', (e) => {
@@ -23,13 +23,14 @@ self.addEventListener('install', (e) => {
         '/icon-192.png',
         '/banana-loading.svg',
         '/offline-store.js',
-        GROUP_BASE + '/offline-store.js?v=6',
+        GROUP_BASE + '/offline-store.js?v=7',
         GROUP_BASE + '/manifest.webmanifest',
       ]);
       const shell = await fetch(SHELL, { cache: 'reload' });
       if (shell.ok) {
         const snapshot = await shell.clone().text();
-        if (snapshot.includes('id="root"')) await cache.put(SHELL, shell.clone());
+        if (shell.headers.get('X-Bandarlog-Public-Shell') === '1' && snapshot.includes('id="root"'))
+          await cache.put(SHELL, shell.clone());
         const html = await shell.text();
         const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[^" ]+)"/g)].map(
           (match) => match[1],
@@ -73,6 +74,7 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (
     url.origin !== location.origin ||
+    ['token', 'ticket', 'proof', 'code', 'state'].some((k) => url.searchParams.has(k)) ||
     /^\/(?:g\/[a-f0-9]{32}\/)?api(?:\/|$)/.test(url.pathname) ||
     [
       '/presentacion',
@@ -109,7 +111,10 @@ self.addEventListener('fetch', (e) => {
         .then(async (response) => {
           if (response.ok) {
             const cache = await caches.open(CACHE);
-            if ((await response.clone().text()).includes('id="root"'))
+            if (
+              response.headers.get('X-Bandarlog-Public-Shell') === '1' &&
+              (await response.clone().text()).includes('id="root"')
+            )
               await cache.put(SHELL, response.clone());
           }
           return response;

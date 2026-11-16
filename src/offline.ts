@@ -6,9 +6,10 @@ type Store = {
   allowed(path: string, method: string): boolean;
   flush(): Promise<void>;
   clear(): Promise<void>;
+  suspend(): Promise<void>;
   discard(): Promise<void>;
   retry(): Promise<void>;
-  status(): Promise<{ pending: number; error: string }>;
+  status(): Promise<{ pending: number; error: string; quarantined?: number }>;
 };
 const backend = (globalThis as typeof globalThis & { BandarlogOffline: Store }).BandarlogOffline;
 // Storage restrictions must not prevent normal online use. Queued writes still
@@ -19,6 +20,7 @@ export const offline: Store = {
   cached: (path) => backend.cached(path).catch(() => null),
   status: () => backend.status().catch(() => ({ pending: 0, error: '' })),
   clear: () => backend.clear().catch(() => {}),
+  suspend: () => (backend.suspend ? backend.suspend() : backend.clear()).catch(() => {}),
 };
 export async function clearOffline() {
   await offline.clear();

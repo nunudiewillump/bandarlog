@@ -1,10 +1,11 @@
+import type { PasskeyStatus } from './PasskeyGate';
 import { SnapshotRefresh, covers } from './snapshot-refresh';
 import { snapshotRevision } from './api';
 import { PagedActivity } from './PagedActivity';
 import { groupBasePath, groupChannel } from './group-location';
 import { readNavigation, navigationURL } from './navigation';
 import { useTutorial, TutorialInvitation, TutorialMission } from './Tutorial';
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 import { AnimatedCounter } from './AnimatedCounter';
 import {
   MobileHome,
@@ -108,6 +109,7 @@ const initial: Data = {
   activity: [],
   invitations: [],
 };
+const PasskeyGate = lazy(() => import('./PasskeyGate').then((m) => ({ default: m.PasskeyGate })));
 const icons: Record<string, typeof Tent> = {
   chef: ChefHat,
   tent: Tent,
@@ -177,6 +179,9 @@ function App() {
     [pendingTasks, setPendingTasks] = useState(new Set<string>()),
     [undo, setUndo] = useState<{ task: Task; expected: string; last: boolean } | null>(null),
     [outbox, setOutbox] = useState<any[]>([]);
+  const [passkeysEnabled, setPasskeysEnabled] = useState(false);
+  const [passkeyStatus, setPasskeyStatus] = useState<PasskeyStatus | null>(null);
+  const [reauthNotice, setReauthNotice] = useState('');
   const tutorial = useTutorial(me);
   const [restartTutorial, setRestartTutorial] = useState(false);
   const dataRef = useRef(data),
@@ -269,6 +274,22 @@ function App() {
   const snapshots = useRef<SnapshotRefresh<Data> | null>(null);
   if (!snapshots.current) snapshots.current = new SnapshotRefresh(fetchSnapshot, snapshotRevision);
   const load = (revision?: string) => snapshots.current!.read(revision);
+  useEffect(() => {
+    const reset = () => {
+      loadSequence.current++;
+      snapshots.current = new SnapshotRefresh(fetchSnapshot, snapshotRevision);
+      setPasskeyStatus(null);
+      setReauthNotice('');
+      setLoginToken('');
+      setCSRF('');
+      setMe(null);
+      setData(initial);
+      setCelebrations([]);
+    };
+    window.addEventListener('bandarlog:session-ended', reset);
+    return () => window.removeEventListener('bandarlog:session-ended', reset);
+  }, []);
+
   useEffect(() => {
     if (!me) return;
     let active = true;
@@ -373,10 +394,13 @@ function App() {
       if (healthResult.status === 'rejected') throw healthResult.reason;
       if (sessionResult.status === 'rejected') throw sessionResult.reason;
       if (dataResult.status === 'rejected') throw dataResult.reason;
+      setPasskeyStatus(null);
+      setReauthNotice('');
       const session = sessionResult.value;
       const visible = dataResult.value.users.find((user) => user.id === session.user.id);
       setMe({ ...session.user, ...visible });
       setDevelopment(session.development);
+      setPasskeysEnabled(Boolean(session.passkeysEnabled));
       const route = readNavigation(location.search);
       setView(route.view);
       setProject(route.project);
@@ -391,7 +415,27 @@ function App() {
         history.replaceState({}, '', url);
       }
     } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
+      if (error instanceof ApiError && error.status === 428) {
+        try {
+          const status: PasskeyStatus = await api('/auth/passkeys/status');
+          setMe(null);
+          setData(initial);
+          setCSRF(status.csrf || '');
+          if (status.required && !status.reauthenticate) {
+            setPasskeyStatus(status);
+            setReauthNotice('');
+          } else {
+            setPasskeyStatus(null);
+            setReauthNotice(
+              'Vuelve a entrar con tu correo o Google para activar la protección con passkey.',
+            );
+          }
+        } catch {
+          setPasskeyStatus(null);
+          setMe(null);
+          setCSRF('');
+        }
+      } else if (error instanceof ApiError && error.status === 401) {
         setMe(null);
         setCSRF('');
       } else {
@@ -1287,9 +1331,16 @@ function App() {
     history.replaceState({}, '', next);
     await bootup();
   }
+  if (passkeyStatus && !invitationAccess)
+    return (
+      <Suspense fallback={<BananaLoader label="Preparando acceso seguro…" />}>
+        <PasskeyGate status={passkeyStatus} onDone={authenticated} />
+      </Suspense>
+    );
   if (!me || invitationAccess)
     return (
       <AuthScreen
+        notice={reauthNotice}
         token={loginToken}
         development={development}
         onAuthenticated={authenticated}
@@ -1482,16 +1533,33 @@ function App() {
               <AdminSetupGuide
                 data={data}
                 onSettings={() => navigate('profile')}
-                onProject={() => { navigate('projects'); setModal('project'); }}
-                onCommission={() => { navigate('commissions'); setModal('commission'); }}
-                onInvite={() => { navigate('people'); setModal('invite'); }}
-                onTask={() => { navigate('tasks'); setModal('task'); }}
-                onPractice={() => { setRestartTutorial(false); navigate('tutorial'); }}
-                onFinish={() => run(async () => {
-                  await api('/profile', 'PATCH', { adminGuideCompleted: true });
-                  const session = await api('/me');
-                  setMe(session.user);
-                }, 'Guía de administración guardada')}
+                onProject={() => {
+                  navigate('projects');
+                  setModal('project');
+                }}
+                onCommission={() => {
+                  navigate('commissions');
+                  setModal('commission');
+                }}
+                onInvite={() => {
+                  navigate('people');
+                  setModal('invite');
+                }}
+                onTask={() => {
+                  navigate('tasks');
+                  setModal('task');
+                }}
+                onPractice={() => {
+                  setRestartTutorial(false);
+                  navigate('tutorial');
+                }}
+                onFinish={() =>
+                  run(async () => {
+                    await api('/profile', 'PATCH', { adminGuideCompleted: true });
+                    const session = await api('/me');
+                    setMe(session.user);
+                  }, 'Guía de administración guardada')
+                }
               />
             )}
             {view === 'home' && !showAdminGuide && (
@@ -2079,24 +2147,36 @@ function App() {
                   </div>
                 </div>
                 <ProfilePanel
+                  passkeysEnabled={passkeysEnabled}
                   group={data.group}
                   user={me}
                   onReplayTutorial={() => {
                     setRestartTutorial(true);
                     navigate('tutorial');
                   }}
-                  onReplayAdminGuide={foundingAdmin ? () => {
-                    void run(async () => {
-                      await api('/profile', 'PATCH', { adminGuideCompleted: false });
-                      const session = await api('/me');
-                      setMe(session.user);
-                      navigate('home');
-                    }, 'Guía de administración recuperada');
-                  } : undefined}
+                  onReplayAdminGuide={
+                    foundingAdmin
+                      ? () => {
+                          void run(async () => {
+                            await api('/profile', 'PATCH', { adminGuideCompleted: false });
+                            const session = await api('/me');
+                            setMe(session.user);
+                            navigate('home');
+                          }, 'Guía de administración recuperada');
+                        }
+                      : undefined
+                  }
                   busy={busy}
                   run={run}
                   onSaved={setMe}
                   onLogout={async () => {
+                    if (
+                      (await offline.status()).pending &&
+                      !window.confirm(
+                        'Hay cambios sin sincronizar. Puedes cancelar y sincronizarlos antes de salir. ¿Cerrar sesión y descartar los cambios de este dispositivo?',
+                      )
+                    )
+                      return;
                     const subscription = await (
                       await navigator.serviceWorker?.getRegistration()
                     )?.pushManager.getSubscription();

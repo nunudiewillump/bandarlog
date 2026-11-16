@@ -1,3 +1,5 @@
+import { PasskeySettings } from './PasskeySettings';
+import { SessionSettings } from './SessionSettings';
 import { useRef, useState } from 'react';
 import { ChevronRight, LogOut, Pencil } from 'lucide-react';
 import type { User, ScoutGroup } from './types';
@@ -8,6 +10,7 @@ import { TutorialStats } from './TutorialStats';
 import { DeviceNotifications } from './DeviceNotifications';
 
 type Props = {
+  passkeysEnabled?: boolean;
   group?: ScoutGroup;
   onReplayTutorial?: () => void;
   onReplayAdminGuide?: () => void;
@@ -52,6 +55,7 @@ function Neckerchief({ group }: { group?: ScoutGroup }) {
   );
 }
 export function ProfilePanel({
+  passkeysEnabled = false,
   group,
   user,
   busy,
@@ -259,12 +263,16 @@ export function ProfilePanel({
           <button type="button" className="secondary" onClick={onReplayTutorial}>
             Repetir tutorial
           </button>
-          {onReplayAdminGuide && <button type="button" className="secondary" onClick={onReplayAdminGuide}>
-            Repetir guía de administración
-          </button>}
+          {onReplayAdminGuide && (
+            <button type="button" className="secondary" onClick={onReplayAdminGuide}>
+              Repetir guía de administración
+            </button>
+          )}
           {user.role === 'admin' && <TutorialStats />}
         </details>
       )}
+      <SessionSettings />
+      {passkeysEnabled && <PasskeySettings />}
       <button
         type="button"
         className="text-link profile-logout"

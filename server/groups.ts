@@ -1,3 +1,4 @@
+import { component } from './components.js';
 import { Router, urlencoded, type Request, type Response } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { createHash, randomBytes } from 'node:crypto';
@@ -111,10 +112,12 @@ export function groupRegistrationRoutes(
         ? q.query.token
         : '';
     try {
-      const request = token ? await platform.registration(hash(token)) : null;
+      const request = token
+        ? await platform.registration(component() === 'identity' ? token : hash(token))
+        : null;
       r.set({
         'Cache-Control': 'no-store',
-        'Referrer-Policy': 'same-origin',
+        'Referrer-Policy': 'no-referrer',
         'X-Robots-Tag': 'noindex,nofollow',
       })
         .status(request ? 200 : 404)
@@ -133,12 +136,14 @@ export function groupRegistrationRoutes(
       .safeParse(q.body);
     if (!input.success) return r.status(400).type('text').send('Solicitud no válida.');
     try {
-      const request = await platform.registration(hash(input.data.token));
+      const request = await platform.registration(
+        component() === 'identity' ? input.data.token : hash(input.data.token),
+      );
       const activation = randomBytes(32).toString('hex');
       const result =
         request &&
         (await platform.reviewGroup(
-          hash(input.data.token),
+          component() === 'identity' ? input.data.token : hash(input.data.token),
           input.data.decision,
           hash(activation),
           input.data.decision === 'reject'
@@ -177,7 +182,7 @@ export function groupRegistrationRoutes(
       typeof q.query.token === 'string' && /^[a-f0-9]{64}$/.test(q.query.token)
         ? q.query.token
         : '';
-    r.set({ 'Cache-Control': 'no-store', 'Referrer-Policy': 'same-origin' })
+    r.set({ 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' })
       .type('html')
       .send(
         callbacks.render(
@@ -199,7 +204,11 @@ export function groupRegistrationRoutes(
         raw: randomBytes(32).toString('hex'),
         csrf: randomBytes(32).toString('hex'),
       };
-      const group = await platform.activateGroup(hash(raw), hash(session.raw), session.csrf);
+      const group = await platform.activateGroup(
+        component() === 'identity' ? raw : hash(raw),
+        hash(session.raw),
+        session.csrf,
+      );
       const result = group ? { group, session } : null;
       if (!result)
         return r

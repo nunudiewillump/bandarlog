@@ -1,3 +1,5 @@
+import { component } from './components.js';
+import { createHmac } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { groupContext, type Group } from './group-context.js';
 
@@ -35,6 +37,10 @@ export function globalOperations(connection: any, scoped: any) {
     return result.rows.map((r: any) => camel(r.value));
   }
   return {
+    registerDispatchKey: (id: string, fingerprint: string) =>
+      one(sql`select bandarlog_api.register_dispatch_key(${id},${fingerprint}) as value`),
+    dispatchKeyFingerprint: (id: string): Promise<string | null> =>
+      one(sql`select bandarlog_api.dispatch_key_fingerprint(${id}) as value`),
     resolveGroup: (key: string): Promise<Group | null> =>
       one(sql`select bandarlog_api.resolve_group(${key}) as value`),
     oauthGroup: (hash: string): Promise<Group | null> =>
@@ -52,13 +58,27 @@ export function globalOperations(connection: any, scoped: any) {
         sql`select bandarlog_api.update_group(${actor},${input.name},${input.colorPrimary},${input.colorSecondary})`,
       );
     },
+    publicPushKey: (): Promise<string | null> =>
+      one(sql`select bandarlog_api.public_push_key() as value`),
     pushKeys: (publicKey: string, privateKey: string) =>
       one(sql`select bandarlog_api.push_keys(${publicKey},${privateKey}) as value`),
     requestGroup: (hash: string, input: unknown, mail: unknown) =>
       one(
-        sql`select bandarlog_api.request_group(${hash},${JSON.stringify(input)}::jsonb,${JSON.stringify(mail)}::jsonb) as value`,
+        component() === 'identity'
+          ? sql`select bandarlog_api.request_group_proof(${hash},${JSON.stringify(input)}::jsonb,${JSON.stringify(mail)}::jsonb,${createHmac(
+              'sha256',
+              Buffer.from(process.env.GROUP_CONTEXT_SECRET!, 'hex'),
+            )
+              .update('registration\n' + hash)
+              .digest('hex')}) as value`
+          : sql`select bandarlog_api.request_group(${hash},${JSON.stringify(input)}::jsonb,${JSON.stringify(mail)}::jsonb) as value`,
       ),
-    registration: (hash: string) => one(sql`select bandarlog_api.registration(${hash}) as value`),
+    registration: (hash: string) =>
+      one(
+        component() === 'identity'
+          ? sql`select bandarlog_api.registration_proof(${hash}) as value`
+          : sql`select bandarlog_api.registration(${hash}) as value`,
+      ),
     reviewGroup: (
       hash: string,
       decision: string,
@@ -66,17 +86,36 @@ export function globalOperations(connection: any, scoped: any) {
       mail: unknown,
     ): Promise<boolean> =>
       one(
-        sql`select bandarlog_api.review_group(${hash},${decision},${activation},${JSON.stringify(mail)}::jsonb) as value`,
+        component() === 'identity'
+          ? sql`select bandarlog_api.review_group_proof(${hash},${decision},${activation},${JSON.stringify(mail)}::jsonb) as value`
+          : sql`select bandarlog_api.review_group(${hash},${decision},${activation},${JSON.stringify(mail)}::jsonb) as value`,
       ),
     activateGroup: (hash: string, session: string, csrf: string): Promise<Group | null> =>
-      one(sql`select bandarlog_api.activate_group(${hash},${session},${csrf}) as value`),
-    claimPlatformMail: () => many(sql`select bandarlog_api.claim_platform_mail() as value`),
-    finishPlatformMail: (id: string, result: unknown) =>
       one(
-        sql`select bandarlog_api.finish_platform_mail(${id},${JSON.stringify(result)}::jsonb) as value`,
+        component() === 'identity'
+          ? sql`select bandarlog_api.activate_group_proof(${hash},${session},${csrf}) as value`
+          : sql`select bandarlog_api.activate_group(${hash},${session},${csrf}) as value`,
+      ),
+    refreshPlatformLease: (id: string, lease: string): Promise<boolean> =>
+      one(sql`select bandarlog_api.refresh_platform_lease(${id},${lease}) as value`),
+    claimPlatformMail: () =>
+      many(
+        component() === 'delivery'
+          ? sql`select bandarlog_api.claim_platform_mail_v2() as value`
+          : sql`select bandarlog_api.claim_platform_mail() as value`,
+      ),
+    finishPlatformMail: (id: string, result: unknown, lease?: string) =>
+      one(
+        component() === 'delivery'
+          ? sql`select bandarlog_api.finish_platform_mail_v2(${id},${lease},${JSON.stringify(result)}::jsonb) as value`
+          : sql`select bandarlog_api.finish_platform_mail(${id},${JSON.stringify(result)}::jsonb) as value`,
       ),
     platformNext: (): Promise<string | null> =>
-      one(sql`select bandarlog_api.platform_next() as value`),
+      one(
+        component() === 'delivery'
+          ? sql`select bandarlog_api.platform_next_v2() as value`
+          : sql`select bandarlog_api.platform_next() as value`,
+      ),
     health: () => connection.execute(sql`select 1`),
   };
 }

@@ -1,3 +1,31 @@
+import {
+  sessionBearer,
+  modernSession,
+  sessionCookieName,
+  googleLinkCookieName,
+  googleBrowserCookieName,
+} from './session-cookie.js';
+import type { Group } from './group-context.js';
+import type { Database } from './db.js';
+import type { ArtworkTheme } from '../shared/scout-catalog.js';
+type MailRecipient = Pick<
+  typeof s.users.$inferSelect,
+  'id' | 'name' | 'email' | 'disabledAt' | 'preferences'
+>;
+type TaskMailContext = {
+  rows: { user: MailRecipient }[];
+  commission:
+    Pick<typeof s.commissions.$inferSelect, 'id' | 'name' | 'projectId' | 'deletedAt'> | undefined;
+  project: Pick<typeof s.projects.$inferSelect, 'name'> | undefined;
+};
+import { passkeyRoutes } from './passkeys.js';
+import { identityProof } from './identity-proof.js';
+import { contentSecurityPolicy, sensitiveNavigation } from './http-security.js';
+import { component } from './components.js';
+import { sessionContext } from './session-context.js';
+import { identityProxy, identityPath } from './identity-proxy.js';
+import { queuedContent, deliveryContent } from './dispatch-envelope.js';
+import { wakeDelivery } from './delivery-wake.js';
 import { pendingPushWork } from './push-work.js';
 import { googleReturnPage, GOOGLE_RETURN_LIFETIME } from './google-return.js';
 import { IdleJobs, nextMadridMidnight } from './idle-jobs.js';
@@ -7,15 +35,15 @@ import { measureRequests, measureJob, flushMetrics } from './metrics.js';
 import express from 'express';
 import { readFile } from 'node:fs/promises';
 import { publicSite, renderPublicForm, renderPublicHome } from './public-site.js';
-import { ENTRY_COOKIE, requestCookie, rememberEntry, rememberedEntry } from './remembered-entry.js';
-import { publicInfo } from '../shared/public-info.js';
 import {
-  groupContext,
-  groupPath,
-  groupUrl,
-  canonicalGroupPath,
-  type Group,
-} from './group-context.js';
+  ENTRY_COOKIE,
+  requestCookie,
+  rememberEntry,
+  rememberedEntry,
+  entryMarker,
+  clearEntry,
+} from './remembered-entry.js';
+import { groupContext, groupPath, groupUrl, canonicalGroupPath } from './group-context.js';
 import { groupRegistrationRoutes, groupResolver, groupColor } from './groups.js';
 import {
   tutorialCommand,
@@ -28,11 +56,11 @@ import {
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import { randomBytes, randomInt, createHash, randomUUID } from 'node:crypto';
-import { eq, and, inArray, sql, getTableColumns } from 'drizzle-orm';
+import { eq, and, inArray, sql, getTableColumns, getTableName } from 'drizzle-orm';
 import { z } from 'zod';
 import { createMailTransport } from './mail.js';
 import { mailFailure, MailDeliveryError } from './resend-mail.js';
-import { connect, localPlatformPreview, type Database } from './db.js';
+import { connect, localPlatformPreview } from './db.js';
 import * as s from './schema.js';
 import { validateEnvironment } from './config.js';
 import { preferenceSchema, preferences, reminderEvents } from './preferences.js';
@@ -43,7 +71,6 @@ import {
   projectArtworkTheme,
   hasArtworkAssociation,
   selectArtwork,
-  type ArtworkTheme,
 } from '../shared/scout-catalog.js';
 import { normalizePhoto } from './photos.js';
 import { checklistChangeSchema, changeChecklist, ChecklistError } from './task-checklist.js';
@@ -55,6 +82,7 @@ import { projectSummaries } from './project-summaries.js';
 import { projectTypeInput } from './project-input.js';
 import {
   codeVerifier,
+  verifyCode,
   codeRequestId,
   equalSecret,
   sessionDeadline,
@@ -65,17 +93,21 @@ import {
   SESSION_ABSOLUTE,
   SESSION_RENEW_INTERVAL,
 } from './auth-security.js';
+const mode = component();
+const runsJobs = mode === 'delivery' || mode === 'development';
+const jobsPaused = mode === 'delivery' && process.env.DELIVERY_PAUSED === '1';
 const { production: prod, appUrl, legacyOrigins } = validateEnvironment();
 const { db, global: platform, close } = await connect();
-const legacyGroup = (await platform.resolveGroup('legacy'))!;
+const legacyGroup = await platform.resolveGroup('legacy');
 if (!legacyGroup) throw Error('Ejecuta las migraciones de mantenimiento antes de arrancar.');
 const site = express();
 site.disable('x-powered-by');
-// Start before groupResolver so its capability query belongs to the request.
+if (prod) site.set('trust proxy', 1);
+site.use(sensitiveNavigation);
 site.use((q, r, next) =>
   /^(?:\/g\/[^/]+)?\/api(?:\/|$)/.test(q.path) ? measureRequests(q, r, next) : next(),
 );
-site.use(helmet({ contentSecurityPolicy: prod ? undefined : false }));
+site.use(helmet({ contentSecurityPolicy: prod ? contentSecurityPolicy : false }));
 site.use((q, r, next) => {
   const oldHost = prod && legacyOrigins.includes('https://' + (q.get('host') || '').toLowerCase());
   const publicRoute = [
@@ -93,7 +125,7 @@ site.use((q, r, next) => {
   const anonymousHome =
     q.path === '/' &&
     !requestCookie(q.headers.cookie, 'bandarlog') &&
-    !requestCookie(q.headers.cookie, ENTRY_COOKIE);
+    !entryMarker(q.headers.cookie);
   if (
     oldHost &&
     ['GET', 'HEAD'].includes(q.method) &&
@@ -109,26 +141,65 @@ function allowedOrigin(q: express.Request) {
   return (
     !origin ||
     origin === appUrl ||
-    (groupContext.getStore()?.id === legacyGroup.id &&
+    (groupContext.getStore()!?.id === legacyGroup!.id &&
       legacyOrigins.includes(origin) &&
-      origin === 'https://' + (q.get('host') || '').toLowerCase())
+      origin ===
+        'https://' +
+          (
+            (mode === 'identity' ? q.get('X-Bandarlog-Public-Host') : void 0) ||
+            q.get('host') ||
+            ''
+          ).toLowerCase())
   );
 }
+if (mode === 'http') site.use(...identityProxy(process.env.IDENTITY_URL!));
+if (mode === 'identity')
+  site.use((q, r, next) =>
+    identityPath(q.path) || ['/api/live', '/api/health'].includes(q.path)
+      ? next()
+      : r.sendStatus(404),
+  );
+if (mode === 'delivery') site.use('/internal/wake', express.json({ limit: '2kb' }));
+if (mode === 'delivery')
+  site.use(async (q, r, next) => {
+    if (q.method === 'POST' && q.path === '/internal/wake') {
+      if (!equalSecret(q.get('Authorization') || '', 'Bearer ' + process.env.DELIVERY_WAKE_TOKEN))
+        return r.sendStatus(403);
+      if (jobsPaused) return r.sendStatus(202);
+      if (q.body?.group !== void 0) {
+        if (typeof q.body.group !== 'string' || !/^[a-f0-9]{32}$/.test(q.body.group))
+          return r.sendStatus(400);
+        const group = await platform.resolveGroup(q.body.group);
+        if (!group) return r.sendStatus(404);
+        deliveryJobs.schedule(group.id, group, Date.now() + 1e3);
+        reminderJobs.schedule(group.id, group, Date.now() + 15 * 60000);
+      } else platformJobs.schedule('platform', void 0, Date.now() + 1e3);
+      return r.sendStatus(202);
+    }
+    if (['/api/live', '/api/health'].includes(q.path)) return next();
+    r.sendStatus(404);
+  });
 site.use(publicSite(appUrl));
-const push = await pushService(db, appUrl, undefined, undefined, platform.pushKeys);
+const push = runsJobs
+  ? await pushService(db, appUrl, void 0, void 0, platform.pushKeys)
+  : {
+      publicKey: await platform.publicPushKey(),
+      send: async (..._args: unknown[]) => {
+        throw Error('Envío fuera del componente emisor.');
+      },
+    };
 const app = express();
 app.disable('x-powered-by');
-
-const liveViews = new Map<express.Response, string>();
-// Bounded process-local hints. Eviction/restart changes the epoch, forcing reconciliation.
-const liveRevisions = new Map<string, { epoch: string; value: number }>();
+app.use((q, _r, n) => sessionContext.run(sessionBearer(q.headers.cookie) || '', n));
+const liveViews = new Map<express.Response, { group: Group; token: string }>();
+const liveRevisions = new Map();
 const groupRevision = () => {
-  const id = groupContext.getStore()!.id;
-  let revision = liveRevisions.get(id);
+  const id2 = groupContext.getStore()!.id;
+  let revision = liveRevisions.get(id2);
   if (!revision) {
     if (liveRevisions.size >= 512) liveRevisions.delete(liveRevisions.keys().next().value!);
     revision = { epoch: randomUUID(), value: 0 };
-    liveRevisions.set(id, revision);
+    liveRevisions.set(id2, revision);
   }
   return revision;
 };
@@ -138,24 +209,51 @@ const dataRevision = () => {
 };
 app.use('/api', (q, r, next) => {
   if (q.path === '/tutorial' || q.path.startsWith('/tutorial/')) return next();
-  const changedGroupId = groupContext.getStore()?.id;
+  const changedGroupId = groupContext.getStore()!?.id;
   if (!['GET', 'HEAD'].includes(q.method) || q.path === '/auth/google/callback')
     r.on('finish', () => {
       if (r.statusCode < 400) {
-        const group = groupContext.getStore();
-        if (group) reminderJobs.schedule(group.id, group, Date.now() + 15 * 60000);
+        const group = groupContext.getStore()!;
+        if (group && runsJobs) reminderJobs.schedule(group.id, group, Date.now() + 10 * 6e4);
         groupRevision().value++;
         const revision = dataRevision();
-        for (const [view, groupId] of liveViews)
-          if (groupId === changedGroupId)
-            view.write('event: changed\ndata: ' + JSON.stringify({ revision }) + '\n\n');
+        for (const [view, subscriber] of liveViews) {
+          if (subscriber.group.id !== changedGroupId) continue;
+          void groupContext.run(subscriber.group, () =>
+            sessionContext.run(subscriber.token, async () => {
+              try {
+                const valid =
+                  mode === 'http'
+                    ? (await db.execute(sql`select bandarlog_api.actor_id()`)).rows.length
+                    : (
+                        await db
+                          .select({ id: s.sessions.id })
+                          .from(s.sessions)
+                          .innerJoin(s.users, eq(s.users.id, s.sessions.userId))
+                          .where(
+                            and(
+                              eq(s.sessions.id, hash(subscriber.token)),
+                              sql`${s.sessions.expires}>now()`,
+                              sql`${s.sessions.absoluteExpiresAt}>now()`,
+                              sql`${s.users.disabledAt} is null`,
+                            ),
+                          )
+                      ).length;
+                if (!valid) throw Error('revoked');
+                if (!view.writableEnded)
+                  view.write('event: changed\ndata: ' + JSON.stringify({ revision }) + '\n\n');
+              } catch {
+                liveViews.delete(view);
+                view.end();
+              }
+            }),
+          );
+        }
       }
     });
   next();
 });
-
-app.use(helmet({ contentSecurityPolicy: prod ? undefined : false }));
-// Only SPA entry and OAuth documents need to retain an explicitly opened popup.
+app.use(helmet({ contentSecurityPolicy: prod ? contentSecurityPolicy : false }));
 app.use((q, r, next) => {
   if (
     q.method === 'GET' &&
@@ -164,7 +262,6 @@ app.use((q, r, next) => {
     r.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
   next();
 });
-
 app.use(express.json({ limit: '256kb' }));
 app.use('/api', (_q, r, n) => {
   r.set('Cache-Control', 'no-store');
@@ -178,7 +275,7 @@ app.use('/api/auth', (q, r, n) => {
 app.use(
   '/api/auth',
   rateLimit({
-    windowMs: 15 * 60000,
+    windowMs: 15 * 6e4,
     limit: 30,
     skip: (q) => q.path === '/config',
     standardHeaders: 'draft-8',
@@ -214,36 +311,56 @@ const commissionRole = z
     value === 'coordinator' ? 'responsible' : value === 'member' ? 'scouter' : value,
   );
 const email = z.email().transform((v) => v.toLowerCase());
-const mailTransport = createMailTransport();
-async function invitationLink(recipient: string, invitationId: string, expires: string, tx: any) {
-  // Hashing the complete token binds its invitation ID to the secret without a schema change.
+const mailTransport = runsJobs ? createMailTransport() : null;
+const mailEnabled = mode !== 'development' || Boolean(mailTransport);
+const userProjection = {
+  ...getTableColumns(s.users),
+  preferences: mode === 'http' ? sql`'{}'` : s.users.preferences,
+};
+async function issueInsert(table: any, values: Record<string, unknown>, tx?: any, ignore = false) {
+  const write = async (connection: any) => {
+    await identityProof(connection, getTableName(table), values);
+    const insert = connection.insert(table).values(values);
+    return ignore ? insert.onConflictDoNothing() : insert;
+  };
+  return tx ? write(tx) : db.transaction(write);
+}
+async function invitationLink(recipient: string, invitationId: string, expires: string, tx?: any) {
   const token = `invite.${invitationId}.${secret()}`;
-  await tx.insert(s.tokens).values({ id: hash(token), email: recipient, expires });
+  if (mode === 'http') throw Error('La emisión de credenciales pertenece al emisor.');
+  else
+    await issueInsert(
+      s.tokens,
+      {
+        id: hash(token),
+        email: recipient,
+        expires: new Date(Math.min(+new Date(expires), Date.now() + CODE_LIFETIME)).toISOString(),
+      },
+      tx,
+    );
   const url = new URL(groupUrl(appUrl));
   url.searchParams.set('token', token);
   return url.toString();
 }
 async function queue(
-  email: string,
+  email2: string,
   subject: string,
   body: string,
   dedupe: string = id(),
   tx: any = db,
   html?: string,
 ) {
-  await tx
-    .insert(s.notifications)
-    .values({
-      id: id(),
-      dedupe,
-      email,
-      subject,
-      body,
-      html: html || renderMail({ title: subject, body, appUrl }),
-      status: mailTransport ? 'pending' : 'preview',
-      createdAt: now(),
-    })
-    .onConflictDoNothing();
+  const values = {
+    id: id(),
+    dedupe,
+    email: email2,
+    ...queuedContent({ subject, body, html: html || renderMail({ title: subject, body, appUrl }) }),
+    status: mode === 'development' ? (mailEnabled ? 'pending' : 'preview') : 'pending_v2',
+    createdAt: now(),
+  };
+  if (mode === 'identity')
+    await issueInsert(s.notifications, values, tx === db ? void 0 : tx, true);
+  else await tx.insert(s.notifications).values(values).onConflictDoNothing();
 }
 function platformMail(subject: string, body: string) {
   const link = body
@@ -254,24 +371,26 @@ function platformMail(subject: string, body: string) {
         line.startsWith(appUrl + '/confirmar-grupo?token='),
     );
   return {
-    subject,
-    body,
-    html: renderMail({
-      title: subject,
+    ...queuedContent({
+      subject,
       body,
-      appUrl,
-      actions: [
-        {
-          label: link?.includes('/aprobar-grupo')
-            ? 'Revisar solicitud'
-            : link
-              ? 'Activar grupo'
-              : 'Ver Bandarlog',
-          url: link || appUrl + '/',
-        },
-      ],
+      html: renderMail({
+        title: subject,
+        body,
+        appUrl,
+        actions: [
+          {
+            label: link?.includes('/aprobar-grupo')
+              ? 'Revisar solicitud'
+              : link
+                ? 'Activar grupo'
+                : 'Ver Bandarlog',
+            url: link || appUrl + '/',
+          },
+        ],
+      }),
     }),
-    status: mailTransport ? 'pending' : 'preview',
+    status: mode === 'development' ? (mailEnabled ? 'pending' : 'preview') : 'pending_v2',
   };
 }
 let platformSending = false;
@@ -281,31 +400,36 @@ async function deliverPlatformNow() {
   try {
     const pending = await platform.claimPlatformMail();
     for (const m of pending) {
+      if (mode === 'delivery' && !(await platform.refreshPlatformLease(m.id, m.leaseId))) continue;
       try {
         const sent = await mailTransport.sendMail({
           from: process.env.MAIL_FROM,
           to: m.email,
-          subject: m.subject,
-          text: m.body,
-          html: m.html,
+          subject: deliveryContent(m).subject,
+          text: deliveryContent(m).body,
+          html: deliveryContent(m).html,
           idempotencyKey: 'bandarlog-platform/' + m.id,
         });
-        await platform.finishPlatformMail(m.id, {
-          status: 'sent',
-          sentAt: now(),
-          nextAttemptAt: null,
-          providerMessageId: typeof sent.messageId === 'string' ? sent.messageId : null,
-        });
+        await platform.finishPlatformMail(
+          m.id,
+          {
+            status: 'sent',
+            sentAt: now(),
+            nextAttemptAt: null,
+            providerMessageId: typeof sent.messageId === 'string' ? sent.messageId : null,
+          },
+          m.leaseId,
+        );
         if (mailTransport.kind === 'resend')
           console.info({ event: 'mail.accepted', provider: 'resend', messageId: sent.messageId });
       } catch (error) {
         const failure = mailFailure(error, Number(m.attempts) + 1);
-        await platform.finishPlatformMail(m.id, failure);
+        await platform.finishPlatformMail(m.id, failure, m.leaseId);
         if (mailTransport.kind === 'resend')
           console.error({
             event: 'mail.failed',
             provider: 'resend',
-            status: error instanceof MailDeliveryError ? error.statusCode : undefined,
+            status: error instanceof MailDeliveryError ? error.statusCode : void 0,
             retry: failure.status === 'pending',
           });
         if (error instanceof MailDeliveryError && error.statusCode === 429) break;
@@ -315,8 +439,8 @@ async function deliverPlatformNow() {
     platformSending = false;
   }
 }
-const sending = new Set<string>();
-const pushing = new Set<string>();
+const sending = new Set();
+const pushing = new Set();
 async function deliverPush() {
   const key = groupContext.getStore()!.id;
   if (pushing.has(key)) return;
@@ -350,9 +474,8 @@ async function deliverNow() {
       .from(s.notifications)
       .where(
         and(
-          eq(s.notifications.status, 'pending'),
+          sql`(${s.notifications.status} in ('pending','pending_v2') AND (${s.notifications.nextAttemptAt} is null or ${s.notifications.nextAttemptAt}<=now()) OR ${s.notifications.status}='sending' AND (${s.notifications.leaseUntil} is null or ${s.notifications.leaseUntil}<=now()))`,
           sql`${s.notifications.attempts}::integer < 5`,
-          sql`(${s.notifications.nextAttemptAt} is null or ${s.notifications.nextAttemptAt} <= now())`,
         ),
       )
       .limit(100);
@@ -360,22 +483,62 @@ async function deliverNow() {
       if (Number(m.attempts) >= 5) continue;
       const claimed = await db
         .update(s.notifications)
-        .set({ status: 'sending' })
-        .where(and(eq(s.notifications.id, m.id), eq(s.notifications.status, 'pending')))
+        .set({
+          status: 'sending',
+          leaseId: id(),
+          leaseUntil: new Date(Date.now() + 15 * 6e4).toISOString(),
+        })
+        .where(
+          and(
+            eq(s.notifications.id, m.id),
+            sql`(${s.notifications.status} in ('pending','pending_v2') AND (${s.notifications.nextAttemptAt} is null or ${s.notifications.nextAttemptAt}<=now()) OR ${s.notifications.status}='sending' AND (${s.notifications.leaseUntil} is null or ${s.notifications.leaseUntil}<=now()))`,
+          ),
+        )
         .returning();
       if (!claimed.length) continue;
+      const lease = claimed[0].leaseId!;
       try {
-        const snapshot = m.html || renderMail({ title: m.subject, body: m.body, appUrl });
-        if (!m.html)
+        if (m.body.startsWith('invitation-event-v1:')) {
+          const invitation = JSON.parse(m.body.slice('invitation-event-v1:'.length));
+          const token = `invite.${invitation.invitationId}.${secret()}`;
+          const url = new URL(groupUrl(appUrl));
+          url.searchParams.set('token', token);
+          const content2 = {
+            subject: m.subject,
+            body: `Hola ${invitation.name}. Acepta la invitación para entrar con ${m.email}.
+
+${url.toString()}
+
+El enlace caduca en 10 minutos. La invitación está disponible durante 7 días; después de caducar el enlace puedes solicitar un código de acceso.`,
+            html: '',
+          };
+          content2.html = renderMail({ title: content2.subject, body: content2.body, appUrl });
+          const sealed = queuedContent(content2);
+          const prepared = await db.execute(
+            sql`select bandarlog_api.prepare_invitation_delivery(${m.id},${lease},${hash(token)},${sealed.body}) as ok`,
+          );
+          if (!prepared.rows[0]?.ok) continue;
+          m.body = sealed.body;
+          m.html = '';
+        }
+        const content = m.body.startsWith('task-event-v1:')
+          ? (() => {
+              const v = JSON.parse(m.body.slice('task-event-v1:'.length));
+              return taskMessage(v.t, v.c, v.p, v.user, v.rows, v.subject, v.event);
+            })()
+          : deliveryContent(m);
+        const snapshot =
+          content.html || renderMail({ title: content.subject, body: content.body, appUrl });
+        if (!m.html && !m.body.startsWith('bandarlog-sealed-v1:'))
           await db
             .update(s.notifications)
             .set({ html: snapshot })
-            .where(eq(s.notifications.id, m.id));
+            .where(and(eq(s.notifications.id, m.id), eq(s.notifications.leaseId, lease)));
         const sent = await mailTransport.sendMail({
           from: process.env.MAIL_FROM,
           to: m.email,
-          subject: m.subject,
-          text: m.body,
+          subject: content.subject,
+          text: content.body,
           html: snapshot,
           idempotencyKey: 'bandarlog-notification/' + m.id,
           headers: { 'Message-ID': `<${m.id}@bandarlog.local>` },
@@ -384,21 +547,26 @@ async function deliverNow() {
           .update(s.notifications)
           .set({
             status: 'sent',
+            leaseId: null,
+            leaseUntil: null,
             sentAt: now(),
             nextAttemptAt: null,
             providerMessageId: typeof sent.messageId === 'string' ? sent.messageId : null,
           })
-          .where(eq(s.notifications.id, m.id));
+          .where(and(eq(s.notifications.id, m.id), eq(s.notifications.leaseId, lease)));
         if (mailTransport.kind === 'resend')
           console.info({ event: 'mail.accepted', provider: 'resend', messageId: sent.messageId });
       } catch (error) {
         const failure = mailFailure(error, Number(m.attempts) + 1);
-        await db.update(s.notifications).set(failure).where(eq(s.notifications.id, m.id));
+        await db
+          .update(s.notifications)
+          .set({ ...failure, leaseId: null, leaseUntil: null })
+          .where(and(eq(s.notifications.id, m.id), eq(s.notifications.leaseId, lease)));
         if (mailTransport.kind === 'resend')
           console.error({
             event: 'mail.failed',
             provider: 'resend',
-            status: error instanceof MailDeliveryError ? error.statusCode : undefined,
+            status: error instanceof MailDeliveryError ? error.statusCode : void 0,
             retry: failure.status === 'pending',
           });
         if (error instanceof MailDeliveryError && error.statusCode === 429) break;
@@ -408,9 +576,7 @@ async function deliverNow() {
     sending.delete(key);
   }
 }
-// Tokens are stored only as hashes. A GET never consumes a token or changes a task.
 async function health(_q: express.Request, r: express.Response) {
-  // This probe reads no tenant tables; avoid a tenant transaction and role setup.
   r.set('Cache-Control', 'no-store');
   await platform.health();
   r.json({
@@ -422,23 +588,41 @@ async function health(_q: express.Request, r: express.Response) {
 site.get('/api/live', (_q, r) => r.set('Cache-Control', 'no-store').json({ ok: true }));
 site.get('/api/health', health);
 app.get('/api/health', health);
+const authUserColumns = {
+  groupId: s.users.groupId,
+  id: s.users.id,
+  name: s.users.name,
+  email: s.users.email,
+  role: s.users.role,
+  disabledAt: s.users.disabledAt,
+};
 app.post('/api/auth/request', async (q, r) => {
   const input = parse(
     z.object({ email, task: z.string().max(100).optional(), action: statuses.optional() }),
     q.body,
   );
-  const [user] = await db.select().from(s.users).where(eq(s.users.email, input.email));
+  const [user] = await db
+    .select(authUserColumns)
+    .from(s.users)
+    .where(eq(s.users.email, input.email));
   const invites = await db
     .select()
     .from(s.invitations)
     .where(and(eq(s.invitations.email, input.email), eq(s.invitations.status, 'pending')));
-  if ((user && !user.disabledAt) || invites.some((i) => new Date(i.expires) > new Date())) {
+  if (
+    (user && !user.disabledAt) ||
+    invites.some((i: typeof s.invitations.$inferSelect) => new Date(i.expires) > new Date())
+  ) {
     const token = secret();
-    await db.insert(s.tokens).values({
-      id: hash(token),
-      email: input.email,
-      expires: new Date(Date.now() + 15 * 60000).toISOString(),
-    });
+    await issueInsert(
+      s.tokens,
+      {
+        id: hash(token),
+        email: input.email,
+        expires: new Date(Date.now() + 15 * 6e4).toISOString(),
+      },
+      void 0,
+    );
     const loginUrl = new URL(groupUrl(appUrl));
     loginUrl.searchParams.set('token', token);
     if (input.task) loginUrl.searchParams.set('task', input.task);
@@ -446,14 +630,15 @@ app.post('/api/auth/request', async (q, r) => {
     await queue(
       input.email,
       'Tu enlace de acceso a Bandarlog',
-      `Accede a Bandarlog. Este enlace caduca en 15 minutos y solo puede usarse una vez.\n${loginUrl}`,
+      `Accede a Bandarlog. Este enlace caduca en 10 minutos y solo puede usarse una vez.
+${loginUrl}`,
     );
     void deliver();
   }
   r.json({ message: 'Si tienes acceso, recibirás un enlace por correo.' });
 });
 async function authenticatedUser(tx: any, recipient: string, invitationId?: string) {
-  let [u] = await tx.select().from(s.users).where(eq(s.users.email, recipient));
+  let [u] = await tx.select(authUserColumns).from(s.users).where(eq(s.users.email, recipient));
   if (u?.disabledAt) fail(403, 'Esta cuenta no tiene acceso.');
   const invites = await tx
     .select()
@@ -466,14 +651,17 @@ async function authenticatedUser(tx: any, recipient: string, invitationId?: stri
       ),
     )
     .for('update');
-  if (invitationId && !invites.some((i: any) => i.id === invitationId))
+  if (
+    invitationId &&
+    !invites.some((i: typeof s.invitations.$inferSelect) => i.id === invitationId)
+  )
     fail(403, 'La invitación ha caducado, se ha revocado o ya se ha aceptado.');
   if (!u && !invites.length) fail(403, 'La invitación ya no está disponible.');
   if (!u) {
     [u] = await tx
       .insert(s.users)
       .values({ id: id(), email: recipient, name: invites[0].name, role: 'member' })
-      .returning();
+      .returning(authUserColumns);
   }
   for (const i of invites) {
     if (i.projectId)
@@ -490,33 +678,50 @@ async function authenticatedUser(tx: any, recipient: string, invitationId?: stri
   }
   return u;
 }
-async function createSession(tx: any, userId: string) {
-  const [account] = await tx.select().from(s.users).where(eq(s.users.id, userId));
+async function createSession(
+  tx: any,
+  userId: string,
+  assurance: 'primary' | 'activation' | 'mfa' = 'primary',
+  primaryVerifiedAt?: string,
+) {
+  const [account] = await tx.select(authUserColumns).from(s.users).where(eq(s.users.id, userId));
   if (!account || account.disabledAt) fail(403, 'Esta cuenta no tiene acceso.');
   const raw = secret(),
     csrf = secret(),
     stamp = now();
-  await tx.insert(s.sessions).values({
-    id: hash(raw),
-    userId,
-    csrf,
-    createdAt: stamp,
-    renewedAt: stamp,
-    expires: new Date(Date.now() + SESSION_IDLE).toISOString(),
-    absoluteExpiresAt: new Date(Date.now() + SESSION_ABSOLUTE).toISOString(),
-  });
+  await issueInsert(
+    s.sessions,
+    {
+      id: hash(raw),
+      userId,
+      csrf,
+      assurance: mode === 'development' ? 'mfa' : assurance,
+      primaryVerifiedAt: primaryVerifiedAt || stamp,
+      mfaVerifiedAt: assurance === 'mfa' || mode === 'development' ? stamp : null,
+      createdAt: stamp,
+      renewedAt: stamp,
+      expires: new Date(Date.now() + SESSION_IDLE).toISOString(),
+      absoluteExpiresAt: new Date(Date.now() + SESSION_ABSOLUTE).toISOString(),
+    },
+    tx,
+  );
+  const previous = sessionContext.getStore();
+  if (previous && /^[a-f0-9]{64}$/.test(previous)) {
+    if (mode === 'identity')
+      await tx.execute(sql`select bandarlog_api.rotate_session(${previous})`);
+    else await tx.delete(s.sessions).where(eq(s.sessions.id, hash(previous)));
+  }
   return { raw, csrf };
 }
 function sessionCookie(r: express.Response, raw: string, expires = Date.now() + SESSION_IDLE) {
-  r.cookie('bandarlog', raw, {
+  r.cookie(sessionCookieName(), raw, {
     httpOnly: true,
     secure: prod,
     sameSite: 'lax',
     maxAge: Math.max(0, expires - Date.now()),
-    path: groupPath() || '/',
+    path: prod ? '/' : groupPath() || '/',
   });
-  // The initial group's former root PWA can still synchronize its existing queue.
-  if (groupContext.getStore()?.id === legacyGroup.id && groupPath())
+  if (!prod && groupContext.getStore()!?.id === legacyGroup!.id && groupPath())
     r.cookie('bandarlog', raw, {
       httpOnly: true,
       secure: prod,
@@ -535,7 +740,7 @@ const cookie = (q: express.Request, name: string) =>
 app.post('/api/auth/verify', async (q, r) => {
   const { token } = parse(z.object({ token: z.string().min(32).max(128) }), q.body);
   const invitationId = token.match(/^invite\.([a-f0-9-]{36})\.[a-f0-9]{64}$/)?.[1];
-  const result = await db.transaction(async (tx: any) => {
+  const result = await db.transaction(async (tx) => {
     const [t] = await tx
       .delete(s.tokens)
       .where(and(eq(s.tokens.id, hash(token)), sql`${s.tokens.expires}>now()`))
@@ -561,8 +766,7 @@ app.post('/api/auth/code/request', async (q, r) => {
     q.body,
   );
   const stamp = Date.now();
-  const result = await db.transaction(async (tx: any) => {
-    // A row exists for every email, including unknown ones: cooldown and responses do not disclose registration.
+  const result = await db.transaction(async (tx) => {
     await tx
       .insert(s.authChallenges)
       .values({
@@ -591,7 +795,7 @@ app.post('/api/auth/code/request', async (q, r) => {
       hash(previousId) === previous.id && +new Date(previous.expires) > stamp
         ? {
             challengeId: previousId,
-            expiresIn: Math.ceil((+new Date(previous.expires) - stamp) / 1000),
+            expiresIn: Math.ceil((+new Date(previous.expires) - stamp) / 1e3),
           }
         : {};
     if (wait > 0) return { retryAfter: wait, ...recovery };
@@ -601,7 +805,7 @@ app.post('/api/auth/code/request', async (q, r) => {
         ...recovery,
         retryAfter: Math.max(
           1,
-          Math.ceil((+new Date(previous.windowStartedAt) + 15 * 60000 - stamp) / 1000),
+          Math.ceil((+new Date(previous.windowStartedAt) + 15 * 6e4 - stamp) / 1e3),
         ),
       };
     const challengeId = codeRequestId(
@@ -612,7 +816,7 @@ app.post('/api/auth/code/request', async (q, r) => {
       ),
       code = String(randomInt(1000000)).padStart(6, '0');
     let googleLinkId: string | null = null;
-    const googleLink = cookie(q, 'bandarlog_google_link');
+    const googleLink = cookie(q, googleLinkCookieName());
     if (googleLink) {
       const [link] = await tx
         .select()
@@ -633,21 +837,26 @@ app.post('/api/auth/code/request', async (q, r) => {
           .where(eq(s.googleLinks.id, link.id));
       }
     }
+    const issuedChallenge = {
+      id: hash(challengeId),
+      verifier: await codeVerifier(challengeSecret, challengeId, input.email, code),
+      expires: new Date(stamp + CODE_LIFETIME).toISOString(),
+      attempts: 0,
+      consumedAt: null,
+      requestedAt: new Date(stamp).toISOString(),
+      windowStartedAt: reset ? new Date(stamp).toISOString() : previous.windowStartedAt,
+      requests: reset ? 1 : previous.requests + 1,
+      googleLinkId,
+    };
+    await identityProof(tx, 'auth_challenges', { ...issuedChallenge, email: input.email });
     await tx
       .update(s.authChallenges)
-      .set({
-        id: hash(challengeId),
-        verifier: codeVerifier(challengeSecret, challengeId, input.email, code),
-        expires: new Date(stamp + CODE_LIFETIME).toISOString(),
-        attempts: 0,
-        consumedAt: null,
-        requestedAt: new Date(stamp).toISOString(),
-        windowStartedAt: reset ? new Date(stamp).toISOString() : previous.windowStartedAt,
-        requests: reset ? 1 : previous.requests + 1,
-        googleLinkId,
-      })
+      .set(issuedChallenge)
       .where(eq(s.authChallenges.email, input.email));
-    const [user] = await tx.select().from(s.users).where(eq(s.users.email, input.email));
+    const [user] = await tx
+      .select(authUserColumns)
+      .from(s.users)
+      .where(eq(s.users.email, input.email));
     const invites = await tx
       .select()
       .from(s.invitations)
@@ -662,7 +871,10 @@ app.post('/api/auth/code/request', async (q, r) => {
       await queue(
         input.email,
         'Tu código de acceso a Bandarlog',
-        `Grupo: ${groupContext.getStore()!.name}\nTu código de acceso es: ${code}\nCaduca en 10 minutos y solo se puede usar una vez. Introdúcelo en Bandarlog sin salir de la aplicación.\nSi no lo has solicitado, ignora este correo.`,
+        `Grupo: ${groupContext.getStore()!.name}
+Tu código de acceso es: ${code}
+Caduca en 10 minutos y solo se puede usar una vez. Introdúcelo en Bandarlog sin salir de la aplicación.
+Si no lo has solicitado, ignora este correo.`,
         id(),
         tx,
       );
@@ -686,7 +898,7 @@ app.post('/api/auth/code/verify', async (q, r) => {
     }),
     q.body,
   );
-  const result = await db.transaction(async (tx: any) => {
+  const result = await db.transaction(async (tx) => {
     const [challenge] = await tx
       .select()
       .from(s.authChallenges)
@@ -697,10 +909,13 @@ app.post('/api/auth/code/verify', async (q, r) => {
     if (challenge.attempts >= 5)
       return { error: 'Se han agotado los intentos. Solicita un nuevo código.', status: 429 };
     if (
-      !equalSecret(
+      !(await verifyCode(
+        challengeSecret,
+        input.challengeId,
+        challenge.email,
+        input.code,
         challenge.verifier,
-        codeVerifier(challengeSecret, input.challengeId, challenge.email, input.code),
-      )
+      ))
     ) {
       await tx
         .update(s.authChallenges)
@@ -727,10 +942,7 @@ app.post('/api/auth/code/verify', async (q, r) => {
         )
         .returning();
       if (link) {
-        await tx
-          .insert(s.googleIdentities)
-          .values({ subject: link.subject, userId: user.id })
-          .onConflictDoNothing();
+        await issueInsert(s.googleIdentities, { subject: link.subject, userId: user.id }, tx, true);
         const [identity] = await tx
           .select()
           .from(s.googleIdentities)
@@ -747,7 +959,7 @@ app.post('/api/auth/code/verify', async (q, r) => {
   });
   if ('error' in result) return r.status(result.status || 400).json({ error: result.error });
   sessionCookie(r, result.session.raw);
-  r.clearCookie('bandarlog_google_link', { path: '/' });
+  r.clearCookie(googleLinkCookieName(), { path: '/', secure: prod });
   r.json({ ok: true });
 });
 app.get('/api/auth/google/start', async (q, r) => {
@@ -766,20 +978,24 @@ app.get('/api/auth/google/start', async (q, r) => {
     nonce = secret(),
     verifier = secret();
   await db.delete(s.googleStates).where(sql`${s.googleStates.expires}<=now()`);
-  await db.insert(s.googleStates).values({
-    handoffChallenge: typeof handoffChallenge === 'string' ? handoffChallenge : null,
-    id: hash(state),
-    browser: hash(browser),
-    nonce,
-    verifier,
-    expires: new Date(Date.now() + CODE_LIFETIME).toISOString(),
-  });
-  r.cookie('bandarlog_google', browser, {
+  await issueInsert(
+    s.googleStates,
+    {
+      handoffChallenge: typeof handoffChallenge === 'string' ? handoffChallenge : null,
+      id: hash(state),
+      browser: hash(browser),
+      nonce,
+      verifier,
+      expires: new Date(Date.now() + CODE_LIFETIME).toISOString(),
+    },
+    void 0,
+  );
+  r.cookie(googleBrowserCookieName(state), browser, {
     httpOnly: true,
     secure: prod,
     sameSite: 'lax',
     maxAge: CODE_LIFETIME,
-    path: '/api/auth/google',
+    path: prod ? '/' : '/api/auth/google',
   });
   const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
   url.search = new URLSearchParams({
@@ -799,17 +1015,20 @@ let googleKeys: { keys: JsonWebKey[]; expires: number } | undefined;
 async function signingKeys() {
   if (googleKeys && googleKeys.expires > Date.now()) return googleKeys.keys;
   const response = await fetch('https://www.googleapis.com/oauth2/v3/certs', {
-    signal: AbortSignal.timeout(10000),
+    signal: AbortSignal.timeout(1e4),
     redirect: 'error',
   });
   if (!response.ok) throw new Error('Google keys unavailable');
-  const json = (await response.json()) as { keys: JsonWebKey[] };
+  const json = await response.json();
   if (!Array.isArray(json.keys)) throw new Error('Google keys unavailable');
   googleKeys = { keys: json.keys, expires: Date.now() + 5 * 60000 };
   return json.keys;
 }
 app.get('/api/auth/google/callback', async (q, r) => {
-  r.clearCookie('bandarlog_google', { path: '/api/auth/google' });
+  r.clearCookie(
+    googleBrowserCookieName(typeof q.query.state === 'string' ? q.query.state : undefined),
+    { path: prod ? '/' : '/api/auth/google', secure: prod },
+  );
   let popupChallenge: string | null = null;
   try {
     if (
@@ -818,9 +1037,8 @@ app.get('/api/auth/google/callback', async (q, r) => {
       !/^[a-f0-9]{64}$/.test(q.query.state)
     )
       throw new Error('Invalid OAuth state');
-    const browser = cookie(q, 'bandarlog_google');
+    const browser = cookie(q, googleBrowserCookieName(q.query.state));
     if (!browser) throw new Error('Missing OAuth browser');
-    // Delete only a state bound to this browser. A foreign callback cannot consume another browser's flow.
     const [flow] = await db
       .delete(s.googleStates)
       .where(
@@ -836,7 +1054,7 @@ app.get('/api/auth/google/callback', async (q, r) => {
       throw new Error('OAuth cancelled');
     const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(1e4),
       redirect: 'error',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
@@ -849,7 +1067,7 @@ app.get('/api/auth/google/callback', async (q, r) => {
       }),
     });
     if (!response.ok) throw new Error('OAuth exchange failed');
-    const token = (await response.json()) as { id_token?: string };
+    const token = await response.json();
     if (!token.id_token) throw new Error('Missing Google token');
     const claims = verifyGoogleToken(
       token.id_token,
@@ -866,14 +1084,16 @@ app.get('/api/auth/google/callback', async (q, r) => {
     ) {
       const ticket = secret();
       await db.delete(s.googleHandoffs).where(sql`${s.googleHandoffs.expires}<=now()`);
-      await db
-        .insert(s.googleHandoffs)
-        .values({
+      await issueInsert(
+        s.googleHandoffs,
+        {
           id: hash(ticket),
-          challenge: popupChallenge!,
+          challenge: popupChallenge,
           ...values,
           expires: new Date(Date.now() + GOOGLE_RETURN_LIFETIME).toISOString(),
-        });
+        },
+        void 0,
+      );
       const page = googleReturnPage(appUrl, ticket);
       return r
         .set({
@@ -884,18 +1104,23 @@ app.get('/api/auth/google/callback', async (q, r) => {
         .type('html')
         .send(page.html);
     }
+    handoff;
     if (!linked && !googleEmailAuthoritative(claims)) {
       if (popupChallenge)
         return await handoff({ googleSubject: claims.sub, googleEmail: claims.email });
       const link = secret();
       await db.delete(s.googleLinks).where(sql`${s.googleLinks.expires}<=now()`);
-      await db.insert(s.googleLinks).values({
-        id: hash(link),
-        subject: claims.sub,
-        email: claims.email,
-        expires: new Date(Date.now() + CODE_LIFETIME).toISOString(),
-      });
-      r.cookie('bandarlog_google_link', link, {
+      await issueInsert(
+        s.googleLinks,
+        {
+          id: hash(link),
+          subject: claims.sub,
+          email: claims.email,
+          expires: new Date(Date.now() + CODE_LIFETIME).toISOString(),
+        },
+        void 0,
+      );
+      r.cookie(googleLinkCookieName(), link, {
         httpOnly: true,
         secure: prod,
         sameSite: 'lax',
@@ -904,18 +1129,18 @@ app.get('/api/auth/google/callback', async (q, r) => {
       });
       return r.redirect(`${groupUrl(appUrl)}?auth_error=google_email_verify`);
     }
-    const session = await db.transaction(async (tx: any) => {
+    const session = await db.transaction(async (tx) => {
       let user;
       if (linked) {
-        [user] = await tx.select().from(s.users).where(eq(s.users.id, linked.userId));
+        [user] = await tx
+          .select(authUserColumns)
+          .from(s.users)
+          .where(eq(s.users.id, linked.userId));
         if (!user) fail(403, 'Cuenta no disponible.');
         if (user.email === claims.email) user = await authenticatedUser(tx, user.email);
       } else {
         user = await authenticatedUser(tx, claims.email);
-        await tx
-          .insert(s.googleIdentities)
-          .values({ subject: claims.sub, userId: user.id })
-          .onConflictDoNothing();
+        await issueInsert(s.googleIdentities, { subject: claims.sub, userId: user.id }, tx, true);
         const [identity] = await tx
           .select()
           .from(s.googleIdentities)
@@ -939,11 +1164,9 @@ app.get('/api/auth/google/callback', async (q, r) => {
         .type('html')
         .send(page.html);
     }
-    // Never leak tokens, callback parameters, credentials, or provider response bodies.
     r.redirect(`${groupUrl(appUrl)}?auth_error=google`);
   }
 });
-
 app.post('/api/auth/google/return', async (q, r) => {
   const input = parse(
     z
@@ -954,7 +1177,7 @@ app.post('/api/auth/google/return', async (q, r) => {
       .strict(),
     q.body,
   );
-  const result = await db.transaction(async (tx: any) => {
+  const result = await db.transaction(async (tx) => {
     const [grant] = await tx
       .delete(s.googleHandoffs)
       .where(
@@ -968,21 +1191,23 @@ app.post('/api/auth/google/return', async (q, r) => {
     if (!grant) fail(403, 'El acceso ha caducado. Solicita un código de correo.');
     if (grant.userId) return { session: await createSession(tx, grant.userId) };
     const link = secret();
-    await tx
-      .insert(s.googleLinks)
-      .values({
+    await issueInsert(
+      s.googleLinks,
+      {
         id: hash(link),
-        subject: grant.googleSubject!,
-        email: grant.googleEmail!,
+        subject: grant.googleSubject,
+        email: grant.googleEmail,
         expires: new Date(Date.now() + CODE_LIFETIME).toISOString(),
-      });
+      },
+      tx,
+    );
     return { link, email: grant.googleEmail };
   });
   if (result.session) {
     sessionCookie(r, result.session.raw);
     return r.json({ ok: true });
   }
-  r.cookie('bandarlog_google_link', result.link, {
+  r.cookie(googleLinkCookieName(), result.link, {
     httpOnly: true,
     secure: prod,
     sameSite: 'lax',
@@ -991,7 +1216,15 @@ app.post('/api/auth/google/return', async (q, r) => {
   });
   r.json({ needsEmailVerification: true, email: result.email });
 });
-
+passkeyRoutes(app, {
+  db,
+  appUrl,
+  legacyGroupId: legacyGroup!.id,
+  legacyOrigins,
+  createSession,
+  cookie: sessionCookie,
+  fail,
+});
 if (!prod)
   app.get('/api/dev/mail', async (_q, r) => {
     r.json(await db.select().from(s.notifications).orderBy(s.notifications.createdAt));
@@ -999,13 +1232,13 @@ if (!prod)
 for (const file of ['sw.js', 'offline-store.js', 'offline.html'])
   app.get('/' + file, async (_q, r) => {
     if (file === 'offline-store.js') {
-      const legacy = groupContext.getStore()?.id === legacyGroup.id && Boolean(groupPath());
+      const legacy = groupContext.getStore()!?.id === legacyGroup!.id && Boolean(groupPath());
       return r
         .set('Cache-Control', 'no-store')
         .type('js')
         .send(
-          `globalThis.BANDARLOG_LEGACY_STORAGE = ${legacy};\n` +
-            (await readFile('public/' + file, 'utf8')),
+          `globalThis.BANDARLOG_LEGACY_STORAGE = ${legacy};
+` + (await readFile('public/' + file, 'utf8')),
         );
     }
     r.sendFile('public/' + file, { root: process.cwd() });
@@ -1031,18 +1264,22 @@ app.get('/manifest.webmanifest', (_q, r) => {
       ],
     });
 });
+app.use('/api', (q, _r, n) => sessionContext.run(sessionBearer(q.headers.cookie) || '', n));
 app.use('/api', async (q, r, n) => {
-  const raw = q.headers.cookie
-    ?.split(';')
-    .map((x) => x.trim())
-    .find((x) => x.startsWith('bandarlog='))
-    ?.slice(10);
-  if (!raw) return r.status(401).json({ error: 'Inicia sesión para continuar.' });
-  const { avatarUrl: _avatar, ...authColumns } = getTableColumns(s.users);
+  const raw = sessionBearer(q.headers.cookie);
+  if (!raw || !/^[a-f0-9]{64}$/.test(raw))
+    return r.status(401).json({ error: 'Inicia sesión para continuar.' });
+  if (prod && mode === 'http' && !modernSession(q.headers.cookie))
+    return r.status(428).json({ error: 'Vuelve a iniciar sesión para proteger este acceso.' });
+  const { avatarUrl: _avatar, ...baseAuthColumns } = getTableColumns(s.users);
+  const authColumns = {
+    ...baseAuthColumns,
+    preferences: mode === 'http' ? sql`bandarlog_api.own_preferences()` : s.users.preferences,
+  };
   const [account] = await db
     .select({
       session: s.sessions,
-      user: q.path === '/me' ? getTableColumns(s.users) : authColumns,
+      user: q.path === '/me' ? { ...authColumns, avatarUrl: s.users.avatarUrl } : authColumns,
     })
     .from(s.sessions)
     .innerJoin(s.users, eq(s.users.id, s.sessions.userId))
@@ -1052,9 +1289,15 @@ app.use('/api', async (q, r, n) => {
         sql`${s.sessions.expires}>now()`,
         sql`${s.sessions.absoluteExpiresAt}>now()`,
       ),
-    );
+    )
+    .catch((error) => {
+      if ((error.code || error.cause?.code) === '42501') return [];
+      throw error;
+    });
   if (!account) return r.status(401).json({ error: 'Tu sesión ha caducado.' });
   const { session, user } = account;
+  if (q.get('X-Offline-User') && q.get('X-Offline-User') !== user.id)
+    return r.status(403).json({ error: 'El cambio pertenece a otra cuenta.' });
   if (user.disabledAt) return r.sendStatus(401);
   r.locals.user = user;
   r.locals.session = session;
@@ -1099,7 +1342,7 @@ async function withReceipt(q: express.Request, r: express.Response, fn: (tx: any
   const mutation = q.get('X-Mutation-ID');
   if (mutation && !z.uuid().safeParse(mutation).success)
     fail(400, 'Identificador de cambio no válido.');
-  return db.transaction(async (tx: any) => {
+  return db.transaction(async (tx) => {
     if (!mutation) return fn(tx);
     const key = hash(`${r.locals.user.id}:${q.method}:${q.path}:${mutation}`);
     const fingerprint = hash(JSON.stringify(q.body));
@@ -1125,7 +1368,6 @@ async function withReceipt(q: express.Request, r: express.Response, fn: (tx: any
     return result;
   });
 }
-// Dedicated tutorial storage never invokes task, membership, mail or activity services.
 app.get('/api/tutorial', async (_q, r) => r.json(await readTutorial(db, r.locals.user.id)));
 app.get('/api/tutorial/stats', async (_q, r) => {
   if (r.locals.user.role !== 'admin')
@@ -1137,7 +1379,7 @@ app.get('/api/tutorial/stats', async (_q, r) => {
 app.post(
   '/api/tutorial',
   rateLimit({
-    windowMs: 60000,
+    windowMs: 6e4,
     limit: 120,
     keyGenerator: (_q, r) => r.locals.user.id,
     standardHeaders: 'draft-8',
@@ -1165,15 +1407,20 @@ app.get('/api/events', (q, r) => {
   r.flushHeaders();
   const configured = Number(process.env.SSE_RECONCILE_SECONDS?.trim() || '120');
   const reconcileAfterMs =
-    Number.isFinite(configured) && (configured === 0 || configured >= 15)
-      ? Math.min(configured, 3600) * 1000
-      : 120000;
+    mode === 'http' && configured === 0
+      ? 12e4
+      : Number.isFinite(configured) && (configured === 0 || configured >= 15)
+        ? Math.min(configured, 3600) * 1e3
+        : 12e4;
   r.write(
     'event: ready\ndata: ' +
       JSON.stringify({ reconcileAfterMs, revision: dataRevision() }) +
       '\n\n',
   );
-  liveViews.set(r, groupContext.getStore()!.id);
+  liveViews.set(r, {
+    group: groupContext.getStore()!,
+    token: sessionBearer(q.headers.cookie) || '',
+  });
   const timer = setInterval(() => r.write(': keepalive\n\n'), 25000);
   q.on('close', () => {
     clearInterval(timer);
@@ -1182,7 +1429,11 @@ app.get('/api/events', (q, r) => {
 });
 const globalManage = (u: any) => u.role === 'admin' || u.role === 'coordination';
 async function activeAccount(tx: any, uid: string) {
-  const [user] = await tx.select().from(s.users).where(eq(s.users.id, uid)).for('update');
+  const [user] = await tx
+    .select(userProjection)
+    .from(s.users)
+    .where(eq(s.users.id, uid))
+    .for('update');
   if (!user || user.disabledAt) fail(400, 'Selecciona una persona con acceso activo.');
 }
 async function membership(uid: string, cid: string, tx: any = db) {
@@ -1238,7 +1489,7 @@ async function removeAssignments(tx: any, uid: string, actor: string, name: stri
       ),
     )
     .returning({ taskId: s.assignments.taskId });
-  const ids = [...new Set(removed.map((row: { taskId: string }) => row.taskId))] as string[];
+  const ids = [...new Set<string>(removed.map((row: { taskId: string }) => row.taskId))];
   if (!ids.length) return;
   const stamp = now();
   await tx.update(s.tasks).set({ updatedAt: stamp }).where(inArray(s.tasks.id, ids));
@@ -1253,16 +1504,88 @@ async function removeAssignments(tx: any, uid: string, actor: string, name: stri
     })),
   );
 }
-type MailRecipient = Pick<
-  typeof s.users.$inferSelect,
-  'id' | 'name' | 'email' | 'disabledAt' | 'preferences'
->;
-type TaskMailContext = {
-  rows: { user: MailRecipient }[];
-  commission:
-    Pick<typeof s.commissions.$inferSelect, 'id' | 'name' | 'projectId' | 'deletedAt'> | undefined;
-  project: Pick<typeof s.projects.$inferSelect, 'name'> | undefined;
-};
+function taskMessage(
+  t: typeof s.tasks.$inferSelect,
+  c: NonNullable<TaskMailContext['commission']>,
+  p: NonNullable<TaskMailContext['project']>,
+  user: MailRecipient,
+  rows: TaskMailContext['rows'],
+  subject: string,
+  eventName?: string,
+) {
+  return {
+    subject: `${subject}: ${t.title}`,
+    body: `Bandarlog
+${t.title}
+${c.name} · ${p.name}
+Responsables: ${rows.map((x) => x.user.name).join(', ')}
+Fecha límite: ${new Date(t.due).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' })}
+Estado: ${{ pending: 'Pendiente', in_progress: 'En curso', blocked: 'Bloqueada', done: 'Terminada' }[t.status] || t.status}
+${t.description}${t.blockedReason ? '\nMotivo del bloqueo: ' + t.blockedReason : ''}
+
+Abrir tarea: ${groupUrl(appUrl)}?task=${t.id}
+Marcar en curso: ${groupUrl(appUrl)}?task=${t.id}&action=in_progress
+Terminar: ${groupUrl(appUrl)}?task=${t.id}&action=done
+Bloquear: ${groupUrl(appUrl)}?task=${t.id}&action=blocked
+Las acciones requieren iniciar sesión y confirmar.`,
+    html: renderMail({
+      title: eventName === 'scheduled' ? t.title : `${subject}: ${t.title}`,
+      eyebrow: eventName === 'scheduled' ? subject : void 0,
+      intro:
+        eventName === 'scheduled'
+          ? `Hola, ${user.name}. Esta tarea sigue ${t.status === 'blocked' ? 'bloqueada' : t.status === 'in_progress' ? 'en curso' : 'pendiente'}. ${new Date(t.due) < new Date() ? 'El plazo ya ha vencido: revisa cómo está y actualiza su estado.' : `La fecha límite es el ${mailDate(t.due)}.`}`
+          : void 0,
+      actionLabels: eventName === 'scheduled',
+      appUrl,
+      body: t.description + (t.blockedReason ? '\nMotivo del bloqueo: ' + t.blockedReason : ''),
+      details: [
+        { label: 'Grupo', value: groupContext.getStore()!.name },
+        { label: 'Comisión', value: c.name },
+        { label: 'Proyecto', value: p.name },
+        { label: 'Responsables', value: rows.map((x) => x.user.name).join(', ') },
+        {
+          label: 'Fecha límite',
+          value: new Date(t.due).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' }),
+        },
+        {
+          label: 'Estado',
+          value:
+            {
+              pending: 'Pendiente',
+              in_progress: 'En curso',
+              blocked: 'Bloqueada',
+              done: 'Terminada',
+            }[t.status] || t.status,
+        },
+      ],
+      actions: [
+        { label: 'Ver tarea', url: `${groupUrl(appUrl)}?task=${t.id}` },
+        ...(t.status !== 'done'
+          ? [
+              {
+                label: 'Marcar en curso',
+                kind: 'in_progress' as const,
+                url: `${groupUrl(appUrl)}?task=${t.id}&action=in_progress`,
+                secondary: true,
+              },
+              {
+                label: 'Completar tarea',
+                kind: 'done' as const,
+                url: `${groupUrl(appUrl)}?task=${t.id}&action=done`,
+                secondary: true,
+              },
+              {
+                label: 'Bloquear tarea',
+                kind: 'blocked' as const,
+                url: `${groupUrl(appUrl)}?task=${t.id}&action=blocked`,
+                secondary: true,
+              },
+            ]
+          : []),
+      ],
+    }),
+  };
+}
 async function taskMail(
   tx: any,
   t: any,
@@ -1274,6 +1597,12 @@ async function taskMail(
     context?: TaskMailContext;
   } = {},
 ) {
+  if (mode === 'http') {
+    await tx.execute(
+      sql`select bandarlog_api.queue_task_events(${t.id},${options.event || 'updates'})`,
+    );
+    return;
+  }
   const rows =
     options.context?.rows ??
     (await tx
@@ -1322,71 +1651,8 @@ async function taskMail(
       ((options.event || 'updates') === 'updates' && !pref.updates)
     )
       continue;
-    await queue(
-      user.email,
-      `${subject}: ${t.title}`,
-      `Bandarlog\n${t.title}\n${c.name} · ${p.name}\nResponsables: ${rows.map((x: any) => x.user.name).join(', ')}\nFecha límite: ${new Date(t.due).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' })}\nEstado: ${({ pending: 'Pendiente', in_progress: 'En curso', blocked: 'Bloqueada', done: 'Terminada' } as Record<string, string>)[t.status] || t.status}\n${t.description}${t.blockedReason ? '\nMotivo del bloqueo: ' + t.blockedReason : ''}\n\nAbrir tarea: ${groupUrl(appUrl)}?task=${t.id}\nMarcar en curso: ${groupUrl(appUrl)}?task=${t.id}&action=in_progress\nTerminar: ${groupUrl(appUrl)}?task=${t.id}&action=done\nBloquear: ${groupUrl(appUrl)}?task=${t.id}&action=blocked\nLas acciones requieren iniciar sesión y confirmar.`,
-      `${key}-${user.id}`,
-      tx,
-      renderMail({
-        title: options.event === 'scheduled' ? t.title : `${subject}: ${t.title}`,
-        eyebrow: options.event === 'scheduled' ? subject : undefined,
-        intro:
-          options.event === 'scheduled'
-            ? `Hola, ${user.name}. Esta tarea sigue ${t.status === 'blocked' ? 'bloqueada' : t.status === 'in_progress' ? 'en curso' : 'pendiente'}. ${new Date(t.due) < new Date() ? 'El plazo ya ha vencido: revisa cómo está y actualiza su estado.' : `La fecha límite es el ${mailDate(t.due)}.`}`
-            : undefined,
-        actionLabels: options.event === 'scheduled',
-        appUrl,
-        body: t.description + (t.blockedReason ? '\nMotivo del bloqueo: ' + t.blockedReason : ''),
-        details: [
-          { label: 'Grupo', value: groupContext.getStore()!.name },
-          { label: 'Comisión', value: c.name },
-          { label: 'Proyecto', value: p.name },
-          { label: 'Responsables', value: rows.map((x: any) => x.user.name).join(', ') },
-          {
-            label: 'Fecha límite',
-            value: new Date(t.due).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' }),
-          },
-          {
-            label: 'Estado',
-            value:
-              (
-                {
-                  pending: 'Pendiente',
-                  in_progress: 'En curso',
-                  blocked: 'Bloqueada',
-                  done: 'Terminada',
-                } as Record<string, string>
-              )[t.status] || t.status,
-          },
-        ],
-        actions: [
-          { label: 'Ver tarea', url: `${groupUrl(appUrl)}?task=${t.id}` },
-          ...(t.status !== 'done'
-            ? [
-                {
-                  label: 'Marcar en curso',
-                  kind: 'in_progress' as const,
-                  url: `${groupUrl(appUrl)}?task=${t.id}&action=in_progress`,
-                  secondary: true,
-                },
-                {
-                  label: 'Completar tarea',
-                  kind: 'done' as const,
-                  url: `${groupUrl(appUrl)}?task=${t.id}&action=done`,
-                  secondary: true,
-                },
-                {
-                  label: 'Bloquear tarea',
-                  kind: 'blocked' as const,
-                  url: `${groupUrl(appUrl)}?task=${t.id}&action=blocked`,
-                  secondary: true,
-                },
-              ]
-            : []),
-        ],
-      }),
-    );
+    const content = taskMessage(t, c, p, user, rows, subject, options.event);
+    await queue(user.email, content.subject, content.body, `${key}-${user.id}`, tx, content.html);
     await tx
       .insert(s.pushOutbox)
       .values({
@@ -1406,7 +1672,7 @@ app.get('/api/push/config', (_q, r) => r.json({ publicKey: push.publicKey }));
 app.post('/api/push/subscriptions', async (q, r) => {
   const input = parse(
     z.object({
-      endpoint: z.url().max(2000),
+      endpoint: z.url().max(2e3),
       expirationTime: z.number().nullable().optional(),
       keys: z.object({
         p256dh: z.string().regex(/^[A-Za-z0-9_-]{87}$/),
@@ -1438,7 +1704,7 @@ app.delete('/api/push/subscriptions', async (q, r) => {
     );
   r.json({ ok: true });
 });
-app.get('/api/group', (_q, r) => r.json(groupContext.getStore()));
+app.get('/api/group', (_q, r) => r.json(groupContext.getStore()!));
 app.patch('/api/group', async (q, r) => {
   if (r.locals.user.role !== 'admin') fail(403, 'Solo Administración puede configurar el grupo.');
   const input = parse(
@@ -1464,13 +1730,55 @@ app.get('/api/me', (_q, r) => {
   );
   r.json({
     user: r.locals.user,
-    group: groupContext.getStore(),
+    group: groupContext.getStore()!,
     csrf: r.locals.session.csrf,
-    development: !prod,
-    googleEnabled: Boolean(
-      process.env.GOOGLE_LOGIN_CLIENT_ID && process.env.GOOGLE_LOGIN_CLIENT_SECRET,
+    offlineUntil: Math.min(
+      Date.now() + 7 * 864e5,
+      +new Date(r.locals.session.expires),
+      +new Date(r.locals.session.absoluteExpiresAt),
     ),
+    development: !prod,
+    passkeysEnabled: mode === 'http',
+    googleEnabled: Boolean(process.env.GOOGLE_LOGIN_CLIENT_ID),
   });
+});
+app.get('/api/sessions', async (_q, r) => {
+  if (mode === 'http')
+    return r.json(
+      (await db.execute(sql`select bandarlog_api.list_sessions() as value`)).rows.map(
+        (row) => row.value,
+      ),
+    );
+  const rows = await db
+    .select({
+      id: s.sessions.id,
+      createdAt: s.sessions.createdAt,
+      renewedAt: s.sessions.renewedAt,
+      expires: s.sessions.expires,
+    })
+    .from(s.sessions)
+    .where(
+      and(
+        eq(s.sessions.userId, r.locals.user.id),
+        sql`${s.sessions.expires}>now()`,
+        sql`${s.sessions.absoluteExpiresAt}>now()`,
+      ),
+    );
+  r.json(rows.map((row) => ({ ...row, current: row.id === r.locals.session.id })));
+});
+app.delete('/api/sessions/:id', async (q, r) => {
+  const target = parse(z.string().regex(/^[a-f0-9]{64}$/), q.params.id);
+  if (mode === 'http') {
+    const result = await db.execute(sql`select bandarlog_api.revoke_session(${target}) as ok`);
+    if (!result.rows[0]?.ok) fail(404, 'Sesión no encontrada.');
+  } else {
+    if (+new Date(r.locals.session.createdAt) < Date.now() - 15 * 6e4)
+      fail(428, 'Vuelve a iniciar sesión antes de revocar accesos.');
+    await db
+      .delete(s.sessions)
+      .where(and(eq(s.sessions.id, target), eq(s.sessions.userId, r.locals.user.id)));
+  }
+  r.json({ ok: true, current: target === r.locals.session.id });
 });
 app.post('/api/onboarding', async (q, r) => {
   const input = parse(
@@ -1485,12 +1793,12 @@ app.post('/api/onboarding', async (q, r) => {
       fail(400, (e as Error).message);
     }
   }
-  await db.transaction(async (tx: any) => {
+  await db.transaction(async (tx) => {
     await tx
       .update(s.users)
       .set({
         name: input.name,
-        ...(photo !== undefined ? { avatarUrl: photo } : {}),
+        ...(photo !== void 0 ? { avatarUrl: photo } : {}),
         onboardingCompletedAt: now(),
       })
       .where(eq(s.users.id, r.locals.user.id));
@@ -1500,12 +1808,15 @@ app.post('/api/onboarding', async (q, r) => {
 app.post('/api/logout', async (q, r) => {
   await db.delete(s.sessions).where(eq(s.sessions.id, r.locals.session.id));
   if (
-    requestCookie(q.headers.cookie, ENTRY_COOKIE) ===
+    entryMarker(q.headers.cookie) ===
     groupContext.getStore()!.privateId + '.' + r.locals.session.id
   )
-    r.clearCookie(ENTRY_COOKIE, { path: '/' });
-  if (groupContext.getStore()?.id === legacyGroup.id) r.clearCookie('bandarlog', { path: '/' });
-  r.clearCookie('bandarlog', { path: groupPath() || '/' }).json({ ok: true });
+    clearEntry(r, prod);
+  if (groupContext.getStore()!?.id === legacyGroup!.id)
+    r.clearCookie('bandarlog', { path: '/', secure: prod });
+  r.clearCookie(sessionCookieName(), { path: prod ? '/' : groupPath() || '/', secure: prod }).json({
+    ok: true,
+  });
 });
 app.patch('/api/profile', async (q, r) => {
   const input = parse(
@@ -1525,7 +1836,7 @@ app.patch('/api/profile', async (q, r) => {
         overdueDaily: z.boolean().optional(),
       })
       .refine(
-        (value) => Object.values(value).some((field) => field !== undefined),
+        (value) => Object.values(value).some((field) => field !== void 0),
         'Indica un cambio en tu perfil.',
       ),
     q.body,
@@ -1549,9 +1860,9 @@ app.patch('/api/profile', async (q, r) => {
   await db
     .update(s.users)
     .set({
-      ...(name !== undefined ? { name } : {}),
+      ...(name !== void 0 ? { name } : {}),
       ...(Object.keys(changes).length ? { preferences: JSON.stringify(merged) } : {}),
-      ...(photo !== undefined ? { avatarUrl: photo } : {}),
+      ...(photo !== void 0 ? { avatarUrl: photo } : {}),
     })
     .where(eq(s.users.id, r.locals.user.id));
   r.json({ ok: true });
@@ -1584,8 +1895,8 @@ app.post('/api/artwork/catalog', async (q, r) => {
       name: text,
       collection: z.enum(['scout', 'christmas']),
       family: text,
-      icon: z.string().max(200000),
-      mascot: z.string().max(200000),
+      icon: z.string().max(2e5),
+      mascot: z.string().max(2e5),
     }),
     q.body,
   );
@@ -1630,7 +1941,7 @@ function visibleTaskIds(user: any) {
         sql`${s.tasks.deletedAt} is null`,
         sql`${s.commissions.deletedAt} is null`,
         globalManage(user)
-          ? undefined
+          ? void 0
           : sql`exists (select 1 from ${s.members} where ${s.members.commissionId} = ${s.commissions.id} and ${s.members.userId} = ${user.id})`,
       ),
     );
@@ -1652,7 +1963,7 @@ app.get('/api/activity', async (q, r) => {
     .where(
       and(
         inArray(s.activity.taskId, visibleTaskIds(r.locals.user)),
-        filter.taskId ? eq(s.activity.taskId, filter.taskId) : undefined,
+        filter.taskId ? eq(s.activity.taskId, filter.taskId) : void 0,
         filter.commissionId
           ? inArray(
               s.activity.taskId,
@@ -1661,7 +1972,7 @@ app.get('/api/activity', async (q, r) => {
                 .from(s.tasks)
                 .where(eq(s.tasks.commissionId, filter.commissionId)),
             )
-          : undefined,
+          : void 0,
         page.before(s.activity.createdAt, s.activity.id),
       ),
     )
@@ -1670,23 +1981,22 @@ app.get('/api/activity', async (q, r) => {
   r.json(page.finish(rows));
 });
 app.get('/api/data', async (_q, r) => {
-  // Capture before reading, so a concurrent change cannot be acknowledged prematurely.
   r.set('X-Data-Revision', dataRevision());
   const response = await db.transaction(async (tx) => {
-    const db = tx as unknown as Database;
-    const catalogueExtra = await extraArtwork(db);
+    const db2 = tx as unknown as Database;
+    const catalogueExtra = await extraArtwork(db2);
     const u = r.locals.user;
-    const cs = await db
+    const cs = await db2
       .select()
       .from(s.commissions)
       .where(
         and(
           sql`${s.commissions.deletedAt} is null`,
           globalManage(u)
-            ? undefined
+            ? void 0
             : inArray(
                 s.commissions.id,
-                db
+                db2
                   .select({ id: s.members.commissionId })
                   .from(s.members)
                   .where(eq(s.members.userId, u.id)),
@@ -1695,21 +2005,21 @@ app.get('/api/data', async (_q, r) => {
       );
     const cids = cs.map((c) => c.id);
     const ts = cids.length
-      ? await db
+      ? await db2
           .select()
           .from(s.tasks)
           .where(and(inArray(s.tasks.commissionId, cids), sql`${s.tasks.deletedAt} is null`))
       : [];
     const tids = ts.map((t) => t.id);
     const visibleMembers = cids.length
-      ? await db.select().from(s.members).where(inArray(s.members.commissionId, cids))
+      ? await db2.select().from(s.members).where(inArray(s.members.commissionId, cids))
       : [];
-    const visibleProjects = await db
+    const visibleProjects = await db2
       .select()
       .from(s.projects)
       .where(
         globalManage(u)
-          ? undefined
+          ? void 0
           : sql`(
       ${inArray(
         s.projects.id,
@@ -1719,7 +2029,7 @@ app.get('/api/data', async (_q, r) => {
     )`,
       );
     const visibleProjectMembers = visibleProjects.length
-      ? await db
+      ? await db2
           .select()
           .from(s.projectMembers)
           .where(
@@ -1736,9 +2046,9 @@ app.get('/api/data', async (_q, r) => {
       ...visibleProjectMembers.map((m) => m.userId),
     ]);
     const us = await publicUsers(
-      db,
+      db2,
       groupContext.getStore()!.id,
-      globalManage(u) ? undefined : [...uids],
+      globalManage(u) ? void 0 : [...uids],
     );
     const responsibleIds = visibleMembers
       .filter((m) => m.userId === u.id && m.role === 'responsible')
@@ -1749,7 +2059,7 @@ app.get('/api/data', async (_q, r) => {
       visibleMembers.map((member) => JSON.stringify([member.commissionId, member.userId])),
     );
     const assignments = tids.length
-      ? (await db.select().from(s.assignments).where(inArray(s.assignments.taskId, tids))).filter(
+      ? (await db2.select().from(s.assignments).where(inArray(s.assignments.taskId, tids))).filter(
           (assignment) =>
             activeUsers.has(assignment.userId) &&
             memberKeys.has(
@@ -1757,7 +2067,7 @@ app.get('/api/data', async (_q, r) => {
             ),
         )
       : [];
-    const summaries = await projectSummaries(db, visibleProjects);
+    const summaries = await projectSummaries(db2, visibleProjects);
     return {
       projectSummaries: summaries,
       campSummaries: summaries.filter((summary) => projectsById.get(summary.id)?.type === 'camp'),
@@ -1788,13 +2098,13 @@ app.get('/api/data', async (_q, r) => {
           artworkMode: !artworkLocked && c.artworkKey === artwork.id ? 'manual' : 'automatic',
         };
       }),
-      group: groupContext.getStore(),
+      group: groupContext.getStore()!,
       members: visibleMembers,
       users: us,
       tasks: ts,
       assignments,
       activity: tids.length
-        ? await db
+        ? await db2
             .select()
             .from(s.activity)
             .where(inArray(s.activity.taskId, tids))
@@ -1802,12 +2112,10 @@ app.get('/api/data', async (_q, r) => {
             .limit(100)
         : [],
       invitations: (globalManage(u) || responsibleIds.length
-        ? await db
+        ? await db2
             .select()
             .from(s.invitations)
-            .where(
-              globalManage(u) ? undefined : inArray(s.invitations.commissionId, responsibleIds),
-            )
+            .where(globalManage(u) ? void 0 : inArray(s.invitations.commissionId, responsibleIds))
         : []
       ).map((i) => ({
         ...i,
@@ -1831,7 +2139,6 @@ app.post('/api/projects', async (q, r) => {
     q.body,
   );
   if (input.ends < input.starts) fail(400, 'La fecha final debe ser posterior al inicio.');
-  // Retained only for old API clients and historical imports, never inherited.
   const parentId = input.parentId || null;
   if (parentId) {
     const [parent] = await db.select().from(s.projects).where(eq(s.projects.id, parentId));
@@ -1839,12 +2146,7 @@ app.post('/api/projects', async (q, r) => {
   }
   const [p] = await db
     .insert(s.projects)
-    .values({
-      ...input,
-      artworkTheme: projectArtworkTheme(input),
-      id: id(),
-      parentId,
-    })
+    .values({ ...input, artworkTheme: projectArtworkTheme(input), id: id(), parentId })
     .returning();
   r.status(201).json(p);
 });
@@ -1858,7 +2160,7 @@ app.patch('/api/projects/:id', async (q, r) => {
         artworkTheme: z.enum(['scout', 'christmas']).optional(),
       })
       .refine(
-        (v) => v.archived !== undefined || v.artworkTheme !== undefined || v.type !== undefined,
+        (v) => v.archived !== void 0 || v.artworkTheme !== void 0 || v.type !== void 0,
         'Indica un cambio.',
       ),
     q.body,
@@ -1877,9 +2179,9 @@ app.patch('/api/projects/:id', async (q, r) => {
   await db
     .update(s.projects)
     .set({
-      ...(archived !== undefined ? { archived: String(archived) } : {}),
+      ...(archived !== void 0 ? { archived: String(archived) } : {}),
       ...(artworkTheme ? { artworkTheme } : {}),
-      ...(type !== undefined ? { type } : {}),
+      ...(type !== void 0 ? { type } : {}),
     })
     .where(eq(s.projects.id, String(q.params.id)));
   r.json({ ok: true });
@@ -1890,7 +2192,7 @@ app.post('/api/commissions', async (q, r) => {
     z.object({
       name: text,
       projectId: text,
-      description: z.string().max(3000).default(''),
+      description: z.string().max(3e3).default(''),
       icon: z.string().default('tent'),
       members: z.array(z.object({ userId: text, role: commissionRole })).min(1),
     }),
@@ -1899,7 +2201,7 @@ app.post('/api/commissions', async (q, r) => {
   const [p] = await db.select().from(s.projects).where(eq(s.projects.id, input.projectId));
   if (!p || p.archived === 'true') fail(400, 'Selecciona un proyecto activo.');
   const cid = q.body.clientId ? parse(z.uuid(), q.body.clientId) : id();
-  const result = await withReceipt(q, r, async (tx: any) => {
+  const result = await withReceipt(q, r, async (tx) => {
     await tx.insert(s.commissions).values({
       id: cid,
       name: input.name,
@@ -1915,7 +2217,6 @@ app.post('/api/commissions', async (q, r) => {
   });
   r.status(201).json(result);
 });
-// Commission deletion is logical: tasks, memberships and activity remain for history.
 async function managedCommission(tx: any, user: any, cid: string) {
   await tx.execute(sql`select id from commissions where id=${cid} for update`);
   await authorize(user, cid, true, tx);
@@ -1933,14 +2234,14 @@ app.patch('/api/commissions/:id', async (q, r) => {
     z
       .object({
         name: text.optional(),
-        description: z.string().trim().max(3000).optional(),
+        description: z.string().trim().max(3e3).optional(),
         expected: z.object({ name: z.string(), description: z.string() }).strict().optional(),
       })
       .strict()
-      .refine((v) => v.name !== undefined || v.description !== undefined, 'Indica un cambio.'),
+      .refine((v) => v.name !== void 0 || v.description !== void 0, 'Indica un cambio.'),
     q.body,
   );
-  await db.transaction(async (tx: any) => {
+  await db.transaction(async (tx) => {
     const commission = await managedCommission(tx, r.locals.user, cid);
     if (
       input.expected &&
@@ -1951,8 +2252,8 @@ app.patch('/api/commissions/:id', async (q, r) => {
     await tx
       .update(s.commissions)
       .set({
-        ...(input.name !== undefined ? { name: input.name } : {}),
-        ...(input.description !== undefined ? { description: input.description } : {}),
+        ...(input.name !== void 0 ? { name: input.name } : {}),
+        ...(input.description !== void 0 ? { description: input.description } : {}),
       })
       .where(eq(s.commissions.id, cid));
   });
@@ -2013,7 +2314,7 @@ app.post('/api/projects/:id/members', async (q, r) => {
 app.post('/api/commissions/:id/members', async (q, r) => {
   const cid = String(q.params.id);
   await authorize(r.locals.user, cid, true);
-  const input = parse(z.object({ userIds: z.array(text).min(1) }), q.body);
+  const input = parse(z.object({ userIds: z.array(text).min(1).max(100) }), q.body);
   await db.transaction(async (tx: any) => {
     for (const userId of new Set(input.userIds)) {
       await activeAccount(tx, userId);
@@ -2040,9 +2341,9 @@ app.delete('/api/commissions/:id/members/:uid', async (q, r) => {
   const cid = String(q.params.id),
     uid = String(q.params.uid);
   await authorize(r.locals.user, cid, true);
-  await db.transaction(async (tx: any) => {
+  await db.transaction(async (tx) => {
     await tx.execute(sql`select id from commissions where id=${cid} for update`);
-    const [person] = await tx.select().from(s.users).where(eq(s.users.id, uid));
+    const [person] = await tx.select(userProjection).from(s.users).where(eq(s.users.id, uid));
     await removeAssignments(tx, uid, r.locals.user.id, person?.name || 'esta persona', cid);
     await tx
       .delete(s.members)
@@ -2053,14 +2354,14 @@ app.delete('/api/commissions/:id/members/:uid', async (q, r) => {
 const taskInput = z.object({
   title: text,
   commissionId: text,
-  description: z.string().max(5000).default(''),
+  description: z.string().max(5e3).default(''),
   due: z.iso.datetime({ offset: true }),
-  responsibleIds: z.array(text).min(1),
+  responsibleIds: z.array(text).min(1).max(100),
 });
 app.post('/api/tasks', async (q, r) => {
   const input = parse(taskInput, q.body);
   const tid = q.body.clientId ? parse(z.uuid(), q.body.clientId) : id();
-  const result = await withReceipt(q, r, async (tx: any) => {
+  const result = await withReceipt(q, r, async (tx) => {
     await tx.execute(sql`select id from commissions where id=${input.commissionId} for update`);
     await authorize(r.locals.user, input.commissionId, true, tx);
     const [p] = await tx
@@ -2092,12 +2393,12 @@ app.patch('/api/tasks/:id', async (q, r) => {
     z
       .object({
         title: text.optional(),
-        description: z.string().trim().max(5000).optional(),
+        description: z.string().trim().max(5e3).optional(),
         checklistChange: checklistChangeSchema.optional(),
         status: statuses.optional(),
         expectedUpdatedAt: z.string().optional(),
-        blockedReason: z.string().trim().max(1000).optional(),
-        responsibleIds: z.array(text).min(1).optional(),
+        blockedReason: z.string().trim().max(1e3).optional(),
+        responsibleIds: z.array(text).min(1).max(100).optional(),
         due: z.iso.datetime({ offset: true }).optional(),
       })
       .strict()
@@ -2108,7 +2409,7 @@ app.patch('/api/tasks/:id', async (q, r) => {
       ),
     q.body,
   );
-  const changedTask = await withReceipt(q, r, async (tx: any) => {
+  const changedTask = await withReceipt(q, r, async (tx) => {
     await tx.execute(sql`select commission_id from tasks where id=${tid} for update`);
     const t = await editableTask(
       r.locals.user,
@@ -2117,8 +2418,8 @@ app.patch('/api/tasks/:id', async (q, r) => {
       !!(
         input.responsibleIds ||
         input.due ||
-        input.title !== undefined ||
-        input.description !== undefined ||
+        input.title !== void 0 ||
+        input.description !== void 0 ||
         (input.checklistChange && input.checklistChange.action !== 'toggle')
       ),
     );
@@ -2137,10 +2438,10 @@ app.patch('/api/tasks/:id', async (q, r) => {
         if (!input.responsibleIds.includes(assignment.userId))
           await tx.delete(s.assignments).where(eq(s.assignments.id, assignment.id));
       for (const userId of new Set(input.responsibleIds))
-        if (!previous.some((a: any) => a.userId === userId))
+        if (!previous.some((a: typeof s.assignments.$inferSelect) => a.userId === userId))
           await tx.insert(s.assignments).values({ id: id(), taskId: tid, userId });
     }
-    const update: any = {
+    const update: Partial<typeof s.tasks.$inferInsert> = {
       updatedAt: new Date(Math.max(Date.now(), +new Date(t.updatedAt) + 1)).toISOString(),
     };
     if (input.title !== undefined) update.title = input.title;
@@ -2181,8 +2482,8 @@ app.patch('/api/tasks/:id', async (q, r) => {
               remove: 'Ha eliminado un paso.',
             }[input.checklistChange.action]
           : [
-              input.title !== undefined && 'Ha actualizado el título.',
-              input.description !== undefined && 'Ha actualizado la descripción.',
+              input.title !== void 0 && 'Ha actualizado el título.',
+              input.description !== void 0 && 'Ha actualizado la descripción.',
               input.responsibleIds && 'Ha reasignado responsables.',
               input.due && 'Ha cambiado la fecha límite.',
             ]
@@ -2191,8 +2492,8 @@ app.patch('/api/tasks/:id', async (q, r) => {
     );
     if (
       !input.checklistChange ||
-      input.title !== undefined ||
-      input.description !== undefined ||
+      input.title !== void 0 ||
+      input.description !== void 0 ||
       input.due ||
       input.responsibleIds ||
       input.status
@@ -2214,7 +2515,7 @@ app.patch('/api/tasks/:id', async (q, r) => {
 });
 app.delete('/api/tasks/:id', async (q, r) => {
   const tid = String(q.params.id);
-  await db.transaction(async (tx: any) => {
+  await db.transaction(async (tx) => {
     await tx.execute(sql`select id from tasks where id=${tid} for update`);
     await editableTask(r.locals.user, tid, tx, true);
     await tx
@@ -2267,7 +2568,7 @@ async function createInvitations(q: express.Request, r: express.Response) {
   const recipients = [...new Set(input.emails || [input.email!])];
   const created: string[] = [],
     skipped: { email: string; reason: string }[] = [];
-  await db.transaction(async (tx: any) => {
+  await db.transaction(async (tx) => {
     await tx.execute(sql`lock table invitations in share row exclusive mode`);
     let commissionName = 'el grupo';
     if (pid) {
@@ -2295,14 +2596,19 @@ async function createInvitations(q: express.Request, r: express.Response) {
       .set({ status: 'expired' })
       .where(and(eq(s.invitations.status, 'pending'), sql`${s.invitations.expires}<=now()`));
     for (const recipient of recipients) {
-      const [user] = await tx.select().from(s.users).where(eq(s.users.email, recipient));
+      const [user] = await tx
+        .select(userProjection)
+        .from(s.users)
+        .where(eq(s.users.email, recipient));
       if (user?.disabledAt) {
-        // Legacy disabled accounts can still carry assignments from before automatic cleanup.
         await removeAssignments(tx, user.id, r.locals.user.id, user.name);
-        await tx
-          .update(s.users)
-          .set({ disabledAt: null, role: 'member' })
-          .where(eq(s.users.id, user.id));
+        if (mode === 'http')
+          await tx.execute(sql`select bandarlog_api.reactivate_user(${user.id})`);
+        else
+          await tx
+            .update(s.users)
+            .set({ disabledAt: null, role: 'member' })
+            .where(eq(s.users.id, user.id));
       }
       if (
         user &&
@@ -2365,20 +2671,27 @@ async function createInvitations(q: express.Request, r: express.Response) {
         status: 'pending',
         expires,
       });
-      await queue(
-        recipient,
-        'Te invitan a Bandarlog',
-        `Hola ${name}, te han invitado a ${commissionName}${cid ? ' como ' + (input.role === 'responsible' ? 'Responsable' : 'Scouter') : ''}.\nAcepta la invitación para entrar con ${recipient}.\n\n${await invitationLink(recipient, iid, expires, tx)}\n\nLa invitación caduca en 7 días.`,
-        `invite-${iid}`,
-        tx,
-      );
+      if (mode === 'http') await tx.execute(sql`select bandarlog_api.queue_invitation(${iid})`);
+      else {
+        await queue(
+          recipient,
+          'Te invitan a Bandarlog',
+          `Hola ${name}, te han invitado a ${commissionName}${cid ? ' como ' + (input.role === 'responsible' ? 'Responsable' : 'Scouter') : ''}.
+Acepta la invitación para entrar con ${recipient}.
+
+${await invitationLink(recipient, iid, expires, tx)}
+
+La invitación caduca en 7 días.`,
+          `invite-${iid}`,
+          tx,
+        );
+      }
       created.push(recipient);
     }
   });
   void deliver();
   r.status(201).json({ created, skipped });
 }
-
 app.post('/api/invitations', createInvitations);
 app.post(
   '/api/commissions/:id/invitations',
@@ -2406,7 +2719,7 @@ app.patch('/api/invitations/:id', async (q, r) => {
   if (r.locals.user.role !== 'admin')
     fail(403, 'Solo administración puede gestionar invitaciones.');
   const { action } = parse(z.object({ action: z.enum(['resend', 'revoke']) }), q.body);
-  await db.transaction(async (tx: any) => {
+  await db.transaction(async (tx) => {
     const [i] = await tx
       .select()
       .from(s.invitations)
@@ -2420,19 +2733,24 @@ app.patch('/api/invitations/:id', async (q, r) => {
     const expires = new Date(Date.now() + 7 * 86400000).toISOString();
     await tx
       .update(s.invitations)
-      .set({
-        status: action === 'revoke' ? 'revoked' : 'pending',
-        expires,
-      })
+      .set({ status: action === 'revoke' ? 'revoked' : 'pending', expires })
       .where(eq(s.invitations.id, i.id));
-    if (action === 'resend')
-      await queue(
-        i.email,
-        'Recordatorio de invitación a Bandarlog',
-        `Acepta la invitación para entrar con ${i.email}.\n\n${await invitationLink(i.email, i.id, expires, tx)}\n\nTu invitación está disponible durante 7 días.`,
-        id(),
-        tx,
-      );
+    if (action === 'resend') {
+      if (mode === 'http') await tx.execute(sql`select bandarlog_api.queue_invitation(${i.id})`);
+      else {
+        await queue(
+          i.email,
+          'Recordatorio de invitación a Bandarlog',
+          `Acepta la invitación para entrar con ${i.email}.
+
+${await invitationLink(i.email, i.id, expires, tx)}
+
+Tu invitación está disponible durante 7 días.`,
+          id(),
+          tx,
+        );
+      }
+    }
   });
   void deliver();
   r.json({ ok: true });
@@ -2468,28 +2786,37 @@ app.delete('/api/users/:id', async (q, r) => {
   if (r.locals.user.role !== 'admin') fail(403, 'Solo administración puede eliminar usuarios.');
   const uid = String(q.params.id);
   if (uid === r.locals.user.id) fail(400, 'No puedes eliminar tu propia cuenta.');
-  await db.transaction(async (tx: any) => {
-    await tx.execute(sql`lock table users in share row exclusive mode`);
-    const [actor] = await tx.select().from(s.users).where(eq(s.users.id, r.locals.user.id));
+  await db.transaction(async (tx) => {
+    if (mode !== 'http') await tx.execute(sql`lock table users in share row exclusive mode`);
+    const [actor] = await tx
+      .select(userProjection)
+      .from(s.users)
+      .where(eq(s.users.id, r.locals.user.id));
     if (actor?.role !== 'admin' || actor.disabledAt) fail(403, 'Tu rol ha cambiado.');
-    const [target] = await tx.select().from(s.users).where(eq(s.users.id, uid));
+    const [target] = await tx.select(userProjection).from(s.users).where(eq(s.users.id, uid));
     if (!target || target.disabledAt) fail(404, 'Persona no encontrada.');
     await tx.execute(
       sql`select id from commissions where id in (select commission_id from members where user_id=${uid}) order by id for update`,
     );
     await removeAssignments(tx, uid, r.locals.user.id, target.name);
-    await tx.update(s.users).set({ disabledAt: now() }).where(eq(s.users.id, uid));
-    await tx.delete(s.sessions).where(eq(s.sessions.userId, uid));
-    await tx.delete(s.tokens).where(eq(s.tokens.email, target.email));
-    await tx.delete(s.authChallenges).where(eq(s.authChallenges.email, target.email));
+    if (mode === 'http')
+      await tx.execute(sql`select bandarlog_api.change_user(${uid},'member',true)`);
+    else await tx.update(s.users).set({ disabledAt: now() }).where(eq(s.users.id, uid));
+    if (mode !== 'http') {
+      await tx.delete(s.sessions).where(eq(s.sessions.userId, uid));
+      await tx.delete(s.tokens).where(eq(s.tokens.email, target.email));
+      await tx.delete(s.authChallenges).where(eq(s.authChallenges.email, target.email));
+    }
     await tx.delete(s.members).where(eq(s.members.userId, uid));
     await tx.delete(s.projectMembers).where(eq(s.projectMembers.userId, uid));
-    await tx.delete(s.pushSubscriptions).where(eq(s.pushSubscriptions.userId, uid));
-    await tx.update(s.pushOutbox).set({ sentAt: now() }).where(eq(s.pushOutbox.userId, uid));
-    await tx
-      .update(s.notifications)
-      .set({ status: 'cancelled' })
-      .where(and(eq(s.notifications.email, target.email), eq(s.notifications.status, 'pending')));
+    if (mode !== 'http') {
+      await tx.delete(s.pushSubscriptions).where(eq(s.pushSubscriptions.userId, uid));
+      await tx.update(s.pushOutbox).set({ sentAt: now() }).where(eq(s.pushOutbox.userId, uid));
+      await tx
+        .update(s.notifications)
+        .set({ status: 'cancelled' })
+        .where(and(eq(s.notifications.email, target.email), eq(s.notifications.status, 'pending')));
+    }
     await tx
       .update(s.invitations)
       .set({ status: 'revoked' })
@@ -2503,22 +2830,34 @@ app.patch('/api/users/:id/role', async (q, r) => {
     fail(403, 'Solo administración puede cambiar roles globales.');
   const uid = String(q.params.id);
   if (uid === r.locals.user.id) fail(400, 'No puedes cambiar tu propio rol.');
-  await db.transaction(async (tx: any) => {
-    await tx.execute(sql`lock table users in share row exclusive mode`);
-    const [actor] = await tx.select().from(s.users).where(eq(s.users.id, r.locals.user.id));
+  await db.transaction(async (tx) => {
+    if (mode !== 'http') await tx.execute(sql`lock table users in share row exclusive mode`);
+    const [actor] = await tx
+      .select(userProjection)
+      .from(s.users)
+      .where(eq(s.users.id, r.locals.user.id));
     if (actor?.role !== 'admin' || actor.disabledAt) fail(403, 'Tu rol ha cambiado.');
-    const changed = await tx
-      .update(s.users)
-      .set({ role: input.role })
-      .where(and(eq(s.users.id, uid), sql`${s.users.disabledAt} is null`))
-      .returning();
+    const changed =
+      mode === 'http'
+        ? (
+            await tx.execute(
+              sql`select bandarlog_api.change_user(${uid},${input.role},false) as ok`,
+            )
+          ).rows[0]?.ok
+          ? [true]
+          : []
+        : await tx
+            .update(s.users)
+            .set({ role: input.role })
+            .where(and(eq(s.users.id, uid), sql`${s.users.disabledAt} is null`))
+            .returning();
     if (!changed.length) fail(404, 'Persona no encontrada.');
   });
   r.json({ ok: true });
 });
 app.post('/api/notifications/process', async (_q, r) => {
   if (!globalManage(r.locals.user)) fail(403, 'Solo coordinación.');
-  await reminders();
+  if (runsJobs) await reminders();
   await deliver();
   r.json({ ok: true, mode: mailTransport?.kind || 'preview' });
 });
@@ -2529,18 +2868,26 @@ app.get('/api/notifications', async (q, r) => {
     r.locals.user.id,
     'notifications',
   ]);
-  const { body: _body, ...columns } = getTableColumns(s.notifications);
+  const {
+    body: _body,
+    html: _html,
+    leaseId: _lease,
+    leaseUntil: _leaseUntil,
+    ...columns
+  } = getTableColumns(s.notifications);
   const rows = await db
     .select(columns)
     .from(s.notifications)
     .where(page.before(s.notifications.createdAt, s.notifications.id))
     .orderBy(sql`${s.notifications.createdAt} desc`, sql`${s.notifications.id} desc`)
     .limit(page.limit + 1);
-  const result = page.finish(rows);
+  const result = page.finish(
+    rows.map((row) => ({ ...row, status: row.status === 'pending_v2' ? 'pending' : row.status })),
+  );
   if (result.nextCursor) r.set('X-Next-Cursor', result.nextCursor);
   r.json(q.query.page === '1' ? result : result.items);
 });
-const scheduling = new Map<string, Promise<number>>();
+const scheduling = new Map();
 async function reminders() {
   const key = groupContext.getStore()!.id;
   const existing = scheduling.get(key);
@@ -2592,7 +2939,7 @@ async function reminders() {
       })
       .from(s.users);
     const usersById = new Map(recipients.map((u) => [u.id, u]));
-    const assignedByTask = new Map<string, typeof assigned>();
+    const assignedByTask = new Map<string, (typeof s.assignments.$inferSelect)[]>();
     for (const assignment of assigned) {
       const rows = assignedByTask.get(assignment.taskId) || [];
       rows.push(assignment);
@@ -2618,11 +2965,9 @@ async function reminders() {
           const due = +new Date(t.due) + 1000;
           if (due > Date.now()) nextCheck = Math.min(nextCheck, due);
         }
-        for (const event of reminderEvents(t.due, t.status, pref)) {
-          // Daily means once per Madrid day even if an overdue deadline is edited.
-          // The other schedules retain their existing per-deadline identity.
-          const suffix = event.key.startsWith('overdue-day-') ? '' : '-' + t.due;
-          await taskMail(db, t, event.label, 'scheduled-' + event.key + '-' + t.id + suffix, {
+        for (const event2 of reminderEvents(t.due, t.status, pref)) {
+          const suffix = event2.key.startsWith('overdue-day-') ? '' : '-' + t.due;
+          await taskMail(db, t, event2.label, 'scheduled-' + event2.key + '-' + t.id + suffix, {
             recipientId: u.id,
             event: 'scheduled',
             context,
@@ -2640,11 +2985,10 @@ async function reminders() {
     week.setUTCDate(week.getUTCDate() - ((week.getUTCDay() + 6) % 7));
     const stamp = week.toISOString().slice(0, 10);
     const us = recipients;
-
     for (const u of us) {
       const pref = preferences(u.preferences);
       if (u.disabledAt || !globalManage(u) || !pref.notifications || !pref.weekly) continue;
-      for (const p of ps.filter((p) => p.archived === 'false')) {
+      for (const p of ps.filter((p2) => p2.archived === 'false')) {
         const pts = ts.filter((t) =>
           cs.some((c) => c.id === t.commissionId && c.projectId === p.id),
         );
@@ -2677,13 +3021,12 @@ async function reminders() {
     scheduling.delete(key);
   }
 }
-// An empty queue has no retry timer. Persisted work is recovered at startup and hourly.
 const deliveryJobs = new IdleJobs<Group>(
   async (group) =>
     groupContext.run(group, async () => {
       await measureJob('delivery', deliverNow);
       const result = await db.execute(sql`select least(
-    (select min(coalesce(next_attempt_at, now())) from notifications where ${Boolean(mailTransport)} and status='pending' and attempts::integer<5),
+    (select min(case status when 'sending' then coalesce(lease_until,now()) else coalesce(next_attempt_at,now()) end) from notifications where ${Boolean(mailTransport)} and status in ('pending','pending_v2','sending') and attempts::integer<5),
     (select min(ready_at) from (${pendingPushWork}) work)
   ) as next_at`);
       const at = result.rows[0]?.next_at;
@@ -2691,8 +3034,23 @@ const deliveryJobs = new IdleJobs<Group>(
     }),
   () => console.error('No se pudo completar la entrega pendiente.'),
 );
+const wakeJobs = new IdleJobs<string | undefined>(
+  async (group) => {
+    await wakeDelivery(group);
+    return null;
+  },
+  () => console.error({ event: 'delivery.wake.failed' }),
+);
+function requestDelivery() {
+  const group = groupContext.getStore()!?.privateId;
+  wakeJobs.schedule(group || 'platform', group, Date.now() + 100);
+}
 async function deliver() {
-  const group = groupContext.getStore();
+  if (!runsJobs) {
+    requestDelivery();
+    return;
+  }
+  const group = groupContext.getStore()!;
   if (!group) throw Error('Falta el contexto privado del grupo.');
   await deliveryJobs.wake(group.id, group);
 }
@@ -2706,6 +3064,10 @@ const platformJobs = new IdleJobs<void>(
   () => console.error('No se pudo completar el correo pendiente.'),
 );
 async function deliverPlatform() {
+  if (!runsJobs) {
+    requestDelivery();
+    return;
+  }
   await platformJobs.wake('platform', undefined);
 }
 const activeGroups = () => platform.jobGroups(false, Boolean(mailTransport));
@@ -2739,9 +3101,10 @@ const recoveryJobs = new IdleJobs<void>(
     }),
   () => console.error('No se pudo recuperar el trabajo pendiente.'),
 );
-// These callbacks run after the server starts; shutdown cancels all future work.
-calendarJobs.schedule('calendar', undefined, Date.now() + 1000);
-recoveryJobs.schedule('recovery', undefined, Date.now() + 1000);
+if (runsJobs && !jobsPaused) {
+  calendarJobs.schedule('calendar', undefined, Date.now() + 1000);
+  recoveryJobs.schedule('recovery', undefined, Date.now() + 1000);
+}
 app.use('/api', (_q, r) => r.status(404).json({ error: 'Ruta no encontrada.' }));
 if (prod) {
   const spaHtml = await readFile('dist/index.html', 'utf8');
@@ -2756,12 +3119,12 @@ if (prod) {
     }),
   );
   app.get('/{*path}', (_q, r) => {
-    r.type('html').send(
-      spaHtml.replace('/manifest.webmanifest', groupPath() + '/manifest.webmanifest'),
-    );
+    r.set('X-Bandarlog-Public-Shell', '1')
+      .type('html')
+      .send(spaHtml.replace('/manifest.webmanifest', groupPath() + '/manifest.webmanifest'));
   });
 }
-app.use((error: any, _q: any, r: any, _n: any) => {
+app.use((error: any, _q: express.Request, r: express.Response, _n: express.NextFunction) => {
   const status =
     error instanceof Problem || error instanceof CursorError
       ? error.status
@@ -2769,7 +3132,11 @@ app.use((error: any, _q: any, r: any, _n: any) => {
         ? 400
         : ['23505', '23514', '23503'].includes(error.code || error.cause?.code)
           ? 409
-          : 500;
+          : (error.code || error.cause?.code) === '28000'
+            ? 428
+            : (error.code || error.cause?.code) === '42501'
+              ? 403
+              : 500;
   if (status === 500)
     console.error({ name: error.name, code: error.code || error.cause?.code || 'INTERNAL_ERROR' });
   r.status(status).json({
@@ -2782,7 +3149,11 @@ app.use((error: any, _q: any, r: any, _n: any) => {
             ? 'Ya existe un registro con estos datos.'
             : status === 500
               ? 'No se pudo completar la operación.'
-              : error.message,
+              : status === 428
+                ? 'Vuelve a iniciar sesión antes de modificar accesos.'
+                : status === 403
+                  ? 'No tienes permiso para esta operación.'
+                  : error.message,
   });
 });
 site.use(
@@ -2824,9 +3195,9 @@ site.get('/', async (q, r, next) => {
       303,
       '/g/' + legacyGroup.privateId + '/' + q.originalUrl.slice(q.originalUrl.indexOf('?')),
     );
-  const entry = await rememberedEntry(platform, q.headers.cookie, legacyGroup.id);
+  const entry = await rememberedEntry(platform, q.headers.cookie, legacyGroup!.id);
   if (entry) return r.redirect(303, entry);
-  if (requestCookie(q.headers.cookie, ENTRY_COOKIE)) r.clearCookie(ENTRY_COOKIE, { path: '/' });
+  if (entryMarker(q.headers.cookie)) clearEntry(r, prod);
   if (prod && legacyOrigins.includes('https://' + (q.get('host') || '').toLowerCase()))
     return r.redirect(308, appUrl + q.originalUrl);
   r.type('html').send(renderPublicHome(appUrl));
@@ -2843,7 +3214,7 @@ site.use((_q, r) => r.status(404).type('text').send('Página no encontrada.'));
 site.use((_error: any, _q: any, r: any, _next: any) =>
   r.status(500).type('text').send('No se pudo completar la operación.'),
 );
-const server = site.listen(Number(process.env.PORT || 3001), '0.0.0.0', () =>
+const server = site.listen(Number(process.env.PORT || 3001), '::', () =>
   console.log(
     `Bandarlog API preparada en puerto ${process.env.PORT || 3001} (${prod ? 'producción' : 'desarrollo con datos demostrativos'})`,
   ),
@@ -2855,6 +3226,7 @@ process.on('SIGTERM', () => {
   reminderJobs.stop();
   calendarJobs.stop();
   recoveryJobs.stop();
+  wakeJobs.stop();
   for (const view of liveViews.keys()) view.end();
   server.close(() => void close().then(() => process.exit(0)));
 });

@@ -1,3 +1,4 @@
+import { component, validateComponentSecrets } from './components.js';
 import { z } from 'zod';
 import { publicInfo } from '../shared/public-info.js';
 import { mailProvider } from './mail.js';
@@ -5,6 +6,8 @@ import { mailProvider } from './mail.js';
 // Validate deployment settings before connecting to or migrating the database.
 // Errors name the setting, never its value.
 export function validateEnvironment(env: NodeJS.ProcessEnv = process.env) {
+  const mode = component(env);
+  validateComponentSecrets(env);
   const production = env.NODE_ENV === 'production';
   const appUrl = env.APP_URL || 'http://localhost:5173';
   let origin: URL;
@@ -29,20 +32,22 @@ export function validateEnvironment(env: NodeJS.ProcessEnv = process.env) {
     if (!env.APP_URL || origin.protocol !== 'https:')
       throw new Error('Producción requiere APP_URL HTTPS.');
     if (!env.DATABASE_URL) throw new Error('Producción requiere DATABASE_URL.');
-    const provider = mailProvider(env);
-    if (!['smtp', 'gmail_api', 'resend'].includes(provider))
-      throw new Error('Producción requiere MAIL_TRANSPORT=smtp, gmail_api o resend.');
-    const mailRequirements =
-      provider === 'gmail_api'
-        ? ['GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN', 'MAIL_FROM']
-        : provider === 'resend'
-          ? ['RESEND_API_KEY', 'MAIL_FROM']
-          : ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'MAIL_FROM'];
-    for (const name of mailRequirements) {
-      if (!env[name]) throw new Error(`Producción requiere ${name}.`);
+    if (mode === 'delivery' || mode === 'development') {
+      const provider = mailProvider(env);
+      if (!['smtp', 'gmail_api', 'resend'].includes(provider))
+        throw new Error('Producción requiere MAIL_TRANSPORT=smtp, gmail_api o resend.');
+      const mailRequirements =
+        provider === 'gmail_api'
+          ? ['GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN', 'MAIL_FROM']
+          : provider === 'resend'
+            ? ['RESEND_API_KEY', 'MAIL_FROM']
+            : ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'MAIL_FROM'];
+      for (const name of mailRequirements) {
+        if (!env[name]) throw new Error(`Producción requiere ${name}.`);
+      }
+      if (provider === 'smtp' && env.SMTP_PORT && !['465', '587'].includes(env.SMTP_PORT))
+        throw new Error('SMTP_PORT debe ser 465 o 587.');
     }
-    if (provider === 'smtp' && env.SMTP_PORT && !['465', '587'].includes(env.SMTP_PORT))
-      throw new Error('SMTP_PORT debe ser 465 o 587.');
   }
   if (env.DATABASE_URL) {
     let dbUrl: URL;
@@ -61,11 +66,18 @@ export function validateEnvironment(env: NodeJS.ProcessEnv = process.env) {
       throw new Error('La conexión Neon de producción requiere sslmode=verify-full.');
     }
   }
-  if (production && (!env.AUTH_CHALLENGE_SECRET || env.AUTH_CHALLENGE_SECRET.length < 32))
+  if (
+    production &&
+    mode === 'identity' &&
+    (!env.AUTH_CHALLENGE_SECRET || env.AUTH_CHALLENGE_SECRET.length < 32)
+  )
     throw new Error(
       'Producción requiere AUTH_CHALLENGE_SECRET aleatorio de al menos 32 caracteres.',
     );
-  if (Boolean(env.GOOGLE_LOGIN_CLIENT_ID) !== Boolean(env.GOOGLE_LOGIN_CLIENT_SECRET))
+  if (
+    mode !== 'http' &&
+    Boolean(env.GOOGLE_LOGIN_CLIENT_ID) !== Boolean(env.GOOGLE_LOGIN_CLIENT_SECRET)
+  )
     throw new Error('Configura GOOGLE_LOGIN_CLIENT_ID y GOOGLE_LOGIN_CLIENT_SECRET conjuntamente.');
   const legacyInput =
     env.LEGACY_APP_ORIGINS ?? (origin.origin === publicInfo.origin ? publicInfo.legacyOrigin : '');
