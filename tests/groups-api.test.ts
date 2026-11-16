@@ -344,6 +344,12 @@ test('independent groups can share an owner email without sharing sessions, role
     ).status,
     400,
   );
+  assert.equal((await call('/api/profile', 'PATCH', { adminGuideCompleted: true }, a)).status, 200);
+  assert.equal(JSON.parse((await call('/api/me', 'GET', undefined, a)).body.user.preferences).adminGuideCompleted, true);
+  assert.equal(JSON.parse((await call('/api/me', 'GET', undefined, b)).body.user.preferences).adminGuideCompleted ?? false, false);
+  assert.equal((await call('/api/profile', 'PATCH', { adminGuideCompleted: false }, a)).status, 200);
+  assert.equal((await call('/api/profile', 'PATCH', { notifications: true, foundingAdmin: false }, a)).status, 200);
+  assert.equal(JSON.parse((await call('/api/me', 'GET', undefined, a)).body.user.preferences).foundingAdmin, true);
   const owner = (await call('/api/me', 'GET', undefined, a)).body.user;
   assert.equal((await call('/api/onboarding', 'POST', { name: owner.name }, a)).status, 200);
   await call('/api/tutorial', 'POST', { action: 'shown' }, a);
@@ -602,6 +608,10 @@ test('root resumes valid legacy and private-group sessions without granting acce
       collection + ' preserves IDs, fields and history across routes',
     );
   oldInstall.csrf = (await call('/api/me', 'GET', undefined, oldInstall)).body.csrf;
+  assert.equal((await call('/api/profile', 'PATCH', { adminGuideCompleted: true }, oldInstall)).status, 403);
+  assert.equal((await call('/api/profile', 'PATCH', { notifications: true, foundingAdmin: true }, oldInstall)).status, 200);
+  assert.equal(JSON.parse((await call('/api/me', 'GET', undefined, oldInstall)).body.user.preferences).foundingAdmin, false);
+
   const historyPath = '/api/activity?limit=1&taskId=' + before.tasks[0].id;
   for (const body of ['Compatibilidad raíz', 'Compatibilidad canónica'])
     assert.equal(

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, ClipboardCheck, Flag, Settings2, Users, UserRoundPlus, Sparkles } from 'lucide-react';
+import { Check, ClipboardCheck, Flag, Settings2, Users, UserRoundPlus } from 'lucide-react';
 import type { Data } from './types';
 import { setupMilestones } from './admin-setup';
 import './admin-setup-guide.css';
@@ -52,7 +52,6 @@ export function AdminSetupGuide({
     <section className="panel admin-setup-guide" aria-label="Puesta en marcha del grupo">
       <div className="admin-guide-heading">
         <div>
-          <p className="admin-guide-kicker"><Sparkles size={16} aria-hidden="true" /> Bienvenido a tu grupo</p>
           <h2>Prepara {data.group?.name || 'tu nuevo grupo'} en Bandarlog</h2>
           <p>Eres la primera persona administradora. Esta guía te ayudará a poner en marcha el espacio sin afectar a otros grupos.</p>
         </div>

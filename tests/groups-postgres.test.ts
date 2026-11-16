@@ -462,7 +462,8 @@ test('production public pages and legacy-domain redirects preserve safe links wi
       };
       const me = await api('/api/me', 'GET', undefined, login);
       assert.equal(me.status, 200);
-      login.csrf = me.data.csrf;
+      assert.equal(JSON.parse(me.data.user.preferences).foundingAdmin, true);
+    login.csrf = me.data.csrf;
       login.userId = me.data.user.id;
       return login;
     }
