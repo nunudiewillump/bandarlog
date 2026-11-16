@@ -1,3 +1,4 @@
+import { googleReturnPage, GOOGLE_RETURN_LIFETIME } from './google-return.js';
 import { IdleJobs, nextMadridMidnight } from './idle-jobs.js';
 import { publicUsers } from './public-users.js';
 import { pageRequest, CursorError } from './pagination.js';
@@ -129,6 +130,16 @@ app.use('/api', (q, r, next) => {
 });
 
 app.use(helmet({ contentSecurityPolicy: prod ? undefined : false }));
+// Only SPA entry and OAuth documents need to retain an explicitly opened popup.
+app.use((q, r, next) => {
+  if (
+    q.method === 'GET' &&
+    ['/', '/api/auth/google/start', '/api/auth/google/callback'].includes(q.path)
+  )
+    r.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  next();
+});
+
 app.use(express.json({ limit: '256kb' }));
 app.use('/api', (_q, r, n) => {
   r.set('Cache-Control', 'no-store');
@@ -712,7 +723,13 @@ app.post('/api/auth/code/verify', async (q, r) => {
   r.clearCookie('bandarlog_google_link', { path: '/' });
   r.json({ ok: true });
 });
-app.get('/api/auth/google/start', async (_q, r) => {
+app.get('/api/auth/google/start', async (q, r) => {
+  const handoffChallenge = q.query.handoff_challenge;
+  if (
+    handoffChallenge !== undefined &&
+    (typeof handoffChallenge !== 'string' || !/^[a-f0-9]{64}$/.test(handoffChallenge))
+  )
+    return r.status(400).json({ error: 'Solicitud de acceso no válida.' });
   if (!googleEnabled)
     return r
       .status(503)
@@ -723,6 +740,7 @@ app.get('/api/auth/google/start', async (_q, r) => {
     verifier = secret();
   await db.delete(s.googleStates).where(sql`${s.googleStates.expires}<=now()`);
   await db.insert(s.googleStates).values({
+    handoffChallenge: typeof handoffChallenge === 'string' ? handoffChallenge : null,
     id: hash(state),
     browser: hash(browser),
     nonce,
@@ -765,6 +783,7 @@ async function signingKeys() {
 }
 app.get('/api/auth/google/callback', async (q, r) => {
   r.clearCookie('bandarlog_google', { path: '/api/auth/google' });
+  let popupChallenge: string | null = null;
   try {
     if (
       !googleEnabled ||
@@ -785,6 +804,7 @@ app.get('/api/auth/google/callback', async (q, r) => {
         ),
       )
       .returning();
+    popupChallenge = flow?.handoffChallenge || null;
     if (!flow || q.query.error || typeof q.query.code !== 'string' || q.query.code.length > 4096)
       throw new Error('OAuth cancelled');
     const response = await fetch('https://oauth2.googleapis.com/token', {
@@ -814,7 +834,32 @@ app.get('/api/auth/google/callback', async (q, r) => {
       .select()
       .from(s.googleIdentities)
       .where(eq(s.googleIdentities.subject, claims.sub));
+    async function handoff(
+      values: { userId: string } | { googleSubject: string; googleEmail: string },
+    ) {
+      const ticket = secret();
+      await db.delete(s.googleHandoffs).where(sql`${s.googleHandoffs.expires}<=now()`);
+      await db
+        .insert(s.googleHandoffs)
+        .values({
+          id: hash(ticket),
+          challenge: popupChallenge!,
+          ...values,
+          expires: new Date(Date.now() + GOOGLE_RETURN_LIFETIME).toISOString(),
+        });
+      const page = googleReturnPage(appUrl, ticket);
+      return r
+        .set({
+          'Cache-Control': 'no-store',
+          'Referrer-Policy': 'no-referrer',
+          'Content-Security-Policy': page.csp,
+        })
+        .type('html')
+        .send(page.html);
+    }
     if (!linked && !googleEmailAuthoritative(claims)) {
+      if (popupChallenge)
+        return await handoff({ googleSubject: claims.sub, googleEmail: claims.email });
       const link = secret();
       await db.delete(s.googleLinks).where(sql`${s.googleLinks.expires}<=now()`);
       await db.insert(s.googleLinks).values({
@@ -850,14 +895,74 @@ app.get('/api/auth/google/callback', async (q, r) => {
           .where(eq(s.googleIdentities.subject, claims.sub));
         if (identity?.userId !== user.id) fail(403, 'Identidad de Google ya vinculada.');
       }
-      return createSession(tx, user.id);
+      return popupChallenge ? { userId: user.id } : createSession(tx, user.id);
     });
+    if ('userId' in session) return await handoff({ userId: session.userId });
     sessionCookie(r, session.raw);
     r.redirect(groupUrl(appUrl));
   } catch {
+    if (popupChallenge) {
+      const page = googleReturnPage(appUrl);
+      return r
+        .set({
+          'Cache-Control': 'no-store',
+          'Referrer-Policy': 'no-referrer',
+          'Content-Security-Policy': page.csp,
+        })
+        .type('html')
+        .send(page.html);
+    }
     // Never leak tokens, callback parameters, credentials, or provider response bodies.
     r.redirect(`${groupUrl(appUrl)}?auth_error=google`);
   }
+});
+
+app.post('/api/auth/google/return', async (q, r) => {
+  const input = parse(
+    z
+      .object({
+        ticket: z.string().regex(/^[a-f0-9]{64}$/),
+        proof: z.string().regex(/^[a-f0-9]{64}$/),
+      })
+      .strict(),
+    q.body,
+  );
+  const result = await db.transaction(async (tx: any) => {
+    const [grant] = await tx
+      .delete(s.googleHandoffs)
+      .where(
+        and(
+          eq(s.googleHandoffs.id, hash(input.ticket)),
+          eq(s.googleHandoffs.challenge, hash(input.proof)),
+          sql`${s.googleHandoffs.expires}>now()`,
+        ),
+      )
+      .returning();
+    if (!grant) fail(403, 'El acceso ha caducado. Solicita un código de correo.');
+    if (grant.userId) return { session: await createSession(tx, grant.userId) };
+    const link = secret();
+    await tx
+      .insert(s.googleLinks)
+      .values({
+        id: hash(link),
+        subject: grant.googleSubject!,
+        email: grant.googleEmail!,
+        expires: new Date(Date.now() + CODE_LIFETIME).toISOString(),
+      });
+    return { link, email: grant.googleEmail };
+  });
+  if (result.session) {
+    sessionCookie(r, result.session.raw);
+    return r.json({ ok: true });
+  }
+  r.cookie('bandarlog_google_link', result.link, {
+    httpOnly: true,
+    secure: prod,
+    sameSite: 'lax',
+    maxAge: CODE_LIFETIME,
+    path: '/',
+  });
+  r.json({ needsEmailVerification: true, email: result.email });
 });
 
 if (!prod)
@@ -1351,8 +1456,10 @@ app.patch('/api/profile', async (q, r) => {
   );
   const { name, avatarUrl, ...changes } = input;
   const previous = preferences(r.locals.user.preferences);
-  if (changes.adminGuideCompleted !== undefined &&
-      (r.locals.user.role !== 'admin' || !previous.foundingAdmin))
+  if (
+    changes.adminGuideCompleted !== undefined &&
+    (r.locals.user.role !== 'admin' || !previous.foundingAdmin)
+  )
     fail(403, 'Esta guía solo corresponde a la primera administración del grupo.');
   const merged = preferenceSchema.parse({ ...previous, ...changes });
   let photo: string | null | undefined;

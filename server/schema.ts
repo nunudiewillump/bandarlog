@@ -281,6 +281,7 @@ export const googleIdentities = pgTable(
 export const googleStates = pgTable('google_states', {
   groupId: groupColumn(),
   id: text().primaryKey(),
+  handoffChallenge: text('handoff_challenge'),
   browser: text().notNull(),
   nonce: text().notNull(),
   verifier: text().notNull(),
@@ -353,4 +354,14 @@ export const pushDeliveries = pgTable('push_deliveries', {
   sentAt: timestamp('sent_at', { withTimezone: true, mode: 'string' }),
   nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true, mode: 'string' }),
   attempts: integer().notNull().default(0),
+});
+
+export const googleHandoffs = pgTable('google_handoffs', {
+  groupId: groupColumn(),
+  id: text().primaryKey(),
+  challenge: text().notNull(),
+  userId: text('user_id').references(() => users.id),
+  googleSubject: text('google_subject'),
+  googleEmail: text('google_email'),
+  expires: timestamp({ withTimezone: true, mode: 'string' }).notNull(),
 });
