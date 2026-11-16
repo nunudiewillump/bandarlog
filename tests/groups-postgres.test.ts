@@ -362,7 +362,14 @@ test('production public pages and legacy-domain redirects preserve safe links wi
       } catch {}
       return { status: response.status, data, headers: response.headers };
     }
+    assert.match(
+      (await api('/presentacion?token=synthetic', 'GET', undefined, undefined, true)).headers.get(
+        'cache-control',
+      ) || '',
+      /no-store/,
+    );
     const passkeys = new Map<string, ReturnType<typeof syntheticPasskey>>();
+    const recoveryCodes = new Map<string, string[]>();
     async function completePasskey(login: Login) {
       let status = await api('/api/auth/passkeys/status', 'GET', undefined, login);
       assert.equal(status.status, 200);
@@ -405,6 +412,7 @@ test('production public pages and legacy-domain redirects preserve safe links wi
         key = syntheticPasskey();
         passkeys.set(login.base, key);
       }
+      const priorCookie = login.cookie;
       const verify = await api(
         '/api/auth/passkeys/' + kind + '/verify',
         'POST',
@@ -422,7 +430,19 @@ test('production public pages and legacy-domain redirects preserve safe links wi
         .getSetCookie()
         .find((c) => /^(?:__Host-bandarlog-[a-f0-9]{32}|bandarlog)=/.test(c))!
         .split(';')[0];
-      if (kind === 'register') assert.equal(verify.data.recoveryCodes.length, 10);
+      if (kind === 'register') {
+        assert.equal(verify.data.recoveryCodes.length, 10);
+        recoveryCodes.set(login.base, verify.data.recoveryCodes);
+        const stored = await ownerDb.select().from(s.passkeyRecovery);
+        assert.ok(
+          verify.data.recoveryCodes.every((code: string) => !JSON.stringify(stored).includes(code)),
+        );
+      }
+      assert.notEqual(login.cookie, priorCookie);
+      assert.equal(
+        (await api('/api/me', 'GET', undefined, { ...login, cookie: priorCookie })).status,
+        401,
+      );
       login.csrf = (await api('/api/me', 'GET', undefined, login)).data.csrf;
     }
     async function register(name: string): Promise<Login> {
@@ -538,6 +558,35 @@ test('production public pages and legacy-domain redirects preserve safe links wi
       .getSetCookie()
       .find((c) => /^(?:__Host-bandarlog-[a-f0-9]{32}|bandarlog)=/.test(c))!
       .split(';')[0];
+    assert.equal((await api('/api/me', 'GET', undefined, a)).status, 428);
+    const primaryStatus = await api('/api/auth/passkeys/status', 'GET', undefined, a);
+    a.csrf = primaryStatus.data.csrf;
+    assert.equal((await api('/api/auth/passkeys/register/options', 'POST', {}, a)).status, 428);
+    assert.equal(
+      (await api('/api/auth/passkeys/authenticate/options', 'POST', {}, { ...a, csrf: 'wrong' }))
+        .status,
+      403,
+    );
+    const recovered = await Promise.all([
+      api('/api/auth/passkeys/recovery/verify', 'POST', { code: recoveryCodes.get(a.base)![0] }, a),
+      api('/api/auth/passkeys/recovery/verify', 'POST', { code: recoveryCodes.get(a.base)![0] }, a),
+    ]);
+    assert.equal(recovered.filter((r) => r.status === 200).length, 1);
+    assert.ok(
+      recovered.filter((r) => r.status !== 200).every((r) => [401, 403].includes(r.status)),
+    );
+    a.cookie = recovered
+      .find((r) => r.status === 200)!
+      .headers.getSetCookie()
+      .find((c) => /^__Host-bandarlog-[a-f0-9]{32}=/.test(c))!
+      .split(';')[0];
+    a.csrf = (await api('/api/me', 'GET', undefined, a)).data.csrf;
+    const ownKeys = await api('/api/auth/passkeys/list', 'GET', undefined, a);
+    assert.equal(ownKeys.data.length, 1);
+    assert.equal(
+      (await api('/api/auth/passkeys/remove', 'POST', { id: ownKeys.data[0].id }, a)).status,
+      409,
+    );
     await completePasskey(a);
     assert.ok(
       returned.headers
@@ -569,6 +618,18 @@ test('production public pages and legacy-domain redirects preserve safe links wi
       .headers.getSetCookie()
       .find((c) => /^(?:__Host-bandarlog-[a-f0-9]{32}|bandarlog)=/.test(c))!
       .split(';')[0];
+    a.csrf = (await api('/api/auth/passkeys/status', 'GET', undefined, a)).data.csrf;
+    assert.equal(
+      (
+        await api(
+          '/api/auth/passkeys/recovery/verify',
+          'POST',
+          { code: recoveryCodes.get(a.base)![0] },
+          a,
+        )
+      ).status,
+      403,
+    );
     await completePasskey(a);
     const expired = randomBytes(32).toString('hex');
     await ownerDb.insert(s.googleHandoffs).values({

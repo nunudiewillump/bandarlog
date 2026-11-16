@@ -189,9 +189,8 @@ export function publicSite(appUrl: string) {
   );
   for (const path of publicPaths)
     router.get(path, (_q, r) => {
-      r.set('Cache-Control', 'public, max-age=300')
-        .type('html')
-        .send(renderPublicPage(path, appUrl));
+      if (!r.getHeader('Cache-Control')) r.set('Cache-Control', 'public, max-age=300');
+      r.type('html').send(renderPublicPage(path, appUrl));
     });
   router.get('/robots.txt', (_q, r) =>
     r

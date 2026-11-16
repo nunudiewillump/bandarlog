@@ -33,6 +33,21 @@ export function SessionSettings() {
       <button type="button" className="secondary" disabled={busy} onClick={() => void read()}>
         Consultar sesiones
       </button>
+      <button
+        type="button"
+        className="secondary"
+        disabled={busy}
+        onClick={() => {
+          setBusy(true);
+          setError('');
+          void api('/sessions/revoke-others', 'POST', {})
+            .then(read)
+            .catch((e) => setError(e.message))
+            .finally(() => setBusy(false));
+        }}
+      >
+        Cerrar las demás sesiones
+      </button>
       {error && <p role="alert">{error}</p>}
       {sessions && (
         <ul>

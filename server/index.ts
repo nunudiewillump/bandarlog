@@ -1,3 +1,4 @@
+import { securityEvents } from './security-events.js';
 import {
   sessionBearer,
   modernSession,
@@ -104,6 +105,7 @@ const site = express();
 site.disable('x-powered-by');
 if (prod) site.set('trust proxy', 1);
 site.use(sensitiveNavigation);
+site.use(securityEvents());
 site.use((q, r, next) =>
   /^(?:\/g\/[^/]+)?\/api(?:\/|$)/.test(q.path) ? measureRequests(q, r, next) : next(),
 );
@@ -276,8 +278,11 @@ app.use(
   '/api/auth',
   rateLimit({
     windowMs: 15 * 6e4,
-    limit: 30,
-    skip: (q) => q.path === '/config',
+    // Shared scout networks use one public IP; recipient/session limits remain in PostgreSQL.
+    limit: 120,
+    skip: (q) =>
+      ['GET', 'HEAD'].includes(q.method) &&
+      ['/config', '/passkeys/status', '/passkeys/list'].includes(q.path),
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     handler: (_q, r) => {
@@ -1153,6 +1158,7 @@ app.get('/api/auth/google/callback', async (q, r) => {
     sessionCookie(r, session.raw);
     r.redirect(groupUrl(appUrl));
   } catch {
+    r.locals.securityRejected = true;
     if (popupChallenge) {
       const page = googleReturnPage(appUrl);
       return r
@@ -1223,6 +1229,21 @@ passkeyRoutes(app, {
   legacyOrigins,
   createSession,
   cookie: sessionCookie,
+  notify: async (tx, actor, action) => {
+    const descriptions: Record<string, string> = {
+      'passkey.registered': 'Se ha añadido una passkey',
+      'passkey.removed': 'Se ha retirado una passkey',
+      'passkey.recovery.used': 'Se ha utilizado un código de recuperación',
+      'passkey.recovery.rotated': 'Se han renovado los códigos de recuperación',
+    };
+    await queue(
+      actor.email,
+      'Cambio de seguridad en Bandarlog',
+      `${descriptions[action]}. Si no has realizado este cambio, entra en Bandarlog, revisa tus sesiones y contacta con la administración de tu grupo.`,
+      'security-' + id(),
+      tx,
+    );
+  },
   fail,
 });
 if (!prod)
@@ -1765,6 +1786,35 @@ app.get('/api/sessions', async (_q, r) => {
       ),
     );
   r.json(rows.map((row) => ({ ...row, current: row.id === r.locals.session.id })));
+});
+app.post('/api/sessions/revoke-others', async (_q, r) => {
+  if (mode === 'http') await db.execute(sql`select bandarlog_api.revoke_other_sessions()`);
+  else {
+    if (+new Date(r.locals.session.createdAt) < Date.now() - 15 * 60000)
+      fail(428, 'Vuelve a iniciar sesión.');
+    await db
+      .delete(s.sessions)
+      .where(
+        and(eq(s.sessions.userId, r.locals.user.id), sql`${s.sessions.id}<>${r.locals.session.id}`),
+      );
+  }
+  r.json({ ok: true });
+});
+app.post('/api/admin/sessions/revoke', async (q, r) => {
+  if (r.locals.user.role !== 'admin')
+    fail(403, 'Solo administración puede cerrar sesiones ajenas.');
+  const { userId } = parse(
+    z.object({ userId: z.string().min(1).max(200).optional() }).strict(),
+    q.body,
+  );
+  if (mode === 'http')
+    await db.execute(sql`select bandarlog_api.admin_revoke_sessions(${userId || null})`);
+  else {
+    if (+new Date(r.locals.session.createdAt) < Date.now() - 15 * 60000)
+      fail(428, 'Vuelve a iniciar sesión.');
+    await db.delete(s.sessions).where(userId ? eq(s.sessions.userId, userId) : undefined);
+  }
+  r.json({ ok: true });
 });
 app.delete('/api/sessions/:id', async (q, r) => {
   const target = parse(z.string().regex(/^[a-f0-9]{64}$/), q.params.id);

@@ -156,6 +156,57 @@ export async function exerciseActorBoundary(owner: pg.Pool, testUrl: string) {
       b = groups[1],
       bearer = tokens.get(a.id + '-member')!;
     await assert.rejects(run(b.id, bearer, 'select * from tasks'), { code: '42501' });
+    await assert.rejects(
+      run(
+        a.id,
+        tokens.get(a.id + '-admin')!,
+        `insert into projects(group_id,id,name,parent_id) values($1,$2,'Cross parent',$3)`,
+        [a.id, a.id + '-cross-parent', b.id],
+      ),
+      { code: '23503' },
+    );
+    const sessionGroup = groups[2],
+      adminToken = tokens.get(sessionGroup.id + '-admin')!,
+      memberToken = tokens.get(sessionGroup.id + '-member')!;
+    await assert.rejects(
+      run(sessionGroup.id, memberToken, 'select bandarlog_api.admin_revoke_sessions($1)', [
+        sessionGroup.id + '-admin',
+      ]),
+      { code: '42501' },
+    );
+    await assert.rejects(
+      run(sessionGroup.id, adminToken, 'select bandarlog_api.admin_revoke_sessions($1)', [
+        b.id + '-admin',
+      ]),
+      { code: '42501' },
+    );
+    const extra = randomBytes(32).toString('hex');
+    await owner.query(
+      "insert into sessions(group_id,id,user_id,csrf,expires,assurance,mfa_verified_at) values($1,$2,$3,'synthetic',now()+interval '1 day','mfa',now())",
+      [sessionGroup.id, hash(extra), sessionGroup.id + '-admin'],
+    );
+    assert.equal(
+      (await run(sessionGroup.id, adminToken, 'select bandarlog_api.revoke_other_sessions() as n'))
+        .rows[0].n,
+      1,
+    );
+    await assert.rejects(run(sessionGroup.id, extra, 'select * from tasks'), { code: '42501' });
+    assert.equal(
+      (
+        await run(
+          sessionGroup.id,
+          adminToken,
+          'select bandarlog_api.admin_revoke_sessions($1) as n',
+          [sessionGroup.id + '-member'],
+        )
+      ).rows[0].n,
+      1,
+    );
+    await assert.rejects(run(sessionGroup.id, memberToken, 'select * from tasks'), {
+      code: '42501',
+    });
+    assert.ok((await run(b.id, tokens.get(b.id + '-member')!, 'select * from tasks')).rowCount);
+
     await owner.query('delete from sessions where id=$1', [hash(bearer)]);
     await assert.rejects(run(a.id, bearer, 'select * from tasks'), { code: '42501' });
     const admin = tokens.get(a.id + '-admin')!;

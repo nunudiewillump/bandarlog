@@ -66,11 +66,12 @@ type Dependencies = {
     primaryVerifiedAt?: string,
   ) => Promise<{ raw: string; csrf: string }>;
   cookie: (r: Response, raw: string) => void;
+  notify: (tx: any, actor: Actor, action: string) => Promise<void>;
   fail: (status: number, message: string) => never;
 };
 export function passkeyRoutes(
   app: Express,
-  { db, appUrl, legacyGroupId, legacyOrigins, createSession, cookie, fail }: Dependencies,
+  { db, appUrl, legacyGroupId, legacyOrigins, createSession, cookie, notify, fail }: Dependencies,
 ) {
   const actor = async (tx: any, lock = false): Promise<Actor> => {
     const raw = sessionContext.getStore();
@@ -135,6 +136,7 @@ export function passkeyRoutes(
   const audit = async (tx: any, a: Actor, action: string) => {
     await identityProof(tx, 'passkey_audit', { userId: a.id, action });
     await tx.execute(sql`select bandarlog_api.record_passkey_event(${action})`);
+    if (action !== 'passkey.verified') await notify(tx, a, action);
   };
   app.post('/api/auth/passkeys/logout', async (q, r) => {
     const a = await actor(db);

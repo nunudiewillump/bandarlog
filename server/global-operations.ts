@@ -62,17 +62,21 @@ export function globalOperations(connection: any, scoped: any) {
       one(sql`select bandarlog_api.public_push_key() as value`),
     pushKeys: (publicKey: string, privateKey: string) =>
       one(sql`select bandarlog_api.push_keys(${publicKey},${privateKey}) as value`),
-    requestGroup: (hash: string, input: unknown, mail: unknown) =>
-      one(
-        component() === 'identity'
-          ? sql`select bandarlog_api.request_group_proof(${hash},${JSON.stringify(input)}::jsonb,${JSON.stringify(mail)}::jsonb,${createHmac(
-              'sha256',
-              Buffer.from(process.env.GROUP_CONTEXT_SECRET!, 'hex'),
-            )
-              .update('registration\n' + hash)
-              .digest('hex')}) as value`
-          : sql`select bandarlog_api.request_group(${hash},${JSON.stringify(input)}::jsonb,${JSON.stringify(mail)}::jsonb) as value`,
-      ),
+    requestGroup: (hash: string, input: unknown, mail: unknown) => {
+      const inputJson = JSON.stringify(input),
+        mailJson = JSON.stringify(mail);
+      if (component() !== 'identity')
+        return one(
+          sql`select bandarlog_api.request_group(${hash},${inputJson}::jsonb,${mailJson}::jsonb) as value`,
+        );
+      const deadline = Date.now() + 30000;
+      const proof = createHmac('sha256', Buffer.from(process.env.GROUP_CONTEXT_SECRET!, 'hex'))
+        .update(['registration-v2', hash, String(deadline), inputJson, mailJson].join('\n'))
+        .digest('hex');
+      return one(
+        sql`select bandarlog_api.request_group_proof_v2(${hash},${inputJson},${mailJson},${deadline},${proof}) as value`,
+      );
+    },
     registration: (hash: string) =>
       one(
         component() === 'identity'

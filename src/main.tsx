@@ -2785,7 +2785,19 @@ function People() {
             )}
             {!commission && me.role === 'admin' && u.id !== me.id && (
               <details className="person-removal">
-                <summary className="text-link danger">Eliminar usuario</summary>
+                <summary className="text-link danger">Seguridad y acceso</summary>
+                <button
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() =>
+                    void run(async () => {
+                      await api('/admin/sessions/revoke', 'POST', { userId: u.id });
+                    }, 'Sesiones cerradas')
+                  }
+                >
+                  Cerrar las sesiones de {u.name}
+                </button>
+                <h4>Eliminar usuario</h4>
                 <p>
                   Se retirará el acceso de {u.name} y se quitarán sus asignaciones. Su historial se
                   conserva; las tareas que queden sin responsables se podrán reasignar.

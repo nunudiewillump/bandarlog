@@ -77,6 +77,23 @@ export async function exerciseServiceBoundary(owner: pg.Pool, url: string, secre
             ]),
             { code: '42501' },
           );
+          const registrationHash = '3'.repeat(64),
+            input = '{"email":"synthetic@example.test"}',
+            mail = '{}';
+          const until = Date.now() + 30000;
+          const issuance = createHmac('sha256', Buffer.from(secret, 'hex'))
+            .update(['registration-v2', registrationHash, String(until), input, mail].join('\n'))
+            .digest('hex');
+          for (const args of [
+            [registrationHash, input + ' ', mail, until, issuance],
+            [registrationHash, input, '{"subject":"altered"}', until, issuance],
+            [registrationHash, input, mail, until - 60000, issuance],
+            ['4'.repeat(64), input, mail, until, issuance],
+          ])
+            await assert.rejects(
+              c.query('select bandarlog_api.request_group_proof_v2($1,$2,$3,$4,$5)', args),
+              { code: '42501' },
+            );
           await assert.rejects(run('select avatar_url from users'), { code: '42501' });
         } else {
           for (const q of [
