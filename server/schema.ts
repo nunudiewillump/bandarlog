@@ -55,7 +55,7 @@ export const groupRegistrations = pgTable('group_registrations', {
 const groupColumn = () =>
   text('group_id')
     .notNull()
-    .default(sql`coalesce(nullif(current_setting('bandarlog.group_id', true), ''), 'rosales-702')`)
+    .default(sql`nullif(current_setting('bandarlog.group_id', true), '')`)
     .references(() => groups.id);
 export const users = pgTable(
   'users',

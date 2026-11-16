@@ -42,6 +42,7 @@ test('historical responsibility migration preserves data and enforces live task 
       );
     const before = await snapshot();
     await migrate(db, { migrationsFolder: 'migrations' });
+    await client.query("select set_config('bandarlog.group_id','rosales-702',false)");
     assert.deepEqual(await snapshot(), before);
     await client.exec(`DELETE FROM members WHERE user_id='former';`);
     assert.equal(

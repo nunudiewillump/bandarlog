@@ -51,6 +51,30 @@ jobs:
           retention-days: 1
           overwrite: true
           if-no-files-found: error
+  postgres-security:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: bandarlog_security_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_POSTGRES_URL: postgresql://postgres@127.0.0.1:5432/bandarlog_security_test
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci --include=dev
+      - run: npm run build
+      - run: node --import tsx --test tests/groups-postgres.test.ts
   browser:
     needs: prepare
     if: needs.prepare.outputs.browser_count != '0'
@@ -117,7 +141,7 @@ jobs:
           retention-days: 7
   checks:
     if: always()
-    needs: [prepare, browser]
+    needs: [prepare, browser, postgres-security]
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
@@ -125,6 +149,7 @@ jobs:
       - name: Comprobar resultados y registrar el contenido verificado
         run: node scripts/ci-finalize.mjs
         env:
+          POSTGRES_RESULT: ${{ needs.postgres-security.result }}
           PREPARE_RESULT: ${{ needs.prepare.result }}
           BROWSER_RESULT: ${{ needs.browser.result }}
           BROWSER_COUNT: ${{ needs.prepare.outputs.browser_count }}

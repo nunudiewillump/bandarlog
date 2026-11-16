@@ -146,10 +146,11 @@ test('only successful PR evidence from this repository and exactly the same comp
 test('the actual required-check command rejects missing, failed, cancelled and inconsistent jobs', () => {
   const dir = mkdtempSync(join(tmpdir(), 'bandarlog-ci-final-'));
   try {
-    const command = (prepare: string, browser: string, count: string) =>
+    const command = (prepare: string, browser: string, count: string, postgres = 'success') =>
       spawnSync(process.execPath, ['scripts/ci-finalize.mjs'], {
         env: {
           ...process.env,
+          POSTGRES_RESULT: postgres,
           PREPARE_RESULT: prepare,
           BROWSER_RESULT: browser,
           BROWSER_COUNT: count,
@@ -160,6 +161,8 @@ test('the actual required-check command rejects missing, failed, cancelled and i
       }).status;
     assert.equal(command('success', 'success', '2'), 0);
     assert.equal(command('success', 'skipped', '0'), 0);
+    for (const status of ['', 'failure', 'cancelled', 'skipped'])
+      assert.notEqual(command('success', 'skipped', '0', status), 0);
     for (const [prepare, browser, count] of [
       ['failure', 'skipped', '0'],
       ['cancelled', 'success', '2'],
@@ -194,6 +197,7 @@ test('the required check records the actual Git tree and refuses evidence for di
         encoding: 'utf8',
         env: {
           ...process.env,
+          POSTGRES_RESULT: 'success',
           PREPARE_RESULT: 'success',
           BROWSER_RESULT: 'success',
           BROWSER_COUNT: '2',

@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 
 const { PREPARE_RESULT, BROWSER_RESULT, BROWSER_COUNT } = process.env;
 const ok =
+  process.env.POSTGRES_RESULT === 'success' &&
   PREPARE_RESULT === 'success' &&
   /^(0|[1-9][0-9]*)$/.test(BROWSER_COUNT || '') &&
   (BROWSER_COUNT === '0' ? BROWSER_RESULT === 'skipped' : BROWSER_RESULT === 'success');

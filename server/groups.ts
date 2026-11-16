@@ -1,11 +1,10 @@
 import { Router, urlencoded, type Request, type Response } from 'express';
 import { rateLimit } from 'express-rate-limit';
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import { and, eq, sql } from 'drizzle-orm';
+import { createHash, randomBytes } from 'node:crypto';
 import { z } from 'zod';
-import * as s from './schema.js';
 import { publicInfo } from '../shared/public-info.js';
 import { renderApprovalPage } from './public-site.js';
+import type { GlobalOperations } from './global-operations.js';
 import { groupContext, type Group } from './group-context.js';
 
 export const groupColor = z.string().regex(/^#[0-9a-fA-F]{6}$/);
@@ -29,12 +28,11 @@ const registration = z.object({
 });
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 export function groupRegistrationRoutes(
-  owner: any,
+  platform: GlobalOperations,
   origin: string,
   callbacks: {
-    queue: (to: string, subject: string, body: string, key: string, tx: any) => Promise<void>;
+    mail: (subject: string, body: string) => unknown;
     deliver: () => Promise<void>;
-    createSession: (tx: any, uid: string) => Promise<{ raw: string; csrf: string }>;
     cookie: (r: Response, raw: string, group: Group) => void;
     render: (path: string, message?: string, token?: string) => string;
   },
@@ -84,33 +82,14 @@ export function groupRegistrationRoutes(
     try {
       const input = parsed.data,
         raw = randomBytes(32).toString('hex');
-      await owner.transaction(async (tx: any) => {
-        // Per-email quota also prevents distributing the requests across IPs.
-        await tx.execute(sql`lock table group_registrations in share row exclusive mode`);
-        const recent = await tx
-          .select()
-          .from(s.groupRegistrations)
-          .where(
-            and(
-              eq(s.groupRegistrations.email, input.email),
-              sql`${s.groupRegistrations.createdAt}>now()-interval '1 hour'`,
-            ),
-          );
-        if (recent.length >= 3) return;
-        await tx.insert(s.groupRegistrations).values({
-          id: hash(raw),
-          ...input,
-          expires: new Date(Date.now() + 7 * 86400000).toISOString(),
-        });
-        // Registration is platform mail; it does not write any group's outbox.
-        await callbacks.queue(
-          publicInfo.contact,
+      await platform.requestGroup(
+        hash(raw),
+        input,
+        callbacks.mail(
           'Solicitud de grupo · Bandarlog',
           `Nueva solicitud de ${input.groupName}.\nSolicitante: ${input.name}\nCorreo: ${input.email}\n\nRevisa y aprueba o rechaza la solicitud. Abrir el enlace no crea el grupo.\n\n${origin}/aprobar-grupo?token=${raw}\n\nEl enlace caduca en 7 días. El grupo no puede activarse sin tu aprobación.`,
-          `group-request-${hash(raw)}`,
-          tx,
-        );
-      });
+        ),
+      );
       void callbacks
         .deliver()
         .catch(() => console.error('No se pudo procesar el correo de registro.'));
@@ -132,17 +111,7 @@ export function groupRegistrationRoutes(
         ? q.query.token
         : '';
     try {
-      const [request] = token
-        ? await owner
-            .select()
-            .from(s.groupRegistrations)
-            .where(
-              and(
-                eq(s.groupRegistrations.id, hash(token)),
-                sql`${s.groupRegistrations.expires}>now()`,
-              ),
-            )
-        : [];
+      const request = token ? await platform.registration(hash(token)) : null;
       r.set({
         'Cache-Control': 'no-store',
         'Referrer-Policy': 'same-origin',
@@ -164,53 +133,24 @@ export function groupRegistrationRoutes(
       .safeParse(q.body);
     if (!input.success) return r.status(400).type('text').send('Solicitud no válida.');
     try {
-      const result = await owner.transaction(async (tx: any) => {
-        const [request] = await tx
-          .select()
-          .from(s.groupRegistrations)
-          .where(
-            and(
-              eq(s.groupRegistrations.id, hash(input.data.token)),
-              sql`${s.groupRegistrations.expires}>now()`,
-              sql`${s.groupRegistrations.approvedAt} is null`,
-              sql`${s.groupRegistrations.rejectedAt} is null`,
-              sql`${s.groupRegistrations.consumedAt} is null`,
-            ),
-          )
-          .for('update');
-        if (!request) return false;
-        if (input.data.decision === 'reject') {
-          await tx
-            .update(s.groupRegistrations)
-            .set({ rejectedAt: new Date().toISOString() })
-            .where(eq(s.groupRegistrations.id, request.id));
-          await callbacks.queue(
-            request.email,
-            'Solicitud de grupo revisada',
-            `La solicitud de ${request.groupName} no se ha autorizado. Si necesitas más información, contacta con ${publicInfo.contact}.`,
-            `group-rejected-${request.id}`,
-            tx,
-          );
-          return true;
-        }
-        const activation = randomBytes(32).toString('hex');
-        await tx
-          .update(s.groupRegistrations)
-          .set({
-            approvedAt: new Date().toISOString(),
-            activationId: hash(activation),
-            expires: new Date(Date.now() + 7 * 86400000).toISOString(),
-          })
-          .where(eq(s.groupRegistrations.id, request.id));
-        await callbacks.queue(
-          request.email,
-          'Tu grupo ha sido aprobado · Bandarlog',
-          `Hola ${request.name}. La solicitud de ${request.groupName} ha sido aprobada. Confirma tu correo para activar el grupo gratuito y entrar como su primer administrador.\n\n${origin}/confirmar-grupo?token=${activation}\n\nEl enlace caduca en 7 días.`,
-          `group-approved-${request.id}`,
-          tx,
-        );
-        return true;
-      });
+      const request = await platform.registration(hash(input.data.token));
+      const activation = randomBytes(32).toString('hex');
+      const result =
+        request &&
+        (await platform.reviewGroup(
+          hash(input.data.token),
+          input.data.decision,
+          hash(activation),
+          input.data.decision === 'reject'
+            ? callbacks.mail(
+                'Solicitud de grupo revisada',
+                `La solicitud de ${request.groupName} no se ha autorizado. Si necesitas más información, contacta con ${publicInfo.contact}.`,
+              )
+            : callbacks.mail(
+                'Tu grupo ha sido aprobado · Bandarlog',
+                `Hola ${request.name}. La solicitud de ${request.groupName} ha sido aprobada. Confirma tu correo para activar el grupo gratuito y entrar como su primer administrador.\n\n${origin}/confirmar-grupo?token=${activation}\n\nEl enlace caduca en 7 días.`,
+              ),
+        ));
       if (!result)
         return r.status(409).type('text').send('Esta solicitud no está disponible o ya se revisó.');
       void callbacks
@@ -255,45 +195,12 @@ export function groupRegistrationRoutes(
         .type('html')
         .send(callbacks.render('/confirmar-grupo', 'El enlace no es válido.'));
     try {
-      const result = await owner.transaction(async (tx: any) => {
-        const [pending] = await tx
-          .select()
-          .from(s.groupRegistrations)
-          .where(
-            and(
-              eq(s.groupRegistrations.activationId, hash(raw)),
-              sql`${s.groupRegistrations.approvedAt} is not null`,
-              sql`${s.groupRegistrations.rejectedAt} is null`,
-              sql`${s.groupRegistrations.consumedAt} is null`,
-              sql`${s.groupRegistrations.expires}>now()`,
-            ),
-          )
-          .for('update');
-        if (!pending) return null;
-        const [group] = await tx
-          .insert(s.groups)
-          .values({
-            name: pending.groupName,
-            colorPrimary: pending.colorPrimary,
-            colorSecondary: pending.colorSecondary,
-          })
-          .returning();
-        await tx.execute(sql`select set_config('bandarlog.group_id',${group.id},true)`);
-        const uid = randomUUID();
-        await tx.insert(s.users).values({
-          id: uid,
-          groupId: group.id,
-          name: pending.name,
-          email: pending.email,
-          role: 'admin',
-        });
-        const session = await callbacks.createSession(tx, uid);
-        await tx
-          .update(s.groupRegistrations)
-          .set({ consumedAt: new Date().toISOString() })
-          .where(eq(s.groupRegistrations.id, pending.id));
-        return { group, session };
-      });
+      const session = {
+        raw: randomBytes(32).toString('hex'),
+        csrf: randomBytes(32).toString('hex'),
+      };
+      const group = await platform.activateGroup(hash(raw), hash(session.raw), session.csrf);
+      const result = group ? { group, session } : null;
       if (!result)
         return r
           .status(400)
@@ -309,7 +216,7 @@ export function groupRegistrationRoutes(
   });
   return router;
 }
-export function groupResolver(owner: any) {
+export function groupResolver(platform: GlobalOperations) {
   return async (q: Request, r: Response, next: () => void) => {
     const key = String(q.params.groupId);
     if (!/^[a-f0-9]{32}$/.test(key)) return r.status(404).type('text').send('Grupo no encontrado.');
@@ -319,7 +226,7 @@ export function groupResolver(owner: any) {
       if (['GET', 'HEAD'].includes(q.method)) return r.redirect(308, canonical + q.url);
       return r.status(400).json({ error: 'Utiliza el enlace original del grupo.' });
     }
-    const [group] = await owner.select().from(s.groups).where(eq(s.groups.privateId, key));
+    const group = await platform.resolveGroup(key);
     if (!group) return r.status(404).type('text').send('Grupo no encontrado.');
     if (['GET', 'HEAD'].includes(q.method) && q.originalUrl.split('?')[0] === canonical)
       return r.redirect(

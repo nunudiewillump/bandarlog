@@ -28,13 +28,18 @@ export async function pushService(
   subject: string,
   keysDb: any = db,
   sender = webpush.sendNotification,
+  loadKeys?: (publicKey: string, privateKey: string) => Promise<any>,
 ) {
   const generated = webpush.generateVAPIDKeys();
-  await keysDb
-    .insert(pushKeys)
-    .values({ id: 'default', ...generated })
-    .onConflictDoNothing();
-  const [keys] = await keysDb.select().from(pushKeys).where(eq(pushKeys.id, 'default'));
+  let keys;
+  if (loadKeys) keys = await loadKeys(generated.publicKey, generated.privateKey);
+  else {
+    await keysDb
+      .insert(pushKeys)
+      .values({ id: 'default', ...generated })
+      .onConflictDoNothing();
+    [keys] = await keysDb.select().from(pushKeys).where(eq(pushKeys.id, 'default'));
+  }
   const vapidDetails = { subject, publicKey: keys.publicKey, privateKey: keys.privateKey };
   return {
     publicKey: keys.publicKey,
