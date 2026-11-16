@@ -51,7 +51,7 @@ async function createGroup(name: string, email = 'same-owner@example.test') {
     ),
   );
   const ownerMail = pendingMail
-    .filter((m: any) => m.email === publicInfo.contact && m.body.includes(name))
+    .filter((m: any) => m.email === publicInfo.registrations && m.body.includes(name))
     .at(-1);
   const ownerToken = new URL(ownerMail.body.match(/^https?:\/\/\S+$/m)[0]).searchParams.get(
     'token',
@@ -107,6 +107,7 @@ async function createGroup(name: string, email = 'same-owner@example.test') {
   session.userId = me.body.user.id;
   assert.equal(me.body.group.name, name);
   assert.equal(me.body.user.role, 'admin');
+  assert.equal(JSON.parse(me.body.user.preferences).foundingAdmin, true);
   assert.equal(me.body.group.plan, 'free');
   return session;
 }
@@ -161,7 +162,7 @@ test('public home and policies need no login, signup verifies email, and billing
   ])
     assert.equal((await call(path)).status, 200, path);
   assert.match((await call('/privacidad')).body, /Dabi Arguiñena Giménez/);
-  assert.match((await call('/privacidad')).body, /darguinenagimenez@gmail.com/);
+  assert.match((await call('/privacidad')).body, /hello@bandarlog.app/);
   const demo = (await call('/suscripcion-demo')).body;
   assert.match(demo, /No se realizan cobros/);
   assert.ok(!demo.includes('stripe.com'));
@@ -473,7 +474,7 @@ test('only the owner review link can authorize activation; rejection creates no 
   const mails = (await call('/api/dev/platform-mail')).body;
   assert.ok(!mails.some((m: any) => m.email === email));
   const ownerMail = mails
-    .filter((m: any) => m.email === publicInfo.contact && m.body.includes('Grupo no autorizado'))
+    .filter((m: any) => m.email === publicInfo.registrations && m.body.includes('Grupo no autorizado'))
     .at(-1);
   const token = new URL(ownerMail.body.match(/^https?:\/\/\S+$/m)[0]).searchParams.get('token');
   assert.equal(

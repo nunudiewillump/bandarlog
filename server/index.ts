@@ -1333,6 +1333,7 @@ app.patch('/api/profile', async (q, r) => {
         name: text.optional(),
         avatarUrl: z.string().nullable().optional(),
         forestEffects: z.boolean().optional(),
+        adminGuideCompleted: z.boolean().optional(),
         notifications: z.boolean().optional(),
         weekly: z.boolean().optional(),
         creation: z.boolean().optional(),
@@ -1350,6 +1351,9 @@ app.patch('/api/profile', async (q, r) => {
   );
   const { name, avatarUrl, ...changes } = input;
   const previous = preferences(r.locals.user.preferences);
+  if (changes.adminGuideCompleted !== undefined &&
+      (r.locals.user.role !== 'admin' || !previous.foundingAdmin))
+    fail(403, 'Esta guía solo corresponde a la primera administración del grupo.');
   const merged = preferenceSchema.parse({ ...previous, ...changes });
   let photo: string | null | undefined;
   if (avatarUrl !== undefined) {

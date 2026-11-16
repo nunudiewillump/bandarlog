@@ -20,6 +20,8 @@ import { smartFocus } from './focus';
 import { AuthScreen } from './AuthScreen';
 import { taskPeople } from './task-people';
 import { Onboarding } from './Onboarding';
+import { AdminSetupGuide } from './AdminSetupGuide';
+import { isFoundingAdministrator, hasFinishedAdminGuide } from './admin-setup';
 import { artworkThemes, inferArtworkTheme } from '../shared/scout-catalog';
 import { projectTypes, projectType, projectTypeName, projectView } from '../shared/project-types';
 import { installMobilePwaZoom } from './pwa';
@@ -222,6 +224,8 @@ function App() {
   const [loginToken, setLoginToken] = useState(params.get('token') || '');
   const invitationAccess = loginToken.startsWith('invite.');
   const manage = me?.role === 'admin' || me?.role === 'coordination';
+  const foundingAdmin = isFoundingAdministrator(me);
+  const showAdminGuide = foundingAdmin && !hasFinishedAdminGuide(me);
   let forestEffects = true;
   try {
     forestEffects = JSON.parse(me?.preferences || '{}').forestEffects !== false;
@@ -1465,7 +1469,23 @@ function App() {
                 </button>
               </div>
             )}
-            {view === 'home' && (
+            {view === 'home' && showAdminGuide && (
+              <AdminSetupGuide
+                data={data}
+                onSettings={() => navigate('profile')}
+                onProject={() => { navigate('projects'); setModal('project'); }}
+                onCommission={() => { navigate('commissions'); setModal('commission'); }}
+                onInvite={() => { navigate('people'); setModal('invite'); }}
+                onTask={() => { navigate('tasks'); setModal('task'); }}
+                onPractice={() => { setRestartTutorial(false); navigate('tutorial'); }}
+                onFinish={() => run(async () => {
+                  await api('/profile', 'PATCH', { adminGuideCompleted: true });
+                  const session = await api('/me');
+                  setMe(session.user);
+                }, 'Guía de administración guardada')}
+              />
+            )}
+            {view === 'home' && !showAdminGuide && (
               <TutorialInvitation
                 tutorial={tutorial}
                 onStart={() => {
@@ -2056,6 +2076,14 @@ function App() {
                     setRestartTutorial(true);
                     navigate('tutorial');
                   }}
+                  onReplayAdminGuide={foundingAdmin ? () => {
+                    void run(async () => {
+                      await api('/profile', 'PATCH', { adminGuideCompleted: false });
+                      const session = await api('/me');
+                      setMe(session.user);
+                      navigate('home');
+                    }, 'Guía de administración recuperada');
+                  } : undefined}
                   busy={busy}
                   run={run}
                   onSaved={setMe}

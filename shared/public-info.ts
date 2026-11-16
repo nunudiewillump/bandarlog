@@ -3,8 +3,9 @@ export const publicInfo = {
   origin: 'https://bandarlog.app',
   legacyOrigin: 'https://bandarlog-production.up.railway.app',
   responsible: 'Dabi Arguiñena Giménez',
-  contact: 'darguinenagimenez@gmail.com',
+  contact: 'hello@bandarlog.app',
+  registrations: 'join@bandarlog.app',
   group: 'Rosales del Canal 702',
-  updated: '4 de noviembre de 2026',
+  updated: '16 de noviembre de 2026',
 } as const;
 export const publicPaths = ['/presentacion', '/privacidad', '/condiciones'] as const;

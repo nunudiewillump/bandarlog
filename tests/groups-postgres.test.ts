@@ -539,7 +539,7 @@ test('production public pages and legacy-domain redirects preserve safe links wi
     assert.match(await home.text(), /Menos lío/);
     const policy = await request('/privacidad');
     assert.equal(policy.status, 200);
-    assert.match(await policy.text(), /darguinenagimenez@gmail.com/);
+    assert.match(await policy.text(), /hello@bandarlog.app/);
     const legacy = 'bandarlog-production.up.railway.app';
     const { Client } = await import('pg');
     const { createHash } = await import('node:crypto');
