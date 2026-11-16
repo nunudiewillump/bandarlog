@@ -117,6 +117,15 @@ test('PostgreSQL pooled queries and transactions retain the correct group and re
         }),
         /Failed query/,
       );
+      // The actor check must reject a forged session even with a VALID signed group context.
+      await assert.rejects(
+        platform.updateGroup('forged-session', {
+          name: 'Forbidden',
+          colorPrimary: '#112233',
+          colorSecondary: '#334455',
+        }),
+        (error: any) => error.cause?.code === '42501',
+      );
       await assert.rejects(db.execute(sql`set role postgres`));
       await assert.rejects(db.execute(sql`set role neondb_owner`));
       await assert.rejects(
@@ -201,27 +210,23 @@ test('PostgreSQL pooled queries and transactions retain the correct group and re
     await Promise.all(
       groups.map((group) =>
         groupContext.run(group, async () => {
-          await db
-            .insert(s.notifications)
-            .values({
-              id: 'mail-' + group.id,
-              dedupe: 'mail-' + group.id,
-              email: group.id + '@example.test',
-              subject: group.name,
-              body: group.id,
-              status: 'pending',
-              createdAt: new Date().toISOString(),
-            });
+          await db.insert(s.notifications).values({
+            id: 'mail-' + group.id,
+            dedupe: 'mail-' + group.id,
+            email: group.id + '@example.test',
+            subject: group.name,
+            body: group.id,
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+          });
           await db
             .insert(s.pushOutbox)
             .values({ id: 'push-' + group.id, userId: group.id, payload: '{}' });
-          await db
-            .insert(s.pushSubscriptions)
-            .values({
-              id: 'device-' + group.id,
-              userId: group.id,
-              subscription: JSON.stringify({ endpoint: 'https://fcm.googleapis.com/' + group.id }),
-            });
+          await db.insert(s.pushSubscriptions).values({
+            id: 'device-' + group.id,
+            userId: group.id,
+            subscription: JSON.stringify({ endpoint: 'https://fcm.googleapis.com/' + group.id }),
+          });
           const mail = await db.select().from(s.notifications);
           assert.equal(mail.length, 1);
           assert.equal(mail[0].body, group.id);
@@ -242,16 +247,14 @@ test('PostgreSQL pooled queries and transactions retain the correct group and re
       groups.map((g) => 'https://fcm.googleapis.com/' + g.id).sort(),
     );
     const stateHash = randomBytes(32).toString('hex');
-    await ownerDb
-      .insert(s.googleStates)
-      .values({
-        id: stateHash,
-        groupId: groups[1].id,
-        browser: 'test',
-        nonce: 'test',
-        verifier: 'test',
-        expires: new Date(Date.now() + 60000).toISOString(),
-      });
+    await ownerDb.insert(s.googleStates).values({
+      id: stateHash,
+      groupId: groups[1].id,
+      browser: 'test',
+      nonce: 'test',
+      verifier: 'test',
+      expires: new Date(Date.now() + 60000).toISOString(),
+    });
     assert.equal((await platform.oauthGroup(stateHash))?.id, groups[1].id);
     assert.equal(await platform.oauthGroup('unknown'), null);
     // Startup rejects both the former owner credential and a mismatched signing key.
