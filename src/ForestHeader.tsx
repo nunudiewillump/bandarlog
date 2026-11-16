@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { BotanicalCanopy, BrandCanopyFill } from './BotanicalCanopy';
+import { BotanicalCanopy, BrandCanopyFill, BrandUnderLeaves } from './BotanicalCanopy';
 export function ForestHeader({
   avatar,
   onHome,
@@ -26,6 +26,7 @@ export function ForestHeader({
             type="button"
             aria-label="Bandarlog, inicio"
           >
+            {effectsEnabled && <BrandUnderLeaves />}
             <img src="/brand-mark.webp" alt="" width="44" height="44" />
             <span className="forest-brand-word">
               {effectsEnabled && <BrandCanopyFill />}

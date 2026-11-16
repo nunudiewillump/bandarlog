@@ -129,6 +129,38 @@ test('larger brand marks fit at phone and desktop widths; badges match and proje
   expect(palettes[0]).toEqual(palettes[3]);
 });
 
+test('mobile content starts close to the canopy with two leaves below the logo', async ({ page }) => {
+  for (const width of [320, 390, 430]) {
+    await prepare(page, width, 'home');
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.evaluate(() =>
+      document.documentElement.style.setProperty('--forest-safe-top', '47px'),
+    );
+    const underBrand = page.locator('.app-forest-header .botanical-under-brand');
+    await expect(underBrand).toBeVisible();
+    await expect(underBrand.locator('.botanical-leaf-silhouette')).toHaveCount(2);
+    const rects = await page.evaluate(() => {
+      const slot = document.querySelector('.forest-header-slot')!.getBoundingClientRect();
+      const heading = document.querySelector('.mobile-focus > header h1')!.getBoundingClientRect();
+      const leaves = document.querySelector('.app-forest-header .botanical-under-brand')!.getBoundingClientRect();
+      return {
+        gap: heading.top - slot.bottom,
+        leafBottom: leaves.bottom,
+        headingTop: heading.top,
+        overflow: document.documentElement.scrollWidth > innerWidth,
+      };
+    });
+    expect(rects.gap).toBeGreaterThanOrEqual(23);
+    expect(rects.gap).toBeLessThanOrEqual(32);
+    expect(rects.leafBottom).toBeLessThanOrEqual(rects.headingTop);
+    expect(rects.overflow).toBe(false);
+    for (const destination of ['Proyectos', 'Comisiones', 'Perfil']) {
+      await page.locator('.bottom-nav').getByRole('button', { name: destination, exact: true }).click();
+      expect(await page.locator('.main').evaluate((element) => parseFloat(getComputedStyle(element).paddingTop))).toBe(24);
+    }
+  }
+});
+
 test('desktop scrollbars and public brand use the same forest palette as the application', async ({
   page,
 }) => {
