@@ -463,7 +463,13 @@ test('production public pages and legacy-domain redirects preserve safe links wi
         .map(decode)
         .filter((m) => m.body.includes(email))
         .at(-1)!;
-      const approval = new URL(mail.body.match(/^https?:\/\/\S+$/m)![0]).searchParams.get('token')!;
+      const approvalUrl = new URL(mail.body.match(/^https?:\/\/\S+$/m)![0]);
+      assert.equal(approvalUrl.searchParams.get('token'), null);
+      const approval = new URLSearchParams(approvalUrl.hash.slice(1)).get('token')!;
+      assert.equal(
+        (await api('/aprobar-grupo/revisar', 'POST', { token: approval }, undefined, true)).status,
+        200,
+      );
       assert.equal(
         (await api('/confirmar-grupo', 'POST', { token: approval }, undefined, true)).status,
         400,
@@ -497,9 +503,14 @@ test('production public pages and legacy-domain redirects preserve safe links wi
       )
         .map(decode)
         .at(-1)!;
-      const activation = new URL(
-        activationMail.body.match(/^https?:\/\/\S+$/m)![0],
-      ).searchParams.get('token')!;
+      const activationUrl = new URL(activationMail.body.match(/^https?:\/\/\S+$/m)![0]);
+      assert.equal(activationUrl.searchParams.get('token'), null);
+      const activation = new URLSearchParams(activationUrl.hash.slice(1)).get('token')!;
+      assert.equal(
+        (await api('/confirmar-grupo/revisar', 'POST', { token: activation }, undefined, true))
+          .status,
+        200,
+      );
       const activated = await api(
         '/confirmar-grupo',
         'POST',

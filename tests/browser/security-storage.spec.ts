@@ -132,3 +132,34 @@ test('logout clears persistent data and informs another open tab', async ({ page
     await second.evaluate(async () => await (window as any).BandarlogOffline.status()),
   ).toMatchObject({ pending: 0 });
 });
+
+test('switching identity in another tab invalidates the previous visible session without deleting its queue', async ({
+  page,
+  context,
+}) => {
+  await prepare(page);
+  await seed(page);
+  const second = await context.newPage();
+  await prepare(second);
+  await second.evaluate(() => {
+    document.body.textContent = 'Private A';
+    window.addEventListener('bandarlog:session-ended', () => {
+      document.body.textContent = 'Reauthenticate';
+    });
+  });
+  await page.evaluate(
+    async () =>
+      await (window as any).BandarlogOffline.remember('/me', { user: { id: 'B' }, csrf: 'b' }),
+  );
+  await expect(second.getByText('Reauthenticate', { exact: true })).toBeVisible();
+  expect(
+    await page.evaluate(async () => await (window as any).BandarlogOffline.status()),
+  ).toMatchObject({ pending: 0 });
+  await page.evaluate(
+    async () =>
+      await (window as any).BandarlogOffline.remember('/me', { user: { id: 'A' }, csrf: 'a' }),
+  );
+  expect(
+    await page.evaluate(async () => await (window as any).BandarlogOffline.status()),
+  ).toMatchObject({ pending: 1 });
+});

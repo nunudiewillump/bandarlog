@@ -24,3 +24,17 @@ Una inyección SQL en HTTP debe quedar limitada por sesión y permisos actuales.
 | Medio: SSE después de revocación | Conexión abierta sigue recibiendo señales tras baja/fin de sesión | Pendiente de corrección |
 
 No se declara cumplimiento L2 hasta cerrar la matriz de requisitos aplicables y su evidencia. No se han modificado recursos productivos en este trabajo.
+
+## Estado de las correcciones ensayadas
+
+| Hallazgo | Corrección | Evidencia y estado |
+| --- | --- | --- |
+| SQL con privilegios personales excesivos | LOGIN HTTP con actor derivado del bearer, RLS por recurso, columnas limitadas y funciones sensibles acotadas | Diez grupos y actores de distinto permiso en PostgreSQL real; verificado localmente, activación pendiente |
+| HTTP con autoridad de firma y proveedores | Identidad y entrega separados; arranque rechaza secretos/membresías indebidos | LOGIN reales y arranque de tres componentes; no desplegado |
+| Correo/credenciales accesibles a HTTP | Denegación SQL, proyecciones sin cuerpos/HTML, sobre público/privado y metadatos de avisos | ACL y prueba criptográfica; falta completar transición, retención y recuperación de claves |
+| Cruce de cola offline entre cuentas | Usuario vinculado a cada mutación, cuarentena y bloqueo de sincronización bajo otra cuenta; señales entre pestañas | Nueve pruebas de navegador afectadas, incluida passkey y enlaces; persistencia privada pendiente de decisión ASVS |
+| SSE después de revocación | Revalidación antes de emitir cambios, cierre por sesión inválida y vida acotada | Implementado; ampliar ensayo de conexión viva tras revocación antes de declarar cobertura completa |
+| Enlaces con tokens en URL HTTP | Fragmento → POST de revisión/consumo, limpieza de historia y confirmación explícita | Navegador y PostgreSQL correctos para nuevos enlaces; ventana heredada pendiente de retirada |
+| Dependencia criptográfica de Google | Google tratado como SFA y passkey P-256 con UV obligatoria; rechazo de claves RSA menores de 2048 | Consulta JWKS confirma RSA-2048; V11.2.3 permanece bloqueado, no se declara L2 estricto |
+
+La separación de servicios implica coste adicional y una transición coordinada: véase `docs/security/operations-draft.md`. La política de autenticación y los límites están en `docs/security/authentication-policy.md`. La matriz mantiene pendientes los controles no revisados o no demostrados.

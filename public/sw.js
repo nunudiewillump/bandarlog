@@ -1,9 +1,9 @@
-importScripts('./offline-store.js?v=7');
+importScripts('./offline-store.js?v=8');
 const GROUP_BASE = location.pathname.match(/^\/g\/[a-f0-9]{32}(?=\/|$)/)?.[0] || '';
 const CACHE_FAMILY = GROUP_BASE
   ? 'bandarlog-static-' + GROUP_BASE.split('/')[2] + '-'
   : 'bandarlog-static-';
-const CACHE = CACHE_FAMILY + 'v9';
+const CACHE = CACHE_FAMILY + 'v10';
 // Keep the legacy install on its original origin and IndexedDB namespace.
 const SHELL = GROUP_BASE ? GROUP_BASE + '/' : '/acceso';
 self.addEventListener('install', (e) => {
@@ -23,7 +23,7 @@ self.addEventListener('install', (e) => {
         '/icon-192.png',
         '/banana-loading.svg',
         '/offline-store.js',
-        GROUP_BASE + '/offline-store.js?v=7',
+        GROUP_BASE + '/offline-store.js?v=8',
         GROUP_BASE + '/manifest.webmanifest',
       ]);
       const shell = await fetch(SHELL, { cache: 'reload' });

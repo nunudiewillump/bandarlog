@@ -227,8 +227,18 @@ function App() {
     window.addEventListener('popstate', pop);
     return () => window.removeEventListener('popstate', pop);
   }, []);
-  const params = new URLSearchParams(location.search);
-  const [loginToken, setLoginToken] = useState(params.get('token') || '');
+  const [loginToken, setLoginToken] = useState(() => {
+    const url = new URL(location.href);
+    const token =
+      new URLSearchParams(url.hash.slice(1)).get('token') || url.searchParams.get('token') || '';
+    if (token) {
+      url.hash = '';
+      url.searchParams.delete('token');
+      url.searchParams.delete('email');
+      history.replaceState(null, '', url);
+    }
+    return token;
+  });
   const invitationAccess = loginToken.startsWith('invite.');
   const manage = me?.role === 'admin' || me?.role === 'coordination';
   const foundingAdmin = isFoundingAdministrator(me);
@@ -2784,8 +2794,7 @@ function People() {
               </Select>
             )}
             {!commission && me.role === 'admin' && u.id !== me.id && (
-              <details className="person-removal">
-                <summary className="text-link danger">Seguridad y acceso</summary>
+              <>
                 <button
                   className="secondary"
                   disabled={busy}
@@ -2797,23 +2806,25 @@ function People() {
                 >
                   Cerrar las sesiones de {u.name}
                 </button>
-                <h4>Eliminar usuario</h4>
-                <p>
-                  Se retirará el acceso de {u.name} y se quitarán sus asignaciones. Su historial se
-                  conserva; las tareas que queden sin responsables se podrán reasignar.
-                </p>
-                <button
-                  className="secondary danger"
-                  disabled={busy}
-                  onClick={() =>
-                    void run(async () => {
-                      await api(`/users/${u.id}`, 'DELETE');
-                    }, 'Usuario eliminado')
-                  }
-                >
-                  Confirmar eliminación de {u.name}
-                </button>
-              </details>
+                <details className="person-removal">
+                  <summary className="text-link danger">Eliminar usuario</summary>
+                  <p>
+                    Se retirará el acceso de {u.name} y se quitarán sus asignaciones. Su historial
+                    se conserva; las tareas que queden sin responsables se podrán reasignar.
+                  </p>
+                  <button
+                    className="secondary danger"
+                    disabled={busy}
+                    onClick={() =>
+                      void run(async () => {
+                        await api(`/users/${u.id}`, 'DELETE');
+                      }, 'Usuario eliminado')
+                    }
+                  >
+                    Confirmar eliminación de {u.name}
+                  </button>
+                </details>
+              </>
             )}
             {commission && (
               <span className={`badge ${member?.role === 'responsible' ? 'pending' : 'done'}`}>

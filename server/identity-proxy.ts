@@ -5,7 +5,14 @@ export function identityPath(path: string) {
   return (
     /^(?:\/g\/[a-f0-9]{32})?\/api\/auth\/(?:request|verify|config|code\/(?:request|verify)|google\/(?:start|callback|return)|passkeys\/(?:status|logout|register\/(?:options|verify)|authenticate\/(?:options|verify)|recovery\/(?:verify|new)|list|remove))$/.test(
       path,
-    ) || ['/crear-grupo', '/aprobar-grupo', '/confirmar-grupo'].includes(path)
+    ) ||
+    [
+      '/crear-grupo',
+      '/aprobar-grupo',
+      '/confirmar-grupo',
+      '/aprobar-grupo/revisar',
+      '/confirmar-grupo/revisar',
+    ].includes(path)
   );
 }
 export function identityProxy(origin: string) {

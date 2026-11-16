@@ -4,7 +4,7 @@ import { rateLimit } from 'express-rate-limit';
 import { createHash, randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { publicInfo } from '../shared/public-info.js';
-import { renderApprovalPage } from './public-site.js';
+import { renderApprovalPage, renderTokenBridge } from './public-site.js';
 import type { GlobalOperations } from './global-operations.js';
 import { groupContext, type Group } from './group-context.js';
 
@@ -54,6 +54,11 @@ export function groupRegistrationRoutes(
     }),
   );
   router.use(['/crear-grupo', '/confirmar-grupo', '/aprobar-grupo'], (q, r, next) => {
+    r.set({
+      'Cache-Control': 'no-store',
+      'Referrer-Policy': 'no-referrer',
+      'X-Robots-Tag': 'noindex,nofollow',
+    });
     if (q.method === 'POST' && q.get('Origin') !== origin)
       return r.status(403).type('text').send('Origen no permitido.');
     next();
@@ -88,7 +93,7 @@ export function groupRegistrationRoutes(
         input,
         callbacks.mail(
           'Solicitud de grupo · Bandarlog',
-          `Nueva solicitud de ${input.groupName}.\nSolicitante: ${input.name}\nCorreo: ${input.email}\n\nRevisa y aprueba o rechaza la solicitud. Abrir el enlace no crea el grupo.\n\n${origin}/aprobar-grupo?token=${raw}\n\nEl enlace caduca en 7 días. El grupo no puede activarse sin tu aprobación.`,
+          `Nueva solicitud de ${input.groupName}.\nSolicitante: ${input.name}\nCorreo: ${input.email}\n\nRevisa y aprueba o rechaza la solicitud. Abrir el enlace no crea el grupo.\n\n${origin}/aprobar-grupo${component() === 'identity' ? '#' : '?'}token=${raw}\n\nEl enlace caduca en 7 días. El grupo no puede activarse sin tu aprobación.`,
         ),
       );
       void callbacks
@@ -111,6 +116,8 @@ export function groupRegistrationRoutes(
       typeof q.query.token === 'string' && /^[a-f0-9]{64}$/.test(q.query.token)
         ? q.query.token
         : '';
+    if (!token && component() === 'identity')
+      return r.type('html').send(renderTokenBridge('/aprobar-grupo', origin));
     try {
       const request = token
         ? await platform.registration(component() === 'identity' ? token : hash(token))
@@ -126,6 +133,33 @@ export function groupRegistrationRoutes(
     } catch (error) {
       next(error);
     }
+  });
+  router.post('/aprobar-grupo/revisar', async (q, r, next) => {
+    const token =
+      typeof q.body.token === 'string' && /^[a-f0-9]{64}$/.test(q.body.token) ? q.body.token : '';
+    try {
+      const request = token
+        ? await platform.registration(component() === 'identity' ? token : hash(token))
+        : null;
+      r.status(request ? 200 : 404)
+        .type('html')
+        .send(renderApprovalPage(origin, request, token));
+    } catch (error) {
+      next(error);
+    }
+  });
+  router.post('/confirmar-grupo/revisar', (q, r) => {
+    const token =
+      typeof q.body.token === 'string' && /^[a-f0-9]{64}$/.test(q.body.token) ? q.body.token : '';
+    r.status(token ? 200 : 400)
+      .type('html')
+      .send(
+        callbacks.render(
+          '/confirmar-grupo',
+          token ? 'Confirma para crear el grupo.' : 'El enlace no es válido.',
+          token,
+        ),
+      );
   });
   router.post('/aprobar-grupo', async (q, r, next) => {
     const input = z
@@ -153,7 +187,7 @@ export function groupRegistrationRoutes(
               )
             : callbacks.mail(
                 'Tu grupo ha sido aprobado · Bandarlog',
-                `Hola ${request.name}. La solicitud de ${request.groupName} ha sido aprobada. Confirma tu correo para activar el grupo gratuito y entrar como su primer administrador.\n\n${origin}/confirmar-grupo?token=${activation}\n\nEl enlace caduca en 7 días.`,
+                `Hola ${request.name}. La solicitud de ${request.groupName} ha sido aprobada. Confirma tu correo para activar el grupo gratuito y entrar como su primer administrador.\n\n${origin}/confirmar-grupo${component() === 'identity' ? '#' : '?'}token=${activation}\n\nEl enlace caduca en 7 días.`,
               ),
         ));
       if (!result)
@@ -182,6 +216,8 @@ export function groupRegistrationRoutes(
       typeof q.query.token === 'string' && /^[a-f0-9]{64}$/.test(q.query.token)
         ? q.query.token
         : '';
+    if (!token && component() === 'identity')
+      return r.type('html').send(renderTokenBridge('/confirmar-grupo', origin));
     r.set({ 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' })
       .type('html')
       .send(

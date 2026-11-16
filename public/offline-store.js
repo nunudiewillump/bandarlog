@@ -18,7 +18,8 @@
   if (typeof BroadcastChannel !== 'undefined' && globalThis.document) {
     const channel = new BroadcastChannel(channelName);
     channel.onmessage = (e) => {
-      if (e.data === 'logout') globalThis.dispatchEvent(new Event('bandarlog:session-ended'));
+      if (e.data === 'logout' || e.data === 'account-changed')
+        globalThis.dispatchEvent(new Event('bandarlog:session-ended'));
     };
   }
   function park(s) {
@@ -272,10 +273,13 @@
     return execute();
   }
   async function remember(path, value, alreadyLocked = false) {
+    let changedAccount = false;
     const apply = alreadyLocked ? (fn) => fn() : lock;
     const result = await apply(() =>
       update((s) => {
         if (path === '/me') {
+          const previous = s.me?.user.id || s.suspendedUser;
+          changedAccount = Boolean(previous && previous !== value.user.id);
           if (s.me?.user.id !== value.user.id) {
             park(s);
             s.queue = s.parked?.[value.user.id] || [];
@@ -293,6 +297,11 @@
         return path === '/data' ? project(s) || value : value;
       }),
     );
+    if (changedAccount && typeof BroadcastChannel !== 'undefined') {
+      const channel = new BroadcastChannel(channelName);
+      channel.postMessage('account-changed');
+      channel.close();
+    }
     if (path === '/me') await migrateLegacy(value.user.id);
     return result;
   }

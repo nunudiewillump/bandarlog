@@ -1,6 +1,8 @@
-import { PasskeySettings } from './PasskeySettings';
 import { SessionSettings } from './SessionSettings';
-import { useRef, useState } from 'react';
+import { lazy, Suspense, useRef, useState } from 'react';
+const PasskeySettings = lazy(() =>
+  import('./PasskeySettings').then((m) => ({ default: m.PasskeySettings })),
+);
 import { ChevronRight, LogOut, Pencil } from 'lucide-react';
 import type { User, ScoutGroup } from './types';
 import { api } from './api';
@@ -272,7 +274,11 @@ export function ProfilePanel({
         </details>
       )}
       <SessionSettings />
-      {passkeysEnabled && <PasskeySettings />}
+      {passkeysEnabled && (
+        <Suspense fallback={<p>Preparando ajustes de seguridad…</p>}>
+          <PasskeySettings />
+        </Suspense>
+      )}
       <button
         type="button"
         className="text-link profile-logout"

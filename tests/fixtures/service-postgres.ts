@@ -2,6 +2,14 @@ import assert from 'node:assert/strict';
 import pg from 'pg';
 import { createHmac } from 'node:crypto';
 export async function exerciseServiceBoundary(owner: pg.Pool, url: string, secret: string) {
+  const unsafe = await owner.query(
+    `select p.proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='bandarlog_api' and p.prosecdef and (not coalesce(p.proconfig @> array['search_path=pg_catalog'],false) or exists(select from aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a where a.grantee=0 and a.privilege_type='EXECUTE'))`,
+  );
+  assert.deepEqual(
+    unsafe.rows,
+    [],
+    'Delegated owner functions require a fixed safe search_path and no PUBLIC execution',
+  );
   const group = (
     await owner.query("select id from scout_groups where id like '%' and id<>'rosales-702' limit 1")
   ).rows[0].id;

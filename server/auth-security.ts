@@ -93,12 +93,16 @@ export function verifyGoogleToken(
       (!k.use || k.use === 'sig') &&
       (!k.alg || k.alg === 'RS256'),
   );
+  const publicKey = key ? createPublicKey({ key, format: 'jwk' }) : null;
+  // Google currently publishes RSA-2048. It is treated as SFA and never bypasses
+  // the UV passkey. Its <128-bit strength remains an explicit ASVS V11.2.3 limitation.
   if (
-    !key ||
+    !publicKey ||
+    (publicKey.asymmetricKeyDetails?.modulusLength || 0) < 2048 ||
     !verify(
       'RSA-SHA256',
       Buffer.from(`${headerPart}.${bodyPart}`),
-      createPublicKey({ key, format: 'jwk' }),
+      publicKey,
       Buffer.from(signature, 'base64url'),
     )
   )

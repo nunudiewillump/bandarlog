@@ -90,6 +90,15 @@ function privacy() {
 function terms() {
   return `<main id="contenido" class="public-reading"><a class="public-back" href="/presentacion">← Sobre Bandarlog</a><h1>Condiciones de uso</h1><p class="public-updated">Actualizadas el ${publicInfo.updated}</p><h2>Titular y finalidad</h2><p>Bandarlog está gestionado por ${esc(publicInfo.responsible)}. Contacto: ${contact}. Es una herramienta para coordinar proyectos, comisiones y tareas de grupos y equipos; cada grupo dispone de un espacio independiente.</p><h2>Acceso y permisos</h2><p>El acceso requiere una invitación y la confirmación del correo o un método de autenticación habilitado. No compartas códigos, enlaces de acceso ni sesiones. Tus acciones dependen de los permisos concedidos por Administración y por tu comisión. El equipo puede revocar el acceso cuando deje de corresponder.</p><h2>Contenido y uso adecuado</h2><p>Publica únicamente información necesaria para la coordinación y que tengas derecho a compartir. Respeta al equipo y la confidencialidad de los datos. No utilices Bandarlog para introducir contenido ilícito, acceder a información ajena o eludir las medidas de seguridad.</p><h2>Disponibilidad y trabajo sin cobertura</h2><p>La aplicación depende de servicios de alojamiento, red, correo y notificaciones. Puede haber interrupciones y retrasos. Los cambios compatibles guardados sin conexión requieren sincronización; comprueba su estado antes de borrar los datos del sitio o cambiar de dispositivo. No uses los avisos de Bandarlog como único canal para emergencias.</p><h2>Privacidad y consultas</h2><p>El tratamiento de información personal se explica en la <a href="/privacidad">política de privacidad</a>. Para una incidencia de acceso, una solicitud sobre tu información o una consulta sobre estas condiciones, escribe al <a href="/privacidad#contacto">contacto del responsable</a>.</p></main>`;
 }
+export function renderTokenBridge(path: '/aprobar-grupo' | '/confirmar-grupo', appUrl: string) {
+  return shell(
+    'Validar enlace',
+    path,
+    `<main id="contenido" class="public-reading"><h1>Validar enlace</h1><p data-link-status role="status">Abriendo el enlace seguro…</p><noscript>Activa JavaScript para validar este enlace. No se aprobará ni creará ningún grupo sin tu confirmación.</noscript></main><script src="/auth-link.js" defer></script>`,
+    appUrl,
+    'Validación segura de enlace',
+  );
+}
 export function renderApprovalPage(
   appUrl: string,
   request?: {
@@ -169,8 +178,11 @@ export function renderPublicPage(path: (typeof publicPaths)[number], appUrl: str
 }
 export function publicSite(appUrl: string) {
   const router = express.Router();
+  router.get('/auth-link.js', (_q, r) =>
+    r.set('Cache-Control', 'no-store').sendFile('public/auth-link.js', { root: process.cwd() }),
+  );
   router.use(['/crear-grupo', '/entrar', '/suscripcion-demo'], (_q, r, next) => {
-    r.set('Referrer-Policy', 'same-origin');
+    if (!r.getHeader('Referrer-Policy')) r.set('Referrer-Policy', 'same-origin');
     next();
   });
   for (const path of ['/crear-grupo', '/entrar', '/suscripcion-demo'])

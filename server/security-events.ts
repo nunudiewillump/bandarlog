@@ -20,9 +20,11 @@ export function securityEvents(
     const path = q.path.replace(/^\/g\/[a-f0-9]{32}/, '');
     const operation: SecurityEvent['operation'] = /\/recovery\//.test(path)
       ? 'recovery'
-      : /\/passkeys\/(?:register|authenticate)\/verify$|\/passkeys\/remove$/.test(path)
+      : /\/passkeys\/(?:register|authenticate)\/(?:options|verify)$|\/passkeys\/remove$/.test(path)
         ? 'passkey'
-        : /\/auth\/(?:verify|code\/verify|google\/return|google\/callback)$/.test(path)
+        : /\/auth\/(?:request|verify|code\/(?:request|verify)|google\/return|google\/callback)$/.test(
+              path,
+            )
           ? 'primary'
           : /\/logout$/.test(path)
             ? 'logout'
@@ -34,7 +36,7 @@ export function securityEvents(
     const group = q.path.match(/^\/g\/([a-f0-9]{32})\//)?.[1];
     r.once('finish', () => {
       const status = r.statusCode;
-      if (!sensitive && !(privateApi && [401, 403, 428, 429].includes(status))) return;
+      if (!sensitive && !(privateApi && [400, 401, 403, 428, 429].includes(status))) return;
       emit({
         at: new Date().toISOString(),
         event: sensitive ? 'security.authentication' : 'security.authorization',

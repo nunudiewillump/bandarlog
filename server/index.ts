@@ -344,7 +344,8 @@ async function invitationLink(recipient: string, invitationId: string, expires: 
       tx,
     );
   const url = new URL(groupUrl(appUrl));
-  url.searchParams.set('token', token);
+  if (mode === 'identity' || mode === 'delivery') url.hash = 'token=' + token;
+  else url.searchParams.set('token', token);
   return url.toString();
 }
 async function queue(
@@ -507,7 +508,8 @@ async function deliverNow() {
           const invitation = JSON.parse(m.body.slice('invitation-event-v1:'.length));
           const token = `invite.${invitation.invitationId}.${secret()}`;
           const url = new URL(groupUrl(appUrl));
-          url.searchParams.set('token', token);
+          if (mode === 'identity' || mode === 'delivery') url.hash = 'token=' + token;
+          else url.searchParams.set('token', token);
           const content2 = {
             subject: m.subject,
             body: `Hola ${invitation.name}. Acepta la invitación para entrar con ${m.email}.
@@ -624,12 +626,13 @@ app.post('/api/auth/request', async (q, r) => {
       {
         id: hash(token),
         email: input.email,
-        expires: new Date(Date.now() + 15 * 6e4).toISOString(),
+        expires: new Date(Date.now() + CODE_LIFETIME).toISOString(),
       },
       void 0,
     );
     const loginUrl = new URL(groupUrl(appUrl));
-    loginUrl.searchParams.set('token', token);
+    if (mode === 'identity') loginUrl.hash = 'token=' + token;
+    else loginUrl.searchParams.set('token', token);
     if (input.task) loginUrl.searchParams.set('task', input.task);
     if (input.action) loginUrl.searchParams.set('action', input.action);
     await queue(
