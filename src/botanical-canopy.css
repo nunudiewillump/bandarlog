@@ -84,14 +84,16 @@ html:root {
   filter: drop-shadow(0 2px 2px #07271940);
   mask-image: linear-gradient(to bottom, transparent 0 20%, #000 40%);
 }
-/* The extra leaves remain decorative and do not expand the fixed header. */
+/* Roots overlap the crown behind the brand; the tips stay inside its reserved space. */
 .botanical-under-brand {
   display: none;
   position: absolute;
-  left: 8px;
-  top: 28px;
-  width: 95px;
-  height: 60px;
+  left: -8px;
+  top: -28px;
+  width: 154px;
+  height: 118px;
+  /* Fade roots into the crown without painting over the native status-bar blend. */
+  mask-image: linear-gradient(to bottom, transparent 0 18px, #000 34px);
   pointer-events: none;
   z-index: 0;
 }

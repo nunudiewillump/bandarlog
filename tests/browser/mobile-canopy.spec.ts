@@ -129,7 +129,9 @@ test('larger brand marks fit at phone and desktop widths; badges match and proje
   expect(palettes[0]).toEqual(palettes[3]);
 });
 
-test('mobile content starts close to the canopy with two leaves below the logo', async ({ page }) => {
+test('mobile crown has attached full-size leaves and preserves content spacing', async ({
+  page,
+}) => {
   for (const width of [320, 390, 430]) {
     await prepare(page, width, 'home');
     await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -142,10 +144,17 @@ test('mobile content starts close to the canopy with two leaves below the logo',
     const rects = await page.evaluate(() => {
       const slot = document.querySelector('.forest-header-slot')!.getBoundingClientRect();
       const heading = document.querySelector('.mobile-focus > header h1')!.getBoundingClientRect();
-      const leaves = document.querySelector('.app-forest-header .botanical-under-brand')!.getBoundingClientRect();
+      const leaves = document
+        .querySelector('.app-forest-header .botanical-under-brand')!
+        .getBoundingClientRect();
       return {
         gap: heading.top - slot.bottom,
         leafBottom: leaves.bottom,
+        leafTop: leaves.top,
+        leafWidth: leaves.width,
+        brandTop: document
+          .querySelector('.app-forest-header .forest-brand')!
+          .getBoundingClientRect().top,
         headingTop: heading.top,
         overflow: document.documentElement.scrollWidth > innerWidth,
       };
@@ -153,10 +162,20 @@ test('mobile content starts close to the canopy with two leaves below the logo',
     expect(rects.gap).toBeGreaterThanOrEqual(23);
     expect(rects.gap).toBeLessThanOrEqual(32);
     expect(rects.leafBottom).toBeLessThanOrEqual(rects.headingTop);
+    expect(rects.leafTop).toBeLessThan(rects.brandTop);
+    expect(rects.leafWidth).toBeGreaterThanOrEqual(150);
+    await page.screenshot({ path: `artifacts/mobile-canopy/cohesive-${width}.png` });
     expect(rects.overflow).toBe(false);
     for (const destination of ['Proyectos', 'Comisiones', 'Perfil']) {
-      await page.locator('.bottom-nav').getByRole('button', { name: destination, exact: true }).click();
-      expect(await page.locator('.main').evaluate((element) => parseFloat(getComputedStyle(element).paddingTop))).toBe(24);
+      await page
+        .locator('.bottom-nav')
+        .getByRole('button', { name: destination, exact: true })
+        .click();
+      expect(
+        await page
+          .locator('.main')
+          .evaluate((element) => parseFloat(getComputedStyle(element).paddingTop)),
+      ).toBe(24);
     }
   }
 });
