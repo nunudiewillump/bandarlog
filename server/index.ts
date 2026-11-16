@@ -48,6 +48,7 @@ import { normalizePhoto } from './photos.js';
 import { checklistChangeSchema, changeChecklist, ChecklistError } from './task-checklist.js';
 import { artworkImage } from './artwork.js';
 import { renderMail } from './mail-template.js';
+import { weeklyMail, mailDate } from './weekly-mail.js';
 import { pushService, validPushEndpoint } from './push.js';
 import { projectSummaries } from './project-summaries.js';
 import { projectTypeInput } from './project-input.js';
@@ -1175,11 +1176,17 @@ async function taskMail(
     await queue(
       user.email,
       `${subject}: ${t.title}`,
-      `Bandarlog\n${t.title}\n${c.name} · ${p.name}\nResponsables: ${rows.map((x: any) => x.user.name).join(', ')}\nFecha límite: ${new Date(t.due).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' })}\nEstado: ${t.status}\n${t.description}\n\nAbrir tarea: ${groupUrl(appUrl)}?task=${t.id}\nMarcar en curso: ${groupUrl(appUrl)}?task=${t.id}&action=in_progress\nTerminar: ${groupUrl(appUrl)}?task=${t.id}&action=done\nBloquear: ${groupUrl(appUrl)}?task=${t.id}&action=blocked\nLas acciones requieren iniciar sesión y confirmar.`,
+      `Bandarlog\n${t.title}\n${c.name} · ${p.name}\nResponsables: ${rows.map((x: any) => x.user.name).join(', ')}\nFecha límite: ${new Date(t.due).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' })}\nEstado: ${({ pending: 'Pendiente', in_progress: 'En curso', blocked: 'Bloqueada', done: 'Terminada' } as Record<string, string>)[t.status] || t.status}\n${t.description}${t.blockedReason ? '\nMotivo del bloqueo: ' + t.blockedReason : ''}\n\nAbrir tarea: ${groupUrl(appUrl)}?task=${t.id}\nMarcar en curso: ${groupUrl(appUrl)}?task=${t.id}&action=in_progress\nTerminar: ${groupUrl(appUrl)}?task=${t.id}&action=done\nBloquear: ${groupUrl(appUrl)}?task=${t.id}&action=blocked\nLas acciones requieren iniciar sesión y confirmar.`,
       `${key}-${user.id}`,
       tx,
       renderMail({
-        title: `${subject}: ${t.title}`,
+        title: options.event === 'scheduled' ? t.title : `${subject}: ${t.title}`,
+        eyebrow: options.event === 'scheduled' ? subject : undefined,
+        intro:
+          options.event === 'scheduled'
+            ? `Hola, ${user.name}. Esta tarea sigue ${t.status === 'blocked' ? 'bloqueada' : t.status === 'in_progress' ? 'en curso' : 'pendiente'}. ${new Date(t.due) < new Date() ? 'El plazo ya ha vencido: revisa cómo está y actualiza su estado.' : `La fecha límite es el ${mailDate(t.due)}.`}`
+            : undefined,
+        actionLabels: options.event === 'scheduled',
         appUrl,
         body: t.description + (t.blockedReason ? '\nMotivo del bloqueo: ' + t.blockedReason : ''),
         details: [
@@ -2448,13 +2455,23 @@ async function reminders() {
         const pts = ts.filter((t) =>
           cs.some((c) => c.id === t.commissionId && c.projectId === p.id),
         );
-        const total = pts.length,
-          done = pts.filter((t) => t.status === 'done').length;
+        const projectUrl = `${groupUrl(appUrl)}?project=${encodeURIComponent(p.id)}`;
+        const digest = weeklyMail({
+          project: p.name,
+          groupName: groupContext.getStore()!.name,
+          tasks: pts,
+          commissions: cs,
+          appUrl,
+          projectUrl,
+          taskUrl: (taskId) => `${groupUrl(appUrl)}?task=${encodeURIComponent(taskId)}`,
+        });
         await queue(
           u.email,
           `Resumen semanal · ${p.name}`,
-          `Bandarlog\n${total ? Math.round((done / total) * 100) + '%' : 'Sin tareas'} de progreso\n${pts.filter((t) => t.status === 'pending').length} pendientes · ${pts.filter((t) => t.status === 'blocked').length} bloqueadas · ${pts.filter((t) => t.status !== 'done' && new Date(t.due) < new Date()).length} vencidas\nConsulta comisiones y tareas: ${groupUrl(appUrl)}?project=${p.id}`,
+          digest.body,
           `weekly-${stamp}-${p.id}-${u.id}`,
+          db,
+          digest.html,
         );
       }
     }

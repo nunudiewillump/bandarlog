@@ -390,6 +390,15 @@ test('reminders deduplicate previews and preserve contextual links without sendi
   assert.equal(second.length, first.length);
   const taskMail = second.find((m: any) => m.subject.startsWith('Vencimiento:'));
   assert.match(taskMail.body, /action=done/);
+  assert.match(taskMail.html, />Vencimiento<\/p>/);
+  assert.match(taskMail.html, /El plazo ya ha vencido/);
+  assert.match(taskMail.html, />Completar<\/span>/);
+  assert.match(taskMail.html, /Los cambios de tareas se confirman en Bandarlog/);
+  assert.ok(!taskMail.body.includes('Estado: pending'));
+  const weekly = second.find((m: any) => m.subject.startsWith('Resumen semanal'));
+  assert.match(weekly.html, /Progreso total del proyecto/);
+  assert.match(weekly.html, /Necesita atención/);
+  assert.match(weekly.body, /Ver proyecto: .*\?project=/);
   await request('/auth/request', 'POST', {
     email: 'alex@example.test',
     task: 'task-0',
