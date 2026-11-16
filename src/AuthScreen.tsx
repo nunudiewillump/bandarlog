@@ -1,5 +1,6 @@
+import { installedApp, validGoogleReturn, proofChallenge } from './google-return';
 import { groupBasePath } from './group-location';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Mail } from 'lucide-react';
 import { api, ApiError } from './api';
 import { pendingAccess, rememberAccess, forgetAccess } from './pending-access';
@@ -40,6 +41,88 @@ export function AuthScreen({
     ),
     [google, setGoogle] = useState(false),
     [messages, setMessages] = useState<any[]>([]);
+  const [standalone] = useState(installedApp);
+  const [popupPending, setPopupPending] = useState(false);
+  const popupCleanup = useRef<(() => void) | null>(null);
+  useEffect(() => () => popupCleanup.current?.(), []);
+  function stopGoogle() {
+    popupCleanup.current?.();
+    popupCleanup.current = null;
+    setPopupPending(false);
+    setBusy(false);
+  }
+  async function googleInApp() {
+    const popup = window.open('about:blank', 'bandarlog-google-' + crypto.randomUUID(), 'popup');
+    if (!popup) {
+      setError(
+        'No se ha podido abrir Google. Utiliza el código de correo dentro de la aplicación.',
+      );
+      return;
+    }
+    setBusy(true);
+    setPopupPending(true);
+    setError('');
+    const proof = Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) =>
+      b.toString(16).padStart(2, '0'),
+    ).join('');
+    let disposed = false,
+      consuming = false;
+    const timeout = window.setTimeout(() => {
+      stopGoogle();
+      setError('Vuelve a entrar con un código de correo desde esta aplicación.');
+    }, 180_000);
+    const receive = async (event: MessageEvent) => {
+      if (consuming || disposed) return;
+      if (
+        event.origin === location.origin &&
+        event.source === popup &&
+        event.data?.type === 'bandarlog.google.return' &&
+        event.data.error === true
+      ) {
+        stopGoogle();
+        setError('No se ha completado el acceso con Google. Utiliza el código de correo.');
+        return;
+      }
+      const ticket = validGoogleReturn(event, popup, location.origin);
+      if (!ticket) return;
+      consuming = true;
+      // Remove the listener before exchanging: duplicate messages cannot create another session.
+      stopGoogle();
+      setBusy(true);
+      try {
+        const result = await api('/auth/google/return', 'POST', { ticket, proof });
+        if (result.needsEmailVerification) {
+          setEmail(result.email);
+          setError('Para confirmar este correo, solicita un código con la misma dirección.');
+        } else {
+          forgetAccess();
+          await onAuthenticated();
+        }
+      } catch {
+        setError('No se ha completado el acceso con Google. Utiliza el código de correo.');
+      } finally {
+        setBusy(false);
+      }
+    };
+    popupCleanup.current = () => {
+      disposed = true;
+      clearTimeout(timeout);
+      window.removeEventListener('message', receive);
+      try {
+        popup.close();
+      } catch {}
+    };
+    window.addEventListener('message', receive);
+    try {
+      const challenge = await proofChallenge(proof);
+      if (!disposed)
+        popup.location.href =
+          groupBasePath() + '/api/auth/google/start?handoff_challenge=' + challenge;
+    } catch {
+      stopGoogle();
+      setError('No se ha podido completar el acceso. Utiliza el código de correo.');
+    }
+  }
   const invitation = token.startsWith('invite.');
   useEffect(() => {
     void api('/auth/config')
@@ -203,12 +286,34 @@ export function AuthScreen({
           <>
             {google && (
               <>
-                <a
-                  href={groupBasePath() + '/api/auth/google/start'}
-                  className="secondary google-access"
-                >
-                  Continuar con Google
-                </a>
+                {standalone ? (
+                  <button
+                    type="button"
+                    className="secondary google-access"
+                    disabled={busy}
+                    onClick={() => void googleInApp()}
+                  >
+                    Continuar con Google
+                  </button>
+                ) : (
+                  <a
+                    href={groupBasePath() + '/api/auth/google/start'}
+                    className="secondary google-access"
+                  >
+                    Continuar con Google
+                  </a>
+                )}
+                {popupPending && (
+                  <div role="status">
+                    <p>
+                      Completa Google en la ventana abierta. Si no vuelve a la aplicación, entra con
+                      un código de correo.
+                    </p>
+                    <button type="button" className="text-link" onClick={stopGoogle}>
+                      Usar código de correo
+                    </button>
+                  </div>
+                )}
                 <p className="auth-divider">o con tu correo</p>
               </>
             )}

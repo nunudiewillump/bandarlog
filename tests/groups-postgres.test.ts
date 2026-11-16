@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, createHash as hashForTest } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { provisionTestContext, TEST_CONTEXT_SECRET } from './fixtures/group-signing';
 import { test, before, after } from 'node:test';
@@ -463,7 +463,7 @@ test('production public pages and legacy-domain redirects preserve safe links wi
       const me = await api('/api/me', 'GET', undefined, login);
       assert.equal(me.status, 200);
       assert.equal(JSON.parse(me.data.user.preferences).foundingAdmin, true);
-    login.csrf = me.data.csrf;
+      login.csrf = me.data.csrf;
       login.userId = me.data.user.id;
       return login;
     }
@@ -471,6 +471,79 @@ test('production public pages and legacy-domain redirects preserve safe links wi
       b = await register('B-' + Date.now());
     assert.equal((await api(a.base + '/api/data')).status, 401);
     assert.equal((await api('/api/me', 'GET', undefined, { ...b, cookie: a.cookie })).status, 401);
+    // Synthetic grants exercise the real database/HTTP exchange without contacting Google.
+    const digest = (value: string) => hashForTest('sha256').update(value).digest('hex');
+    const proof = randomBytes(32).toString('hex'),
+      ticket = randomBytes(32).toString('hex');
+    const groupA = (await ownerDb.select().from(s.users).where(eq(s.users.id, a.userId)))[0]
+      .groupId;
+    await ownerDb.insert(s.googleHandoffs).values({
+      id: digest(ticket),
+      groupId: groupA,
+      challenge: digest(proof),
+      userId: a.userId,
+      expires: new Date(Date.now() + 60000).toISOString(),
+    });
+    assert.equal((await api('/api/auth/google/return', 'POST', { ticket, proof }, b)).status, 403);
+    assert.equal(
+      (await api('/api/auth/google/return', 'POST', { ticket, proof: 'f'.repeat(64) }, a)).status,
+      403,
+    );
+    const returned = await api('/api/auth/google/return', 'POST', { ticket, proof }, a);
+    assert.equal(returned.status, 200);
+    assert.ok(
+      returned.headers
+        .getSetCookie()
+        .some(
+          (c) =>
+            c.startsWith('bandarlog=') && c.includes('HttpOnly') && c.includes('Path=' + a.base),
+        ),
+    );
+    assert.equal((await api('/api/auth/google/return', 'POST', { ticket, proof }, a)).status, 403);
+    const concurrentTicket = randomBytes(32).toString('hex');
+    await ownerDb
+      .insert(s.googleHandoffs)
+      .values({
+        id: digest(concurrentTicket),
+        groupId: groupA,
+        challenge: digest(proof),
+        userId: a.userId,
+        expires: new Date(Date.now() + 60000).toISOString(),
+      });
+    const concurrent = await Promise.all([
+      api('/api/auth/google/return', 'POST', { ticket: concurrentTicket, proof }, a),
+      api('/api/auth/google/return', 'POST', { ticket: concurrentTicket, proof }, a),
+    ]);
+    assert.deepEqual(concurrent.map((r) => r.status).sort(), [200, 403]);
+    const expired = randomBytes(32).toString('hex');
+    await ownerDb.insert(s.googleHandoffs).values({
+      id: digest(expired),
+      groupId: groupA,
+      challenge: digest(proof),
+      userId: a.userId,
+      expires: new Date(Date.now() - 1000).toISOString(),
+    });
+    assert.equal(
+      (await api('/api/auth/google/return', 'POST', { ticket: expired, proof }, a)).status,
+      403,
+    );
+    const linkTicket = randomBytes(32).toString('hex');
+    await ownerDb.insert(s.googleHandoffs).values({
+      id: digest(linkTicket),
+      groupId: groupA,
+      challenge: digest(proof),
+      googleSubject: 'synthetic-subject',
+      googleEmail: 'synthetic@example.test',
+      expires: new Date(Date.now() + 60000).toISOString(),
+    });
+    const linking = await api('/api/auth/google/return', 'POST', { ticket: linkTicket, proof }, a);
+    assert.equal(linking.status, 200);
+    assert.equal(linking.data.needsEmailVerification, true);
+    assert.ok(
+      linking.headers
+        .getSetCookie()
+        .some((c) => c.startsWith('bandarlog_google_link=') && c.includes('HttpOnly')),
+    );
     const project = await api(
       '/api/projects',
       'POST',
@@ -535,6 +608,10 @@ test('production public pages and legacy-domain redirects preserve safe links wi
     );
     assert.notEqual((await api('/api/group', 'GET', undefined, b)).data.name, 'A updated');
     assert.equal((await api('/api/profile', 'PATCH', { name: 'Updated profile' }, a)).status, 200);
+    const spa = await request(a.base + '/');
+    assert.equal(spa.headers.get('cross-origin-opener-policy'), 'same-origin-allow-popups');
+    const healthHeaders = await request('/api/health');
+    assert.equal(healthHeaders.headers.get('cross-origin-opener-policy'), 'same-origin');
     const home = await request('/');
     assert.equal(home.status, 200);
     assert.match(await home.text(), /Menos lío/);

@@ -6,3 +6,10 @@ test('service worker and shared offline store parse as browser scripts', () => {
   for (const file of ['public/sw.js', 'public/offline-store.js'])
     assert.doesNotThrow(() => new vm.Script(readFileSync(file, 'utf8'), { filename: file }));
 });
+
+test('OAuth exchange proofs are never eligible for the persistent offline queue', () => {
+  const sandbox: any = {};
+  vm.runInNewContext(readFileSync('public/offline-store.js', 'utf8'), sandbox);
+  assert.equal(sandbox.BandarlogOffline.allowed('/auth/google/return', 'POST'), false);
+  assert.equal(sandbox.BandarlogOffline.allowed('/tasks', 'POST'), true);
+});
