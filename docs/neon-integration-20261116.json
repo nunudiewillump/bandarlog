@@ -1,0 +1,125 @@
+{
+  "environment": "PostgreSQL local (version recorded in companion report), 10 groups, 17 users/group with 12kB synthetic photos, 3 tasks/group, 3 assignees/task, 125 activity entries in first group. Preview providers only. No scale-to-zero simulation.",
+  "results": [
+    {
+      "target": "baseline",
+      "phase": "process-cache-cold",
+      "requests": 10,
+      "httpBytes": 2206422,
+      "p50": 48.999353999999585,
+      "p95": 114.74995200000012,
+      "driver": {
+        "type": "driver",
+        "total": 260,
+        "context": 120,
+        "scalarBytesEstimate": 2156726,
+        "functional": 140
+      }
+    },
+    {
+      "target": "baseline",
+      "phase": "warm",
+      "requests": 100,
+      "httpBytes": 22064220,
+      "p50": 30.24258099999861,
+      "p95": 112.97281700000076,
+      "driver": {
+        "type": "driver",
+        "total": 2600,
+        "context": 1200,
+        "scalarBytesEstimate": 1129860,
+        "functional": 1400
+      }
+    },
+    {
+      "target": "baseline",
+      "phase": "concurrent",
+      "requests": 10,
+      "httpBytes": 2206422,
+      "p50": 174.76538599999913,
+      "p95": 182.1408530000008,
+      "driver": {
+        "type": "driver",
+        "total": 260,
+        "context": 120,
+        "scalarBytesEstimate": 112986,
+        "functional": 140
+      }
+    },
+    {
+      "target": "baseline",
+      "phase": "mutations",
+      "requests": 100,
+      "httpBytes": 41887,
+      "p50": 30.141969000000245,
+      "p95": 70.30707199999961,
+      "driver": {
+        "type": "driver",
+        "total": 7200,
+        "context": 4400,
+        "scalarBytesEstimate": 3977866,
+        "functional": 2800
+      }
+    },
+    {
+      "target": "candidate",
+      "phase": "process-cache-cold",
+      "requests": 10,
+      "httpBytes": 2206422,
+      "p50": 37.226675999998406,
+      "p95": 110.36032500000147,
+      "driver": {
+        "type": "driver",
+        "total": 210,
+        "context": 80,
+        "scalarBytesEstimate": 2156086,
+        "functional": 130
+      }
+    },
+    {
+      "target": "candidate",
+      "phase": "warm",
+      "requests": 100,
+      "httpBytes": 22064220,
+      "p50": 21.19164599999931,
+      "p95": 72.4237979999998,
+      "driver": {
+        "type": "driver",
+        "total": 2100,
+        "context": 800,
+        "scalarBytesEstimate": 1123460,
+        "functional": 1300
+      }
+    },
+    {
+      "target": "candidate",
+      "phase": "concurrent",
+      "requests": 10,
+      "httpBytes": 2206422,
+      "p50": 98.30877900000269,
+      "p95": 138.56585799999812,
+      "driver": {
+        "type": "driver",
+        "total": 210,
+        "context": 80,
+        "scalarBytesEstimate": 112346,
+        "functional": 130
+      }
+    },
+    {
+      "target": "candidate",
+      "phase": "mutations",
+      "requests": 100,
+      "httpBytes": 41887,
+      "p50": 30.53565499999968,
+      "p95": 74.03503500000079,
+      "driver": {
+        "type": "driver",
+        "total": 6700,
+        "context": 4000,
+        "scalarBytesEstimate": 330596,
+        "functional": 2700
+      }
+    }
+  ]
+}

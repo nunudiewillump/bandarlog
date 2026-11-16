@@ -5,7 +5,7 @@ import { drizzle as remoteDrizzle } from 'drizzle-orm/node-postgres';
 import { migrate as localMigrate } from 'drizzle-orm/pglite/migrator';
 import pg from 'pg';
 import { sql } from 'drizzle-orm';
-import { queryLogger } from './metrics.js';
+import { queryLogger, measuredClient } from './metrics.js';
 import * as schema from './schema.js';
 import { scopedPglite, scopedPool, configureGroupSigning, groupContext } from './group-context.js';
 import { globalOperations } from './global-operations.js';
@@ -17,7 +17,7 @@ export async function connect() {
     throw Error('Las credenciales de mantenimiento no deben estar presentes en el runtime HTTP.');
   if (process.env.DATABASE_URL) {
     configureGroupSigning(process.env.GROUP_CONTEXT_SECRET || '');
-    const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+    const pool = measuredClient(new pg.Pool({ connectionString: process.env.DATABASE_URL }));
     try {
       const connection = remoteDrizzle(pool, { schema, logger: queryLogger });
       // Fail before listening if a deployment accidentally injects an owner credential.
@@ -51,7 +51,7 @@ export async function connect() {
     throw Error('DATABASE_URL es obligatorio en producción');
   const path = process.env.DATA_DIR || '.data';
   await mkdir(path, { recursive: true });
-  const client = new PGlite(`${path}/db`);
+  const client = measuredClient(new PGlite(`${path}/db`));
   const connection = localDrizzle(client, { schema, logger: queryLogger });
   await localMigrate(connection, { migrationsFolder: 'migrations' });
   await client.query(

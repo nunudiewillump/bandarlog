@@ -1,0 +1,255 @@
+{
+  "baselineCommit": "cb8626170ffa0a349feee899f42bd82c95af4a72",
+  "candidateCodeCommit": "728caba",
+  "environment": "PostgreSQL 18 local, 10 groups, 17 users/group with 12kB synthetic photos, 3 tasks/group, 3 assignees/task, 125 activity entries in first group. Preview providers only. No scale-to-zero simulation.",
+  "latest": [
+    {
+      "target": "bandarlog-neon-baseline",
+      "phase": "process-cache-cold",
+      "requests": 10,
+      "httpBytes": 2206366,
+      "p50": 24.775848999999653,
+      "p95": 52.54114699999991,
+      "driver": {
+        "type": "driver",
+        "total": 260,
+        "context": 120,
+        "scalarBytesEstimate": 2157124,
+        "functional": 140
+      }
+    },
+    {
+      "target": "bandarlog-neon-baseline",
+      "phase": "warm",
+      "requests": 100,
+      "httpBytes": 22063660,
+      "p50": 14.626339000000371,
+      "p95": 21.739096999999674,
+      "driver": {
+        "type": "driver",
+        "total": 2600,
+        "context": 1200,
+        "scalarBytesEstimate": 1133840,
+        "functional": 1400
+      }
+    },
+    {
+      "target": "bandarlog-neon-baseline",
+      "phase": "concurrent",
+      "requests": 10,
+      "httpBytes": 2206366,
+      "p50": 101.60321799999929,
+      "p95": 149.50344399999994,
+      "driver": {
+        "type": "driver",
+        "total": 260,
+        "context": 120,
+        "scalarBytesEstimate": 113384,
+        "functional": 140
+      }
+    },
+    {
+      "target": "bandarlog-neon-baseline",
+      "phase": "mutations",
+      "requests": 100,
+      "httpBytes": 41882,
+      "p50": 21.722544000000198,
+      "p95": 27.72586500000034,
+      "driver": {
+        "type": "driver",
+        "total": 7200,
+        "context": 4400,
+        "scalarBytesEstimate": 3959705,
+        "functional": 2800
+      }
+    },
+    {
+      "target": "bandarlog-neon-v2",
+      "phase": "process-cache-cold",
+      "requests": 10,
+      "httpBytes": 2206366,
+      "p50": 24.533315000000584,
+      "p95": 48.63809599999877,
+      "driver": {
+        "type": "driver",
+        "total": 210,
+        "context": 80,
+        "scalarBytesEstimate": 2156764,
+        "functional": 130
+      }
+    },
+    {
+      "target": "bandarlog-neon-v2",
+      "phase": "warm",
+      "requests": 100,
+      "httpBytes": 22063660,
+      "p50": 14.542629999999917,
+      "p95": 22.635731000000305,
+      "driver": {
+        "type": "driver",
+        "total": 2100,
+        "context": 800,
+        "scalarBytesEstimate": 1130240,
+        "functional": 1300
+      }
+    },
+    {
+      "target": "bandarlog-neon-v2",
+      "phase": "concurrent",
+      "requests": 10,
+      "httpBytes": 2206366,
+      "p50": 115.1741949999996,
+      "p95": 132.3304500000013,
+      "driver": {
+        "type": "driver",
+        "total": 210,
+        "context": 80,
+        "scalarBytesEstimate": 113024,
+        "functional": 130
+      }
+    },
+    {
+      "target": "bandarlog-neon-v2",
+      "phase": "mutations",
+      "requests": 100,
+      "httpBytes": 41896,
+      "p50": 22.08567299999777,
+      "p95": 31.381586999999854,
+      "driver": {
+        "type": "driver",
+        "total": 6700,
+        "context": 4000,
+        "scalarBytesEstimate": 315252,
+        "functional": 2700
+      }
+    }
+  ],
+  "previousComparable100RequestRound": [
+    {
+      "target": "bandarlog-neon-baseline",
+      "phase": "process-cache-cold",
+      "requests": 10,
+      "httpBytes": 2206356,
+      "p50": 23.2644420000006,
+      "p95": 54.35496200000034,
+      "driver": {
+        "type": "driver",
+        "total": 260,
+        "context": 120,
+        "scalarBytesEstimate": 2157115,
+        "functional": 140
+      }
+    },
+    {
+      "target": "bandarlog-neon-baseline",
+      "phase": "warm",
+      "requests": 100,
+      "httpBytes": 22063560,
+      "p50": 13.47819299999992,
+      "p95": 23.2780130000001,
+      "driver": {
+        "type": "driver",
+        "total": 2600,
+        "context": 1200,
+        "scalarBytesEstimate": 1133750,
+        "functional": 1400
+      }
+    },
+    {
+      "target": "bandarlog-neon-baseline",
+      "phase": "concurrent",
+      "requests": 10,
+      "httpBytes": 2206356,
+      "p50": 131.18913200000043,
+      "p95": 147.15132799999992,
+      "driver": {
+        "type": "driver",
+        "total": 260,
+        "context": 120,
+        "scalarBytesEstimate": 113375,
+        "functional": 140
+      }
+    },
+    {
+      "target": "bandarlog-neon-baseline",
+      "phase": "mutations",
+      "requests": 100,
+      "httpBytes": 41886,
+      "p50": 21.710222000001522,
+      "p95": 29.721503000000666,
+      "driver": {
+        "type": "driver",
+        "total": 7200,
+        "context": 4400,
+        "scalarBytesEstimate": 3959672,
+        "functional": 2800
+      }
+    },
+    {
+      "target": "bandarlog-neon-v2",
+      "phase": "process-cache-cold",
+      "requests": 10,
+      "httpBytes": 2206356,
+      "p50": 24.764114999999947,
+      "p95": 57.47942300000068,
+      "driver": {
+        "type": "driver",
+        "total": 210,
+        "context": 80,
+        "scalarBytesEstimate": 2156755,
+        "functional": 130
+      }
+    },
+    {
+      "target": "bandarlog-neon-v2",
+      "phase": "warm",
+      "requests": 100,
+      "httpBytes": 22063560,
+      "p50": 13.799528999999893,
+      "p95": 20.683743999999933,
+      "driver": {
+        "type": "driver",
+        "total": 2100,
+        "context": 800,
+        "scalarBytesEstimate": 1130150,
+        "functional": 1300
+      }
+    },
+    {
+      "target": "bandarlog-neon-v2",
+      "phase": "concurrent",
+      "requests": 10,
+      "httpBytes": 2206356,
+      "p50": 111.30885699999999,
+      "p95": 128.6911340000006,
+      "driver": {
+        "type": "driver",
+        "total": 210,
+        "context": 80,
+        "scalarBytesEstimate": 113015,
+        "functional": 130
+      }
+    },
+    {
+      "target": "bandarlog-neon-v2",
+      "phase": "mutations",
+      "requests": 100,
+      "httpBytes": 41871,
+      "p50": 20.63193500000125,
+      "p95": 28.000978000000032,
+      "driver": {
+        "type": "driver",
+        "total": 6700,
+        "context": 4000,
+        "scalarBytesEstimate": 315204,
+        "functional": 2700
+      }
+    }
+  ],
+  "productionReference": {
+    "windowMadrid": "2026-11-12 17:00 — 2026-11-13 10:00",
+    "computeUnitSeconds": 4319,
+    "publicNetworkBytes": 6603822,
+    "attribution": "project, before this PR; not candidate savings"
+  }
+}

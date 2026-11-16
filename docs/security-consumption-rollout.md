@@ -1,5 +1,7 @@
 # Aislamiento, paginación y consumo: despliegue del 12-11-2026
 
+> Documento histórico de PR #34. Estado posterior: PR #35 permite suspensión por planificación; PR #33 ya está integrada con CI aprobada. El historial actual es de 24 h. Véase [segunda iteración](neon-iteration-20261113.md) para métricas y decisiones vigentes.
+
 La revisión se basa en main a2c437f. La copia usada para la primera auditoría estaba atrasada: main ya tenía grupos, RLS y relaciones compuestas. Este cambio conserva ese modelo (una cuenta por grupo, mismo correo permitido en varios grupos), el ámbito de sesión, SSE y almacenamiento offline.
 
 ## Cambios

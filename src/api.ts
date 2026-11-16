@@ -13,6 +13,8 @@ export class ApiError extends Error {
     super(message);
   }
 }
+const revisions = new WeakMap<object, string>();
+export const snapshotRevision = (data: object) => revisions.get(data);
 let csrf = '';
 let latestDataRequest = 0;
 let writeVersion = 0;
@@ -85,8 +87,17 @@ async function request(path: string, method: string, body?: unknown) {
       challengeId: data.challengeId,
       expiresIn: data.expiresIn,
     });
+  if (dataRequest && data && typeof data === 'object') {
+    const revision = response.headers.get('X-Data-Revision');
+    if (revision) revisions.set(data, revision);
+  }
   if (dataRequest && dataRequest !== latestDataRequest) return data;
-  if (method === 'GET' && readVersion === writeVersion && ['/me', '/data'].includes(path))
-    return offline.remember(path, data);
+  if (method === 'GET' && readVersion === writeVersion && ['/me', '/data'].includes(path)) {
+    const remembered = await offline.remember(path, data);
+    const revision = revisions.get(data);
+    if (revision && remembered && typeof remembered === 'object')
+      revisions.set(remembered, revision);
+    return remembered;
+  }
   return data;
 }

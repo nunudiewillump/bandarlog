@@ -1,3 +1,4 @@
+import { exercisePushWork } from './fixtures/push-work';
 import { randomBytes, createHash as hashForTest } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { provisionTestContext, TEST_CONTEXT_SECRET } from './fixtures/group-signing';
@@ -51,7 +52,7 @@ test('PostgreSQL pooled queries and transactions retain the correct group and re
   try {
     const groups = await ownerDb
       .insert(s.groups)
-      .values([{ name: 'Pooled group A' }, { name: 'Pooled group B' }])
+      .values(Array.from({ length: 10 }, (_, n) => ({ name: `Pooled group ${n}` })))
       .returning();
     for (const group of groups)
       await groupContext.run(group, async () => {
@@ -265,6 +266,7 @@ test('PostgreSQL pooled queries and transactions retain the correct group and re
     await assert.rejects(connect());
     process.env.GROUP_CONTEXT_SECRET = TEST_CONTEXT_SECRET;
     await provisionTestContext(ownerPool);
+    await exercisePushWork(db, ownerDb);
     const role = await ownerDb.execute(sql`select current_user as role`);
     assert.notEqual(role.rows[0].role, 'bandarlog_group_app');
   } finally {
@@ -501,15 +503,13 @@ test('production public pages and legacy-domain redirects preserve safe links wi
     );
     assert.equal((await api('/api/auth/google/return', 'POST', { ticket, proof }, a)).status, 403);
     const concurrentTicket = randomBytes(32).toString('hex');
-    await ownerDb
-      .insert(s.googleHandoffs)
-      .values({
-        id: digest(concurrentTicket),
-        groupId: groupA,
-        challenge: digest(proof),
-        userId: a.userId,
-        expires: new Date(Date.now() + 60000).toISOString(),
-      });
+    await ownerDb.insert(s.googleHandoffs).values({
+      id: digest(concurrentTicket),
+      groupId: groupA,
+      challenge: digest(proof),
+      userId: a.userId,
+      expires: new Date(Date.now() + 60000).toISOString(),
+    });
     const concurrent = await Promise.all([
       api('/api/auth/google/return', 'POST', { ticket: concurrentTicket, proof }, a),
       api('/api/auth/google/return', 'POST', { ticket: concurrentTicket, proof }, a),
