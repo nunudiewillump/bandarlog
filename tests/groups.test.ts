@@ -1,3 +1,4 @@
+import { provisionTestContext } from './fixtures/group-signing';
 import { importBundle } from '../server/import';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -13,6 +14,7 @@ test('database group isolation covers selects, transactions, writes and cross-gr
   const owner = drizzle(client);
   try {
     await migrate(owner, { migrationsFolder: 'migrations' });
+    await provisionTestContext(client);
     const groups = await owner
       .insert(s.groups)
       .values([{ name: 'Grupo A' }, { name: 'Grupo B' }])
@@ -166,6 +168,7 @@ test('existing group migration preserves IDs, memberships, completed work and hi
       );
     const old = await snapshot();
     await migrate(db, { migrationsFolder: 'migrations' });
+    await provisionTestContext(client);
     assert.deepEqual(await snapshot(), old);
     for (const table of tables)
       assert.equal(

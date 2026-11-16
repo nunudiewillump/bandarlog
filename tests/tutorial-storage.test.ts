@@ -10,6 +10,7 @@ test('persisted abandonment is recorded once at the inactivity boundary and neve
     db = drizzle(client);
   try {
     await migrate(db, { migrationsFolder: 'migrations' });
+    await client.query("select set_config('bandarlog.group_id','rosales-702',false)");
     const start = '2026-01-01T09:00:00.000Z';
     for (const id of ['active', 'skip', 'unstarted'])
       await db

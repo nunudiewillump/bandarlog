@@ -1,6 +1,7 @@
 import * as s from './schema.js';
-import type { Database } from './db.js';
-export async function seed(storage: Database) {
+
+type SeedStorage = { transaction<T>(fn: (db: any) => Promise<T>): Promise<T> };
+export async function seed(storage: SeedStorage) {
   await storage.transaction(async (db: any) => {
     if ((await db.select({ id: s.users.id }).from(s.users).limit(1)).length) return;
     if (process.env.NODE_ENV === 'production') {

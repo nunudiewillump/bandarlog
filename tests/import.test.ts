@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { connect } from '../server/db';
+import { connectMaintenance as connect } from '../server/maintenance-db';
 import { importBundle } from '../server/import';
 import { users } from '../server/schema';
 test('import dry run does not write; apply is idempotent; changed source reports conflict', async () => {

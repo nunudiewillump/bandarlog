@@ -1,3 +1,4 @@
+import { provisionTestContext } from './fixtures/group-signing';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
@@ -14,6 +15,7 @@ test('ten groups retain device delivery isolation and retries skip already accep
   const db = drizzle(scopedPglite(client) as PGlite, { schema: s });
   try {
     await migrate(owner, { migrationsFolder: 'migrations' });
+    await provisionTestContext(client);
     const groups = await owner
       .insert(s.groups)
       .values(Array.from({ length: 10 }, (_, n) => ({ name: `Synthetic ${n}` })))

@@ -6,6 +6,7 @@ import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { eq } from 'drizzle-orm';
 import * as s from '../server/schema';
+import { globalOperations } from '../server/global-operations';
 import { rememberedEntry } from '../server/remembered-entry';
 
 test('remembered entry preserves legacy sessions, isolates groups, and rejects expired or revoked access', async () => {
@@ -40,26 +41,29 @@ test('remembered entry preserves legacy sessions, isolates groups, and rejects e
         absoluteExpiresAt: future,
       });
     }
-    assert.equal(await rememberedEntry(db, undefined, legacy.id), null);
+    assert.equal(await rememberedEntry(globalOperations(db, db), undefined, legacy.id), null);
     assert.equal(
-      await rememberedEntry(db, 'bandarlog=' + raw, legacy.id),
+      await rememberedEntry(globalOperations(db, db), 'bandarlog=' + raw, legacy.id),
       '/g/' + legacy.privateId + '/',
     );
     assert.equal(
-      await rememberedEntry(db, 'bandarlog=' + rawOther, legacy.id),
+      await rememberedEntry(globalOperations(db, db), 'bandarlog=' + rawOther, legacy.id),
       null,
       'a tenant bearer cannot be interpreted as a legacy session',
     );
     const marker = 'bandarlog_entry=' + group.privateId + '.' + hash(rawOther);
-    assert.equal(await rememberedEntry(db, marker, legacy.id), '/g/' + group.privateId + '/');
     assert.equal(
-      await rememberedEntry(db, marker + '; bandarlog=' + raw, legacy.id),
+      await rememberedEntry(globalOperations(db, db), marker, legacy.id),
+      '/g/' + group.privateId + '/',
+    );
+    assert.equal(
+      await rememberedEntry(globalOperations(db, db), marker + '; bandarlog=' + raw, legacy.id),
       '/g/' + group.privateId + '/',
       'last active group has priority',
     );
     assert.equal(
       await rememberedEntry(
-        db,
+        globalOperations(db, db),
         'bandarlog_entry=' + legacy.privateId + '.' + hash(rawOther),
         legacy.id,
       ),
@@ -67,29 +71,33 @@ test('remembered entry preserves legacy sessions, isolates groups, and rejects e
       'a marker cannot change the session group',
     );
     assert.equal(
-      await rememberedEntry(db, 'bandarlog_entry=https://evil.example', legacy.id),
+      await rememberedEntry(
+        globalOperations(db, db),
+        'bandarlog_entry=https://evil.example',
+        legacy.id,
+      ),
       null,
     );
     await db
       .update(s.sessions)
       .set({ expires: past })
       .where(eq(s.sessions.id, hash(rawOther)));
-    assert.equal(await rememberedEntry(db, marker, legacy.id), null);
+    assert.equal(await rememberedEntry(globalOperations(db, db), marker, legacy.id), null);
     await db
       .update(s.sessions)
       .set({ expires: future, absoluteExpiresAt: past })
       .where(eq(s.sessions.id, hash(rawOther)));
-    assert.equal(await rememberedEntry(db, marker, legacy.id), null);
+    assert.equal(await rememberedEntry(globalOperations(db, db), marker, legacy.id), null);
     await db
       .update(s.sessions)
       .set({ absoluteExpiresAt: future })
       .where(eq(s.sessions.id, hash(rawOther)));
     await db.update(s.users).set({ disabledAt: past }).where(eq(s.users.id, group.id));
-    assert.equal(await rememberedEntry(db, marker, legacy.id), null);
+    assert.equal(await rememberedEntry(globalOperations(db, db), marker, legacy.id), null);
     await db.update(s.users).set({ disabledAt: null }).where(eq(s.users.id, group.id));
     await db.delete(s.sessions).where(eq(s.sessions.id, hash(rawOther)));
     assert.equal(
-      await rememberedEntry(db, marker, legacy.id),
+      await rememberedEntry(globalOperations(db, db), marker, legacy.id),
       null,
       'logout invalidates navigation hints',
     );

@@ -22,6 +22,7 @@ test('Forest migration preserves existing profiles and sessions while new users 
     await client.exec(`INSERT INTO users(id,name,email,role,avatar_url) VALUES('old','Persona existente','old@example.test','member','avatar-preserved');
       INSERT INTO sessions(id,user_id,csrf,expires) VALUES('session-existing','old','csrf-existing',now()+interval '7 days');`);
     await migrate(db, { migrationsFolder: 'migrations' });
+    await client.query("select set_config('bandarlog.group_id','rosales-702',false)");
     const old = (
       await client.query<{ name: string; avatar_url: string; onboarding_completed_at: string }>(
         `SELECT name,avatar_url,onboarding_completed_at FROM users WHERE id='old'`,

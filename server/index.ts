@@ -30,8 +30,7 @@ import { eq, and, inArray, sql, getTableColumns } from 'drizzle-orm';
 import { z } from 'zod';
 import { createMailTransport } from './mail.js';
 import { mailFailure, MailDeliveryError } from './resend-mail.js';
-import { connect, type Database } from './db.js';
-import { seed } from './seed.js';
+import { connect, localPlatformPreview, type Database } from './db.js';
 import * as s from './schema.js';
 import { validateEnvironment } from './config.js';
 import { preferenceSchema, preferences, reminderEvents } from './preferences.js';
@@ -65,9 +64,9 @@ import {
   SESSION_RENEW_INTERVAL,
 } from './auth-security.js';
 const { production: prod, appUrl, legacyOrigins } = validateEnvironment();
-const { db, ownerDb, close } = await connect();
-await seed(ownerDb);
-const [legacyGroup] = await ownerDb.select().from(s.groups).where(eq(s.groups.id, 'rosales-702'));
+const { db, global: platform, close } = await connect();
+const legacyGroup = (await platform.resolveGroup('legacy'))!;
+if (!legacyGroup) throw Error('Ejecuta las migraciones de mantenimiento antes de arrancar.');
 const site = express();
 site.disable('x-powered-by');
 site.use(helmet({ contentSecurityPolicy: prod ? undefined : false }));
@@ -110,7 +109,7 @@ function allowedOrigin(q: express.Request) {
   );
 }
 site.use(publicSite(appUrl));
-const push = await pushService(db, appUrl, ownerDb);
+const push = await pushService(db, appUrl, undefined, undefined, platform.pushKeys);
 const app = express();
 app.disable('x-powered-by');
 app.use('/api', measureRequests);
@@ -210,13 +209,7 @@ async function queue(
     })
     .onConflictDoNothing();
 }
-async function queuePlatform(
-  email: string,
-  subject: string,
-  body: string,
-  dedupe: string,
-  tx: any = ownerDb,
-) {
+function platformMail(subject: string, body: string) {
   const link = body
     .split('\n')
     .find(
@@ -224,56 +217,34 @@ async function queuePlatform(
         line.startsWith(appUrl + '/aprobar-grupo?token=') ||
         line.startsWith(appUrl + '/confirmar-grupo?token='),
     );
-  await tx
-    .insert(s.platformMail)
-    .values({
-      id: id(),
-      email,
-      subject,
+  return {
+    subject,
+    body,
+    html: renderMail({
+      title: subject,
       body,
-      dedupe,
-      html: renderMail({
-        title: subject,
-        body,
-        appUrl,
-        actions: [
-          {
-            label: link?.includes('/aprobar-grupo')
-              ? 'Revisar solicitud'
-              : link
-                ? 'Activar grupo'
-                : 'Ver Bandarlog',
-            url: link || appUrl + '/',
-          },
-        ],
-      }),
-      status: mailTransport ? 'pending' : 'preview',
-      createdAt: now(),
-    })
-    .onConflictDoNothing();
+      appUrl,
+      actions: [
+        {
+          label: link?.includes('/aprobar-grupo')
+            ? 'Revisar solicitud'
+            : link
+              ? 'Activar grupo'
+              : 'Ver Bandarlog',
+          url: link || appUrl + '/',
+        },
+      ],
+    }),
+    status: mailTransport ? 'pending' : 'preview',
+  };
 }
 let platformSending = false;
 async function deliverPlatformNow() {
   if (!mailTransport || platformSending) return;
   platformSending = true;
   try {
-    const pending = await ownerDb
-      .select()
-      .from(s.platformMail)
-      .where(
-        and(
-          eq(s.platformMail.status, 'pending'),
-          sql`${s.platformMail.attempts}::integer < 5`,
-          sql`(${s.platformMail.nextAttemptAt} is null or ${s.platformMail.nextAttemptAt} <= now())`,
-        ),
-      );
+    const pending = await platform.claimPlatformMail();
     for (const m of pending) {
-      const claimed = await ownerDb
-        .update(s.platformMail)
-        .set({ status: 'sending' })
-        .where(and(eq(s.platformMail.id, m.id), eq(s.platformMail.status, 'pending')))
-        .returning();
-      if (!claimed.length) continue;
       try {
         const sent = await mailTransport.sendMail({
           from: process.env.MAIL_FROM,
@@ -283,20 +254,17 @@ async function deliverPlatformNow() {
           html: m.html,
           idempotencyKey: 'bandarlog-platform/' + m.id,
         });
-        await ownerDb
-          .update(s.platformMail)
-          .set({
-            status: 'sent',
-            sentAt: now(),
-            nextAttemptAt: null,
-            providerMessageId: typeof sent.messageId === 'string' ? sent.messageId : null,
-          })
-          .where(eq(s.platformMail.id, m.id));
+        await platform.finishPlatformMail(m.id, {
+          status: 'sent',
+          sentAt: now(),
+          nextAttemptAt: null,
+          providerMessageId: typeof sent.messageId === 'string' ? sent.messageId : null,
+        });
         if (mailTransport.kind === 'resend')
           console.info({ event: 'mail.accepted', provider: 'resend', messageId: sent.messageId });
       } catch (error) {
         const failure = mailFailure(error, Number(m.attempts) + 1);
-        await ownerDb.update(s.platformMail).set(failure).where(eq(s.platformMail.id, m.id));
+        await platform.finishPlatformMail(m.id, failure);
         if (mailTransport.kind === 'resend')
           console.error({
             event: 'mail.failed',
@@ -406,7 +374,7 @@ async function deliverNow() {
 async function health(_q: express.Request, r: express.Response) {
   // This probe reads no tenant tables; avoid a tenant transaction and role setup.
   r.set('Cache-Control', 'no-store');
-  await ownerDb.execute(sql`select 1`);
+  await platform.health();
   r.json({
     ok: true,
     mail: mailTransport?.kind || 'development',
@@ -1302,7 +1270,7 @@ app.patch('/api/group', async (q, r) => {
       .strict(),
     q.body,
   );
-  await ownerDb.update(s.groups).set(input).where(eq(s.groups.id, groupContext.getStore()!.id));
+  await platform.updateGroup(r.locals.session.id, input);
   r.json({ ok: true });
 });
 app.get('/api/me', (_q, r) => {
@@ -2503,10 +2471,7 @@ const platformJobs = new IdleJobs<void>(
   async () => {
     await measureJob('platform-delivery', deliverPlatformNow);
     if (!mailTransport) return null;
-    const result = await ownerDb.execute(
-      sql`select min(coalesce(next_attempt_at, now())) as next_at from platform_mail where status='pending' and attempts::integer<5`,
-    );
-    const at = result.rows[0]?.next_at;
+    const at = await platform.platformNext();
     return at ? Math.max(Date.now() + 1000, +new Date(String(at))) : null;
   },
   () => console.error('No se pudo completar el correo pendiente.'),
@@ -2514,11 +2479,7 @@ const platformJobs = new IdleJobs<void>(
 async function deliverPlatform() {
   await platformJobs.wake('platform', undefined);
 }
-const activeGroups = () =>
-  ownerDb
-    .select()
-    .from(s.groups)
-    .where(sql`${s.groups.plan} <> 'audit-archived'`);
+const activeGroups = () => platform.jobGroups(false, Boolean(mailTransport));
 const reminderJobs = new IdleJobs<void>(
   async () =>
     measureJob('reminders', async () => {
@@ -2536,17 +2497,8 @@ const recoveryJobs = new IdleJobs<void>(
   async () =>
     measureJob('outbox-recovery', async () => {
       // Metadata only: no idle per-group SELECTs, no message bodies or images.
-      const pending = await ownerDb.execute(sql`select distinct group_id from (
-    select group_id from notifications where ${Boolean(mailTransport)} and status='pending' and attempts::integer<5
-    union select group_id from push_outbox where sent_at is null
-  ) q`);
-      const ids = pending.rows.map((row) => String(row.group_id));
-      if (ids.length)
-        for (const group of await ownerDb
-          .select()
-          .from(s.groups)
-          .where(and(inArray(s.groups.id, ids), sql`${s.groups.plan} <> 'audit-archived'`)))
-          await groupContext.run(group, deliver);
+      for (const group of await platform.jobGroups(true, Boolean(mailTransport)))
+        await groupContext.run(group, deliver);
       await deliverPlatform();
       return Date.now() + 3600000;
     }),
@@ -2599,19 +2551,16 @@ app.use((error: any, _q: any, r: any, _n: any) => {
   });
 });
 site.use(
-  groupRegistrationRoutes(ownerDb, appUrl, {
-    queue: queuePlatform,
+  groupRegistrationRoutes(platform, appUrl, {
+    mail: platformMail,
     deliver: deliverPlatform,
-    createSession,
     cookie: (r, raw, group) => groupContext.run(group, () => sessionCookie(r, raw)),
     render: (path, message, token) => renderPublicForm(path, appUrl, message, token),
   }),
 );
-if (!prod)
-  site.get('/api/dev/platform-mail', async (_q, r) =>
-    r.json(await ownerDb.select().from(s.platformMail).orderBy(s.platformMail.createdAt)),
-  );
-site.use('/g/:groupId', groupResolver(ownerDb), app);
+if (!prod && !process.env.DATABASE_URL)
+  site.get('/api/dev/platform-mail', async (_q, r) => r.json(await localPlatformPreview()));
+site.use('/g/:groupId', groupResolver(platform), app);
 site.get('/acceso', (q, r) =>
   r
     .set('Cache-Control', 'no-store')
@@ -2640,7 +2589,7 @@ site.get('/', async (q, r, next) => {
       303,
       '/g/' + legacyGroup.privateId + '/' + q.originalUrl.slice(q.originalUrl.indexOf('?')),
     );
-  const entry = await rememberedEntry(ownerDb, q.headers.cookie, legacyGroup.id);
+  const entry = await rememberedEntry(platform, q.headers.cookie, legacyGroup.id);
   if (entry) return r.redirect(303, entry);
   if (requestCookie(q.headers.cookie, ENTRY_COOKIE)) r.clearCookie(ENTRY_COOKIE, { path: '/' });
   if (prod && legacyOrigins.includes('https://' + (q.get('host') || '').toLowerCase()))
@@ -2650,14 +2599,8 @@ site.get('/', async (q, r, next) => {
 site.use(async (q, r, next) => {
   let group: Group = { ...legacyGroup, legacyAccess: true };
   if (q.path === '/api/auth/google/callback' && typeof q.query.state === 'string') {
-    const [state] = await ownerDb
-      .select()
-      .from(s.googleStates)
-      .where(eq(s.googleStates.id, hash(q.query.state)));
-    if (state) {
-      const [found] = await ownerDb.select().from(s.groups).where(eq(s.groups.id, state.groupId));
-      if (found) group = found;
-    }
+    const found = await platform.oauthGroup(hash(q.query.state));
+    if (found) group = found;
   }
   groupContext.run(group, () => app(q, r, next));
 });

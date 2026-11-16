@@ -25,6 +25,7 @@ test('unifying projects preserves legacy IDs, links, assignments, roles, task st
       'SELECT id,name,type,parent_id,starts,ends FROM projects ORDER BY id',
     );
     await migrate(db, { migrationsFolder: 'migrations' });
+    await client.query("select set_config('bandarlog.group_id','rosales-702',false)");
     assert.deepEqual(
       (await client.query('SELECT id,name,type,parent_id,starts,ends FROM projects ORDER BY id'))
         .rows,
