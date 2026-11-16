@@ -285,7 +285,10 @@
     z-index: 40;
   }
   html {
-    scroll-padding-top: calc(var(--forest-safe-top, 0px) + 140px);
+    scroll-padding-top: calc(
+      var(--forest-safe-top, 0px) + var(--forest-header-row, 68px) +
+        var(--forest-header-tail, 12px) + 24px
+    );
   }
   .workspace > .topbar {
     display: none;
@@ -294,7 +297,8 @@
     display: none;
   }
   .main {
-    padding: 28px 20px calc(110px + env(safe-area-inset-bottom)) !important;
+    /* Keeps the first heading 24px below the reserved header on phones. */
+    padding: 24px 20px calc(110px + env(safe-area-inset-bottom)) !important;
   }
   .page-heading {
     margin: 0 0 24px;
