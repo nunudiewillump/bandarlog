@@ -1,0 +1,20 @@
+Resumen semanal · Campamento de verano
+Grupo de demostración
+Situación a 16 nov 2026, 11:00
+Este es el estado del proyecto. Revisa primero los bloqueos, las tareas vencidas y los próximos plazos.
+Progreso total: 75% · 6 de 8 tareas terminadas
+Pendientes: 1
+En curso: 0
+Bloqueadas: 1
+Vencidas: 1
+Vencen en los próximos 7 días: 1
+Necesita atención
+Cerrar el menú y las alergias
+Cocina · Bloqueada · Vencida desde 14 nov 2026, 19:00
+Motivo del bloqueo: Faltan dos confirmaciones de las familias.
+https://bandarlog.example.test/g/demo/?task=menu
+Confirmar la ruta y sus alternativas
+Rutas · Vence el 18 nov 2026, 19:00
+https://bandarlog.example.test/g/demo/?task=ruta
+Las tareas vencidas y bloqueadas pueden coincidir. El progreso es acumulado, no solo de esta semana.
+Ver proyecto: https://bandarlog.example.test/g/demo/?project=campamento
