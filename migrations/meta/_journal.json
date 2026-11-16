@@ -134,6 +134,27 @@
       "when": 1794486286884,
       "tag": "0018_push_device_delivery",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794800000000,
+      "tag": "0019_runtime_privileges",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794840000000,
+      "tag": "0020_group_contact_admin_guide",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794841000000,
+      "tag": "0021_google_pwa_return",
+      "breakpoints": true
     }
   ]
 }

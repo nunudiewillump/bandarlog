@@ -1,3 +1,4 @@
+import { provisionTestContext } from './fixtures/group-signing';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
@@ -13,6 +14,7 @@ test('image content reuse preserves fresh permissions, photo changes and group i
   const db = drizzle(scopedPglite(client) as PGlite, { schema: s });
   try {
     await migrate(owner, { migrationsFolder: 'migrations' });
+    await provisionTestContext(client);
     const groups = await owner
       .insert(s.groups)
       .values([{ name: 'Photo A' }, { name: 'Photo B' }])

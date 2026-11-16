@@ -1,4 +1,5 @@
 import { pendingPushWork } from './push-work.js';
+import { googleReturnPage, GOOGLE_RETURN_LIFETIME } from './google-return.js';
 import { IdleJobs, nextMadridMidnight } from './idle-jobs.js';
 import { publicUsers } from './public-users.js';
 import { pageRequest, CursorError } from './pagination.js';
@@ -31,8 +32,7 @@ import { eq, and, inArray, sql, getTableColumns } from 'drizzle-orm';
 import { z } from 'zod';
 import { createMailTransport } from './mail.js';
 import { mailFailure, MailDeliveryError } from './resend-mail.js';
-import { connect, type Database } from './db.js';
-import { seed } from './seed.js';
+import { connect, localPlatformPreview, type Database } from './db.js';
 import * as s from './schema.js';
 import { validateEnvironment } from './config.js';
 import { preferenceSchema, preferences, reminderEvents } from './preferences.js';
@@ -49,6 +49,7 @@ import { normalizePhoto } from './photos.js';
 import { checklistChangeSchema, changeChecklist, ChecklistError } from './task-checklist.js';
 import { artworkImage } from './artwork.js';
 import { renderMail } from './mail-template.js';
+import { weeklyMail, mailDate } from './weekly-mail.js';
 import { pushService, validPushEndpoint } from './push.js';
 import { projectSummaries } from './project-summaries.js';
 import { projectTypeInput } from './project-input.js';
@@ -65,12 +66,12 @@ import {
   SESSION_RENEW_INTERVAL,
 } from './auth-security.js';
 const { production: prod, appUrl, legacyOrigins } = validateEnvironment();
-const { db, ownerDb, close } = await connect();
-await seed(ownerDb);
-const [legacyGroup] = await ownerDb.select().from(s.groups).where(eq(s.groups.id, 'rosales-702'));
+const { db, global: platform, close } = await connect();
+const legacyGroup = (await platform.resolveGroup('legacy'))!;
+if (!legacyGroup) throw Error('Ejecuta las migraciones de mantenimiento antes de arrancar.');
 const site = express();
 site.disable('x-powered-by');
-// Start before groupResolver so its owner query belongs to the request.
+// Start before groupResolver so its capability query belongs to the request.
 site.use((q, r, next) =>
   /^(?:\/g\/[^/]+)?\/api(?:\/|$)/.test(q.path) ? measureRequests(q, r, next) : next(),
 );
@@ -114,7 +115,7 @@ function allowedOrigin(q: express.Request) {
   );
 }
 site.use(publicSite(appUrl));
-const push = await pushService(db, appUrl, ownerDb);
+const push = await pushService(db, appUrl, undefined, undefined, platform.pushKeys);
 const app = express();
 app.disable('x-powered-by');
 
@@ -154,6 +155,16 @@ app.use('/api', (q, r, next) => {
 });
 
 app.use(helmet({ contentSecurityPolicy: prod ? undefined : false }));
+// Only SPA entry and OAuth documents need to retain an explicitly opened popup.
+app.use((q, r, next) => {
+  if (
+    q.method === 'GET' &&
+    ['/', '/api/auth/google/start', '/api/auth/google/callback'].includes(q.path)
+  )
+    r.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  next();
+});
+
 app.use(express.json({ limit: '256kb' }));
 app.use('/api', (_q, r, n) => {
   r.set('Cache-Control', 'no-store');
@@ -234,13 +245,7 @@ async function queue(
     })
     .onConflictDoNothing();
 }
-async function queuePlatform(
-  email: string,
-  subject: string,
-  body: string,
-  dedupe: string,
-  tx: any = ownerDb,
-) {
+function platformMail(subject: string, body: string) {
   const link = body
     .split('\n')
     .find(
@@ -248,56 +253,34 @@ async function queuePlatform(
         line.startsWith(appUrl + '/aprobar-grupo?token=') ||
         line.startsWith(appUrl + '/confirmar-grupo?token='),
     );
-  await tx
-    .insert(s.platformMail)
-    .values({
-      id: id(),
-      email,
-      subject,
+  return {
+    subject,
+    body,
+    html: renderMail({
+      title: subject,
       body,
-      dedupe,
-      html: renderMail({
-        title: subject,
-        body,
-        appUrl,
-        actions: [
-          {
-            label: link?.includes('/aprobar-grupo')
-              ? 'Revisar solicitud'
-              : link
-                ? 'Activar grupo'
-                : 'Ver Bandarlog',
-            url: link || appUrl + '/',
-          },
-        ],
-      }),
-      status: mailTransport ? 'pending' : 'preview',
-      createdAt: now(),
-    })
-    .onConflictDoNothing();
+      appUrl,
+      actions: [
+        {
+          label: link?.includes('/aprobar-grupo')
+            ? 'Revisar solicitud'
+            : link
+              ? 'Activar grupo'
+              : 'Ver Bandarlog',
+          url: link || appUrl + '/',
+        },
+      ],
+    }),
+    status: mailTransport ? 'pending' : 'preview',
+  };
 }
 let platformSending = false;
 async function deliverPlatformNow() {
   if (!mailTransport || platformSending) return;
   platformSending = true;
   try {
-    const pending = await ownerDb
-      .select()
-      .from(s.platformMail)
-      .where(
-        and(
-          eq(s.platformMail.status, 'pending'),
-          sql`${s.platformMail.attempts}::integer < 5`,
-          sql`(${s.platformMail.nextAttemptAt} is null or ${s.platformMail.nextAttemptAt} <= now())`,
-        ),
-      );
+    const pending = await platform.claimPlatformMail();
     for (const m of pending) {
-      const claimed = await ownerDb
-        .update(s.platformMail)
-        .set({ status: 'sending' })
-        .where(and(eq(s.platformMail.id, m.id), eq(s.platformMail.status, 'pending')))
-        .returning();
-      if (!claimed.length) continue;
       try {
         const sent = await mailTransport.sendMail({
           from: process.env.MAIL_FROM,
@@ -307,20 +290,17 @@ async function deliverPlatformNow() {
           html: m.html,
           idempotencyKey: 'bandarlog-platform/' + m.id,
         });
-        await ownerDb
-          .update(s.platformMail)
-          .set({
-            status: 'sent',
-            sentAt: now(),
-            nextAttemptAt: null,
-            providerMessageId: typeof sent.messageId === 'string' ? sent.messageId : null,
-          })
-          .where(eq(s.platformMail.id, m.id));
+        await platform.finishPlatformMail(m.id, {
+          status: 'sent',
+          sentAt: now(),
+          nextAttemptAt: null,
+          providerMessageId: typeof sent.messageId === 'string' ? sent.messageId : null,
+        });
         if (mailTransport.kind === 'resend')
           console.info({ event: 'mail.accepted', provider: 'resend', messageId: sent.messageId });
       } catch (error) {
         const failure = mailFailure(error, Number(m.attempts) + 1);
-        await ownerDb.update(s.platformMail).set(failure).where(eq(s.platformMail.id, m.id));
+        await platform.finishPlatformMail(m.id, failure);
         if (mailTransport.kind === 'resend')
           console.error({
             event: 'mail.failed',
@@ -432,7 +412,7 @@ async function deliverNow() {
 async function health(_q: express.Request, r: express.Response) {
   // This probe reads no tenant tables; avoid a tenant transaction and role setup.
   r.set('Cache-Control', 'no-store');
-  await ownerDb.execute(sql`select 1`);
+  await platform.health();
   r.json({
     ok: true,
     mail: mailTransport?.kind || 'development',
@@ -770,7 +750,13 @@ app.post('/api/auth/code/verify', async (q, r) => {
   r.clearCookie('bandarlog_google_link', { path: '/' });
   r.json({ ok: true });
 });
-app.get('/api/auth/google/start', async (_q, r) => {
+app.get('/api/auth/google/start', async (q, r) => {
+  const handoffChallenge = q.query.handoff_challenge;
+  if (
+    handoffChallenge !== undefined &&
+    (typeof handoffChallenge !== 'string' || !/^[a-f0-9]{64}$/.test(handoffChallenge))
+  )
+    return r.status(400).json({ error: 'Solicitud de acceso no válida.' });
   if (!googleEnabled)
     return r
       .status(503)
@@ -781,6 +767,7 @@ app.get('/api/auth/google/start', async (_q, r) => {
     verifier = secret();
   await db.delete(s.googleStates).where(sql`${s.googleStates.expires}<=now()`);
   await db.insert(s.googleStates).values({
+    handoffChallenge: typeof handoffChallenge === 'string' ? handoffChallenge : null,
     id: hash(state),
     browser: hash(browser),
     nonce,
@@ -823,6 +810,7 @@ async function signingKeys() {
 }
 app.get('/api/auth/google/callback', async (q, r) => {
   r.clearCookie('bandarlog_google', { path: '/api/auth/google' });
+  let popupChallenge: string | null = null;
   try {
     if (
       !googleEnabled ||
@@ -843,6 +831,7 @@ app.get('/api/auth/google/callback', async (q, r) => {
         ),
       )
       .returning();
+    popupChallenge = flow?.handoffChallenge || null;
     if (!flow || q.query.error || typeof q.query.code !== 'string' || q.query.code.length > 4096)
       throw new Error('OAuth cancelled');
     const response = await fetch('https://oauth2.googleapis.com/token', {
@@ -872,7 +861,32 @@ app.get('/api/auth/google/callback', async (q, r) => {
       .select()
       .from(s.googleIdentities)
       .where(eq(s.googleIdentities.subject, claims.sub));
+    async function handoff(
+      values: { userId: string } | { googleSubject: string; googleEmail: string },
+    ) {
+      const ticket = secret();
+      await db.delete(s.googleHandoffs).where(sql`${s.googleHandoffs.expires}<=now()`);
+      await db
+        .insert(s.googleHandoffs)
+        .values({
+          id: hash(ticket),
+          challenge: popupChallenge!,
+          ...values,
+          expires: new Date(Date.now() + GOOGLE_RETURN_LIFETIME).toISOString(),
+        });
+      const page = googleReturnPage(appUrl, ticket);
+      return r
+        .set({
+          'Cache-Control': 'no-store',
+          'Referrer-Policy': 'no-referrer',
+          'Content-Security-Policy': page.csp,
+        })
+        .type('html')
+        .send(page.html);
+    }
     if (!linked && !googleEmailAuthoritative(claims)) {
+      if (popupChallenge)
+        return await handoff({ googleSubject: claims.sub, googleEmail: claims.email });
       const link = secret();
       await db.delete(s.googleLinks).where(sql`${s.googleLinks.expires}<=now()`);
       await db.insert(s.googleLinks).values({
@@ -908,14 +922,74 @@ app.get('/api/auth/google/callback', async (q, r) => {
           .where(eq(s.googleIdentities.subject, claims.sub));
         if (identity?.userId !== user.id) fail(403, 'Identidad de Google ya vinculada.');
       }
-      return createSession(tx, user.id);
+      return popupChallenge ? { userId: user.id } : createSession(tx, user.id);
     });
+    if ('userId' in session) return await handoff({ userId: session.userId });
     sessionCookie(r, session.raw);
     r.redirect(groupUrl(appUrl));
   } catch {
+    if (popupChallenge) {
+      const page = googleReturnPage(appUrl);
+      return r
+        .set({
+          'Cache-Control': 'no-store',
+          'Referrer-Policy': 'no-referrer',
+          'Content-Security-Policy': page.csp,
+        })
+        .type('html')
+        .send(page.html);
+    }
     // Never leak tokens, callback parameters, credentials, or provider response bodies.
     r.redirect(`${groupUrl(appUrl)}?auth_error=google`);
   }
+});
+
+app.post('/api/auth/google/return', async (q, r) => {
+  const input = parse(
+    z
+      .object({
+        ticket: z.string().regex(/^[a-f0-9]{64}$/),
+        proof: z.string().regex(/^[a-f0-9]{64}$/),
+      })
+      .strict(),
+    q.body,
+  );
+  const result = await db.transaction(async (tx: any) => {
+    const [grant] = await tx
+      .delete(s.googleHandoffs)
+      .where(
+        and(
+          eq(s.googleHandoffs.id, hash(input.ticket)),
+          eq(s.googleHandoffs.challenge, hash(input.proof)),
+          sql`${s.googleHandoffs.expires}>now()`,
+        ),
+      )
+      .returning();
+    if (!grant) fail(403, 'El acceso ha caducado. Solicita un código de correo.');
+    if (grant.userId) return { session: await createSession(tx, grant.userId) };
+    const link = secret();
+    await tx
+      .insert(s.googleLinks)
+      .values({
+        id: hash(link),
+        subject: grant.googleSubject!,
+        email: grant.googleEmail!,
+        expires: new Date(Date.now() + CODE_LIFETIME).toISOString(),
+      });
+    return { link, email: grant.googleEmail };
+  });
+  if (result.session) {
+    sessionCookie(r, result.session.raw);
+    return r.json({ ok: true });
+  }
+  r.cookie('bandarlog_google_link', result.link, {
+    httpOnly: true,
+    secure: prod,
+    sameSite: 'lax',
+    maxAge: CODE_LIFETIME,
+    path: '/',
+  });
+  r.json({ needsEmailVerification: true, email: result.email });
 });
 
 if (!prod)
@@ -1251,11 +1325,17 @@ async function taskMail(
     await queue(
       user.email,
       `${subject}: ${t.title}`,
-      `Bandarlog\n${t.title}\n${c.name} · ${p.name}\nResponsables: ${rows.map((x: any) => x.user.name).join(', ')}\nFecha límite: ${new Date(t.due).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' })}\nEstado: ${t.status}\n${t.description}\n\nAbrir tarea: ${groupUrl(appUrl)}?task=${t.id}\nMarcar en curso: ${groupUrl(appUrl)}?task=${t.id}&action=in_progress\nTerminar: ${groupUrl(appUrl)}?task=${t.id}&action=done\nBloquear: ${groupUrl(appUrl)}?task=${t.id}&action=blocked\nLas acciones requieren iniciar sesión y confirmar.`,
+      `Bandarlog\n${t.title}\n${c.name} · ${p.name}\nResponsables: ${rows.map((x: any) => x.user.name).join(', ')}\nFecha límite: ${new Date(t.due).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' })}\nEstado: ${({ pending: 'Pendiente', in_progress: 'En curso', blocked: 'Bloqueada', done: 'Terminada' } as Record<string, string>)[t.status] || t.status}\n${t.description}${t.blockedReason ? '\nMotivo del bloqueo: ' + t.blockedReason : ''}\n\nAbrir tarea: ${groupUrl(appUrl)}?task=${t.id}\nMarcar en curso: ${groupUrl(appUrl)}?task=${t.id}&action=in_progress\nTerminar: ${groupUrl(appUrl)}?task=${t.id}&action=done\nBloquear: ${groupUrl(appUrl)}?task=${t.id}&action=blocked\nLas acciones requieren iniciar sesión y confirmar.`,
       `${key}-${user.id}`,
       tx,
       renderMail({
-        title: `${subject}: ${t.title}`,
+        title: options.event === 'scheduled' ? t.title : `${subject}: ${t.title}`,
+        eyebrow: options.event === 'scheduled' ? subject : undefined,
+        intro:
+          options.event === 'scheduled'
+            ? `Hola, ${user.name}. Esta tarea sigue ${t.status === 'blocked' ? 'bloqueada' : t.status === 'in_progress' ? 'en curso' : 'pendiente'}. ${new Date(t.due) < new Date() ? 'El plazo ya ha vencido: revisa cómo está y actualiza su estado.' : `La fecha límite es el ${mailDate(t.due)}.`}`
+            : undefined,
+        actionLabels: options.event === 'scheduled',
         appUrl,
         body: t.description + (t.blockedReason ? '\nMotivo del bloqueo: ' + t.blockedReason : ''),
         details: [
@@ -1371,7 +1451,7 @@ app.patch('/api/group', async (q, r) => {
       .strict(),
     q.body,
   );
-  await ownerDb.update(s.groups).set(input).where(eq(s.groups.id, groupContext.getStore()!.id));
+  await platform.updateGroup(r.locals.session.id, input);
   r.json({ ok: true });
 });
 app.get('/api/me', (_q, r) => {
@@ -1434,6 +1514,7 @@ app.patch('/api/profile', async (q, r) => {
         name: text.optional(),
         avatarUrl: z.string().nullable().optional(),
         forestEffects: z.boolean().optional(),
+        adminGuideCompleted: z.boolean().optional(),
         notifications: z.boolean().optional(),
         weekly: z.boolean().optional(),
         creation: z.boolean().optional(),
@@ -1451,6 +1532,11 @@ app.patch('/api/profile', async (q, r) => {
   );
   const { name, avatarUrl, ...changes } = input;
   const previous = preferences(r.locals.user.preferences);
+  if (
+    changes.adminGuideCompleted !== undefined &&
+    (r.locals.user.role !== 'admin' || !previous.foundingAdmin)
+  )
+    fail(403, 'Esta guía solo corresponde a la primera administración del grupo.');
   const merged = preferenceSchema.parse({ ...previous, ...changes });
   let photo: string | null | undefined;
   if (avatarUrl !== undefined) {
@@ -2562,13 +2648,23 @@ async function reminders() {
         const pts = ts.filter((t) =>
           cs.some((c) => c.id === t.commissionId && c.projectId === p.id),
         );
-        const total = pts.length,
-          done = pts.filter((t) => t.status === 'done').length;
+        const projectUrl = `${groupUrl(appUrl)}?project=${encodeURIComponent(p.id)}`;
+        const digest = weeklyMail({
+          project: p.name,
+          groupName: groupContext.getStore()!.name,
+          tasks: pts,
+          commissions: cs,
+          appUrl,
+          projectUrl,
+          taskUrl: (taskId) => `${groupUrl(appUrl)}?task=${encodeURIComponent(taskId)}`,
+        });
         await queue(
           u.email,
           `Resumen semanal · ${p.name}`,
-          `Bandarlog\n${total ? Math.round((done / total) * 100) + '%' : 'Sin tareas'} de progreso\n${pts.filter((t) => t.status === 'pending').length} pendientes · ${pts.filter((t) => t.status === 'blocked').length} bloqueadas · ${pts.filter((t) => t.status !== 'done' && new Date(t.due) < new Date()).length} vencidas\nConsulta comisiones y tareas: ${groupUrl(appUrl)}?project=${p.id}`,
+          digest.body,
           `weekly-${stamp}-${p.id}-${u.id}`,
+          db,
+          digest.html,
         );
       }
     }
@@ -2604,10 +2700,7 @@ const platformJobs = new IdleJobs<void>(
   async () => {
     await measureJob('platform-delivery', deliverPlatformNow);
     if (!mailTransport) return null;
-    const result = await ownerDb.execute(
-      sql`select min(coalesce(next_attempt_at, now())) as next_at from platform_mail where status='pending' and attempts::integer<5`,
-    );
-    const at = result.rows[0]?.next_at;
+    const at = await platform.platformNext();
     return at ? Math.max(Date.now() + 1000, +new Date(String(at))) : null;
   },
   () => console.error('No se pudo completar el correo pendiente.'),
@@ -2615,11 +2708,7 @@ const platformJobs = new IdleJobs<void>(
 async function deliverPlatform() {
   await platformJobs.wake('platform', undefined);
 }
-const activeGroups = () =>
-  ownerDb
-    .select()
-    .from(s.groups)
-    .where(sql`${s.groups.plan} <> 'audit-archived'`);
+const activeGroups = () => platform.jobGroups(false, Boolean(mailTransport));
 const reminderJobs = new IdleJobs<Group>(
   async (group) =>
     groupContext.run(group, () =>
@@ -2643,17 +2732,8 @@ const recoveryJobs = new IdleJobs<void>(
   async () =>
     measureJob('outbox-recovery', async () => {
       // Metadata only: no idle per-group SELECTs, no message bodies or images.
-      const pending = await ownerDb.execute(sql`select distinct group_id from (
-    select group_id from notifications where ${Boolean(mailTransport)} and status='pending' and attempts::integer<5
-    union select group_id from push_outbox where sent_at is null
-  ) q`);
-      const ids = pending.rows.map((row) => String(row.group_id));
-      if (ids.length)
-        for (const group of await ownerDb
-          .select()
-          .from(s.groups)
-          .where(and(inArray(s.groups.id, ids), sql`${s.groups.plan} <> 'audit-archived'`)))
-          await groupContext.run(group, deliver);
+      for (const group of await platform.jobGroups(true, Boolean(mailTransport)))
+        await groupContext.run(group, deliver);
       await deliverPlatform();
       return Date.now() + 3600000;
     }),
@@ -2706,19 +2786,16 @@ app.use((error: any, _q: any, r: any, _n: any) => {
   });
 });
 site.use(
-  groupRegistrationRoutes(ownerDb, appUrl, {
-    queue: queuePlatform,
+  groupRegistrationRoutes(platform, appUrl, {
+    mail: platformMail,
     deliver: deliverPlatform,
-    createSession,
     cookie: (r, raw, group) => groupContext.run(group, () => sessionCookie(r, raw)),
     render: (path, message, token) => renderPublicForm(path, appUrl, message, token),
   }),
 );
-if (!prod)
-  site.get('/api/dev/platform-mail', async (_q, r) =>
-    r.json(await ownerDb.select().from(s.platformMail).orderBy(s.platformMail.createdAt)),
-  );
-site.use('/g/:groupId', groupResolver(ownerDb), app);
+if (!prod && !process.env.DATABASE_URL)
+  site.get('/api/dev/platform-mail', async (_q, r) => r.json(await localPlatformPreview()));
+site.use('/g/:groupId', groupResolver(platform), app);
 site.get('/acceso', (q, r) =>
   r
     .set('Cache-Control', 'no-store')
@@ -2747,7 +2824,7 @@ site.get('/', async (q, r, next) => {
       303,
       '/g/' + legacyGroup.privateId + '/' + q.originalUrl.slice(q.originalUrl.indexOf('?')),
     );
-  const entry = await rememberedEntry(ownerDb, q.headers.cookie, legacyGroup.id);
+  const entry = await rememberedEntry(platform, q.headers.cookie, legacyGroup.id);
   if (entry) return r.redirect(303, entry);
   if (requestCookie(q.headers.cookie, ENTRY_COOKIE)) r.clearCookie(ENTRY_COOKIE, { path: '/' });
   if (prod && legacyOrigins.includes('https://' + (q.get('host') || '').toLowerCase()))
@@ -2757,14 +2834,8 @@ site.get('/', async (q, r, next) => {
 site.use(async (q, r, next) => {
   let group: Group = { ...legacyGroup, legacyAccess: true };
   if (q.path === '/api/auth/google/callback' && typeof q.query.state === 'string') {
-    const [state] = await ownerDb
-      .select()
-      .from(s.googleStates)
-      .where(eq(s.googleStates.id, hash(q.query.state)));
-    if (state) {
-      const [found] = await ownerDb.select().from(s.groups).where(eq(s.groups.id, state.groupId));
-      if (found) group = found;
-    }
+    const found = await platform.oauthGroup(hash(q.query.state));
+    if (found) group = found;
   }
   groupContext.run(group, () => app(q, r, next));
 });

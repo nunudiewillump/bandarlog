@@ -1,0 +1,25 @@
+.admin-setup-guide { display: grid; gap: 1rem; margin-bottom: 20px; }
+.admin-setup-guide button { min-height: 44px; }
+.admin-guide-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.admin-guide-heading > div { min-width: 0; }
+.admin-guide-heading h2 { margin: 0 0 .4rem; overflow-wrap: anywhere; }
+.admin-guide-heading p { margin: 0; }
+.admin-guide-count { flex-shrink: 0; border-radius: 999px; padding: .4rem .7rem; background: #e9eddf; color: var(--green); font-weight: 800; font-variant-numeric: tabular-nums; }
+.admin-guide-progress { height: .55rem; background: var(--line); border-radius: 999px; overflow: hidden; }
+.admin-guide-progress span { display: block; height: 100%; background: var(--green); border-radius: inherit; }
+.admin-guide-identity { display: flex; align-items: center; gap: .85rem; padding: .9rem; border-radius: 12px; background: var(--cream); }
+.admin-guide-identity > div { flex: 1; min-width: 0; }
+.admin-guide-identity p, .admin-guide-step-description p { font-size: .88rem; margin: .3rem 0 0; color: var(--muted); }
+.admin-guide-steps { list-style: none; padding: 0; margin: 0; display: grid; gap: .5rem; }
+.admin-guide-steps li { display: flex; align-items: center; gap: .75rem; padding: .85rem .65rem; border-bottom: 1px solid var(--line); }
+.admin-guide-step-icon { flex-shrink: 0; display: grid; place-items: center; width: 2.4rem; height: 2.4rem; border-radius: 8px; background: #e9eddf; color: var(--green); }
+.admin-guide-steps li.is-done .admin-guide-step-icon { background: #ddecdf; }
+.admin-guide-step-description { flex: 1; min-width: 0; }
+.admin-guide-done { color: var(--green); font-weight: 700; font-size: .9rem; }
+.admin-guide-footer { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; }
+@media (max-width: 650px) {
+ .admin-guide-heading { align-items: flex-start; }
+ .admin-guide-identity { flex-wrap: wrap; }
+ .admin-guide-identity button, .admin-guide-steps li button, .admin-guide-footer button { width: 100%; }
+ .admin-guide-steps li { flex-wrap: wrap; }
+}

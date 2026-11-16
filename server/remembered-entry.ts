@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
-import { and, eq, sql } from 'drizzle-orm';
+import type { GlobalOperations } from './global-operations.js';
 import type { Response } from 'express';
-import * as s from './schema.js';
 import type { Group } from './group-context.js';
 
 export const ENTRY_COOKIE = 'bandarlog_entry';
@@ -29,7 +28,7 @@ export function rememberEntry(
   });
 }
 export async function rememberedEntry(
-  ownerDb: any,
+  platform: GlobalOperations,
   header: string | undefined,
   legacyGroupId: string,
 ) {
@@ -45,27 +44,12 @@ export async function rememberedEntry(
   for (const candidate of candidates) {
     // Global lookup is narrowly bound to an unguessable session hash and its group.
     // The destination still requires the existing scoped HttpOnly session cookie.
-    const [entry] = await ownerDb
-      .select({ groupId: s.groups.id, privateId: s.groups.privateId })
-      .from(s.sessions)
-      .innerJoin(
-        s.users,
-        and(eq(s.users.id, s.sessions.userId), eq(s.users.groupId, s.sessions.groupId)),
-      )
-      .innerJoin(s.groups, eq(s.groups.id, s.sessions.groupId))
-      .where(
-        and(
-          eq(s.sessions.id, candidate.sessionId),
-          candidate.legacy
-            ? eq(s.sessions.groupId, legacyGroupId)
-            : eq(s.groups.privateId, candidate.privateId!),
-          sql`${s.sessions.expires} > now()`,
-          sql`${s.sessions.absoluteExpiresAt} > now()`,
-          sql`${s.users.disabledAt} is null`,
-        ),
-      )
-      .limit(1);
-    if (entry) return '/g/' + entry.privateId + '/';
+    const entry = await platform.entryGroup(
+      candidate.sessionId,
+      candidate.privateId || '',
+      Boolean(candidate.legacy),
+    );
+    if (entry) return '/g/' + entry + '/';
   }
   return null;
 }

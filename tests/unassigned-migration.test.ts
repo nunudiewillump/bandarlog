@@ -36,6 +36,7 @@ test('unassigned migration preserves existing data and membership integrity whil
     const before = await snapshot();
     await assert.rejects(pg.exec("delete from assignments where id='assignment'"));
     await migrate(db, { migrationsFolder: 'migrations' });
+    await pg.query("select set_config('bandarlog.group_id','rosales-702',false)");
     assert.deepEqual(await snapshot(), before);
     await pg.transaction(async (tx) => {
       await tx.exec(

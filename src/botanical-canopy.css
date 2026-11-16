@@ -5,12 +5,13 @@ html:root {
 }
 .forest-header-slot {
   --forest-header-row: 68px;
-  --forest-header-tail: 36px;
+  /* The empty gap below the foliage does not need a full 36px tail. */
+  --forest-header-tail: 12px;
 }
 .forest-canopy.botanical-header {
   background: #103b2d;
   padding-top: var(--forest-safe-top);
-  padding-bottom: var(--forest-header-tail, 36px);
+  padding-bottom: var(--forest-header-tail, 12px);
   color: #fff;
 }
 .forest-canopy.botanical-header.has-foliage {
@@ -82,6 +83,17 @@ html:root {
   pointer-events: none;
   filter: drop-shadow(0 2px 2px #07271940);
   mask-image: linear-gradient(to bottom, transparent 0 20%, #000 40%);
+}
+/* The extra leaves remain decorative and do not expand the fixed header. */
+.botanical-under-brand {
+  display: none;
+  position: absolute;
+  left: 8px;
+  top: 28px;
+  width: 95px;
+  height: 60px;
+  pointer-events: none;
+  z-index: 0;
 }
 .botanical-bough {
   transform-box: fill-box;
@@ -175,6 +187,18 @@ html:root {
   .forest-header-slot {
     /* Reserve exactly the fixed header's space without moving it with the document. */
     height: calc(var(--forest-safe-top) + var(--forest-header-row) + var(--forest-header-tail));
+  }
+  .app-forest-header .forest-brand {
+    position: relative;
+    isolation: isolate;
+  }
+  .app-forest-header .forest-brand img,
+  .app-forest-header .forest-brand-word {
+    position: relative;
+    z-index: 1;
+  }
+  .app-forest-header .botanical-under-brand {
+    display: block;
   }
   .botanical-header .botanical-decoration {
     contain: layout paint;

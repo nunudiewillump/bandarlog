@@ -1,5 +1,7 @@
 # Segunda iteración de consumo Neon · 13 de noviembre de 2026
 
+> Informe histórico del 13/11. La integración vigente, validada sobre el main con mínimo privilegio y retorno OAuth PWA, está en [neon-integration-20261116.md](neon-integration-20261116.md). Sus medidas y rollback sustituyen los de este informe.
+
 ## Estado y alcance
 
 Implementación en `perf/neon-iteration-two`, desde main `cb8626170ffa0a349feee899f42bd82c95af4a72`. Código medido: `728caba`; después se añadió la conservación del descarte de conexiones fallidas del pool, validada con callbacks y PostgreSQL real, sin alterar el camino de consultas correctas. Cambios revisables y probados localmente; **no desplegados**, ni integrados en main para evitar activar el despliegue automático. Se agrupan en una PR porque autenticación, difusión y planificadores comparten `server/index.ts` y conviene revisar sus interacciones. Sin dependencias nuevas, migraciones, restauraciones ni modificaciones de infraestructura productiva.
@@ -107,4 +109,4 @@ Los defaults del proyecto siguen en 0,25–8 CU; no son el límite productivo. P
 2. Publicar el commit aprobado mediante el flujo habitual de Railway y observar SUCCESS. No restaurar snapshots ni modificar endpoint para publicar.
 3. Comprobar funcionalidad con QA aislado autorizado y medir ventanas completas con uso comparable. Observar el reposo por control API, no con consultas SQL periódicas. Recoger siete días representativos antes de concluir coste mensual.
 4. Si se añaden réplicas sin bus de eventos, restablecer reconciliación a 120 s antes de escalar. Los clientes antiguos siguen siendo compatibles; si faltan revisiones se usa actualización conservadora.
-5. Rollback: desplegar el commit base `cb86261` (o el último compatible aprobado), conservando datos nuevos. Sin cambios de esquema en esta PR, no hay migración inversa. Las revisiones son efímeras y se reconcilian tras reiniciar. No restaurar producción ni borrar outboxes, historial o fotos.
+5. Rollback: desplegar el main compatible `8eed2c1` (o un posterior aprobado que conserve las migraciones 0019–0021 y credenciales runtime), conservando datos nuevos. Sin cambios de esquema en esta PR, no hay migración inversa. Las revisiones son efímeras y se reconcilian tras reiniciar. No restaurar producción ni borrar outboxes, historial o fotos.

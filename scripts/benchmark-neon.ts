@@ -1,16 +1,18 @@
 // Local-only synthetic comparison. See docs/neon-iteration-20261113.md.
 import pg from 'pg';
-import { connect } from '../server/db';
-import { groupContext } from '../server/group-context';
+import { connectMaintenance as connect } from '../server/maintenance-db';
+import { sql } from 'drizzle-orm';
+import { groupContext, configureGroupSigning } from '../server/group-context';
 import * as s from '../server/schema';
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { writeFile, mkdir } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-const baseline = resolve(process.argv[2] || '../bandarlog-neon-baseline');
+assert.ok(process.argv[2], 'Pass an explicit main worktree as the baseline');
+const baseline = resolve(process.argv[2]);
 const candidate = resolve(process.argv[3] || '.');
 const output = resolve(process.env.BENCHMARK_DIR || 'work/neon-benchmark');
 await mkdir(output, { recursive: true });
@@ -22,8 +24,16 @@ assert.equal(
   '/bandarlog_benchmark',
   'dedicated empty synthetic database only',
 );
-process.env.DATABASE_URL = url;
+process.env.MIGRATION_DATABASE_URL = url;
+delete process.env.DATABASE_URL;
 const { db, ownerDb, close } = await connect();
+const contextSecret = randomBytes(32).toString('hex');
+await ownerDb.execute(
+  sql`insert into bandarlog_api.context_key(id,secret) values(true,${contextSecret}) on conflict(id) do update set secret=excluded.secret`,
+);
+await ownerDb.execute(sql`alter role bandarlog_runtime login`);
+configureGroupSigning(contextSecret);
+process.env.GROUP_CONTEXT_SECRET = contextSecret;
 assert.equal(
   (await ownerDb.select({ id: s.users.id }).from(s.users).limit(1)).length,
   0,
@@ -47,25 +57,21 @@ for (let n = 0; n < 10; n++) {
     }));
     await db.insert(s.users).values(users);
     await db.insert(s.projects).values({ id: group.id + '-p', name: 'Project' });
-    await db
-      .insert(s.commissions)
-      .values({
-        id: group.id + '-c',
-        projectId: group.id + '-p',
-        name: 'Commission',
-        description: 'QA',
-        icon: 'Tent',
-      });
-    await db
-      .insert(s.members)
-      .values(
-        users.map((u) => ({
-          id: u.id + '-m',
-          commissionId: group.id + '-c',
-          userId: u.id,
-          role: 'scouter',
-        })),
-      );
+    await db.insert(s.commissions).values({
+      id: group.id + '-c',
+      projectId: group.id + '-p',
+      name: 'Commission',
+      description: 'QA',
+      icon: 'Tent',
+    });
+    await db.insert(s.members).values(
+      users.map((u) => ({
+        id: u.id + '-m',
+        commissionId: group.id + '-c',
+        userId: u.id,
+        role: 'scouter',
+      })),
+    );
     const tasks = Array.from({ length: 3 }, (_, i) => ({
       id: group.id + '-t' + i,
       commissionId: group.id + '-c',
@@ -84,27 +90,23 @@ for (let n = 0; n < 10; n++) {
         ),
       );
     if (n === 0)
-      await db
-        .insert(s.activity)
-        .values(
-          Array.from({ length: 125 }, (_, i) => ({
-            id: group.id + '-a' + i,
-            taskId: tasks[0].id,
-            userId: users[0].id,
-            kind: 'comment',
-            body: 'Synthetic ' + i,
-            createdAt: new Date(Date.UTC(2026, 10, 12, 0, i)).toISOString(),
-          })),
-        );
+      await db.insert(s.activity).values(
+        Array.from({ length: 125 }, (_, i) => ({
+          id: group.id + '-a' + i,
+          taskId: tasks[0].id,
+          userId: users[0].id,
+          kind: 'comment',
+          body: 'Synthetic ' + i,
+          createdAt: new Date(Date.UTC(2026, 10, 12, 0, i)).toISOString(),
+        })),
+      );
     const token = 'synthetic-' + group.id;
-    await db
-      .insert(s.sessions)
-      .values({
-        id: createHash('sha256').update(token).digest('hex'),
-        userId: users[0].id,
-        csrf: 'benchmark-only',
-        expires: '2027-01-01T00:00:00Z',
-      });
+    await db.insert(s.sessions).values({
+      id: createHash('sha256').update(token).digest('hex'),
+      userId: users[0].id,
+      csrf: 'benchmark-only',
+      expires: '2027-01-01T00:00:00Z',
+    });
     fixtures.push({
       base: '/g/' + group.privateId + '/api',
       token,
@@ -114,6 +116,7 @@ for (let n = 0; n < 10; n++) {
   });
 }
 await close();
+delete process.env.MIGRATION_DATABASE_URL;
 const adminUrl = new URL(url);
 adminUrl.pathname = '/postgres';
 const admin = new pg.Client({ connectionString: adminUrl.toString() });
@@ -126,6 +129,8 @@ for (const target of process.env.BENCH_REVERSE ? [candidate, baseline] : [baseli
   const childUrl = new URL(url);
   childUrl.pathname =
     target === baseline ? '/bandarlog_benchmark_before' : '/bandarlog_benchmark_after';
+  childUrl.username = 'bandarlog_runtime';
+  childUrl.password = '';
   const child = spawn(
     process.execPath,
     ['--import', 'tsx', '--import', observer, 'server/index.ts'],
@@ -170,6 +175,7 @@ for (const target of process.env.BENCH_REVERSE ? [candidate, baseline] : [baseli
         method,
         headers: {
           Cookie: 'bandarlog=' + fixture.token,
+          Origin: 'http://localhost:5173',
           'X-CSRF-Token': 'benchmark-only',
           'Content-Type': 'application/json',
         },
@@ -234,7 +240,7 @@ await writeFile(
   JSON.stringify(
     {
       environment:
-        'PostgreSQL 18 local, 10 groups, 17 users/group with 12kB synthetic photos, 3 tasks/group, 3 assignees/task, 125 activity entries in first group. Preview providers only. No scale-to-zero simulation.',
+        'PostgreSQL local (version recorded in companion report), 10 groups, 17 users/group with 12kB synthetic photos, 3 tasks/group, 3 assignees/task, 125 activity entries in first group. Preview providers only. No scale-to-zero simulation.',
       results,
     },
     null,

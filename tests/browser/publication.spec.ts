@@ -4,7 +4,7 @@ import { mkdir } from 'node:fs/promises';
 
 async function approveRequest(page: Page, email: string) {
   const ownerMail = (await page.request.get('/api/dev/platform-mail').then((r) => r.json()))
-    .filter((m: any) => m.email === publicInfo.contact && m.body.includes(email))
+    .filter((m: any) => m.email === publicInfo.registrations && m.body.includes(email))
     .at(-1);
   await page.goto(ownerMail.body.match(/^https?:\/\/\S+$/m)[0]);
   await page.getByRole('button', { name: 'Aprobar solicitud', exact: true }).click();

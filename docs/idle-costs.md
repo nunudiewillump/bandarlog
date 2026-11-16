@@ -32,3 +32,5 @@ Tarifas verificadas: https://neon.com/pricing y https://docs.railway.com/pricing
 ## Segunda iteración · 13-11-2026
 
 [Implementación, medidas, límites, propuesta de QA y publicación/rollback](neon-iteration-20261113.md). Preparada en PR, todavía sin publicar. La autorización de este plan no incluye despliegue ni cambios productivos. Se conservan 24 h de historial y siete días de copias.
+
+La integración actual sobre main con mínimo privilegio, sus pruebas y rollback seguro están en [el informe del 16/11](neon-integration-20261116.md).

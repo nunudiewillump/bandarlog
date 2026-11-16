@@ -1,3 +1,5 @@
+> **Cambio de credenciales:** antes del siguiente despliegue sigue [el procedimiento de mínimo privilegio](security-runtime.md). El servidor HTTP ya no migra ni usa una cuenta propietaria. Las instrucciones anteriores que indiquen conservar el propietario en `DATABASE_URL` quedan sustituidas por ese procedimiento.
+
 # Configurar Neon y Railway
 
 El repositorio está preparado; no contiene credenciales de producción. No se ha creado ningún proyecto en las cuentas del grupo ni desplegado la aplicación mediante este entorno. Haz los pasos de cuenta desde sus paneles y guarda todos los valores privados directamente en Railway, nunca en GitHub ni en el chat.

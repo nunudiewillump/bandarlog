@@ -1,5 +1,7 @@
 import { z } from 'zod';
 export const preferenceSchema = z.object({
+  foundingAdmin: z.boolean().default(false),
+  adminGuideCompleted: z.boolean().default(false),
   forestEffects: z.boolean().default(true),
   notifications: z.boolean().default(true),
   weekly: z.boolean().default(true),

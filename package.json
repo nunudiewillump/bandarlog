@@ -15,7 +15,9 @@
     "format": "prettier --write src server tests *.ts *.json *.html",
     "ai:package": "node scripts/export-ai-space.mjs",
     "publication:check": "node scripts/check-publication.mjs",
-    "mail:setup": "node --import tsx scripts/setup-resend.ts"
+    "mail:setup": "node --import tsx scripts/setup-resend.ts",
+    "db:migrate": "node --env-file-if-exists=.env --import tsx server/migrate.ts",
+    "db:provision-context": "node --import tsx server/provision-context.ts"
   },
   "repository": {
     "type": "git",

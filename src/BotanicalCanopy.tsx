@@ -67,6 +67,19 @@ export function BrandCanopyFill() {
     </svg>
   );
 }
+/** Two existing leaf forms soften the gap below the logo in the mobile header. */
+export function BrandUnderLeaves() {
+  return (
+    <svg className="botanical-under-brand" viewBox="0 0 110 72" aria-hidden="true" focusable="false">
+      <g transform="translate(25 14) rotate(161) scale(.64)">
+        <BotanicalLeaf shape="beech" colors={FRONT_COLORS[0]} />
+      </g>
+      <g transform="translate(72 10) rotate(204) scale(.58)">
+        <BotanicalLeaf shape="oak" colors={FRONT_COLORS[2]} />
+      </g>
+    </svg>
+  );
+}
 const BRANCHES = [19, 18, 17].map((count, depth) =>
   Array.from({ length: count }, (_, index) => {
     const colors: LeafColors =
