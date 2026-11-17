@@ -59,6 +59,15 @@ export async function connect() {
           ?.enabled
       )
         throw Error('La activación segura requiere MFA habilitado en PostgreSQL.');
+      if (mode !== 'development') {
+        const version = (
+          await connection.execute(sql`select bandarlog_api.runtime_contract_version() as version`)
+        ).rows[0]?.version;
+        if (typeof version !== 'number' || version < 36)
+          throw Error(
+            'El contrato SQL requiere completar las migraciones de mantenimiento hasta 0036 antes del arranque.',
+          );
+      }
       const db = remoteDrizzle(scopedPool(pool) as pg.Pool, { schema, logger: queryLogger });
       if (mode !== 'http')
         await groupContext.run(

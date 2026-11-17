@@ -40,3 +40,5 @@ Los grupos comparten origen: XSS puede actuar con los permisos de las sesiones a
 - El entorno Vite marca exclusivamente el HTML público de la PWA como hace Express productivo; no se amplía la caché a APIs o páginas personalizadas. Los mensajes de sesión caducada se retiran al recuperar acceso sin ocultar cambios fallidos pendientes.
 
 No se suman pruebas repetidas como si fueran casos distintos. La primera ejecución CI no fue completamente correcta: señaló regresiones reales de navegador. Las correcciones se publican para una nueva verificación obligatoria, sin fusionar ni desplegar.
+
+La revisión posterior retiró DELETE físico de proyectos, comisiones y tareas mediante 0036: scouter y administración no pueden usar ese atajo SQL; el borrado lógico autorizado sigue funcionando. El arranque y el cutover rechazan un contrato SQL anterior a 0036, sin retirar credenciales. Estas condiciones se ensayan con el LOGIN real.

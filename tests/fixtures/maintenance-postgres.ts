@@ -65,6 +65,51 @@ export async function exerciseMaintenance(owner: pg.Pool, url: string) {
       id = await readFile(join(destination, 'key-id.txt'), 'utf8');
     await assert.rejects(run('scripts/security/generate-dispatch-keys.ts')); // Exclusive creation; no overwrite.
     const keyEnv = { DISPATCH_PUBLIC_KEY: publicKey, DISPATCH_KEY_ID: id };
+    try {
+      await owner.query(
+        "create or replace function bandarlog_api.runtime_contract_version() returns integer language sql immutable set search_path=pg_catalog as 'select 35'",
+      );
+      await assert.rejects(
+        run('scripts/security/cutover.ts', ['--cutover'], {
+          HTTP_DATABASE_URL: runtime('http'),
+          IDENTITY_DATABASE_URL: runtime('identity'),
+          DELIVERY_DATABASE_URL: runtime('delivery'),
+        }),
+        (error: any) => error.stderr?.includes("phase: 'preflight'"),
+      );
+      assert.equal(
+        (await owner.query("select rolcanlogin from pg_roles where rolname='bandarlog_runtime'"))
+          .rows[0].rolcanlogin,
+        original.rolcanlogin,
+      );
+      await assert.rejects(
+        run('server/index.ts', [], {
+          ...keyEnv,
+          APP_COMPONENT: 'http',
+          NODE_ENV: 'production',
+          DATABASE_URL: runtime('http'),
+          MIGRATION_DATABASE_URL: undefined,
+          APP_URL: 'https://bandarlog.app',
+          IDENTITY_URL: 'http://127.0.0.1:3124',
+          DELIVERY_URL: 'http://127.0.0.1:3125',
+          DELIVERY_WAKE_TOKEN: 'synthetic-wake-token-at-least-32-characters',
+          GROUP_CONTEXT_SECRET: undefined,
+          AUTH_CHALLENGE_SECRET: undefined,
+          DISPATCH_PRIVATE_KEYS: undefined,
+          GOOGLE_LOGIN_CLIENT_SECRET: undefined,
+          RESEND_API_KEY: undefined,
+          SMTP_PASS: undefined,
+          GMAIL_CLIENT_SECRET: undefined,
+          GMAIL_REFRESH_TOKEN: undefined,
+        }),
+        (error: any) => error.stderr?.includes('El contrato SQL requiere completar'),
+      );
+    } finally {
+      await owner.query(
+        "create or replace function bandarlog_api.runtime_contract_version() returns integer language sql immutable set search_path=pg_catalog as 'select 36'",
+      );
+    }
+
     await assert.rejects(run('scripts/security/seal-existing-mail.ts', [], keyEnv));
     await owner.query(
       'insert into bandarlog_api.dispatch_key_registry(id,fingerprint) values($1,$2)',

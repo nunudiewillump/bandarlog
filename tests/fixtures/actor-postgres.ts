@@ -106,6 +106,16 @@ export async function exerciseActorBoundary(owner: pg.Pool, testUrl: string) {
           run(g.id, bearer, "update tasks set title='Forbidden' where id=$1", [g.id + '-own']),
           { code: '42501' },
         );
+        for (const table of ['tasks', 'commissions', 'projects']) {
+          await assert.rejects(
+            run(g.id, bearer, 'delete from ' + table + ' where group_id=$1', [g.id]),
+            { code: '42501' },
+          );
+        }
+        await assert.rejects(
+          run(g.id, bearer, 'update tasks set deleted_at=now() where id=$1', [g.id + '-own']),
+          { code: '42501' },
+        );
         await assert.rejects(
           run(g.id, bearer, "update users set role='admin' where id=$1", [g.id + '-member']),
           { code: '42501' },
@@ -143,6 +153,21 @@ export async function exerciseActorBoundary(owner: pg.Pool, testUrl: string) {
           tokens.get(g.id + '-responsible')!,
           "update tasks set title='Allowed' where id=$1",
           [g.id + '-own'],
+        );
+        await assert.rejects(
+          run(g.id, tokens.get(g.id + '-admin')!, 'delete from tasks where id=$1', [g.id + '-own']),
+          { code: '42501' },
+        );
+        assert.equal(
+          (
+            await run(
+              g.id,
+              tokens.get(g.id + '-responsible')!,
+              'update tasks set deleted_at=now(),deleted_by=$2,updated_at=now() where id=$1 returning id',
+              [g.id + '-own', g.id + '-responsible'],
+            )
+          ).rowCount,
+          1,
         );
         await run(
           g.id,

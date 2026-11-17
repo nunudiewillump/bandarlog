@@ -12,6 +12,11 @@ const expected = {
   delivery: 'bandarlog_delivery_app',
 };
 try {
+  const contract = (
+    await maintenance.query('select bandarlog_api.runtime_contract_version() as version')
+  ).rows[0]?.version;
+  if (typeof contract !== 'number' || contract < 36)
+    throw Error('Completa las migraciones hasta 0036 antes de retirar credenciales.');
   for (const [mode, appRole] of Object.entries(expected)) {
     const value = process.env[mode.toUpperCase() + '_DATABASE_URL'];
     if (!value) throw Error('Falta la conexión independiente de ' + mode + '.');
