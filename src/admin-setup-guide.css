@@ -1,5 +1,6 @@
 .admin-setup-guide {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   margin-bottom: 20px;
   min-width: 0;
@@ -41,7 +42,7 @@
 .admin-guide-identity-copy > span { font-size: 13px; color: var(--muted); line-height: 1.35; }
 .admin-guide-steps-intro { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .admin-guide-steps-intro > span { font-size: 12px; color: var(--muted); }
-.admin-guide-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.admin-guide-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; min-width: 0; }
 .admin-guide-steps li {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) auto;
