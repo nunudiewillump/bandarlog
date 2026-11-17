@@ -39,6 +39,10 @@ test('founding administrator guide persists dismissal and reopening in the Fores
     }
   }
   await expect(guide).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Notificaciones en este dispositivo' })).toHaveCount(0);
+  await expect(page.getByText('Sin tareas asignadas')).toHaveCount(0);
+  await expect(guide.locator('.admin-guide-steps li.is-current')).toHaveCount(1);
+  await expect(guide.locator('.admin-guide-steps li.is-upcoming')).toHaveCount(3);
   await capture('01-bienvenida', '0');
   await expect(guide.getByRole('button', { name: 'Crear comisión', exact: true })).toBeDisabled();
   await expect(guide.getByRole('button', { name: 'Crear tarea', exact: true })).toBeDisabled();
@@ -59,6 +63,7 @@ test('founding administrator guide persists dismissal and reopening in the Fores
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     expect(await guide.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
   }
+  await expect(guide.locator('.admin-guide-steps li.is-current')).toContainText('Organiza las comisiones');
   await capture('02-primer-proyecto', '1');
   await guide.getByRole('button', { name: 'Omitir guía por ahora' }).click();
   await expect(guide).toHaveCount(0);
@@ -99,7 +104,9 @@ test('founding administrator guide persists dismissal and reopening in the Fores
   expect(taskResponse.status()).toBe(201);
   await page.goto(base + '/?view=home');
   await expect(guide).toBeVisible();
+  await expect(guide.locator('.admin-guide-steps li.is-done')).toHaveCount(4);
   await capture('03-grupo-listo', '4');
   await guide.getByRole('button', { name: 'Finalizar bienvenida' }).click();
   await expect(guide).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Notificaciones en este dispositivo' })).toBeVisible();
 });

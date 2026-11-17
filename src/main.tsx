@@ -1454,7 +1454,7 @@ function App() {
             </div>
           </header>
           <main className="main">
-            {!['profile', 'settings', 'tutorial'].includes(view) && (
+            {!['profile', 'settings', 'tutorial'].includes(view) && !showAdminGuide && (
               <DeviceNotifications userId={me.id} firstVisit />
             )}
             <div className="mobile-page-title">
@@ -1521,7 +1521,7 @@ function App() {
                   )}
                 </section>
               ))}
-            {view === 'home' && (
+            {view === 'home' && !showAdminGuide && (
               <>
                 <div className="desktop-home">{desktopHome()}</div>
                 <div className="mobile-only">
