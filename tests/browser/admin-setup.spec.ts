@@ -105,6 +105,15 @@ test('founding administrator guide persists dismissal and reopening in the Fores
   await page.goto(base + '/?view=home');
   await expect(guide).toBeVisible();
   await expect(guide.locator('.admin-guide-steps li.is-done')).toHaveCount(4);
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    const positions = await guide.evaluate((node) => {
+      const button = node.querySelector('.admin-guide-footer button')!.getBoundingClientRect();
+      const steps = node.querySelector('.admin-guide-steps')!.getBoundingClientRect();
+      return { buttonBottom: button.bottom, listTop: steps.top };
+    });
+    expect(positions.buttonBottom).toBeLessThan(positions.listTop);
+  }
   await capture('03-grupo-listo', '4');
   await guide.getByRole('button', { name: 'Finalizar bienvenida' }).click();
   await expect(guide).toHaveCount(0);
