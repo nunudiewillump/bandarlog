@@ -95,6 +95,10 @@
   .admin-guide-footer { display: grid; gap: 3px; }
   .admin-guide-footer > button { width: 100%; }
   .admin-guide-footer .text-link { text-align: center; justify-content: center; }
+  /* Completed onboarding: the primary action must be reachable above the bottom nav. */
+  .admin-setup-guide.is-complete .admin-guide-footer { order: 1; }
+  .admin-setup-guide.is-complete .admin-guide-steps-intro { order: 2; }
+  .admin-setup-guide.is-complete .admin-guide-steps { order: 3; }
 }
 @media (prefers-reduced-motion: reduce) {
   .admin-guide-progress span { transition: none; }
