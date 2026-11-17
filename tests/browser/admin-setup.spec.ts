@@ -65,7 +65,7 @@ test('founding administrator guide persists dismissal and reopening in the Fores
   }
   await expect(guide.locator('.admin-guide-steps li.is-current')).toContainText('Organiza las comisiones');
   await capture('02-primer-proyecto', '1');
-  await guide.getByRole('button', { name: 'Omitir guía por ahora' }).click();
+  await guide.getByRole('button', { name: 'Omitir por ahora' }).click();
   await expect(guide).toHaveCount(0);
   await page.reload();
   await expect(guide).toHaveCount(0);
