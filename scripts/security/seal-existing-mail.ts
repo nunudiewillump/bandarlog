@@ -1,13 +1,21 @@
+import { createHash } from 'node:crypto';
 import pg from 'pg';
 import { sealMail } from '../../server/dispatch-envelope';
 import { dispatchSettings } from '../../server/dispatch-settings';
 // Maintenance-only; default is a count-only dry run. Stop the former sender first.
 if (!process.env.MIGRATION_DATABASE_URL)
   throw Error('Falta MIGRATION_DATABASE_URL de mantenimiento.');
-const { id } = dispatchSettings(process.env),
+const { id, fingerprint } = dispatchSettings(process.env),
   apply = process.argv.includes('--apply');
 const pool = new pg.Pool({ connectionString: process.env.MIGRATION_DATABASE_URL });
 try {
+  const expected = (
+    await pool.query('select fingerprint from bandarlog_api.dispatch_key_registry where id=$1', [
+      id,
+    ])
+  ).rows[0]?.fingerprint;
+  if (expected !== createHash('sha256').update(fingerprint).digest('hex'))
+    throw Error('Registra y verifica la clave pública del emisor antes de la transición.');
   let total = 0;
   for (const table of ['notifications', 'platform_mail']) {
     const count = Number(

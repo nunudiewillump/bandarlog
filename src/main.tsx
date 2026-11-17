@@ -227,18 +227,12 @@ function App() {
     window.addEventListener('popstate', pop);
     return () => window.removeEventListener('popstate', pop);
   }, []);
-  const [loginToken, setLoginToken] = useState(() => {
-    const url = new URL(location.href);
-    const token =
-      new URLSearchParams(url.hash.slice(1)).get('token') || url.searchParams.get('token') || '';
-    if (token) {
-      url.hash = '';
-      url.searchParams.delete('token');
-      url.searchParams.delete('email');
-      history.replaceState(null, '', url);
-    }
-    return token;
-  });
+  const [loginToken, setLoginToken] = useState(
+    () =>
+      new URLSearchParams(location.hash.slice(1)).get('token') ||
+      new URLSearchParams(location.search).get('token') ||
+      '',
+  );
   const invitationAccess = loginToken.startsWith('invite.');
   const manage = me?.role === 'admin' || me?.role === 'coordination';
   const foundingAdmin = isFoundingAdministrator(me);
@@ -290,7 +284,6 @@ function App() {
       snapshots.current = new SnapshotRefresh(fetchSnapshot, snapshotRevision);
       setPasskeyStatus(null);
       setReauthNotice('');
-      setLoginToken('');
       setCSRF('');
       setMe(null);
       setData(initial);
@@ -1336,6 +1329,7 @@ function App() {
     setLoginToken('');
     const next = new URL(location.href);
     next.searchParams.delete('token');
+    next.hash = '';
     next.searchParams.delete('email');
     next.searchParams.delete('auth_error');
     history.replaceState({}, '', next);

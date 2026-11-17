@@ -1,3 +1,4 @@
+import { exerciseMaintenance } from './fixtures/maintenance-postgres';
 import { syntheticPasskey } from './fixtures/webauthn';
 import { exerciseRestore } from './fixtures/restore-postgres';
 import { exerciseServiceBoundary } from './fixtures/service-postgres';
@@ -28,6 +29,8 @@ assert.ok(
   ['127.0.0.1', 'localhost'].includes(new URL(testUrl).hostname),
   'Use a disposable local database',
 );
+// The legacy compatibility test is explicit; production never infers this mode from a missing NODE_ENV.
+process.env.APP_COMPONENT = 'development';
 const ownerPool = new pg.Pool({ connectionString: testUrl });
 const ownerDb = drizzle(ownerPool, { schema: s });
 const runtimeUrl = new URL(testUrl);
@@ -868,4 +871,8 @@ test('service LOGINs reject foreign capabilities, forged credentials and group r
 
 test('a disposable backup restores tasks/history and preserves the HTTP boundary', async () => {
   await exerciseRestore(ownerPool, testUrl!);
+});
+
+test('maintenance scripts preserve mail, provision exclusive protected keys and retire the old LOGIN', async () => {
+  await exerciseMaintenance(ownerPool, process.env.TEST_POSTGRES_URL!);
 });

@@ -1,9 +1,11 @@
 import pg from 'pg';
 const admin = process.env.MIGRATION_DATABASE_URL;
 if (!admin) throw Error('Falta MIGRATION_DATABASE_URL.');
+let phase = 'preflight';
 const apply = process.argv.includes('--cutover'),
   maintenance = new pg.Pool({ connectionString: admin });
-const normalize = (url: URL) => url.hostname.replace('-pooler.', '.') + url.pathname;
+const normalize = (url: URL) =>
+  url.hostname.replace('-pooler.', '.') + ':' + (url.port || '5432') + url.pathname;
 const expected = {
   http: 'bandarlog_user_app',
   identity: 'bandarlog_identity_app',
@@ -44,13 +46,30 @@ try {
   )
     throw Error('MFA debe estar habilitado antes de activar el nuevo runtime.');
   if (apply) {
+    phase = 'retire';
     const c = await maintenance.connect();
     try {
       await c.query('begin');
       await c.query(
         "select pg_advisory_xact_lock(hashtextextended('bandarlog-security-cutover',0))",
       );
-      await c.query('revoke bandarlog_group_app from bandarlog_runtime');
+      const grants = (
+        await c.query(
+          "select g.rolname as grantor from pg_auth_members m join pg_roles g on g.oid=m.grantor where m.roleid='bandarlog_group_app'::regrole and m.member='bandarlog_runtime'::regrole",
+        )
+      ).rows;
+      // PG16+ tracks memberships per grantor: removing only the current grantor's
+      // grant can leave an effective membership behind. RESTRICT fails safely if
+      // an unexpected delegated dependency needs separate operator review.
+      for (const grant of grants) {
+        const statement = (
+          await c.query(
+            "select format('REVOKE bandarlog_group_app FROM bandarlog_runtime GRANTED BY %I RESTRICT', $1::text) as command",
+            [grant.grantor],
+          )
+        ).rows[0].command;
+        await c.query(statement);
+      }
       await c.query(
         'revoke execute on all functions in schema bandarlog_api from bandarlog_runtime',
       );
@@ -66,6 +85,19 @@ try {
     await maintenance.query(
       "select pg_terminate_backend(pid) from pg_stat_activity where usename='bandarlog_runtime' and pid<>pg_backend_pid()",
     );
+    phase = 'disconnect';
+    // Termination requests are asynchronous; wait for the backend to disappear.
+    for (let attempt = 0; attempt < 50; attempt++) {
+      await maintenance.query('select pg_stat_clear_snapshot()');
+      const remaining = (
+        await maintenance.query(
+          "select count(*)::integer n from pg_stat_activity where usename='bandarlog_runtime'",
+        )
+      ).rows[0].n;
+      if (!remaining) break;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    phase = 'verify';
     const old = (
       await maintenance.query(
         "select rolcanlogin,pg_has_role('bandarlog_runtime','bandarlog_group_app','MEMBER') as member from pg_roles where rolname='bandarlog_runtime'",
@@ -85,8 +117,13 @@ try {
       );
   }
   console.info({ event: apply ? 'security.cutover.complete' : 'security.cutover.preflight.ok' });
-} catch {
+} catch (error: any) {
   process.exitCode = 1;
+  console.error({
+    event: 'security.cutover.failed',
+    phase,
+    code: /^[A-Z0-9]{5}$/.test(error?.code || '') ? error.code : 'CHECK',
+  });
   console.error(
     'La comprobación o transición no ha terminado. No se muestran conexiones ni secretos. Revisa el plan operativo antes de continuar.',
   );

@@ -17,6 +17,10 @@ for (const action of ['confirmar-grupo', 'aprobar-grupo'] as const) {
       const request = route.request(),
         url = new URL(request.url());
       if (![path, path + '/revisar'].includes(url.pathname)) return route.continue();
+      if (request.method() === 'POST') {
+        expect(request.headers().origin).toBe(new URL(baseURL!).origin);
+        expect(request.headers().referer).toBe(new URL(baseURL!).origin + '/');
+      }
       requests.push({
         url: request.url(),
         method: request.method(),
@@ -40,7 +44,7 @@ for (const action of ['confirmar-grupo', 'aprobar-grupo'] as const) {
         headers: {
           'Content-Security-Policy': csp,
           'Cache-Control': 'no-store',
-          'Referrer-Policy': 'no-referrer',
+          'Referrer-Policy': 'origin',
         },
         body: html,
       });

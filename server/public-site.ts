@@ -182,7 +182,8 @@ export function publicSite(appUrl: string) {
     r.set('Cache-Control', 'no-store').sendFile('public/auth-link.js', { root: process.cwd() }),
   );
   router.use(['/crear-grupo', '/entrar', '/suscripcion-demo'], (_q, r, next) => {
-    if (!r.getHeader('Referrer-Policy')) r.set('Referrer-Policy', 'same-origin');
+    // Keep native form Origin while never sending URL paths or tokens as Referer.
+    r.set('Referrer-Policy', 'origin');
     next();
   });
   for (const path of ['/crear-grupo', '/entrar', '/suscripcion-demo'])

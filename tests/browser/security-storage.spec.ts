@@ -34,6 +34,8 @@ test('account changes quarantine pending work and restore only after the origina
   const result = await page.evaluate(async () => {
     const b = (window as any).BandarlogOffline;
     await b.remember('/me', { user: { id: 'B' }, csrf: 'b-csrf' });
+    if (await b.cached('/activity?taskId=synthetic'))
+      throw Error('A private snapshot must never masquerade as another endpoint response.');
     const other = { state: await b.status(), data: await b.cached('/data') };
     await b.remember('/me', { user: { id: 'A' }, csrf: 'a-csrf' });
     return { other, original: await b.status(), me: await b.cached('/me') };

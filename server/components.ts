@@ -1,7 +1,12 @@
 import { dispatchSettings } from './dispatch-settings.js';
 export type Component = 'http' | 'identity' | 'delivery' | 'development';
 export function component(env: NodeJS.ProcessEnv = process.env): Component {
-  const value = env.APP_COMPONENT || (env.NODE_ENV === 'production' ? 'http' : 'development');
+  const value =
+    env.APP_COMPONENT ||
+    (env.NODE_ENV === 'production' ||
+    (env.DATABASE_URL && !['test', 'development'].includes(env.NODE_ENV || ''))
+      ? 'http'
+      : 'development');
   if (!['http', 'identity', 'delivery', 'development'].includes(value))
     throw Error('APP_COMPONENT no válido.');
   if (value === 'development' && env.NODE_ENV === 'production')
@@ -12,6 +17,8 @@ const mailSecrets = ['RESEND_API_KEY', 'SMTP_PASS', 'GMAIL_CLIENT_SECRET', 'GMAI
 export function validateComponentSecrets(env: NodeJS.ProcessEnv = process.env) {
   const mode = component(env);
   if (mode === 'development') return;
+  if (!['production', 'test'].includes(env.NODE_ENV || ''))
+    throw Error('Los componentes separados requieren NODE_ENV=production o test explícito.');
   const forbidden =
     mode === 'http'
       ? [

@@ -56,7 +56,7 @@ export function groupRegistrationRoutes(
   router.use(['/crear-grupo', '/confirmar-grupo', '/aprobar-grupo'], (q, r, next) => {
     r.set({
       'Cache-Control': 'no-store',
-      'Referrer-Policy': 'no-referrer',
+      'Referrer-Policy': 'origin',
       'X-Robots-Tag': 'noindex,nofollow',
     });
     if (q.method === 'POST' && q.get('Origin') !== origin)
@@ -124,7 +124,7 @@ export function groupRegistrationRoutes(
         : null;
       r.set({
         'Cache-Control': 'no-store',
-        'Referrer-Policy': 'no-referrer',
+        'Referrer-Policy': 'origin',
         'X-Robots-Tag': 'noindex,nofollow',
       })
         .status(request ? 200 : 404)
@@ -218,7 +218,7 @@ export function groupRegistrationRoutes(
         : '';
     if (!token && component() === 'identity')
       return r.type('html').send(renderTokenBridge('/confirmar-grupo', origin));
-    r.set({ 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' })
+    r.set({ 'Cache-Control': 'no-store', 'Referrer-Policy': 'origin' })
       .type('html')
       .send(
         callbacks.render(

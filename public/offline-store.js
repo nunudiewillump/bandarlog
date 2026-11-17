@@ -285,6 +285,12 @@
             s.queue = s.parked?.[value.user.id] || [];
             if (s.parked) delete s.parked[value.user.id];
           }
+          if (s.authError) {
+            s.error = s.queue.some((job) => job.failed)
+              ? 'Revisa los cambios pendientes antes de sincronizar.'
+              : '';
+            delete s.authError;
+          }
           // CSRF is renewed at sync and never written to disk.
           s.me = { ...value, csrf: '' };
           delete s.suspendedUser;
@@ -306,13 +312,23 @@
     return result;
   }
   async function cached(path) {
-    return update((s) => {
+    if (!['/me', '/data'].includes(path)) return null;
+    const current = await read((s) => s);
+    if (!current.me) return null;
+    if (current.offlineUntil > Date.now())
+      return path === '/me' ? current.me || null : project(current);
+    let expired = false;
+    const result = await update((s) => {
       if (s.me && !(s.offlineUntil > Date.now())) {
         park(s);
+        s.authError = true;
         s.error = 'Vuelve a iniciar sesión para recuperar tus cambios pendientes.';
+        expired = true;
       }
-      return path === '/me' ? s.me || null : path === '/data' ? project(s) : null;
+      return path === '/me' ? s.me || null : project(s);
     });
+    if (expired) announceLogout();
+    return result;
   }
   async function enqueue(path, method, body, id) {
     if (!allowed(path, method))
@@ -339,7 +355,7 @@
         return;
       }
       if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
+        if ([401, 403, 428].includes(response.status)) {
           await suspend();
           return;
         }
@@ -352,6 +368,7 @@
       if (session.user.id !== state.me?.user.id) {
         await update((s) => {
           park(s);
+          s.authError = true;
           s.error =
             'Los cambios pendientes pertenecen a otra cuenta. Vuelve a entrar en la cuenta original para recuperarlos.';
         });
@@ -490,6 +507,7 @@
   async function suspend() {
     await update((s) => {
       park(s);
+      s.authError = true;
       s.error =
         'Tu acceso ha caducado o se ha revocado. Vuelve a iniciar sesión para recuperar tus cambios pendientes.';
     });

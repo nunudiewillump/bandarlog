@@ -1,3 +1,4 @@
+import { component } from '../server/components';
 import { generateKeyPairSync } from 'node:crypto';
 const dispatch = generateKeyPairSync('rsa', {
   modulusLength: 3072,
@@ -116,4 +117,20 @@ test('bandarlog.app uses the legacy Railway origin only as an explicit migration
       () => validateEnvironment({ APP_URL: 'https://bandarlog.app', LEGACY_APP_ORIGINS: origin }),
       /LEGACY_APP_ORIGINS/,
     );
+});
+
+test('a remote database without an explicit environment never silently starts the integrated development runtime', () => {
+  assert.equal(
+    component({ DATABASE_URL: 'postgresql://synthetic@db.neon.tech/synthetic' }),
+    'http',
+  );
+  assert.throws(
+    () => validateEnvironment({ DATABASE_URL: 'postgresql://synthetic@db.neon.tech/synthetic' }),
+    /NODE_ENV/,
+  );
+  assert.equal(
+    component({ NODE_ENV: 'test', DATABASE_URL: 'postgresql://synthetic@localhost/synthetic' }),
+    'development',
+  );
+  assert.equal(component({}), 'development');
 });

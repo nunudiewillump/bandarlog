@@ -7,9 +7,11 @@ export default defineConfig({
       name: 'canonical-group-trailing-slash',
       configureServer(server) {
         server.middlewares.use(groupSlash);
+        server.middlewares.use(publicShell);
       },
       configurePreviewServer(server) {
         server.middlewares.use(groupSlash);
+        server.middlewares.use(publicShell);
       },
     },
   ],
@@ -50,4 +52,21 @@ function groupSlash(
     res.writeHead(308, { Location: match[1] + '/' + (match[2] || '') });
     res.end();
   } else next();
+}
+
+// Vite serves the same public static shell used by the production Express route.
+// Mark only its HTML navigation routes, never proxied APIs or public/private pages.
+function publicShell(
+  req: { url?: string; method?: string },
+  res: { setHeader: (key: string, value: string) => unknown },
+  next: () => void,
+) {
+  const url = new URL(req.url || '/', 'http://vite.invalid');
+  if (
+    req.method === 'GET' &&
+    /^\/(?:acceso|index\.html|g\/[a-f0-9]{32}\/)$/.test(url.pathname) &&
+    !['token', 'ticket', 'proof', 'code', 'state'].some((k) => url.searchParams.has(k))
+  )
+    res.setHeader('X-Bandarlog-Public-Shell', '1');
+  next();
 }
