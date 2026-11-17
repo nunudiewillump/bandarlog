@@ -11,6 +11,7 @@ type Props = {
   group?: ScoutGroup;
   onReplayTutorial?: () => void;
   onReplayAdminGuide?: () => void;
+  onPreviewAdminGuide?: () => void;
   user: User;
   busy: boolean;
   run: (fn: () => Promise<void>, message?: string) => Promise<boolean>;
@@ -60,6 +61,7 @@ export function ProfilePanel({
   onLogout,
   onReplayTutorial,
   onReplayAdminGuide,
+  onPreviewAdminGuide,
 }: Props) {
   const [editing, setEditing] = useState<'profile' | 'notifications' | null>(null);
   const editButton = useRef<HTMLButtonElement>(null);
@@ -259,6 +261,9 @@ export function ProfilePanel({
           <button type="button" className="secondary" onClick={onReplayTutorial}>
             Repetir tutorial
           </button>
+          {onPreviewAdminGuide && <button type="button" className="secondary" onClick={onPreviewAdminGuide}>
+            Probar bienvenida del administrador
+          </button>}
           {onReplayAdminGuide && <button type="button" className="secondary" onClick={onReplayAdminGuide}>
             Repetir guía de administración
           </button>}
