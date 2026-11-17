@@ -190,6 +190,10 @@ function App() {
   const lastAnnounced = useRef(false);
   const celebrationSequence = useRef(0);
   const celebrationId = celebrations[0];
+  const celebrateWithVine = () => {
+    const event = ++celebrationSequence.current;
+    setCelebrations((queue) => [...queue, event]);
+  };
   useEffect(() => {
     if (celebrationId === undefined) return;
     const timer = setTimeout(() => setCelebrations((queue) => queue.slice(1)), 2500);
@@ -605,8 +609,7 @@ function App() {
           satisfactionTimer.current = setTimeout(() => setSatisfaction(false), 2600);
         }
         setUndo({ task: t, expected: saved.updatedAt, last });
-        const event = ++celebrationSequence.current;
-        setCelebrations((queue) => [...queue, event]);
+        celebrateWithVine();
       }
       requestAnimationFrame(() => window.scrollTo(scroll.x, scroll.y));
     } finally {
@@ -1501,7 +1504,8 @@ function App() {
               </div>
             )}
             {view === 'home' && showAdminPreview && me && (
-              <AdminGuidePreview key={me.id} data={data} user={me} onExit={dismissAdminPreview} />
+              <AdminGuidePreview key={me.id} data={data} user={me}
+                onExit={dismissAdminPreview} onCelebrate={celebrateWithVine} />
             )}
             {view === 'home' && showAdminGuide && (
               <AdminSetupGuide
@@ -1512,11 +1516,15 @@ function App() {
                 onInvite={() => { navigate('people'); setModal('invite'); }}
                 onTask={() => { navigate('tasks'); setModal('task'); }}
                 onPractice={() => { setRestartTutorial(false); navigate('tutorial'); }}
-                onFinish={() => run(async () => {
-                  await api('/profile', 'PATCH', { adminGuideCompleted: true });
-                  const session = await api('/me');
-                  setMe(session.user);
-                }, 'Guía de administración guardada')}
+                onFinish={async (completed) => {
+                  const success = await run(async () => {
+                    await api('/profile', 'PATCH', { adminGuideCompleted: true });
+                    const session = await api('/me');
+                    setMe(session.user);
+                  }, 'Guía de administración guardada');
+                  if (success && completed) celebrateWithVine();
+                  return success;
+                }}
               />
             )}
             {view === 'home' && !showAdminGuide && !showAdminPreview && (

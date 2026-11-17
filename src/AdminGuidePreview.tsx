@@ -4,10 +4,11 @@ import { previewDataFor } from './admin-guide-preview-data';
 import type { Data, User } from './types';
 import './admin-guide-preview.css';
 
-export function AdminGuidePreview({ data, user, onExit }: {
+export function AdminGuidePreview({ data, user, onExit, onCelebrate }: {
   data: Data;
   user: User;
   onExit: () => void;
+  onCelebrate: () => void;
 }) {
   const [stage, setStage] = useState(0);
   const [message, setMessage] = useState('');
@@ -34,7 +35,11 @@ export function AdminGuidePreview({ data, user, onExit }: {
         onInvite={() => advance(3)}
         onTask={() => advance(4)}
         onPractice={() => setMessage('En el alta real, este enlace abre «Tu primera misión». La simulación no modifica tus tareas.')}
-        onFinish={async () => { onExit(); return true; }}
+        onFinish={async (completed) => {
+          onExit();
+          if (completed) onCelebrate();
+          return true;
+        }}
       />
       {message && <div className="admin-guide-preview-message" role="status">{message}</div>}
     </div>

@@ -67,6 +67,7 @@ test('founding administrator guide persists dismissal and reopening in the Fores
   await capture('02-primer-proyecto', '1');
   await guide.getByRole('button', { name: 'Omitir por ahora' }).click();
   await expect(guide).toHaveCount(0);
+  await expect(page.locator('.task-celebration')).toHaveCount(0);
   await page.reload();
   await expect(guide).toHaveCount(0);
   await page.goto(base + '/?view=profile');
@@ -117,5 +118,7 @@ test('founding administrator guide persists dismissal and reopening in the Fores
   await capture('03-grupo-listo', '4');
   await guide.getByRole('button', { name: 'Finalizar bienvenida' }).click();
   await expect(guide).toHaveCount(0);
+  await expect(page.locator('.task-celebration .vine-swing img')).toBeVisible();
+  await expect(page.locator('.task-celebration .vine-swing img')).toHaveAttribute('src', '/monkey-vine-2d.webp');
   await expect(page.getByRole('region', { name: 'Notificaciones en este dispositivo' })).toBeVisible();
 });

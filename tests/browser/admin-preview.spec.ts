@@ -68,6 +68,8 @@ test('coordinator can preview the four-step founder welcome without mutating gro
   }
   await guide.getByRole('button', { name: 'Finalizar bienvenida' }).click();
   await expect(guide).toHaveCount(0);
+  await expect(page.locator('.task-celebration .vine-swing img')).toBeVisible();
+  await expect(page.locator('.task-celebration .vine-swing img')).toHaveAttribute('src', '/monkey-vine-2d.webp');
   const after = await (await page.request.get(base + '/api/data')).json();
   for (const name of ['projects', 'commissions', 'invitations', 'tasks', 'users'])
     expect(after[name]).toEqual(before[name]);
@@ -79,4 +81,5 @@ test('coordinator can preview the four-step founder welcome without mutating gro
   await expect(guide.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0');
   await page.getByRole('button', { name: 'Salir de la prueba' }).click();
   await expect(guide).toHaveCount(0);
+  await expect(page.locator('.task-celebration')).toHaveCount(0);
 });
