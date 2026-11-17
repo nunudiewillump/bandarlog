@@ -11,13 +11,13 @@ test('coordinator can preview the four-step founder welcome without mutating gro
   const mail = await (await page.request.get('/api/dev/platform-mail')).json();
   const review = mail.find((m: any) => m.email === 'join@bandarlog.app' && m.body.includes(email));
   expect(review).toBeTruthy();
-  const token = new URL(review.body.match(/^https?:\/\/\S+$/m)[0]).searchParams.get('token');
+  const token = new URL(review.body.match(/^https?:\/\/\S+$/m)[0]).searchParams.get('token')!;
   expect((await page.request.post('/aprobar-grupo', {
     headers, form: { token, decision: 'approve' },
   })).status()).toBe(200);
   const approvals = await (await page.request.get('/api/dev/platform-mail')).json();
   const activation = approvals.find((m: any) => m.email === email && m.body.includes('/confirmar-grupo'));
-  const activationToken = new URL(activation.body.match(/^https?:\/\/\S+$/m)[0]).searchParams.get('token');
+  const activationToken = new URL(activation.body.match(/^https?:\/\/\S+$/m)[0]).searchParams.get('token')!;
   const activated = await page.request.post('/confirmar-grupo', {
     headers, form: { token: activationToken }, maxRedirects: 0,
   });
