@@ -26,7 +26,7 @@ test('founding administrator guide persists dismissal and reopening in the Fores
   const guide = page.getByRole('region', { name: 'Puesta en marcha del grupo' });
   await mkdir('artifacts/admin-setup', { recursive: true });
   async function capture(stage: string, progress: string) {
-    for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
+    for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }, { width: 320, height: 740 }]) {
       await page.setViewportSize(viewport);
       await expect(guide).toBeVisible();
       await expect(guide.getByRole('progressbar')).toHaveAttribute('aria-valuenow', progress);
@@ -57,7 +57,7 @@ test('founding administrator guide persists dismissal and reopening in the Fores
   await page.reload();
   await expect(guide.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '1');
   await expect(guide.getByRole('button', { name: 'Crear comisión', exact: true })).toBeEnabled();
-  for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
+  for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }, { width: 320, height: 740 }]) {
     await page.setViewportSize(viewport);
     await expect(guide).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
