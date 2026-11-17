@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { isFoundingAdministrator, hasFinishedAdminGuide, canPreviewAdminGuide, setupMilestones } from '../src/admin-setup';
-import { previewDataFor } from '../src/AdminGuidePreview';
+import { previewDataFor } from '../src/admin-guide-preview-data';
 
 test('guide belongs only to the founding administrator', () => {
   const founder = { id: 'a', role: 'admin', name: 'Fundador', email: 'a@example.test',
