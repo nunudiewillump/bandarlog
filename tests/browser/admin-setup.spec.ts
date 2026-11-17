@@ -44,8 +44,8 @@ test('founding administrator guide persists dismissal and reopening in the Fores
   await expect(guide.locator('.admin-guide-steps li.is-current')).toHaveCount(1);
   await expect(guide.locator('.admin-guide-steps li.is-upcoming')).toHaveCount(3);
   await capture('01-bienvenida', '0');
-  await expect(guide.getByRole('button', { name: 'Crear comisión', exact: true })).toBeDisabled();
-  await expect(guide.getByRole('button', { name: 'Crear tarea', exact: true })).toBeDisabled();
+  await expect(guide.locator('.admin-guide-steps li.is-upcoming').filter({ hasText: 'Organiza las comisiones' }).locator('button')).toBeDisabled();
+  await expect(guide.locator('.admin-guide-steps li.is-upcoming').filter({ hasText: 'Reparte una primera tarea' }).locator('button')).toBeDisabled();
   const session = await (await page.request.get(base + '/api/me')).json();
   const authorized = { ...headers, 'X-CSRF-Token': session.csrf };
   const projectResponse = await page.request.post(base + '/api/projects', {
