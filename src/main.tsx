@@ -23,7 +23,8 @@ import { AuthScreen } from './AuthScreen';
 import { taskPeople } from './task-people';
 import { Onboarding } from './Onboarding';
 import { AdminSetupGuide } from './AdminSetupGuide';
-import { isFoundingAdministrator, hasFinishedAdminGuide } from './admin-setup';
+import { isFoundingAdministrator, hasFinishedAdminGuide, canPreviewAdminGuide } from './admin-setup';
+import { AdminGuidePreview } from './AdminGuidePreview';
 import { artworkThemes, inferArtworkTheme } from '../shared/scout-catalog';
 import { projectTypes, projectType, projectTypeName, projectView } from '../shared/project-types';
 import { installMobilePwaZoom } from './pwa';
@@ -179,6 +180,7 @@ function App() {
     [outbox, setOutbox] = useState<any[]>([]);
   const tutorial = useTutorial(me);
   const [restartTutorial, setRestartTutorial] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const dataRef = useRef(data),
     loadSequence = useRef(0),
     operations = useRef(0),
@@ -228,6 +230,26 @@ function App() {
   const manage = me?.role === 'admin' || me?.role === 'coordination';
   const foundingAdmin = isFoundingAdministrator(me);
   const showAdminGuide = foundingAdmin && !hasFinishedAdminGuide(me);
+  const previewAvailable = canPreviewAdminGuide(me);
+  const showAdminPreview = previewAvailable && previewOpen && !showAdminGuide;
+  const previewStorageKey = `bandarlog-admin-preview-dismissed:${me?.id || ''}`;
+  useEffect(() => {
+    if (!previewAvailable || !me) return;
+    try {
+      setPreviewOpen(localStorage.getItem(`bandarlog-admin-preview-dismissed:${me.id}`) !== 'true');
+    } catch {
+      setPreviewOpen(true);
+    }
+  }, [previewAvailable, me?.id]);
+  function dismissAdminPreview() {
+    setPreviewOpen(false);
+    try { localStorage.setItem(previewStorageKey, 'true'); } catch {}
+  }
+  function reopenAdminPreview() {
+    try { localStorage.removeItem(previewStorageKey); } catch {}
+    setPreviewOpen(true);
+    navigate('home');
+  }
   let forestEffects = true;
   try {
     forestEffects = JSON.parse(me?.preferences || '{}').forestEffects !== false;
@@ -1454,7 +1476,7 @@ function App() {
             </div>
           </header>
           <main className="main">
-            {!['profile', 'settings', 'tutorial'].includes(view) && !showAdminGuide && (
+            {!['profile', 'settings', 'tutorial'].includes(view) && !showAdminGuide && !showAdminPreview && (
               <DeviceNotifications userId={me.id} firstVisit />
             )}
             <div className="mobile-page-title">
@@ -1478,6 +1500,9 @@ function App() {
                 </button>
               </div>
             )}
+            {view === 'home' && showAdminPreview && me && (
+              <AdminGuidePreview key={me.id} data={data} user={me} onExit={dismissAdminPreview} />
+            )}
             {view === 'home' && showAdminGuide && (
               <AdminSetupGuide
                 data={data}
@@ -1494,7 +1519,7 @@ function App() {
                 }, 'Guía de administración guardada')}
               />
             )}
-            {view === 'home' && !showAdminGuide && (
+            {view === 'home' && !showAdminGuide && !showAdminPreview && (
               <TutorialInvitation
                 tutorial={tutorial}
                 onStart={() => {
@@ -1521,7 +1546,7 @@ function App() {
                   )}
                 </section>
               ))}
-            {view === 'home' && !showAdminGuide && (
+            {view === 'home' && !showAdminGuide && !showAdminPreview && (
               <>
                 <div className="desktop-home">{desktopHome()}</div>
                 <div className="mobile-only">
@@ -2085,6 +2110,7 @@ function App() {
                     setRestartTutorial(true);
                     navigate('tutorial');
                   }}
+                  onPreviewAdminGuide={previewAvailable ? reopenAdminPreview : undefined}
                   onReplayAdminGuide={foundingAdmin ? () => {
                     void run(async () => {
                       await api('/profile', 'PATCH', { adminGuideCompleted: false });
