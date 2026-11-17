@@ -12,7 +12,7 @@ type Props = {
   onInvite: () => void;
   onTask: () => void;
   onPractice: () => void;
-  onFinish: () => Promise<boolean>;
+  onFinish: (completed: boolean) => Promise<boolean>;
 };
 export function AdminSetupGuide({
   data, onSettings, onProject, onCommission, onInvite, onTask, onPractice, onFinish,
@@ -43,7 +43,7 @@ export function AdminSetupGuide({
     setSaving(true);
     setError('');
     try {
-      if (!(await onFinish())) setError('No se ha podido guardar. Prueba otra vez.');
+      if (!(await onFinish(complete))) setError('No se ha podido guardar. Prueba otra vez.');
     } catch {
       setError('No se ha podido guardar. Prueba otra vez.');
     } finally {
