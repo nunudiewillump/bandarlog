@@ -41,7 +41,7 @@ test('operator-provisioned preview does not alter roles or real group data', () 
     assert.equal(demo.invitations.length, Number(n >= 3));
     assert.equal(demo.tasks.length, Number(n >= 4));
     assert.equal(demo.users.length, 1);
-    assert.equal(demo.group.name, 'Grupo scout de ejemplo');
+    assert.equal(demo.group?.name, 'Grupo scout de ejemplo');
     assert.equal(data.group.name, 'Real');
     assert.equal(data.projects[0].id, 'actual-project');
   }
