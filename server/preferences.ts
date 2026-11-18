@@ -2,6 +2,8 @@ import { z } from 'zod';
 export const preferenceSchema = z.object({
   foundingAdmin: z.boolean().default(false),
   adminGuideCompleted: z.boolean().default(false),
+  // Operator-provisioned and read-only via /api/profile; never grants any role or backend permissions.
+  adminGuidePreview: z.boolean().default(false),
   forestEffects: z.boolean().default(true),
   notifications: z.boolean().default(true),
   weekly: z.boolean().default(true),

@@ -24,7 +24,12 @@ import { AuthScreen } from './AuthScreen';
 import { taskPeople } from './task-people';
 import { Onboarding } from './Onboarding';
 import { AdminSetupGuide } from './AdminSetupGuide';
-import { isFoundingAdministrator, hasFinishedAdminGuide } from './admin-setup';
+import {
+  isFoundingAdministrator,
+  hasFinishedAdminGuide,
+  canPreviewAdminGuide,
+} from './admin-setup';
+import { AdminGuidePreview } from './AdminGuidePreview';
 import { artworkThemes, inferArtworkTheme } from '../shared/scout-catalog';
 import { projectTypes, projectType, projectTypeName, projectView } from '../shared/project-types';
 import { installMobilePwaZoom } from './pwa';
@@ -184,6 +189,7 @@ function App() {
   const [reauthNotice, setReauthNotice] = useState('');
   const tutorial = useTutorial(me);
   const [restartTutorial, setRestartTutorial] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const dataRef = useRef(data),
     loadSequence = useRef(0),
     operations = useRef(0),
@@ -193,6 +199,10 @@ function App() {
   const lastAnnounced = useRef(false);
   const celebrationSequence = useRef(0);
   const celebrationId = celebrations[0];
+  const celebrateWithVine = () => {
+    const event = ++celebrationSequence.current;
+    setCelebrations((queue) => [...queue, event]);
+  };
   useEffect(() => {
     if (celebrationId === undefined) return;
     const timer = setTimeout(() => setCelebrations((queue) => queue.slice(1)), 2500);
@@ -237,6 +247,30 @@ function App() {
   const manage = me?.role === 'admin' || me?.role === 'coordination';
   const foundingAdmin = isFoundingAdministrator(me);
   const showAdminGuide = foundingAdmin && !hasFinishedAdminGuide(me);
+  const previewAvailable = canPreviewAdminGuide(me);
+  const showAdminPreview = previewAvailable && previewOpen && !showAdminGuide;
+  const previewStorageKey = `bandarlog-admin-preview-dismissed:${me?.id || ''}`;
+  useEffect(() => {
+    if (!previewAvailable || !me) return;
+    try {
+      setPreviewOpen(localStorage.getItem(`bandarlog-admin-preview-dismissed:${me.id}`) !== 'true');
+    } catch {
+      setPreviewOpen(true);
+    }
+  }, [previewAvailable, me?.id]);
+  function dismissAdminPreview() {
+    setPreviewOpen(false);
+    try {
+      localStorage.setItem(previewStorageKey, 'true');
+    } catch {}
+  }
+  function reopenAdminPreview() {
+    try {
+      localStorage.removeItem(previewStorageKey);
+    } catch {}
+    setPreviewOpen(true);
+    navigate('home');
+  }
   let forestEffects = true;
   try {
     forestEffects = JSON.parse(me?.preferences || '{}').forestEffects !== false;
@@ -630,8 +664,7 @@ function App() {
           satisfactionTimer.current = setTimeout(() => setSatisfaction(false), 2600);
         }
         setUndo({ task: t, expected: saved.updatedAt, last });
-        const event = ++celebrationSequence.current;
-        setCelebrations((queue) => [...queue, event]);
+        celebrateWithVine();
       }
       requestAnimationFrame(() => window.scrollTo(scroll.x, scroll.y));
     } finally {
@@ -1509,9 +1542,9 @@ function App() {
             </div>
           </header>
           <main className="main">
-            {!['profile', 'settings', 'tutorial'].includes(view) && (
-              <DeviceNotifications userId={me.id} firstVisit />
-            )}
+            {!['profile', 'settings', 'tutorial'].includes(view) &&
+              !showAdminGuide &&
+              !showAdminPreview && <DeviceNotifications userId={me.id} firstVisit />}
             <div className="mobile-page-title">
               {
                 (
@@ -1532,6 +1565,15 @@ function App() {
                   <X size={16} />
                 </button>
               </div>
+            )}
+            {view === 'home' && showAdminPreview && me && (
+              <AdminGuidePreview
+                key={me.id}
+                data={data}
+                user={me}
+                onExit={dismissAdminPreview}
+                onCelebrate={celebrateWithVine}
+              />
             )}
             {view === 'home' && showAdminGuide && (
               <AdminSetupGuide
@@ -1557,16 +1599,18 @@ function App() {
                   setRestartTutorial(false);
                   navigate('tutorial');
                 }}
-                onFinish={() =>
-                  run(async () => {
+                onFinish={async (completed) => {
+                  const success = await run(async () => {
                     await api('/profile', 'PATCH', { adminGuideCompleted: true });
                     const session = await api('/me');
                     setMe(session.user);
-                  }, 'Guía de administración guardada')
-                }
+                  }, 'Guía de administración guardada');
+                  if (success && completed) celebrateWithVine();
+                  return success;
+                }}
               />
             )}
-            {view === 'home' && !showAdminGuide && (
+            {view === 'home' && !showAdminGuide && !showAdminPreview && (
               <TutorialInvitation
                 tutorial={tutorial}
                 onStart={() => {
@@ -1593,7 +1637,7 @@ function App() {
                   )}
                 </section>
               ))}
-            {view === 'home' && (
+            {view === 'home' && !showAdminGuide && !showAdminPreview && (
               <>
                 <div className="desktop-home">{desktopHome()}</div>
                 <div className="mobile-only">
@@ -2158,6 +2202,7 @@ function App() {
                     setRestartTutorial(true);
                     navigate('tutorial');
                   }}
+                  onPreviewAdminGuide={previewAvailable ? reopenAdminPreview : undefined}
                   onReplayAdminGuide={
                     foundingAdmin
                       ? () => {

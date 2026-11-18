@@ -26,3 +26,13 @@ export function setupMilestones(
     task: data.tasks.length > 0,
   };
 }
+
+/** A harmless visual preview, separately provisioned from real founding-admin permissions. */
+export function canPreviewAdminGuide(user: User | null): boolean {
+  if (!user || !['admin', 'coordination'].includes(user.role)) return false;
+  try {
+    return JSON.parse(user.preferences || '{}').adminGuidePreview === true;
+  } catch {
+    return false;
+  }
+}

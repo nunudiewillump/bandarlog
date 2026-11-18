@@ -1,0 +1,34 @@
+.admin-guide-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+.admin-guide-preview-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px dashed var(--green);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--cream);
+}
+.admin-guide-preview-banner > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.admin-guide-preview-banner strong { color: var(--green); }
+.admin-guide-preview-banner span { color: var(--muted); font-size: 13px; line-height: 1.4; }
+.admin-guide-preview-message {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--cream);
+  padding: 12px;
+  font-size: 14px;
+}
+@media (max-width: 650px) {
+  .admin-guide-preview-banner { align-items: stretch; flex-direction: column; }
+  .admin-guide-preview-banner button { width: 100%; }
+}

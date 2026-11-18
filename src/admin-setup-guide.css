@@ -1,25 +1,105 @@
-.admin-setup-guide { display: grid; gap: 1rem; margin-bottom: 20px; }
+.admin-setup-guide {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  margin-bottom: 20px;
+  min-width: 0;
+}
 .admin-setup-guide button { min-height: 44px; }
-.admin-guide-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
-.admin-guide-heading > div { min-width: 0; }
-.admin-guide-heading h2 { margin: 0 0 .4rem; overflow-wrap: anywhere; }
-.admin-guide-heading p { margin: 0; }
-.admin-guide-count { flex-shrink: 0; border-radius: 999px; padding: .4rem .7rem; background: #e9eddf; color: var(--green); font-weight: 800; font-variant-numeric: tabular-nums; }
-.admin-guide-progress { height: .55rem; background: var(--line); border-radius: 999px; overflow: hidden; }
-.admin-guide-progress span { display: block; height: 100%; background: var(--green); border-radius: inherit; }
-.admin-guide-identity { display: flex; align-items: center; gap: .85rem; padding: .9rem; border-radius: 12px; background: var(--cream); }
-.admin-guide-identity > div { flex: 1; min-width: 0; }
-.admin-guide-identity p, .admin-guide-step-description p { font-size: .88rem; margin: .3rem 0 0; color: var(--muted); }
-.admin-guide-steps { list-style: none; padding: 0; margin: 0; display: grid; gap: .5rem; }
-.admin-guide-steps li { display: flex; align-items: center; gap: .75rem; padding: .85rem .65rem; border-bottom: 1px solid var(--line); }
-.admin-guide-step-icon { flex-shrink: 0; display: grid; place-items: center; width: 2.4rem; height: 2.4rem; border-radius: 8px; background: #e9eddf; color: var(--green); }
+.admin-guide-heading { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.admin-guide-heading-copy { flex: 1; min-width: 0; }
+.admin-guide-kicker { display: block; font-size: 11px; font-weight: 800; letter-spacing: .085em; color: var(--muted); margin-bottom: 6px; }
+.admin-guide-heading h2 { margin: 0 0 6px; line-height: 1.16; overflow-wrap: normal; }
+.admin-guide-group-name { font-weight: 760; font-size: 14px; color: var(--green); margin: 0 0 5px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.admin-guide-heading .admin-guide-intro { margin: 0; max-width: 600px; color: var(--muted); font-size: 14px; }
+.admin-guide-count {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #e9eddf;
+  color: var(--green);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  font-size: 19px;
+  white-space: nowrap;
+}
+.admin-guide-count span { font-size: 12px; font-weight: 650; opacity: .75; }
+.admin-guide-progress { height: 7px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.admin-guide-progress span { display: block; height: 100%; background: var(--green); border-radius: inherit; transition: width .15s ease; }
+.admin-guide-identity {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  width: 100%;
+  background: var(--cream);
+  color: var(--green);
+}
+.admin-guide-identity-copy { display: grid; flex: 1; min-width: 0; gap: 2px; }
+.admin-guide-identity-copy > span { font-size: 13px; color: var(--muted); line-height: 1.35; }
+.admin-guide-steps-intro { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.admin-guide-steps-intro > span { font-size: 12px; color: var(--muted); }
+.admin-guide-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; min-width: 0; }
+.admin-guide-steps li {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid transparent;
+  border-bottom-color: var(--line);
+  border-radius: 10px;
+  padding: 11px 10px;
+  min-width: 0;
+}
+.admin-guide-steps li.is-current { background: #f3f7ee; border-color: #d9e6d5; }
+.admin-guide-step-icon {
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #e9eddf;
+  color: var(--green);
+}
 .admin-guide-steps li.is-done .admin-guide-step-icon { background: #ddecdf; }
-.admin-guide-step-description { flex: 1; min-width: 0; }
-.admin-guide-done { color: var(--green); font-weight: 700; font-size: .9rem; }
-.admin-guide-footer { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; }
+.admin-guide-step-description { grid-column: 2; min-width: 0; }
+.admin-guide-step-description strong { display: block; line-height: 1.3; }
+.admin-guide-step-description p { font-size: 13px; line-height: 1.4; margin: 4px 0 0; color: var(--muted); }
+.admin-guide-step-state { grid-column: 3; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.admin-guide-steps li.is-current .admin-guide-step-state,
+.admin-guide-steps li.is-done .admin-guide-step-state { color: var(--green); font-weight: 750; }
+.admin-guide-action { grid-column: 2 / 4; justify-self: end; }
+.admin-guide-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 @media (max-width: 650px) {
- .admin-guide-heading { align-items: flex-start; }
- .admin-guide-identity { flex-wrap: wrap; }
- .admin-guide-identity button, .admin-guide-steps li button, .admin-guide-footer button { width: 100%; }
- .admin-guide-steps li { flex-wrap: wrap; }
+  .main .admin-setup-guide { padding: 18px 15px 16px; gap: 14px; border-radius: 14px; }
+  .main .admin-guide-heading h2 { font-size: 23px; line-height: 1.12; letter-spacing: -.035em; }
+  .admin-guide-heading { gap: 8px; }
+  .admin-guide-heading .admin-guide-intro { font-size: 13px; line-height: 1.4; }
+  .admin-guide-count { padding: 6px 10px; font-size: 16px; }
+  .admin-guide-identity { padding: 11px; gap: 10px; }
+  .admin-guide-identity-copy > span { font-size: 12px; }
+  .admin-guide-steps { gap: 4px; }
+  .admin-guide-steps li { padding: 11px 8px; gap: 8px; grid-template-columns: 36px minmax(0, 1fr) auto; }
+  .admin-guide-step-icon { width: 34px; height: 34px; }
+  .admin-guide-steps li:not(.is-current) .admin-guide-step-description p { display: none; }
+  .admin-guide-steps li:not(.is-current) .admin-guide-action { display: none; }
+  .admin-guide-step-description strong { font-size: 14px; }
+  .admin-guide-step-state { font-size: 11px; }
+  .main .admin-guide-steps li.is-current .admin-guide-action { width: 100%; justify-self: stretch; margin-top: 2px; min-height: 46px; }
+  .admin-guide-steps li.is-current .admin-guide-step-description p { font-size: 13px; }
+  .admin-guide-footer { display: grid; gap: 3px; }
+  .admin-guide-footer > button { width: 100%; }
+  .admin-guide-footer .text-link { text-align: center; justify-content: center; }
+  /* Completed onboarding: the primary action must be reachable above the bottom nav. */
+  .admin-setup-guide.is-complete .admin-guide-footer { order: 1; }
+  .admin-setup-guide.is-complete .admin-guide-steps-intro { order: 2; }
+  .admin-setup-guide.is-complete .admin-guide-steps { order: 3; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-guide-progress span { transition: none; }
 }

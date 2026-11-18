@@ -31,6 +31,8 @@ async function createGroup(page: Page, name: string, email: string) {
   await page.getByRole('button', { name: 'Confirmar y crear mi grupo' }).click();
   await expect(page.getByRole('heading', { name: '¿Cómo te llamamos?' })).toBeVisible();
   await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Puesta en marcha del grupo' })).toBeVisible();
+  await page.getByRole('button', { name: 'Omitir por ahora' }).click();
   await expect(page.locator('.mobile-focus')).toBeVisible();
   const base = new URL(page.url()).pathname.replace(/\/$/, '');
   const session = await page.request.get(base + '/api/me').then((r) => r.json());
@@ -126,6 +128,8 @@ test('group signup, path-scoped sessions, profile colors and offline storage sta
   await page.getByRole('button', { name: 'Confirmar y crear mi grupo' }).click();
   await expect(page.getByRole('heading', { name: '¿Cómo te llamamos?' })).toBeVisible();
   await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Puesta en marcha del grupo' })).toBeVisible();
+  await page.getByRole('button', { name: 'Omitir por ahora' }).click();
   await expect(page.locator('.mobile-focus')).toBeVisible();
   const baseA = new URL(page.url()).pathname.replace(/\/$/, '');
   const a = await page.request.get(baseA + '/api/me').then((r) => r.json());
