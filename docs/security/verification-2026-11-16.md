@@ -52,3 +52,7 @@ La revisión posterior retiró DELETE físico de proyectos, comisiones y tareas 
 - El CI del commit anterior `8c141c1` completó sus 28 comprobaciones correctamente. Las adiciones de esta sección requieren su propio CI; ese resultado anterior no las valida.
 
 No se han modificado tutoriales, cuentas, datos ni recursos productivos. Siguen pendientes los bloqueos L2 enumerados arriba.
+
+## Activación autorizada del 18 de noviembre
+
+Se ejecutó la transición de infraestructura tras el ensayo en una rama aislada de Neon. El resultado y sus límites se registran en [deployment-2026-11-18.md](deployment-2026-11-18.md). Las afirmaciones anteriores de ausencia de cambios productivos describen las fases previas a esa autorización. La activación no implica cumplimiento L2 completo.

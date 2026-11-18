@@ -2957,8 +2957,8 @@
       "section": "General Data Protection",
       "requirement": "Verify that sensitive data is only sent to the server in the HTTP message body or header fields, and that the URL and query string do not contain sensitive information, such as an API key or session token.",
       "applicability": "applicable",
-      "status": "pending_activation",
-      "rationale": "Nuevos enlaces productivos con fragmento y transmisión por POST. Compatibilidad temporal con enlaces query anteriores; requiere cierre de su ventana de vida y verificación de logs/proxies para declarar el control completo.",
+      "status": "implemented_unverified",
+      "rationale": "Nuevos enlaces con fragmento y transmisión por POST activados en producción el 18 de noviembre de 2026. Compatibilidad temporal con enlaces query anteriores; requiere cierre de su ventana de vida y verificación de logs/proxies para declarar el control completo.",
       "control": ["public/auth-link.js", "server/groups.ts", "server/index.ts", "src/main.tsx"],
       "evidence": ["tests/browser/auth-link.spec.ts", "tests/groups-postgres.test.ts"]
     },
