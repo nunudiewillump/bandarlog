@@ -3,6 +3,8 @@ import { sql } from 'drizzle-orm';
 import type { ChecklistItem } from './task-checklist.js';
 import {
   pgTable,
+  bigint,
+  boolean,
   text,
   timestamp,
   integer,
@@ -23,6 +25,8 @@ export const platformMail = pgTable('platform_mail', {
   sentAt: timestamp('sent_at', { withTimezone: true, mode: 'string' }),
   nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true, mode: 'string' }),
   providerMessageId: text('provider_message_id'),
+  leaseId: text('lease_id'),
+  leaseUntil: timestamp('lease_until', { withTimezone: true, mode: 'string' }),
 });
 export const groups = pgTable('scout_groups', {
   id: text()
@@ -178,6 +182,9 @@ export const sessions = pgTable('sessions', {
     .notNull()
     .references(() => users.id),
   csrf: text().notNull(),
+  assurance: text().notNull().default('legacy'),
+  primaryVerifiedAt: timestamp('primary_verified_at', { withTimezone: true, mode: 'string' }),
+  mfaVerifiedAt: timestamp('mfa_verified_at', { withTimezone: true, mode: 'string' }),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
   renewedAt: timestamp('renewed_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
   absoluteExpiresAt: timestamp('absolute_expires_at', { withTimezone: true, mode: 'string' })
@@ -216,6 +223,8 @@ export const notifications = pgTable('notifications', {
   sentAt: timestamp('sent_at', { withTimezone: true, mode: 'string' }),
   nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true, mode: 'string' }),
   providerMessageId: text('provider_message_id'),
+  leaseId: text('lease_id'),
+  leaseUntil: timestamp('lease_until', { withTimezone: true, mode: 'string' }),
 });
 
 export const projectMembers = pgTable(
@@ -364,4 +373,42 @@ export const googleHandoffs = pgTable('google_handoffs', {
   googleSubject: text('google_subject'),
   googleEmail: text('google_email'),
   expires: timestamp({ withTimezone: true, mode: 'string' }).notNull(),
+});
+
+export const passkeyAccounts = pgTable('passkey_accounts', {
+  groupId: groupColumn(),
+  userId: text('user_id').primaryKey(),
+  webauthnId: text('webauthn_id').notNull().unique(),
+});
+export const passkeys = pgTable('passkeys', {
+  groupId: groupColumn(),
+  userId: text('user_id').notNull(),
+  id: text().primaryKey(),
+  publicKey: text('public_key').notNull(),
+  counter: bigint({ mode: 'number' }).notNull(),
+  rpId: text('rp_id').notNull(),
+  transports: text().notNull(),
+  deviceType: text('device_type').notNull(),
+  backedUp: boolean('backed_up').notNull(),
+  name: text().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true, mode: 'string' }),
+});
+export const passkeyChallenges = pgTable('passkey_challenges', {
+  groupId: groupColumn(),
+  userId: text('user_id').notNull(),
+  id: text().primaryKey(),
+  sessionId: text('session_id').notNull(),
+  challenge: text().notNull(),
+  origin: text().notNull(),
+  rpId: text('rp_id').notNull(),
+  purpose: text().notNull(),
+  expires: timestamp({ withTimezone: true, mode: 'string' }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+});
+export const passkeyRecovery = pgTable('passkey_recovery', {
+  groupId: groupColumn(),
+  userId: text('user_id').notNull(),
+  id: text().primaryKey(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
 });

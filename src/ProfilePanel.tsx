@@ -1,4 +1,8 @@
-import { useRef, useState } from 'react';
+import { SessionSettings } from './SessionSettings';
+import { lazy, Suspense, useRef, useState } from 'react';
+const PasskeySettings = lazy(() =>
+  import('./PasskeySettings').then((m) => ({ default: m.PasskeySettings })),
+);
 import { ChevronRight, LogOut, Pencil } from 'lucide-react';
 import type { User, ScoutGroup } from './types';
 import { api } from './api';
@@ -8,6 +12,7 @@ import { TutorialStats } from './TutorialStats';
 import { DeviceNotifications } from './DeviceNotifications';
 
 type Props = {
+  passkeysEnabled?: boolean;
   group?: ScoutGroup;
   onReplayTutorial?: () => void;
   onReplayAdminGuide?: () => void;
@@ -53,6 +58,7 @@ function Neckerchief({ group }: { group?: ScoutGroup }) {
   );
 }
 export function ProfilePanel({
+  passkeysEnabled = false,
   group,
   user,
   busy,
@@ -261,14 +267,24 @@ export function ProfilePanel({
           <button type="button" className="secondary" onClick={onReplayTutorial}>
             Repetir tutorial
           </button>
-          {onPreviewAdminGuide && <button type="button" className="secondary" onClick={onPreviewAdminGuide}>
-            Probar bienvenida del administrador
-          </button>}
-          {onReplayAdminGuide && <button type="button" className="secondary" onClick={onReplayAdminGuide}>
-            Repetir guía de administración
-          </button>}
+          {onPreviewAdminGuide && (
+            <button type="button" className="secondary" onClick={onPreviewAdminGuide}>
+              Probar bienvenida del administrador
+            </button>
+          )}
+          {onReplayAdminGuide && (
+            <button type="button" className="secondary" onClick={onReplayAdminGuide}>
+              Repetir guía de administración
+            </button>
+          )}
           {user.role === 'admin' && <TutorialStats />}
         </details>
+      )}
+      <SessionSettings />
+      {passkeysEnabled && (
+        <Suspense fallback={<p>Preparando ajustes de seguridad…</p>}>
+          <PasskeySettings />
+        </Suspense>
       )}
       <button
         type="button"

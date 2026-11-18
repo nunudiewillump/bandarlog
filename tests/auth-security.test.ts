@@ -11,25 +11,35 @@ import {
   SESSION_IDLE,
 } from '../server/auth-security';
 
-test('short codes are keyed and bound to challenge and recipient', () => {
-  const digest = codeVerifier(
+test('short codes are keyed and bound to challenge and recipient', async () => {
+  const digest = await codeVerifier(
     'test-secret-not-for-production',
     'challenge-a',
     'member@example.test',
     '123456',
   );
-  assert.equal(digest.length, 64);
+  assert.match(digest, /^pbkdf2-v2:[a-f0-9]{64}$/);
   assert.notEqual(
     digest,
-    codeVerifier('another-secret', 'challenge-a', 'member@example.test', '123456'),
+    await codeVerifier('another-secret', 'challenge-a', 'member@example.test', '123456'),
   );
   assert.notEqual(
     digest,
-    codeVerifier('test-secret-not-for-production', 'challenge-b', 'member@example.test', '123456'),
+    await codeVerifier(
+      'test-secret-not-for-production',
+      'challenge-b',
+      'member@example.test',
+      '123456',
+    ),
   );
   assert.notEqual(
     digest,
-    codeVerifier('test-secret-not-for-production', 'challenge-a', 'another@example.test', '123456'),
+    await codeVerifier(
+      'test-secret-not-for-production',
+      'challenge-a',
+      'another@example.test',
+      '123456',
+    ),
   );
   assert.equal(equalSecret(digest, digest), true);
   assert.equal(equalSecret(digest, 'short'), false);
@@ -80,6 +90,16 @@ test('Google ID tokens require signature, issuer, audience, expiry and the brows
       Buffer.from(JSON.stringify({ ...claims, ...change })).toString('base64url');
     return data + '.' + sign('RSA-SHA256', Buffer.from(data), key).toString('base64url');
   }
+  const weak = generateKeyPairSync('rsa', { modulusLength: 1024 });
+  const weakJwk = {
+    ...weak.publicKey.export({ format: 'jwk' }),
+    kid: 'test-google-key',
+    use: 'sig',
+    alg: 'RS256',
+  };
+  assert.throws(() =>
+    verifyGoogleToken(token({}, weak.privateKey), [weakJwk], 'client-test', claims.nonce, time),
+  );
   const valid = verifyGoogleToken(token(), [jwk], 'client-test', claims.nonce, time);
   assert.equal(valid.sub, claims.sub);
   for (const bad of [

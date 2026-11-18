@@ -5,6 +5,37 @@
     (globalThis.location?.pathname || '').match(/^\/g\/[a-f0-9]{32}(?=\/|$)/)?.[0] || '';
   const storageBase = groupBase;
   const databaseName = 'bandarlog-offline' + (storageBase ? '-' + storageBase.split('/')[2] : '');
+  const OFFLINE_LIFETIME = 7 * 86400000;
+  const channelName = 'bandarlog-offline-events' + storageBase;
+  function announceLogout() {
+    if (typeof BroadcastChannel !== 'undefined') {
+      const channel = new BroadcastChannel(channelName);
+      channel.postMessage('logout');
+      channel.close();
+    }
+    globalThis.dispatchEvent?.(new Event('bandarlog:session-ended'));
+  }
+  if (typeof BroadcastChannel !== 'undefined' && globalThis.document) {
+    const channel = new BroadcastChannel(channelName);
+    channel.onmessage = (e) => {
+      if (e.data === 'logout' || e.data === 'account-changed')
+        globalThis.dispatchEvent(new Event('bandarlog:session-ended'));
+    };
+  }
+  function park(s) {
+    const uid = s.me?.user.id;
+    if (uid && s.queue.length) {
+      s.parked ||= {};
+      const existing = s.parked[uid] || [];
+      const ids = new Set(existing.map((j) => j.id));
+      s.parked[uid] = [...existing, ...s.queue.filter((j) => j.userId === uid && !ids.has(j.id))];
+    }
+    s.suspendedUser = uid || s.suspendedUser;
+    s.queue = [];
+    s.me = null;
+    s.data = null;
+    s.offlineUntil = 0;
+  }
   let connection;
   const database = () =>
     connection ||
@@ -241,31 +272,70 @@
       return navigator.locks.request('bandarlog-offline-sync', () => lock(execute));
     return execute();
   }
-  async function remember(path, value) {
-    const result = await update((s) => {
-      if (path === '/me') {
-        if (s.me?.user.id !== value.user.id) {
-          s.data = null;
-          s.queue = [];
+  async function remember(path, value, alreadyLocked = false) {
+    let changedAccount = false;
+    const apply = alreadyLocked ? (fn) => fn() : lock;
+    const result = await apply(() =>
+      update((s) => {
+        if (path === '/me') {
+          const previous = s.me?.user.id || s.suspendedUser;
+          changedAccount = Boolean(previous && previous !== value.user.id);
+          if (s.me?.user.id !== value.user.id) {
+            park(s);
+            s.queue = s.parked?.[value.user.id] || [];
+            if (s.parked) delete s.parked[value.user.id];
+          }
+          if (s.authError) {
+            s.error = s.queue.some((job) => job.failed)
+              ? 'Revisa los cambios pendientes antes de sincronizar.'
+              : '';
+            delete s.authError;
+          }
+          // CSRF is renewed at sync and never written to disk.
+          s.me = { ...value, csrf: '' };
+          delete s.suspendedUser;
+          s.offlineUntil = Math.min(
+            Date.now() + OFFLINE_LIFETIME,
+            Number(value.offlineUntil) || Infinity,
+          );
         }
-        // CSRF is renewed at sync and never written to disk.
-        s.me = { ...value, csrf: '' };
-      }
-      if (path === '/data' && s.me) s.data = value;
-      return path === '/data' ? project(s) || value : value;
-    });
+        if (path === '/data' && s.me) s.data = value;
+        return path === '/data' ? project(s) || value : value;
+      }),
+    );
+    if (changedAccount && typeof BroadcastChannel !== 'undefined') {
+      const channel = new BroadcastChannel(channelName);
+      channel.postMessage('account-changed');
+      channel.close();
+    }
     if (path === '/me') await migrateLegacy(value.user.id);
     return result;
   }
   async function cached(path) {
-    return read((s) => (path === '/me' ? s.me : path === '/data' ? project(s) : null));
+    if (!['/me', '/data'].includes(path)) return null;
+    const current = await read((s) => s);
+    if (!current.me) return null;
+    if (current.offlineUntil > Date.now())
+      return path === '/me' ? current.me || null : project(current);
+    let expired = false;
+    const result = await update((s) => {
+      if (s.me && !(s.offlineUntil > Date.now())) {
+        park(s);
+        s.authError = true;
+        s.error = 'Vuelve a iniciar sesión para recuperar tus cambios pendientes.';
+        expired = true;
+      }
+      return path === '/me' ? s.me || null : project(s);
+    });
+    if (expired) announceLogout();
+    return result;
   }
   async function enqueue(path, method, body, id) {
     if (!allowed(path, method))
       throw new Error('Esta acción necesita conexión. Inténtalo cuando recuperes cobertura.');
     return lock(() =>
       update((s) => {
-        if (!s.me || !s.data)
+        if (!s.me || !s.data || !(s.offlineUntil > Date.now()))
           throw new Error('Abre Bandarlog con conexión antes de trabajar sin cobertura.');
         const createdAt = new Date().toISOString();
         s.queue.push({ path, method, body, id, userId: s.me.user.id, createdAt });
@@ -285,6 +355,10 @@
         return;
       }
       if (!response.ok) {
+        if ([401, 403, 428].includes(response.status)) {
+          await suspend();
+          return;
+        }
         await update((s) => {
           s.error = 'Inicia sesión para sincronizar tus cambios pendientes.';
         });
@@ -293,8 +367,12 @@
       const session = await response.json();
       if (session.user.id !== state.me?.user.id) {
         await update((s) => {
-          s.error = 'Los cambios pendientes pertenecen a otra cuenta.';
+          park(s);
+          s.authError = true;
+          s.error =
+            'Los cambios pendientes pertenecen a otra cuenta. Vuelve a entrar en la cuenta original para recuperarlos.';
         });
+        announceLogout();
         return;
       }
       for (const queued of state.queue) {
@@ -302,6 +380,12 @@
         // of this dependent job. Read the persisted version, not the initial snapshot.
         const job = await read((s) => s.queue.find((j) => j.id === queued.id));
         if (!job) continue;
+        if (job.userId !== session.user.id) {
+          await update((s) => {
+            s.error = 'Los cambios pendientes pertenecen a otra cuenta.';
+          });
+          break;
+        }
         if (job.failed) break;
         try {
           const result = await fetch(groupBase + '/api' + job.path, {
@@ -310,6 +394,7 @@
               'Content-Type': 'application/json',
               'X-CSRF-Token': session.csrf,
               'X-Mutation-ID': job.id,
+              'X-Offline-User': job.userId,
             },
             body: JSON.stringify(job.body),
           });
@@ -338,7 +423,7 @@
       }
       try {
         const current = await fetch(groupBase + '/api/data', { cache: 'no-store' });
-        if (current.ok) await remember('/data', await current.json());
+        if (current.ok) await remember('/data', await current.json(), true);
       } catch {}
       if (globalThis.clients) {
         for (const client of await clients.matchAll())
@@ -398,7 +483,11 @@
     };
     const clearCurrent = () =>
       update((state) => {
+        const owner = state.me?.user.id || state.suspendedUser;
+        const parked = state.parked || {};
+        if (owner) delete parked[owner];
         for (const key of Object.keys(state)) delete state[key];
+        if (Object.keys(parked).length) state.parked = parked;
         state.queue = [];
       });
     const run = async () => {
@@ -412,9 +501,20 @@
       globalThis.navigator?.locks && i < namespaces.length
         ? navigator.locks.request('bandarlog-offline-sync' + namespaces[i], () => acquire(i + 1))
         : run();
-    return acquire(0);
+    await acquire(0);
+    announceLogout();
+  }
+  async function suspend() {
+    await update((s) => {
+      park(s);
+      s.authError = true;
+      s.error =
+        'Tu acceso ha caducado o se ha revocado. Vuelve a iniciar sesión para recuperar tus cambios pendientes.';
+    });
+    announceLogout();
   }
   globalThis.BandarlogOffline = {
+    suspend,
     remember,
     cached,
     enqueue,
@@ -422,7 +522,12 @@
     clear,
     discard,
     retry,
-    status: () => read((s) => ({ pending: s.queue.length, error: s.error || '' })),
+    status: () =>
+      read((s) => ({
+        pending: s.queue.length,
+        error: s.error || '',
+        quarantined: (s.parked?.[s.suspendedUser] || []).length,
+      })),
     allowed,
   };
 })();

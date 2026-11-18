@@ -1,4 +1,10 @@
-import { test, expect, type Page, type BrowserContext } from '@playwright/test';
+import {
+  test,
+  expect,
+  request as isolatedRequest,
+  type Page,
+  type BrowserContext,
+} from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import sharp from 'sharp';
 const loginCookies = new Map<string, Awaited<ReturnType<BrowserContext['cookies']>>>();
@@ -21,6 +27,27 @@ async function login(page: Page, email = 'alex@example.test') {
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Inicio', exact: true })).toBeVisible();
   loginCookies.set(email, await page.context().cookies());
+}
+
+// Cached cookies represent another device. Account switching must rotate only
+// this browser's fresh session, preserving that independent cached session.
+async function independentSession(page: Page, email: string) {
+  const api = await isolatedRequest.newContext({
+    baseURL: 'http://127.0.0.1:5174',
+    extraHTTPHeaders: { Origin: 'http://127.0.0.1:5174' },
+  });
+  try {
+    expect((await api.post('/api/auth/request', { data: { email } })).ok()).toBe(true);
+    const mails = await (await api.get('/api/dev/mail')).json();
+    const token = mails
+      .filter((m: any) => m.email === email && m.subject.includes('enlace'))
+      .at(-1)
+      .body.match(/token=([a-f0-9]+)/)[1];
+    expect((await api.post('/api/auth/verify', { data: { token } })).ok()).toBe(true);
+    await page.context().addCookies((await api.storageState()).cookies);
+  } finally {
+    await api.dispose();
+  }
 }
 
 async function finishFirstAccess(page: Page) {
@@ -75,7 +102,10 @@ test('a new person accepts the first invitation email and enters without request
     invited.on('request', (request) => {
       if (new URL(request.url()).pathname === '/api/auth/request') requestedEmails++;
     });
-    await invited.goto(link);
+    const fragmentLink = new URL(link);
+    fragmentLink.hash = 'token=' + fragmentLink.searchParams.get('token');
+    fragmentLink.searchParams.delete('token');
+    await invited.goto(fragmentLink.toString());
     await expect(
       invited.getByRole('button', { name: 'Aceptar invitación y entrar' }),
     ).toBeVisible();
@@ -107,6 +137,7 @@ test('accepting an invitation while another account is signed in enters as the i
   page,
 }) => {
   await login(page);
+  await independentSession(page, 'alex@example.test');
   const { recipient, link } = await personalInvitation(page);
   await page.goto(link);
   await expect(page.getByRole('button', { name: 'Aceptar invitación y entrar' })).toBeVisible();

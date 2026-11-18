@@ -75,6 +75,8 @@ jobs:
       - run: npm ci --include=dev
       - run: npm run build
       - run: node --import tsx --test tests/groups-postgres.test.ts
+        env:
+          POSTGRES_CONTAINER_ID: ${{ job.services.postgres.id }}
   browser:
     needs: prepare
     if: needs.prepare.outputs.browser_count != '0'

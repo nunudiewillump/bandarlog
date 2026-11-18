@@ -81,12 +81,20 @@ async function request(path: string, method: string, body?: unknown) {
   const data = await response
     .json()
     .catch(() => ({ error: 'No se ha podido leer la respuesta. Vuelve a intentarlo.' }));
-  if (!response.ok)
+  if (!response.ok) {
+    if (
+      (response.status === 401 && !path.startsWith('/auth')) ||
+      (response.status === 428 && path === '/me')
+    ) {
+      csrf = '';
+      await offline.suspend();
+    }
     throw new ApiError(data.error || 'No se pudo completar la operación.', response.status, {
       retryAfter: data.retryAfter,
       challengeId: data.challengeId,
       expiresIn: data.expiresIn,
     });
+  }
   if (dataRequest && data && typeof data === 'object') {
     const revision = response.headers.get('X-Data-Revision');
     if (revision) revisions.set(data, revision);

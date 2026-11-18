@@ -1005,3 +1005,5 @@
   color: #a82e29;
   background: #fde7df;
 }
+
+.recovery-codes code { font-size: .8rem; overflow-wrap: anywhere; }

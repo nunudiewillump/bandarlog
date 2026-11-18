@@ -1,3 +1,4 @@
+import { generateKeyPairSync } from 'node:crypto';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
@@ -195,12 +196,21 @@ test('provider failures are sanitized, terminal errors stop and transient errors
 });
 
 test('Resend production validates all its settings and preserves explicit transport selection', () => {
+  const keys = generateKeyPairSync('rsa', {
+    modulusLength: 3072,
+    publicKeyEncoding: { type: 'spki', format: 'pem' },
+    privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+  });
   const valid = {
     ...env,
+    APP_COMPONENT: 'delivery',
+    GROUP_CONTEXT_SECRET: '42'.repeat(32),
+    DISPATCH_PUBLIC_KEY: keys.publicKey,
+    DISPATCH_PRIVATE_KEYS: JSON.stringify({ primary: keys.privateKey }),
+    DELIVERY_WAKE_TOKEN: 'synthetic-wake-with-at-least-32-characters',
     NODE_ENV: 'production',
     APP_URL: 'https://bandarlog.example.test',
     DATABASE_URL: 'postgresql://test@db.neon.tech/test?sslmode=verify-full',
-    AUTH_CHALLENGE_SECRET: 'test-only-stable-secret-at-least-32-characters',
     SMTP_PORT: 'unused-legacy-value',
   };
   assert.equal(validateEnvironment(valid).production, true);

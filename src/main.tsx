@@ -1,10 +1,11 @@
+import type { PasskeyStatus } from './PasskeyGate';
 import { SnapshotRefresh, covers } from './snapshot-refresh';
 import { snapshotRevision } from './api';
 import { PagedActivity } from './PagedActivity';
 import { groupBasePath, groupChannel } from './group-location';
 import { readNavigation, navigationURL } from './navigation';
 import { useTutorial, TutorialInvitation, TutorialMission } from './Tutorial';
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 import { AnimatedCounter } from './AnimatedCounter';
 import {
   MobileHome,
@@ -23,7 +24,11 @@ import { AuthScreen } from './AuthScreen';
 import { taskPeople } from './task-people';
 import { Onboarding } from './Onboarding';
 import { AdminSetupGuide } from './AdminSetupGuide';
-import { isFoundingAdministrator, hasFinishedAdminGuide, canPreviewAdminGuide } from './admin-setup';
+import {
+  isFoundingAdministrator,
+  hasFinishedAdminGuide,
+  canPreviewAdminGuide,
+} from './admin-setup';
 import { AdminGuidePreview } from './AdminGuidePreview';
 import { artworkThemes, inferArtworkTheme } from '../shared/scout-catalog';
 import { projectTypes, projectType, projectTypeName, projectView } from '../shared/project-types';
@@ -109,6 +114,7 @@ const initial: Data = {
   activity: [],
   invitations: [],
 };
+const PasskeyGate = lazy(() => import('./PasskeyGate').then((m) => ({ default: m.PasskeyGate })));
 const icons: Record<string, typeof Tent> = {
   chef: ChefHat,
   tent: Tent,
@@ -178,6 +184,9 @@ function App() {
     [pendingTasks, setPendingTasks] = useState(new Set<string>()),
     [undo, setUndo] = useState<{ task: Task; expected: string; last: boolean } | null>(null),
     [outbox, setOutbox] = useState<any[]>([]);
+  const [passkeysEnabled, setPasskeysEnabled] = useState(false);
+  const [passkeyStatus, setPasskeyStatus] = useState<PasskeyStatus | null>(null);
+  const [reauthNotice, setReauthNotice] = useState('');
   const tutorial = useTutorial(me);
   const [restartTutorial, setRestartTutorial] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -228,8 +237,12 @@ function App() {
     window.addEventListener('popstate', pop);
     return () => window.removeEventListener('popstate', pop);
   }, []);
-  const params = new URLSearchParams(location.search);
-  const [loginToken, setLoginToken] = useState(params.get('token') || '');
+  const [loginToken, setLoginToken] = useState(
+    () =>
+      new URLSearchParams(location.hash.slice(1)).get('token') ||
+      new URLSearchParams(location.search).get('token') ||
+      '',
+  );
   const invitationAccess = loginToken.startsWith('invite.');
   const manage = me?.role === 'admin' || me?.role === 'coordination';
   const foundingAdmin = isFoundingAdministrator(me);
@@ -247,10 +260,14 @@ function App() {
   }, [previewAvailable, me?.id]);
   function dismissAdminPreview() {
     setPreviewOpen(false);
-    try { localStorage.setItem(previewStorageKey, 'true'); } catch {}
+    try {
+      localStorage.setItem(previewStorageKey, 'true');
+    } catch {}
   }
   function reopenAdminPreview() {
-    try { localStorage.removeItem(previewStorageKey); } catch {}
+    try {
+      localStorage.removeItem(previewStorageKey);
+    } catch {}
     setPreviewOpen(true);
     navigate('home');
   }
@@ -295,6 +312,21 @@ function App() {
   const snapshots = useRef<SnapshotRefresh<Data> | null>(null);
   if (!snapshots.current) snapshots.current = new SnapshotRefresh(fetchSnapshot, snapshotRevision);
   const load = (revision?: string) => snapshots.current!.read(revision);
+  useEffect(() => {
+    const reset = () => {
+      loadSequence.current++;
+      snapshots.current = new SnapshotRefresh(fetchSnapshot, snapshotRevision);
+      setPasskeyStatus(null);
+      setReauthNotice('');
+      setCSRF('');
+      setMe(null);
+      setData(initial);
+      setCelebrations([]);
+    };
+    window.addEventListener('bandarlog:session-ended', reset);
+    return () => window.removeEventListener('bandarlog:session-ended', reset);
+  }, []);
+
   useEffect(() => {
     if (!me) return;
     let active = true;
@@ -399,10 +431,13 @@ function App() {
       if (healthResult.status === 'rejected') throw healthResult.reason;
       if (sessionResult.status === 'rejected') throw sessionResult.reason;
       if (dataResult.status === 'rejected') throw dataResult.reason;
+      setPasskeyStatus(null);
+      setReauthNotice('');
       const session = sessionResult.value;
       const visible = dataResult.value.users.find((user) => user.id === session.user.id);
       setMe({ ...session.user, ...visible });
       setDevelopment(session.development);
+      setPasskeysEnabled(Boolean(session.passkeysEnabled));
       const route = readNavigation(location.search);
       setView(route.view);
       setProject(route.project);
@@ -417,7 +452,27 @@ function App() {
         history.replaceState({}, '', url);
       }
     } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
+      if (error instanceof ApiError && error.status === 428) {
+        try {
+          const status: PasskeyStatus = await api('/auth/passkeys/status');
+          setMe(null);
+          setData(initial);
+          setCSRF(status.csrf || '');
+          if (status.required && !status.reauthenticate) {
+            setPasskeyStatus(status);
+            setReauthNotice('');
+          } else {
+            setPasskeyStatus(null);
+            setReauthNotice(
+              'Vuelve a entrar con tu correo o Google para activar la protección con passkey.',
+            );
+          }
+        } catch {
+          setPasskeyStatus(null);
+          setMe(null);
+          setCSRF('');
+        }
+      } else if (error instanceof ApiError && error.status === 401) {
         setMe(null);
         setCSRF('');
       } else {
@@ -1307,14 +1362,22 @@ function App() {
     setLoginToken('');
     const next = new URL(location.href);
     next.searchParams.delete('token');
+    next.hash = '';
     next.searchParams.delete('email');
     next.searchParams.delete('auth_error');
     history.replaceState({}, '', next);
     await bootup();
   }
+  if (passkeyStatus && !invitationAccess)
+    return (
+      <Suspense fallback={<BananaLoader label="Preparando acceso seguro…" />}>
+        <PasskeyGate status={passkeyStatus} onDone={authenticated} />
+      </Suspense>
+    );
   if (!me || invitationAccess)
     return (
       <AuthScreen
+        notice={reauthNotice}
         token={loginToken}
         development={development}
         onAuthenticated={authenticated}
@@ -1479,9 +1542,9 @@ function App() {
             </div>
           </header>
           <main className="main">
-            {!['profile', 'settings', 'tutorial'].includes(view) && !showAdminGuide && !showAdminPreview && (
-              <DeviceNotifications userId={me.id} firstVisit />
-            )}
+            {!['profile', 'settings', 'tutorial'].includes(view) &&
+              !showAdminGuide &&
+              !showAdminPreview && <DeviceNotifications userId={me.id} firstVisit />}
             <div className="mobile-page-title">
               {
                 (
@@ -1504,18 +1567,38 @@ function App() {
               </div>
             )}
             {view === 'home' && showAdminPreview && me && (
-              <AdminGuidePreview key={me.id} data={data} user={me}
-                onExit={dismissAdminPreview} onCelebrate={celebrateWithVine} />
+              <AdminGuidePreview
+                key={me.id}
+                data={data}
+                user={me}
+                onExit={dismissAdminPreview}
+                onCelebrate={celebrateWithVine}
+              />
             )}
             {view === 'home' && showAdminGuide && (
               <AdminSetupGuide
                 data={data}
                 onSettings={() => navigate('profile')}
-                onProject={() => { navigate('projects'); setModal('project'); }}
-                onCommission={() => { navigate('commissions'); setModal('commission'); }}
-                onInvite={() => { navigate('people'); setModal('invite'); }}
-                onTask={() => { navigate('tasks'); setModal('task'); }}
-                onPractice={() => { setRestartTutorial(false); navigate('tutorial'); }}
+                onProject={() => {
+                  navigate('projects');
+                  setModal('project');
+                }}
+                onCommission={() => {
+                  navigate('commissions');
+                  setModal('commission');
+                }}
+                onInvite={() => {
+                  navigate('people');
+                  setModal('invite');
+                }}
+                onTask={() => {
+                  navigate('tasks');
+                  setModal('task');
+                }}
+                onPractice={() => {
+                  setRestartTutorial(false);
+                  navigate('tutorial');
+                }}
                 onFinish={async (completed) => {
                   const success = await run(async () => {
                     await api('/profile', 'PATCH', { adminGuideCompleted: true });
@@ -2112,6 +2195,7 @@ function App() {
                   </div>
                 </div>
                 <ProfilePanel
+                  passkeysEnabled={passkeysEnabled}
                   group={data.group}
                   user={me}
                   onReplayTutorial={() => {
@@ -2119,18 +2203,29 @@ function App() {
                     navigate('tutorial');
                   }}
                   onPreviewAdminGuide={previewAvailable ? reopenAdminPreview : undefined}
-                  onReplayAdminGuide={foundingAdmin ? () => {
-                    void run(async () => {
-                      await api('/profile', 'PATCH', { adminGuideCompleted: false });
-                      const session = await api('/me');
-                      setMe(session.user);
-                      navigate('home');
-                    }, 'Guía de administración recuperada');
-                  } : undefined}
+                  onReplayAdminGuide={
+                    foundingAdmin
+                      ? () => {
+                          void run(async () => {
+                            await api('/profile', 'PATCH', { adminGuideCompleted: false });
+                            const session = await api('/me');
+                            setMe(session.user);
+                            navigate('home');
+                          }, 'Guía de administración recuperada');
+                        }
+                      : undefined
+                  }
                   busy={busy}
                   run={run}
                   onSaved={setMe}
                   onLogout={async () => {
+                    if (
+                      (await offline.status()).pending &&
+                      !window.confirm(
+                        'Hay cambios sin sincronizar. Puedes cancelar y sincronizarlos antes de salir. ¿Cerrar sesión y descartar los cambios de este dispositivo?',
+                      )
+                    )
+                      return;
                     const subscription = await (
                       await navigator.serviceWorker?.getRegistration()
                     )?.pushManager.getSubscription();
@@ -2738,24 +2833,37 @@ function People() {
               </Select>
             )}
             {!commission && me.role === 'admin' && u.id !== me.id && (
-              <details className="person-removal">
-                <summary className="text-link danger">Eliminar usuario</summary>
-                <p>
-                  Se retirará el acceso de {u.name} y se quitarán sus asignaciones. Su historial se
-                  conserva; las tareas que queden sin responsables se podrán reasignar.
-                </p>
+              <>
                 <button
-                  className="secondary danger"
+                  className="secondary"
                   disabled={busy}
                   onClick={() =>
                     void run(async () => {
-                      await api(`/users/${u.id}`, 'DELETE');
-                    }, 'Usuario eliminado')
+                      await api('/admin/sessions/revoke', 'POST', { userId: u.id });
+                    }, 'Sesiones cerradas')
                   }
                 >
-                  Confirmar eliminación de {u.name}
+                  Cerrar las sesiones de {u.name}
                 </button>
-              </details>
+                <details className="person-removal">
+                  <summary className="text-link danger">Eliminar usuario</summary>
+                  <p>
+                    Se retirará el acceso de {u.name} y se quitarán sus asignaciones. Su historial
+                    se conserva; las tareas que queden sin responsables se podrán reasignar.
+                  </p>
+                  <button
+                    className="secondary danger"
+                    disabled={busy}
+                    onClick={() =>
+                      void run(async () => {
+                        await api(`/users/${u.id}`, 'DELETE');
+                      }, 'Usuario eliminado')
+                    }
+                  >
+                    Confirmar eliminación de {u.name}
+                  </button>
+                </details>
+              </>
             )}
             {commission && (
               <span className={`badge ${member?.role === 'responsible' ? 'pending' : 'done'}`}>

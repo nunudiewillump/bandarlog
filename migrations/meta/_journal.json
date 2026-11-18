@@ -155,6 +155,111 @@
       "when": 1794841000000,
       "tag": "0021_google_pwa_return",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794844800000,
+      "tag": "0022_actor_boundary",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794844900000,
+      "tag": "0023_service_boundaries",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794845000000,
+      "tag": "0024_identity_authority",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794845100000,
+      "tag": "0025_delegated_events",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1794845200000,
+      "tag": "0026_delivery_leases",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1794845300000,
+      "tag": "0027_sensitive_administration",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1794845400000,
+      "tag": "0028_invitation_delivery",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1794845500000,
+      "tag": "0029_runtime_validation",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1794845600000,
+      "tag": "0030_passkeys",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1794845700000,
+      "tag": "0031_scoped_read_capabilities",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1794845800000,
+      "tag": "0032_dispatch_key_registry",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1794845900000,
+      "tag": "0033_project_parent_boundary",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1794846000000,
+      "tag": "0034_registration_issuance",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1794846100000,
+      "tag": "0035_session_revocation",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1794846200000,
+      "tag": "0036_business_retention",
+      "breakpoints": true
     }
   ]
 }

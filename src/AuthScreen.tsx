@@ -8,11 +8,13 @@ import { ForestHeader } from './ForestHeader';
 import { BananaLoader } from './BananaLoader';
 export function AuthScreen({
   token,
+  notice,
   development,
   onAuthenticated,
   onToken,
 }: {
   token: string;
+  notice?: string;
   development: boolean;
   onAuthenticated: () => Promise<void>;
   onToken: (token: string) => void;
@@ -201,6 +203,7 @@ export function AuthScreen({
     <div className="forest-auth">
       <ForestHeader />
       <main className="forest-auth-main">
+        {notice && <p role="status">{notice}</p>}
         {challenge && !token && (
           <button
             type="button"

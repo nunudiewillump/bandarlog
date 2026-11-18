@@ -12,7 +12,11 @@ export function validGoogleReturn(
   if (
     event.origin !== origin ||
     event.source !== popup ||
-    event.data?.type !== 'bandarlog.google.return'
+    !event.data ||
+    typeof event.data !== 'object' ||
+    Array.isArray(event.data) ||
+    Object.keys(event.data).sort().join(',') !== 'ticket,type' ||
+    event.data.type !== 'bandarlog.google.return'
   )
     return null;
   return typeof event.data.ticket === 'string' && /^[a-f0-9]{64}$/.test(event.data.ticket)

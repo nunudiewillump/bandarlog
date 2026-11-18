@@ -11,7 +11,7 @@ async function request(
   path: string,
   method = 'GET',
   body?: unknown,
-  auth = admin,
+  auth = path.startsWith('/auth/') ? { cookie: '', csrf: '' } : admin,
   mutation?: string,
 ) {
   const r = await fetch(base + path, {

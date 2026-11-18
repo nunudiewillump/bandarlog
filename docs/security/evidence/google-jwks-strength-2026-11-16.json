@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-11-16T22:56:01.209Z",
+  "source": "https://www.googleapis.com/oauth2/v3/certs",
+  "keys": [
+    {
+      "algorithm": "RS256",
+      "type": "RSA",
+      "bits": 2048
+    },
+    {
+      "algorithm": "RS256",
+      "type": "RSA",
+      "bits": 2048
+    }
+  ]
+}

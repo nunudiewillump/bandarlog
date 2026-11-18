@@ -260,7 +260,8 @@ test('pending work survives an expired session and signing into the same account
   await page.reload();
   await expect(page.getByLabel('Tu correo electrónico')).toBeVisible();
   expect(await page.evaluate(() => (globalThis as any).BandarlogOffline.status())).toMatchObject({
-    pending: 1,
+    pending: 0,
+    quarantined: 1,
   });
   // Use a fresh, legitimate access token for the same account, without logging out.
   await page.request.post('/api/auth/request', { data: { email: session.user.email } });
