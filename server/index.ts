@@ -408,12 +408,13 @@ async function deliverPlatformNow() {
     for (const m of pending) {
       if (mode === 'delivery' && !(await platform.refreshPlatformLease(m.id, m.leaseId))) continue;
       try {
+        const content = deliveryContent(m);
         const sent = await mailTransport.sendMail({
           from: process.env.MAIL_FROM,
           to: m.email,
-          subject: deliveryContent(m).subject,
-          text: deliveryContent(m).body,
-          html: deliveryContent(m).html,
+          subject: content.subject,
+          text: content.body,
+          html: content.html,
           idempotencyKey: 'bandarlog-platform/' + m.id,
         });
         await platform.finishPlatformMail(

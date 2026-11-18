@@ -1,3 +1,4 @@
+import { observePoolErrors } from '../../server/pool-errors';
 import assert from 'node:assert/strict';
 import pg from 'pg';
 import { createHmac } from 'node:crypto';
@@ -10,6 +11,29 @@ export async function exerciseServiceBoundary(owner: pg.Pool, url: string, secre
     [],
     'Delegated owner functions require a fixed safe search_path and no PUBLIC execution',
   );
+  const runtimeUrl = new URL(url);
+  runtimeUrl.username = 'bandarlog_http';
+  runtimeUrl.password = '';
+  const idleErrors: { code: string }[] = [];
+  const recovering = observePoolErrors(
+    new pg.Pool({ connectionString: runtimeUrl.toString(), max: 1 }),
+    (e) => idleErrors.push(e),
+  );
+  try {
+    const idle = await recovering.connect();
+    const pid = (await idle.query('select pg_backend_pid() as id')).rows[0].id;
+    idle.release();
+    await owner.query('select pg_terminate_backend($1)', [pid]);
+    const end = Date.now() + 5000;
+    while (!idleErrors.length && Date.now() < end) await new Promise((r) => setTimeout(r, 20));
+    assert.equal(idleErrors[0]?.code, '57P01');
+    assert.equal(
+      (await recovering.query('select current_user as name')).rows[0].name,
+      'bandarlog_http',
+    );
+  } finally {
+    await recovering.end();
+  }
   const group = (
     await owner.query("select id from scout_groups where id like '%' and id<>'rosales-702' limit 1")
   ).rows[0].id;

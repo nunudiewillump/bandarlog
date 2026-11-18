@@ -1,3 +1,4 @@
+import { observePoolErrors } from './pool-errors.js';
 import { dispatchSettings } from './dispatch-settings.js';
 import { component, validateComponentSecrets } from './components.js';
 import { randomBytes, createHash } from 'node:crypto';
@@ -29,7 +30,9 @@ export async function connect() {
           : mode === 'delivery'
             ? 'bandarlog_delivery_app'
             : 'bandarlog_group_app';
-    const pool = measuredClient(new pg.Pool({ connectionString: process.env.DATABASE_URL }));
+    const pool = measuredClient(
+      observePoolErrors(new pg.Pool({ connectionString: process.env.DATABASE_URL })),
+    );
     try {
       const connection = remoteDrizzle(pool, { schema, logger: queryLogger });
       // Fail before listening if a deployment accidentally injects an owner credential.

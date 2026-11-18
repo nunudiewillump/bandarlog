@@ -495,15 +495,8 @@
       "applicability": "applicable",
       "status": "verified_local",
       "rationale": "Cookies productivas con __Host-/Secure/HttpOnly/Lax y nombre por grupo; cookie heredada solo permite puente de reautenticación.",
-      "control": [
-        "server/session-cookie.ts",
-        "server/remembered-entry.ts",
-        "server/index.ts"
-      ],
-      "evidence": [
-        "tests/groups-postgres.test.ts",
-        "tests/browser/passkeys.spec.ts"
-      ]
+      "control": ["server/session-cookie.ts", "server/remembered-entry.ts", "server/index.ts"],
+      "evidence": ["tests/groups-postgres.test.ts", "tests/browser/passkeys.spec.ts"]
     },
     {
       "id": "V3.3.2",
@@ -514,15 +507,8 @@
       "applicability": "applicable",
       "status": "verified_local",
       "rationale": "Cookies productivas con __Host-/Secure/HttpOnly/Lax y nombre por grupo; cookie heredada solo permite puente de reautenticación.",
-      "control": [
-        "server/session-cookie.ts",
-        "server/remembered-entry.ts",
-        "server/index.ts"
-      ],
-      "evidence": [
-        "tests/groups-postgres.test.ts",
-        "tests/browser/passkeys.spec.ts"
-      ]
+      "control": ["server/session-cookie.ts", "server/remembered-entry.ts", "server/index.ts"],
+      "evidence": ["tests/groups-postgres.test.ts", "tests/browser/passkeys.spec.ts"]
     },
     {
       "id": "V3.3.3",
@@ -533,15 +519,8 @@
       "applicability": "applicable",
       "status": "verified_local",
       "rationale": "Cookies productivas con __Host-/Secure/HttpOnly/Lax y nombre por grupo; cookie heredada solo permite puente de reautenticación.",
-      "control": [
-        "server/session-cookie.ts",
-        "server/remembered-entry.ts",
-        "server/index.ts"
-      ],
-      "evidence": [
-        "tests/groups-postgres.test.ts",
-        "tests/browser/passkeys.spec.ts"
-      ]
+      "control": ["server/session-cookie.ts", "server/remembered-entry.ts", "server/index.ts"],
+      "evidence": ["tests/groups-postgres.test.ts", "tests/browser/passkeys.spec.ts"]
     },
     {
       "id": "V3.3.4",
@@ -552,15 +531,8 @@
       "applicability": "applicable",
       "status": "verified_local",
       "rationale": "Cookies productivas con __Host-/Secure/HttpOnly/Lax y nombre por grupo; cookie heredada solo permite puente de reautenticación.",
-      "control": [
-        "server/session-cookie.ts",
-        "server/remembered-entry.ts",
-        "server/index.ts"
-      ],
-      "evidence": [
-        "tests/groups-postgres.test.ts",
-        "tests/browser/passkeys.spec.ts"
-      ]
+      "control": ["server/session-cookie.ts", "server/remembered-entry.ts", "server/index.ts"],
+      "evidence": ["tests/groups-postgres.test.ts", "tests/browser/passkeys.spec.ts"]
     },
     {
       "id": "V3.4.1",
@@ -663,11 +635,7 @@
       "applicability": "applicable",
       "status": "verified_local",
       "rationale": "",
-      "control": [
-        "server/index.ts",
-        "server/passkeys.ts",
-        "server/groups.ts"
-      ],
+      "control": ["server/index.ts", "server/passkeys.ts", "server/groups.ts"],
       "evidence": [
         "tests/api.test.ts",
         "tests/forest-auth.test.ts",
@@ -696,11 +664,7 @@
       "applicability": "applicable",
       "status": "verified_local",
       "rationale": "",
-      "control": [
-        "server/index.ts",
-        "server/passkeys.ts",
-        "server/groups.ts"
-      ],
+      "control": ["server/index.ts", "server/passkeys.ts", "server/groups.ts"],
       "evidence": [
         "tests/api.test.ts",
         "tests/forest-auth.test.ts",
@@ -1003,9 +967,7 @@
       "applicability": "applicable",
       "status": "verified_local",
       "rationale": "",
-      "control": [
-        "docs/security/authentication-policy.md"
-      ],
+      "control": ["docs/security/authentication-policy.md"],
       "evidence": [
         "docs/security/authentication-policy.md",
         "docs/security/verification-2026-11-16.md"
@@ -1032,9 +994,7 @@
       "applicability": "applicable",
       "status": "verified_local",
       "rationale": "",
-      "control": [
-        "docs/security/authentication-policy.md"
-      ],
+      "control": ["docs/security/authentication-policy.md"],
       "evidence": [
         "docs/security/authentication-policy.md",
         "docs/security/verification-2026-11-16.md"
@@ -1573,13 +1533,8 @@
       "applicability": "applicable",
       "status": "blocked",
       "rationale": "Persistencia de treinta/noventa días preservada; falta aceptación y revisión del análisis de riesgo frente a los plazos NIST AAL2.",
-      "control": [
-        "server/auth-security.ts",
-        "docs/security/authentication-policy.md"
-      ],
-      "evidence": [
-        "docs/security/authentication-policy.md"
-      ]
+      "control": ["server/auth-security.ts", "docs/security/authentication-policy.md"],
+      "evidence": ["docs/security/authentication-policy.md"]
     },
     {
       "id": "V7.1.2",
@@ -1590,12 +1545,8 @@
       "applicability": "applicable",
       "status": "verified_local",
       "rationale": "",
-      "control": [
-        "docs/security/authentication-policy.md"
-      ],
-      "evidence": [
-        "docs/security/authentication-policy.md"
-      ]
+      "control": ["docs/security/authentication-policy.md"],
+      "evidence": ["docs/security/authentication-policy.md"]
     },
     {
       "id": "V7.1.3",
@@ -1606,12 +1557,8 @@
       "applicability": "applicable",
       "status": "verified_local",
       "rationale": "",
-      "control": [
-        "docs/security/authentication-policy.md"
-      ],
-      "evidence": [
-        "docs/security/authentication-policy.md"
-      ]
+      "control": ["docs/security/authentication-policy.md"],
+      "evidence": ["docs/security/authentication-policy.md"]
     },
     {
       "id": "V7.2.1",
@@ -2103,7 +2050,8 @@
         "tests/groups-postgres.test.ts",
         "tests/fixtures/actor-postgres.ts",
         "tests/fixtures/service-postgres.ts",
-        "docs/security/verification-2026-11-16.md"
+        "docs/security/verification-2026-11-16.md",
+        "tests/fixtures/delivery-process-postgres.ts"
       ]
     },
     {
@@ -2627,12 +2575,8 @@
       "applicability": "applicable",
       "status": "verified_local",
       "rationale": "El sobre propio usa AES-256-GCM y RSA-OAEP-SHA256; no extiende esta evidencia a proveedores externos.",
-      "control": [
-        "server/dispatch-envelope.ts"
-      ],
-      "evidence": [
-        "tests/dispatch-envelope.test.ts"
-      ]
+      "control": ["server/dispatch-envelope.ts"],
+      "evidence": ["tests/dispatch-envelope.test.ts", "tests/fixtures/delivery-process-postgres.ts"]
     },
     {
       "id": "V11.3.3",
@@ -2643,12 +2587,8 @@
       "applicability": "applicable",
       "status": "verified_local",
       "rationale": "El sobre propio usa AES-256-GCM y RSA-OAEP-SHA256; no extiende esta evidencia a proveedores externos.",
-      "control": [
-        "server/dispatch-envelope.ts"
-      ],
-      "evidence": [
-        "tests/dispatch-envelope.test.ts"
-      ]
+      "control": ["server/dispatch-envelope.ts"],
+      "evidence": ["tests/dispatch-envelope.test.ts", "tests/fixtures/delivery-process-postgres.ts"]
     },
     {
       "id": "V11.4.1",
@@ -3019,16 +2959,8 @@
       "applicability": "applicable",
       "status": "pending_activation",
       "rationale": "Nuevos enlaces productivos con fragmento y transmisión por POST. Compatibilidad temporal con enlaces query anteriores; requiere cierre de su ventana de vida y verificación de logs/proxies para declarar el control completo.",
-      "control": [
-        "public/auth-link.js",
-        "server/groups.ts",
-        "server/index.ts",
-        "src/main.tsx"
-      ],
-      "evidence": [
-        "tests/browser/auth-link.spec.ts",
-        "tests/groups-postgres.test.ts"
-      ]
+      "control": ["public/auth-link.js", "server/groups.ts", "server/index.ts", "src/main.tsx"],
+      "evidence": ["tests/browser/auth-link.spec.ts", "tests/groups-postgres.test.ts"]
     },
     {
       "id": "V14.2.2",
@@ -3119,12 +3051,8 @@
       "applicability": "applicable",
       "status": "blocked",
       "rationale": "Actualmente se persisten datos de trabajo y pendientes sensibles. Plazo, cuarentena y limpieza no equivalen a cumplir este requisito. Pendiente decisión explícita sobre retirar esa persistencia.",
-      "control": [
-        "public/offline-store.js"
-      ],
-      "evidence": [
-        "tests/browser/security-storage.spec.ts"
-      ]
+      "control": ["public/offline-store.js"],
+      "evidence": ["tests/browser/security-storage.spec.ts"]
     },
     {
       "id": "V15.1.1",
@@ -3411,14 +3339,8 @@
       "applicability": "applicable",
       "status": "verified_local",
       "rationale": "Formato estructurado y campos controlados; no se incorporan parámetros, URLs ni cuerpos privados a eventos de seguridad.",
-      "control": [
-        "server/security-events.ts",
-        "server/metrics.ts"
-      ],
-      "evidence": [
-        "tests/security-events.test.ts",
-        "tests/metrics.test.ts"
-      ]
+      "control": ["server/security-events.ts", "server/metrics.ts"],
+      "evidence": ["tests/security-events.test.ts", "tests/metrics.test.ts"]
     },
     {
       "id": "V16.4.2",

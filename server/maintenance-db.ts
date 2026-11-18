@@ -1,3 +1,4 @@
+import { observePoolErrors } from './pool-errors.js';
 import { randomBytes } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { drizzle as localDrizzle } from 'drizzle-orm/pglite';
@@ -11,7 +12,9 @@ import { scopedPglite, scopedPool, configureGroupSigning } from './group-context
 import { mkdir } from 'node:fs/promises';
 export async function connectMaintenance() {
   if (process.env.MIGRATION_DATABASE_URL) {
-    const pool = new pg.Pool({ connectionString: process.env.MIGRATION_DATABASE_URL });
+    const pool = observePoolErrors(
+      new pg.Pool({ connectionString: process.env.MIGRATION_DATABASE_URL }),
+    );
     const db = remoteDrizzle(pool, { schema, logger: queryLogger });
     await remoteMigrate(db, { migrationsFolder: 'migrations' });
     const key = (await pool.query('select secret from bandarlog_api.context_key where id')).rows[0]

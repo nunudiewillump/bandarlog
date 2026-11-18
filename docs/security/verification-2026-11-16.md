@@ -42,3 +42,13 @@ Los grupos comparten origen: XSS puede actuar con los permisos de las sesiones a
 No se suman pruebas repetidas como si fueran casos distintos. La primera ejecución CI no fue completamente correcta: señaló regresiones reales de navegador. Las correcciones se publican para una nueva verificación obligatoria, sin fusionar ni desplegar.
 
 La revisión posterior retiró DELETE físico de proyectos, comisiones y tareas mediante 0036: scouter y administración no pueden usar ese atajo SQL; el borrado lógico autorizado sigue funcionando. El arranque y el cutover rechazan un contrato SQL anterior a 0036, sin retirar credenciales. Estas condiciones se ensayan con el LOGIN real.
+
+## Actualización del 18 de noviembre
+
+- Compilación TypeScript/Vite correcta. Once pruebas específicas de pool, correo y cifrado correctas, sin omisiones.
+- Ocho pruebas PostgreSQL correctas, sin omisiones, en una base local desechable. La nueva prueba arranca el proceso real de envío con LOGIN propio, claves sintéticas y proveedores interceptados: no envía mensajes externos. Comprueba correo y push simultáneos de dos grupos, contenido y destinatarios, leases activos/caducados, confirmación con lease incorrecto, backoff, reinicio del proceso, recibos e idempotencia. Solo se reintenta el dispositivo fallido. No demuestra el comportamiento del proveedor real ni garantiza entrega exactamente una vez ante cualquier fallo externo.
+- Un ensayo termina una conexión ociosa del LOGIN HTTP en el laboratorio: el pool registra exclusivamente fecha/código y la siguiente consulta conserva el LOGIN limitado. Se evita que el error ocioso termine el proceso o exponga el objeto cliente con credenciales. No añade consultas periódicas.
+- El envío global descifra una vez por mensaje, en lugar de tres veces para asunto/texto/HTML; la prueba comprueba los tres campos. No hay medición de latencia o coste productivo.
+- El CI del commit anterior `8c141c1` completó sus 28 comprobaciones correctamente. Las adiciones de esta sección requieren su propio CI; ese resultado anterior no las valida.
+
+No se han modificado tutoriales, cuentas, datos ni recursos productivos. Siguen pendientes los bloqueos L2 enumerados arriba.

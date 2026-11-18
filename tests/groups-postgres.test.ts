@@ -1,3 +1,4 @@
+import { exerciseDeliveryProcess } from './fixtures/delivery-process-postgres';
 import { exerciseMaintenance } from './fixtures/maintenance-postgres';
 import { syntheticPasskey } from './fixtures/webauthn';
 import { exerciseRestore } from './fixtures/restore-postgres';
@@ -875,4 +876,8 @@ test('a disposable backup restores tasks/history and preserves the HTTP boundary
 
 test('maintenance scripts preserve mail, provision exclusive protected keys and retire the old LOGIN', async () => {
   await exerciseMaintenance(ownerPool, process.env.TEST_POSTGRES_URL!);
+});
+
+test('production delivery decrypts isolated email/push and preserves retries, leases and receipts across restart', async () => {
+  await exerciseDeliveryProcess(ownerPool, process.env.TEST_POSTGRES_URL!, TEST_CONTEXT_SECRET);
 });
