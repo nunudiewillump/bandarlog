@@ -15,6 +15,7 @@ for (const [name, path, mime] of [
 const model = stripTypeScriptTypes(await readFile(`${root}/usage-model.ts`, 'utf8'), {
   mode: 'strip',
 })
+  .replace(/[ \t]+$/gm, '')
   .replace(/^export (?=(?:const|function))/gm, '')
   .replace(/<\/script/gi, '<\\/script');
 html = html.replace('/* USAGE_MODEL */', model);
