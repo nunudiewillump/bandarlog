@@ -45,6 +45,32 @@ export function AuthScreen({
     [messages, setMessages] = useState<any[]>([]);
   const [standalone] = useState(installedApp);
   const [popupPending, setPopupPending] = useState(false);
+  const [googleOrigin, setGoogleOrigin] = useState(location.origin);
+  const preparedGoogle = useRef<{ proof: string; challenge: string } | null>(null);
+  const [googleReady, setGoogleReady] = useState(false);
+  useEffect(() => {
+    if (!google || !standalone || popupPending) return;
+    let disposed = false;
+    setGoogleReady(false);
+    const proof = Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) =>
+      b.toString(16).padStart(2, '0'),
+    ).join('');
+    void proofChallenge(proof)
+      .then((challenge) => {
+        if (!disposed) {
+          preparedGoogle.current = { proof, challenge };
+          setGoogleReady(true);
+        }
+      })
+      .catch(() => {
+        if (!disposed) setError('Usa el código de correo para entrar desde este dispositivo.');
+      });
+    return () => {
+      disposed = true;
+      preparedGoogle.current = null;
+    };
+  }, [google, standalone, popupPending]);
+
   const popupCleanup = useRef<(() => void) | null>(null);
   useEffect(() => () => popupCleanup.current?.(), []);
   function stopGoogle() {
@@ -54,6 +80,8 @@ export function AuthScreen({
     setBusy(false);
   }
   async function googleInApp() {
+    const prepared = preparedGoogle.current;
+    if (!prepared) return;
     const popup = window.open('about:blank', 'bandarlog-google-' + crypto.randomUUID(), 'popup');
     if (!popup) {
       setError(
@@ -64,35 +92,32 @@ export function AuthScreen({
     setBusy(true);
     setPopupPending(true);
     setError('');
-    const proof = Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) =>
-      b.toString(16).padStart(2, '0'),
-    ).join('');
+    const { proof, challenge } = prepared;
+    preparedGoogle.current = null;
+    setGoogleReady(false);
     let disposed = false,
-      consuming = false;
-    const timeout = window.setTimeout(() => {
-      stopGoogle();
-      setError('Vuelve a entrar con un código de correo desde esta aplicación.');
-    }, 180_000);
-    const receive = async (event: MessageEvent) => {
-      if (consuming || disposed) return;
-      if (
-        event.origin === location.origin &&
-        event.source === popup &&
-        event.data?.type === 'bandarlog.google.return' &&
-        event.data.error === true
-      ) {
-        stopGoogle();
-        setError('No se ha completado el acceso con Google. Utiliza el código de correo.');
+      consuming = false,
+      queuedTicket: string | null = null,
+      resumeAttempts = 0;
+    const exchange = async (ticket?: string) => {
+      if (disposed) return;
+      if (consuming) {
+        if (ticket) queuedTicket = ticket;
         return;
       }
-      const ticket = validGoogleReturn(event, popup, location.origin);
-      if (!ticket) return;
+      if (!ticket && resumeAttempts >= 4) return;
+      if (!ticket) resumeAttempts++;
       consuming = true;
-      // Remove the listener before exchanging: duplicate messages cannot create another session.
-      stopGoogle();
       setBusy(true);
       try {
-        const result = await api('/auth/google/return', 'POST', { ticket, proof });
+        const result = await api(
+          ticket ? '/auth/google/return' : '/auth/google/resume',
+          'POST',
+          ticket ? { ticket, proof } : { proof },
+        );
+        if (disposed) return;
+        if (result.pending) return;
+        stopGoogle();
         if (result.needsEmailVerification) {
           setEmail(result.email);
           setError('Para confirmar este correo, solicita un código con la misma dirección.');
@@ -101,25 +126,85 @@ export function AuthScreen({
           await onAuthenticated();
         }
       } catch {
-        setError('No se ha completado el acceso con Google. Utiliza el código de correo.');
+        if (!disposed) {
+          stopGoogle();
+          setError('No se ha completado el acceso con Google. Utiliza el código de correo.');
+        }
       } finally {
+        consuming = false;
         setBusy(false);
+        if (queuedTicket && !disposed) {
+          const next = queuedTicket;
+          queuedTicket = null;
+          void exchange(next);
+        }
       }
     };
+    const resume = () => {
+      if (!disposed && document.visibilityState !== 'hidden') void exchange();
+    };
+    const receive = (event: MessageEvent) => {
+      if (disposed) return;
+      if (
+        event.origin === googleOrigin &&
+        event.source === popup &&
+        event.data?.type === 'bandarlog.google.return' &&
+        event.data.error === true
+      ) {
+        stopGoogle();
+        setError('No se ha completado el acceso con Google. Utiliza el código de correo.');
+        return;
+      }
+      const ticket = validGoogleReturn(event, popup, googleOrigin);
+      if (ticket) {
+        try {
+          popup.postMessage({ type: 'bandarlog.google.ack', ticket }, event.origin);
+        } catch {}
+        void exchange(ticket);
+      }
+    };
+    // Native PWA/Safari returns can lose opener/postMessage. Resume only on
+    // foreground return or a closed popup, never by polling an idle hidden app.
+    const onFocus = () => {
+      if (document.visibilityState !== 'hidden') {
+        resumeAttempts = 0;
+        resume();
+      }
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+    window.addEventListener('message', receive);
+    const poll = window.setInterval(() => {
+      if (document.visibilityState === 'hidden' || !document.hasFocus()) return;
+      try {
+        if (popup.closed) resume();
+      } catch {}
+    }, 1000);
+    const timeout = window.setTimeout(() => {
+      stopGoogle();
+      setError('No se ha completado el acceso. Puedes entrar con un código de correo.');
+    }, 180_000);
     popupCleanup.current = () => {
       disposed = true;
       clearTimeout(timeout);
+      clearInterval(poll);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
       window.removeEventListener('message', receive);
       try {
         popup.close();
       } catch {}
     };
-    window.addEventListener('message', receive);
     try {
-      const challenge = await proofChallenge(proof);
-      if (!disposed)
+      if (!disposed) {
         popup.location.href =
-          groupBasePath() + '/api/auth/google/start?handoff_challenge=' + challenge;
+          groupBasePath() +
+          '/api/auth/google/start?handoff_challenge=' +
+          challenge +
+          '&handoff_origin=' +
+          encodeURIComponent(location.origin);
+        setBusy(false);
+      }
     } catch {
       stopGoogle();
       setError('No se ha podido completar el acceso. Utiliza el código de correo.');
@@ -129,6 +214,7 @@ export function AuthScreen({
   useEffect(() => {
     void api('/auth/config')
       .then((c) => {
+        setGoogleOrigin(new URL(c.googleOrigin || location.origin).origin);
         setGoogle(c.googleEnabled === true);
         setGroupName(c.group?.name || '');
       })
@@ -140,6 +226,7 @@ export function AuthScreen({
     return () => clearTimeout(t);
   }, [wait]);
   async function requestCode() {
+    stopGoogle();
     setBusy(true);
     setError('');
     try {
@@ -293,7 +380,7 @@ export function AuthScreen({
                   <button
                     type="button"
                     className="secondary google-access"
-                    disabled={busy}
+                    disabled={busy || popupPending || !googleReady}
                     onClick={() => void googleInApp()}
                   >
                     Continuar con Google
@@ -309,10 +396,15 @@ export function AuthScreen({
                 {popupPending && (
                   <div role="status">
                     <p>
-                      Completa Google en la ventana abierta. Si no vuelve a la aplicación, entra con
-                      un código de correo.
+                      Completa Google en la ventana abierta. Al volver a Bandarlog se comprobará el
+                      acceso.
                     </p>
-                    <button type="button" className="text-link" onClick={stopGoogle}>
+                    <button
+                      type="button"
+                      className="text-link"
+                      disabled={busy}
+                      onClick={stopGoogle}
+                    >
                       Usar código de correo
                     </button>
                   </div>

@@ -93,6 +93,64 @@ export async function exerciseServiceBoundary(owner: pg.Pool, url: string, secre
         const uid = (await owner.query('select id from users where group_id=$1 limit 1', [group]))
           .rows[0].id;
         if (role === 'identity') {
+          // The new routing origin needs its own transaction-bound proof, while
+          // NULL remains compatible with the old issuer during a rolling deploy.
+          for (const kind of ['old', 'signed', 'missing', 'tampered'] as const) {
+            await c.query('begin');
+            try {
+              await c.query(
+                "select set_config('bandarlog.group_id',$1,true),set_config('bandarlog.context_deadline',$2,true),set_config('bandarlog.context_proof',$3,true)",
+                [group, deadline, proof],
+              );
+              await c.query('set local role bandarlog_identity_app');
+              const xid = (await c.query('select txid_current()::text id')).rows[0].id;
+              const id = '5'.repeat(64),
+                expires = new Date(Date.now() + 60000);
+              const mac = (parts: string[]) =>
+                createHmac('sha256', Buffer.from(secret, 'hex'))
+                  .update(parts.join('\n'))
+                  .digest('hex');
+              await c.query("select set_config('bandarlog.identity_proof',$1,true)", [
+                mac([
+                  'google_states',
+                  group,
+                  xid,
+                  id,
+                  'browser',
+                  'nonce',
+                  'verifier',
+                  String(expires.getTime()),
+                  '',
+                ]),
+              ]);
+              if (kind === 'signed' || kind === 'tampered')
+                await c.query("select set_config('bandarlog.oauth_origin_proof',$1,true)", [
+                  mac(['google_state_origin', group, xid, id, 'https://bandarlog.app']),
+                ]);
+              const insert = () =>
+                c.query(
+                  "insert into google_states(group_id,id,browser,nonce,verifier,expires,return_origin) values($1,$2,'browser','nonce','verifier',$3,$4)",
+                  [
+                    group,
+                    id,
+                    expires,
+                    kind === 'old'
+                      ? null
+                      : kind === 'tampered'
+                        ? 'https://evil.example'
+                        : 'https://bandarlog.app',
+                  ],
+                );
+              if (kind === 'missing' || kind === 'tampered')
+                await assert.rejects(insert(), {
+                  code: '42501',
+                  message: 'invalid return origin authority',
+                });
+              else assert.equal((await insert()).rowCount, 1);
+            } finally {
+              await c.query('rollback');
+            }
+          }
           await assert.rejects(
             run(
               "insert into sessions(group_id,id,user_id,csrf,expires,absolute_expires_at) values($1,$2,$3,'x',now()+interval '1 day',now()+interval '2 days')",

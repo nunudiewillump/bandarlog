@@ -290,6 +290,7 @@ export const googleIdentities = pgTable(
 export const googleStates = pgTable('google_states', {
   groupId: groupColumn(),
   id: text().primaryKey(),
+  returnOrigin: text('return_origin'),
   handoffChallenge: text('handoff_challenge'),
   browser: text().notNull(),
   nonce: text().notNull(),

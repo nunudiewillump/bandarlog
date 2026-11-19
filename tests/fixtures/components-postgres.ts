@@ -54,14 +54,26 @@ export async function startComponents(testUrl: string, contextSecret: string) {
         RESEND_API_KEY: undefined,
         GMAIL_CLIENT_SECRET: undefined,
         GMAIL_REFRESH_TOKEN: undefined,
-        GOOGLE_LOGIN_CLIENT_ID: '',
-        GOOGLE_LOGIN_CLIENT_SECRET: '',
+        GOOGLE_LOGIN_CLIENT_ID: mode === 'delivery' ? '' : 'synthetic-google-client',
+        GOOGLE_LOGIN_CLIENT_SECRET: mode === 'identity' ? 'synthetic-google-secret' : '',
         MIGRATION_DATABASE_URL: undefined,
+        SYNTHETIC_GOOGLE_PROVIDER: mode === 'identity' ? '1' : undefined,
       };
-      const child = spawn(process.execPath, ['--import', 'tsx', 'server/index.ts'], {
-        env,
-        stdio: ['ignore', 'pipe', 'pipe'],
-      });
+      const child = spawn(
+        process.execPath,
+        [
+          '--import',
+          'tsx',
+          ...(mode === 'identity'
+            ? ['--import', './tests/fixtures/synthetic-google-provider.ts']
+            : []),
+          'server/index.ts',
+        ],
+        {
+          env,
+          stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+        },
+      );
       children.push(child);
       child.stdout?.on('data', (x) => (logs += x));
       child.stderr?.on('data', (x) => (logs += x));
