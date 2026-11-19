@@ -41,6 +41,12 @@ test('historical responsibility migration preserves data and enforces live task 
         ),
       );
     const before = await snapshot();
+    // New additive telemetry must preserve historical content without inventing events.
+    before[6] = before[6].map((row) => ({
+      ...row,
+      completed_transition: false,
+      checklist_marks: 0,
+    }));
     await migrate(db, { migrationsFolder: 'migrations' });
     await client.query("select set_config('bandarlog.group_id','rosales-702',false)");
     assert.deepEqual(await snapshot(), before);

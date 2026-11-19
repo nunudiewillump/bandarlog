@@ -120,6 +120,37 @@ export function globalOperations(connection: any, scoped: any) {
           ? sql`select bandarlog_api.platform_next_v2() as value`
           : sql`select bandarlog_api.platform_next() as value`,
       ),
+    adminAuth: (action: string, body: string, deadline: number, proof: string) =>
+      one(
+        sql`select bandarlog_api.platform_admin_auth(${action},${body},${deadline},${proof}) as value`,
+      ),
+    adminDenial: (method: string, count: number) =>
+      one(sql`select bandarlog_api.platform_admin_denial(${method},${count}) as value`),
+    adminPrune: () => one(sql`select bandarlog_api.platform_admin_prune() as value`),
+    adminMe: (token: string) => one(sql`select bandarlog_api.platform_admin_me(${token}) as value`),
+    adminClose: (token: string, csrf: string) =>
+      one(sql`select bandarlog_api.platform_admin_close(${token},${csrf}) as value`),
+    adminRead: (
+      token: string,
+      view: string,
+      days: number,
+      cursor: string,
+      limit: number,
+      filter: string,
+    ) =>
+      one(
+        sql`select bandarlog_api.platform_admin_read(${token},${view},${days},${cursor},${limit},${filter}) as value`,
+      ),
+    adminRequest: (token: string, id: string) =>
+      one(sql`select bandarlog_api.platform_admin_request(${token},${id}) as value`),
+    adminReview: (token: string, csrf: string, body: string, deadline: number, proof: string) =>
+      one(
+        sql`select bandarlog_api.platform_admin_review(${token},${csrf},${body},${deadline},${proof}) as value`,
+      ),
+    adminTestMail: (token: string, csrf: string, body: string, deadline: number, proof: string) =>
+      one(
+        sql`select bandarlog_api.platform_admin_test_mail(${token},${csrf},${body},${deadline},${proof}) as value`,
+      ),
     health: () => connection.execute(sql`select 1`),
   };
 }

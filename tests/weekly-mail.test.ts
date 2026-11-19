@@ -80,3 +80,27 @@ test('upcoming deadlines use Madrid calendar days over daylight-saving changes',
   assert.match(result.body, /Tarea in/);
   assert.ok(!result.body.includes('Tarea out'));
 });
+
+test('weekly progress uses real completion dates and avoids empty or unchanged non-actionable digests', () => {
+  const old = weeklyMail({ ...input, tasks: [task('old', 'done', '2026-11-01T00:00:00Z')] });
+  assert.equal(old.shouldSend, false);
+  const recent = weeklyMail({
+    ...input,
+    tasks: [
+      { ...task('recent', 'done', '2026-11-01T00:00:00Z'), completedAt: '2026-11-15T10:00:00Z' },
+    ],
+  });
+  assert.equal(recent.shouldSend, true);
+  assert.match(recent.body, /1 tareas terminadas esta semana/);
+  assert.ok(
+    recent.html.indexOf('Necesita atención') < recent.html.indexOf('Lo que habéis sacado adelante'),
+  );
+  const future = weeklyMail({
+    ...input,
+    tasks: [
+      { ...task('future', 'done', '2026-11-01T00:00:00Z'), completedAt: '2026-11-17T10:00:00Z' },
+    ],
+  });
+  assert.equal(future.shouldSend, false);
+  assert.equal(weeklyMail({ ...input, tasks: [] }).shouldSend, false);
+});

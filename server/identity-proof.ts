@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { component } from './components.js';
 import { groupContext } from './group-context.js';
 const fields: Record<string, string[]> = {
+  session_metric: ['id', 'authMethod'],
   google_state_origin: ['id', 'returnOrigin'],
   notifications: ['id', 'email', 'subject', 'body', 'html', 'status'],
   tokens: ['id', 'email', 'expires'],
@@ -38,7 +39,10 @@ export async function identityProof(
   tx: any,
   table: string,
   values: Record<string, unknown>,
-  setting: 'bandarlog.identity_proof' | 'bandarlog.oauth_origin_proof' = 'bandarlog.identity_proof',
+  setting:
+    | 'bandarlog.identity_proof'
+    | 'bandarlog.oauth_origin_proof'
+    | 'bandarlog.metric_proof' = 'bandarlog.identity_proof',
 ) {
   if (component() !== 'identity') return;
   const key = process.env.GROUP_CONTEXT_SECRET;

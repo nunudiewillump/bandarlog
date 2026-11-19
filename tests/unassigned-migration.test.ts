@@ -30,10 +30,17 @@ test('unassigned migration preserves existing data and membership integrity whil
     const snapshot = async () =>
       Promise.all(
         ['users', 'projects', 'commissions', 'members', 'tasks', 'assignments', 'activity'].map(
-          async (table) => (await pg.query(`select * from ${table} order by id`)).rows,
+          async (table) =>
+            (await pg.query<Record<string, unknown>>(`select * from ${table} order by id`)).rows,
         ),
       );
     const before = await snapshot();
+    // New additive telemetry must preserve historical content without inventing events.
+    before[6] = before[6].map((row) => ({
+      ...row,
+      completed_transition: false,
+      checklist_marks: 0,
+    }));
     await assert.rejects(pg.exec("delete from assignments where id='assignment'"));
     await migrate(db, { migrationsFolder: 'migrations' });
     await pg.query("select set_config('bandarlog.group_id','rosales-702',false)");

@@ -167,6 +167,12 @@ test('existing group migration preserves IDs, memberships, completed work and hi
         ),
       );
     const old = await snapshot();
+    // New additive telemetry must preserve historical content without inventing events.
+    old[6] = old[6].map((row) => ({
+      ...row,
+      completed_transition: false,
+      checklist_marks: 0,
+    }));
     await migrate(db, { migrationsFolder: 'migrations' });
     await provisionTestContext(client);
     assert.deepEqual(await snapshot(), old);

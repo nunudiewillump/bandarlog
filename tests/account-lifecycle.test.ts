@@ -166,9 +166,31 @@ test('bug review: weekly summaries exclude disabled administrators and coordinat
     assert.equal((await request(`/users/${target.id}`, 'DELETE')).status, 200);
     removed.push(target);
   }
+  // Startup may legitimately send an earlier digest while the accounts are still active.
+  // Use a new project after removal so old mail and weekly dedupe cannot hide a regression.
+  assert.equal((await request('/notifications/process', 'POST', {})).status, 200);
+  const project = await request('/projects', 'POST', {
+    name: 'Resumen posterior a las bajas',
+    starts: '2026-01-01',
+    ends: '2028-12-31',
+  });
+  assert.equal(project.status, 201);
+  const commission = await request('/commissions', 'POST', {
+    name: 'Seguimiento de bajas',
+    projectId: project.body.id,
+    members: [{ userId: 'alex', role: 'responsible' }],
+  });
+  assert.equal(commission.status, 201);
+  const task = await request('/tasks', 'POST', {
+    title: 'Trabajo que exige atención',
+    commissionId: commission.body.id,
+    due: '2026-01-01T12:00:00Z',
+    responsibleIds: ['alex'],
+  });
+  assert.equal(task.status, 201);
   assert.equal((await request('/notifications/process', 'POST', {})).status, 200);
   const weekly = (await request('/dev/mail')).body.filter((m: any) =>
-    m.subject.startsWith('Resumen semanal'),
+    m.subject === 'Resumen semanal · Resumen posterior a las bajas',
   );
   assert.ok(weekly.some((m: any) => m.email === 'alex@example.test'));
   for (const target of removed) {
