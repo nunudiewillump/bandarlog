@@ -520,6 +520,88 @@ test('production public pages and legacy-domain redirects preserve safe links wi
       (await api('/api/auth/google/return', 'POST', { ticket, proof: 'f'.repeat(64) }, a)).status,
       403,
     );
+    assert.equal(
+      (
+        await api(
+          '/api/auth/google/start?handoff_challenge=' +
+            digest(proof) +
+            '&handoff_origin=' +
+            encodeURIComponent('https://evil.example'),
+          'GET',
+          undefined,
+          a,
+        )
+      ).status,
+      400,
+    );
+    const start = await api(
+      '/api/auth/google/start?handoff_challenge=' +
+        digest(proof) +
+        '&handoff_origin=' +
+        encodeURIComponent('https://bandarlog.app'),
+      'GET',
+      undefined,
+      a,
+    );
+    assert.equal(start.status, 302);
+    const state = new URL(start.headers.get('location')!).searchParams.get('state')!;
+    const storedState = (
+      await ownerDb
+        .select()
+        .from(s.googleStates)
+        .where(eq(s.googleStates.id, digest(state)))
+    )[0];
+    assert.equal(storedState.returnOrigin, 'https://bandarlog.app');
+    assert.equal(storedState.handoffChallenge, digest(proof));
+    const flowCookie = start.headers
+      .getSetCookie()
+      .find((c) => /^__Host-bandarlog-google-[a-f0-9]{64}=/.test(c))!
+      .split(';')[0];
+    const syntheticEmail = (await ownerDb.select().from(s.users).where(eq(s.users.id, a.userId)))[0]
+      .email;
+    const code =
+      'synthetic.' +
+      Buffer.from(
+        JSON.stringify({
+          nonce: storedState.nonce,
+          sub: 'synthetic-provider-' + a.userId,
+          email: syntheticEmail,
+          hd: 'example.test',
+        }),
+      ).toString('base64url');
+    const callback = await api(
+      '/api/auth/google/callback?state=' + state + '&code=' + code,
+      'GET',
+      undefined,
+      { ...a, cookie: flowCookie },
+      true,
+    );
+    assert.equal(callback.status, 200);
+    const issuedResume = callback.headers
+      .getSetCookie()
+      .find((c) => c.startsWith('__Host-bandarlog-google-resume-'))!;
+    assert.ok(
+      issuedResume &&
+        issuedResume.includes('HttpOnly') &&
+        issuedResume.includes('Secure') &&
+        issuedResume.includes('SameSite=Lax') &&
+        issuedResume.includes('Max-Age=60') &&
+        !issuedResume.includes('Domain='),
+    );
+    assert.ok(callback.data.includes('https://bandarlog.app'));
+    const fullResume = await api(
+      '/api/auth/google/resume',
+      'POST',
+      { proof },
+      { ...a, cookie: a.cookie + '; ' + issuedResume.split(';')[0] },
+    );
+    assert.equal(fullResume.status, 200, 'signed provider callback resumes without postMessage');
+    a.cookie = fullResume.headers
+      .getSetCookie()
+      .find((c) => /^__Host-bandarlog-[a-f0-9]{32}=/.test(c))!
+      .split(';')[0];
+    a.csrf = (await api('/api/me', 'GET', undefined, a)).data.csrf;
+
     const returned = await api('/api/auth/google/return', 'POST', { ticket, proof }, a);
     assert.equal(returned.status, 200);
     a.cookie = returned.headers
@@ -543,6 +625,83 @@ test('production public pages and legacy-domain redirects preserve safe links wi
         ),
     );
     assert.equal((await api('/api/auth/google/return', 'POST', { ticket, proof }, a)).status, 403);
+    // A chosen proof in somebody else's Google URL must not be enough to log in.
+    const resumeProof = randomBytes(32).toString('hex'),
+      resumeTicket = randomBytes(32).toString('hex');
+    await ownerDb.insert(s.googleHandoffs).values({
+      id: digest(resumeTicket),
+      groupId: groupA,
+      challenge: digest(resumeProof),
+      userId: a.userId,
+      expires: new Date(Date.now() + 60000).toISOString(),
+    });
+    const resumeName =
+      '__Host-bandarlog-google-resume-' + a.base.split('/').at(-1) + '-' + digest(resumeProof);
+    assert.equal(
+      (await api('/api/auth/google/resume', 'POST', { proof: resumeProof }, a)).status,
+      202,
+      'proof alone cannot resume',
+    );
+    const wrongBrowser = {
+      ...a,
+      cookie: a.cookie + '; ' + resumeName + '=' + randomBytes(32).toString('hex'),
+    };
+    assert.equal(
+      (await api('/api/auth/google/resume', 'POST', { proof: resumeProof }, wrongBrowser)).status,
+      202,
+      'another browser cookie cannot resume',
+    );
+    const bound = { ...a, cookie: a.cookie + '; ' + resumeName + '=' + resumeTicket };
+    assert.equal(
+      (
+        await api(
+          '/api/auth/google/resume',
+          'POST',
+          { proof: resumeProof },
+          {
+            ...b,
+            cookie:
+              b.cookie +
+              '; __Host-bandarlog-google-resume-' +
+              b.base.split('/').at(-1) +
+              '-' +
+              digest(resumeProof) +
+              '=' +
+              resumeTicket,
+          },
+        )
+      ).status,
+      202,
+      'another group cannot resume',
+    );
+    const resumedGoogle = await api(
+      '/api/auth/google/resume',
+      'POST',
+      { proof: resumeProof },
+      bound,
+    );
+    assert.equal(resumedGoogle.status, 200);
+    a.cookie = resumedGoogle.headers
+      .getSetCookie()
+      .find((c) => /^__Host-bandarlog-[a-f0-9]{32}=/.test(c))!
+      .split(';')[0];
+    a.csrf = (await api('/api/me', 'GET', undefined, a)).data.csrf;
+    assert.equal(
+      (await api('/api/auth/google/resume', 'POST', { proof: resumeProof }, bound)).status,
+      202,
+      'one use only',
+    );
+    assert.equal(
+      (
+        await api(
+          '/api/auth/google/return',
+          'POST',
+          { ticket: resumeTicket, proof: resumeProof },
+          a,
+        )
+      ).status,
+      403,
+    );
     const concurrentTicket = randomBytes(32).toString('hex');
     await ownerDb.insert(s.googleHandoffs).values({
       id: digest(concurrentTicket),
@@ -553,9 +712,27 @@ test('production public pages and legacy-domain redirects preserve safe links wi
     });
     const concurrent = await Promise.all([
       api('/api/auth/google/return', 'POST', { ticket: concurrentTicket, proof }, a),
-      api('/api/auth/google/return', 'POST', { ticket: concurrentTicket, proof }, a),
+      api(
+        '/api/auth/google/resume',
+        'POST',
+        { proof },
+        {
+          ...a,
+          cookie:
+            a.cookie +
+            '; __Host-bandarlog-google-resume-' +
+            a.base.split('/').at(-1) +
+            '-' +
+            digest(proof) +
+            '=' +
+            concurrentTicket,
+        },
+      ),
     ]);
-    assert.deepEqual(concurrent.map((r) => r.status).sort(), [200, 403]);
+    assert.equal(concurrent.filter((r) => r.status === 200).length, 1);
+    assert.ok(
+      concurrent.filter((r) => r.status !== 200).every((r) => [202, 403].includes(r.status)),
+    );
     a.cookie = concurrent
       .find((r) => r.status === 200)!
       .headers.getSetCookie()
@@ -700,6 +877,77 @@ test('production public pages and legacy-domain redirects preserve safe links wi
       const legacyPrivate = (
         await ownerDb.select().from(s.groups).where(eq(s.groups.id, 'rosales-702'))
       )[0].privateId;
+      const legacyProof = randomBytes(32).toString('hex');
+      const legacyChallenge = createHash('sha256').update(legacyProof).digest('hex');
+      const legacyStart = await request(
+        '/g/' +
+          legacyPrivate +
+          '/api/auth/google/start?handoff_challenge=' +
+          legacyChallenge +
+          '&handoff_origin=' +
+          encodeURIComponent('https://' + legacy),
+        'bandarlog.app',
+      );
+      assert.equal(legacyStart.status, 302);
+      const legacyState = new URL(legacyStart.headers.get('location')!).searchParams.get('state')!;
+      const legacyStateRow = (
+        await ownerDb
+          .select()
+          .from(s.googleStates)
+          .where(eq(s.googleStates.id, createHash('sha256').update(legacyState).digest('hex')))
+      )[0];
+      assert.equal(legacyStateRow.returnOrigin, 'https://' + legacy);
+      const legacyAccount = (
+        await ownerDb.select().from(s.users).where(eq(s.users.id, 'entry-production-user'))
+      )[0];
+      const legacyCode =
+        'synthetic.' +
+        Buffer.from(
+          JSON.stringify({
+            nonce: legacyStateRow.nonce,
+            sub: 'synthetic-legacy-' + legacyAccount.id,
+            email: legacyAccount.email,
+            hd: legacyAccount.email.split('@')[1],
+          }),
+        ).toString('base64url');
+      const legacyFlowCookie = legacyStart.headers
+        .getSetCookie()
+        .find((c) => /^__Host-bandarlog-google-[a-f0-9]{64}=/.test(c))!
+        .split(';')[0];
+      const legacyCallback = await request(
+        '/api/auth/google/callback?state=' + legacyState + '&code=' + legacyCode,
+        'bandarlog.app',
+        'GET',
+        undefined,
+        legacyFlowCookie,
+      );
+      assert.equal(legacyCallback.status, 200);
+      const legacyDocument = await legacyCallback.text();
+      assert.ok(
+        legacyDocument.includes(JSON.stringify('https://' + legacy)),
+        'postMessage targets the initiating legacy origin',
+      );
+      const legacyTicket = legacyDocument.match(/"ticket":"([a-f0-9]{64})"/)![1];
+      const legacyReturn = await request(
+        '/g/' + legacyPrivate + '/api/auth/google/return',
+        legacy,
+        'POST',
+        JSON.stringify({ ticket: legacyTicket, proof: legacyProof }),
+      );
+      assert.equal(legacyReturn.status, 200, 'legacy PWA can consume its own returned proof');
+      const canonicalGoogle = await request(
+        '/g/' + legacyPrivate + '/api/auth/google/start?handoff_challenge=' + 'd'.repeat(64),
+        legacy,
+      );
+      assert.equal(canonicalGoogle.status, 308);
+      assert.equal(
+        new URL(canonicalGoogle.headers.get('location')!).origin,
+        'https://bandarlog.app',
+      );
+      assert.ok(
+        !canonicalGoogle.headers.get('set-cookie'),
+        'state cookies are minted only after canonical navigation',
+      );
       const renewed = await request(
         '/api/me',
         legacy,

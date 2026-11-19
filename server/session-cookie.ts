@@ -31,3 +31,15 @@ export function googleBrowserCookieName(state?: string) {
     ? '__Host-bandarlog-google-' + createHash('sha256').update(state).digest('hex')
     : 'bandarlog_google';
 }
+
+// One-use OAuth return cookie, never a login session. The second secret prevents
+// a chosen challenge in somebody else's OAuth URL from authorizing its creator.
+export function googleResumeCookieName(challenge: string) {
+  return (
+    (secure() ? '__Host-' : '') +
+    'bandarlog-google-resume-' +
+    (groupContext.getStore()?.privateId || 'legacy') +
+    '-' +
+    challenge
+  );
+}

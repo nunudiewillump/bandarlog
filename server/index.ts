@@ -1,3 +1,4 @@
+import { googleResumeCookieName } from './session-cookie.js';
 import { securityEvents } from './security-events.js';
 import {
   sessionBearer,
@@ -130,7 +131,9 @@ site.use((q, r, next) => {
   if (
     oldHost &&
     ['GET', 'HEAD'].includes(q.method) &&
-    (publicRoute || anonymousHome || q.path === '/api/auth/google/start')
+    (publicRoute ||
+      anonymousHome ||
+      /^(?:\/g\/[a-f0-9]{32})?\/api\/auth\/google\/start$/.test(q.path))
   ) {
     if (!q.originalUrl.startsWith('/')) return r.sendStatus(400);
     return r.redirect(308, appUrl + q.originalUrl);
@@ -321,6 +324,13 @@ const userProjection = {
 };
 async function issueInsert(table: any, values: Record<string, unknown>, tx?: any, ignore = false) {
   const write = async (connection: any) => {
+    if (table === s.googleStates && values.returnOrigin)
+      await identityProof(
+        connection,
+        'google_state_origin',
+        { id: values.id, returnOrigin: values.returnOrigin },
+        'bandarlog.oauth_origin_proof',
+      );
     await identityProof(connection, getTableName(table), values);
     const insert = connection.insert(table).values(values);
     return ignore ? insert.onConflictDoNothing() : insert;
@@ -764,7 +774,12 @@ const googleEnabled = Boolean(
 const challengeSecret =
   process.env.AUTH_CHALLENGE_SECRET || 'bandarlog-local-development-challenge-key';
 app.get('/api/auth/config', (_q, r) =>
-  r.json({ googleEnabled, codeEnabled: true, group: { name: groupContext.getStore()!.name } }),
+  r.json({
+    googleEnabled,
+    googleOrigin: new URL(appUrl).origin,
+    codeEnabled: true,
+    group: { name: groupContext.getStore()!.name },
+  }),
 );
 app.post('/api/auth/code/request', async (q, r) => {
   const input = parse(
@@ -979,6 +994,15 @@ app.get('/api/auth/google/start', async (q, r) => {
     return r
       .status(503)
       .json({ error: 'El acceso con Google no está configurado. Usa tu correo.' });
+  const returnOrigin = q.query.handoff_origin === undefined ? appUrl : q.query.handoff_origin;
+  if (
+    typeof returnOrigin !== 'string' ||
+    !(
+      returnOrigin === appUrl ||
+      (groupContext.getStore()!.id === legacyGroup!.id && legacyOrigins.includes(returnOrigin))
+    )
+  )
+    return r.status(400).json({ error: 'Origen de acceso no válido.' });
   const state = secret(),
     browser = secret(),
     nonce = secret(),
@@ -988,6 +1012,7 @@ app.get('/api/auth/google/start', async (q, r) => {
     s.googleStates,
     {
       handoffChallenge: typeof handoffChallenge === 'string' ? handoffChallenge : null,
+      returnOrigin: typeof handoffChallenge === 'string' ? returnOrigin : null,
       id: hash(state),
       browser: hash(browser),
       nonce,
@@ -1036,6 +1061,7 @@ app.get('/api/auth/google/callback', async (q, r) => {
     { path: prod ? '/' : '/api/auth/google', secure: prod },
   );
   let popupChallenge: string | null = null;
+  let returnOrigin = appUrl;
   try {
     if (
       !googleEnabled ||
@@ -1056,6 +1082,15 @@ app.get('/api/auth/google/callback', async (q, r) => {
       )
       .returning();
     popupChallenge = flow?.handoffChallenge || null;
+    if (flow?.returnOrigin) {
+      if (!(
+        flow.returnOrigin === appUrl ||
+        (groupContext.getStore()!.id === legacyGroup!.id &&
+          legacyOrigins.includes(flow.returnOrigin))
+      ))
+        throw Error('Invalid return origin');
+      returnOrigin = flow.returnOrigin;
+    }
     if (!flow || q.query.error || typeof q.query.code !== 'string' || q.query.code.length > 4096)
       throw new Error('OAuth cancelled');
     const response = await fetch('https://oauth2.googleapis.com/token', {
@@ -1100,12 +1135,20 @@ app.get('/api/auth/google/callback', async (q, r) => {
         },
         void 0,
       );
-      const page = googleReturnPage(appUrl, ticket);
+      r.cookie(googleResumeCookieName(popupChallenge!), ticket, {
+        httpOnly: true,
+        secure: prod,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: GOOGLE_RETURN_LIFETIME,
+      });
+      const page = googleReturnPage(returnOrigin, ticket);
       return r
         .set({
           'Cache-Control': 'no-store',
           'Referrer-Policy': 'no-referrer',
           'Content-Security-Policy': page.csp,
+          'Cross-Origin-Opener-Policy': 'unsafe-none',
         })
         .type('html')
         .send(page.html);
@@ -1161,12 +1204,13 @@ app.get('/api/auth/google/callback', async (q, r) => {
   } catch {
     r.locals.securityRejected = true;
     if (popupChallenge) {
-      const page = googleReturnPage(appUrl);
+      const page = googleReturnPage(returnOrigin);
       return r
         .set({
           'Cache-Control': 'no-store',
           'Referrer-Policy': 'no-referrer',
           'Content-Security-Policy': page.csp,
+          'Cross-Origin-Opener-Policy': 'unsafe-none',
         })
         .type('html')
         .send(page.html);
@@ -1174,28 +1218,43 @@ app.get('/api/auth/google/callback', async (q, r) => {
     r.redirect(`${groupUrl(appUrl)}?auth_error=google`);
   }
 });
-app.post('/api/auth/google/return', async (q, r) => {
+async function finishGoogleReturn(q: express.Request, r: express.Response, resume: boolean) {
   const input = parse(
     z
       .object({
-        ticket: z.string().regex(/^[a-f0-9]{64}$/),
+        ticket: z
+          .string()
+          .regex(/^[a-f0-9]{64}$/)
+          .optional(),
         proof: z.string().regex(/^[a-f0-9]{64}$/),
       })
       .strict(),
     q.body,
   );
+  if (!resume && !input.ticket) fail(400, 'Solicitud de acceso no válida.');
+  if (resume && input.ticket) fail(400, 'Solicitud de acceso no válida.');
+  const resumeCookieName = googleResumeCookieName(hash(input.proof));
+  const resumeTicket = resume ? cookie(q, resumeCookieName) : input.ticket;
+  if (resume && (!resumeTicket || !/^[a-f0-9]{64}$/.test(resumeTicket)))
+    return r.status(202).json({ pending: true });
   const result = await db.transaction(async (tx) => {
+    // Both independent browser secrets are required. A chosen proof/challenge
+    // alone can never consume another browser's completed Google flow.
+    const ticketId = hash(resumeTicket!);
     const [grant] = await tx
       .delete(s.googleHandoffs)
       .where(
         and(
-          eq(s.googleHandoffs.id, hash(input.ticket)),
+          eq(s.googleHandoffs.id, ticketId),
           eq(s.googleHandoffs.challenge, hash(input.proof)),
           sql`${s.googleHandoffs.expires}>now()`,
         ),
       )
       .returning();
-    if (!grant) fail(403, 'El acceso ha caducado. Solicita un código de correo.');
+    if (!grant) {
+      if (resume) return { pending: true };
+      fail(403, 'El acceso ha caducado. Solicita un código de correo.');
+    }
     if (grant.userId) return { session: await createSession(tx, grant.userId) };
     const link = secret();
     await issueInsert(
@@ -1210,6 +1269,8 @@ app.post('/api/auth/google/return', async (q, r) => {
     );
     return { link, email: grant.googleEmail };
   });
+  if ('pending' in result) return r.status(202).json({ pending: true });
+  r.clearCookie(resumeCookieName, { path: '/', secure: prod });
   if (result.session) {
     sessionCookie(r, result.session.raw);
     return r.json({ ok: true });
@@ -1222,7 +1283,9 @@ app.post('/api/auth/google/return', async (q, r) => {
     path: '/',
   });
   r.json({ needsEmailVerification: true, email: result.email });
-});
+}
+app.post('/api/auth/google/return', (q, r) => finishGoogleReturn(q, r, false));
+app.post('/api/auth/google/resume', (q, r) => finishGoogleReturn(q, r, true));
 if (!prod)
   app.get('/api/dev/mail', async (_q, r) => {
     r.json(await db.select().from(s.notifications).orderBy(s.notifications.createdAt));

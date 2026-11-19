@@ -22,7 +22,7 @@ export function securityEvents(
       ? 'recovery'
       : /\/passkeys\/(?:register|authenticate)\/(?:options|verify)$|\/passkeys\/remove$/.test(path)
         ? 'passkey'
-        : /\/auth\/(?:request|verify|code\/(?:request|verify)|google\/return|google\/callback)$/.test(
+        : /\/auth\/(?:request|verify|code\/(?:request|verify)|google\/(?:return|resume|callback))$/.test(
               path,
             )
           ? 'primary'

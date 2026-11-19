@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { component } from './components.js';
 import { groupContext } from './group-context.js';
 const fields: Record<string, string[]> = {
+  google_state_origin: ['id', 'returnOrigin'],
   notifications: ['id', 'email', 'subject', 'body', 'html', 'status'],
   tokens: ['id', 'email', 'expires'],
   sessions: [
@@ -33,7 +34,12 @@ const fields: Record<string, string[]> = {
 const transactionIds = new WeakMap<object, string>();
 // Explicitly called at trusted issuance sites AFTER their credential checks.
 // It must never be installed as an automatic SQL/driver signer.
-export async function identityProof(tx: any, table: string, values: Record<string, unknown>) {
+export async function identityProof(
+  tx: any,
+  table: string,
+  values: Record<string, unknown>,
+  setting: 'bandarlog.identity_proof' | 'bandarlog.oauth_origin_proof' = 'bandarlog.identity_proof',
+) {
   if (component() !== 'identity') return;
   const key = process.env.GROUP_CONTEXT_SECRET;
   if (!key || !fields[table]) throw Error('Falta la autoridad de emisión.');
@@ -62,5 +68,5 @@ export async function identityProof(tx: any, table: string, values: Record<strin
     }),
   ].join('\n');
   const proof = createHmac('sha256', Buffer.from(key, 'hex')).update(payload).digest('hex');
-  await tx.execute(sql`select set_config('bandarlog.identity_proof',${proof},true)`);
+  await tx.execute(sql`select set_config(${setting},${proof},true)`);
 }
