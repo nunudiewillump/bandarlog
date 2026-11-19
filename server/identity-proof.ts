@@ -15,32 +15,6 @@ const fields: Record<string, string[]> = {
     'primaryVerifiedAt',
     'mfaVerifiedAt',
   ],
-  passkey_audit: ['userId', 'action'],
-  passkey_accounts: ['userId', 'webauthnId'],
-  passkeys: [
-    'id',
-    'userId',
-    'publicKey',
-    'counter',
-    'rpId',
-    'transports',
-    'deviceType',
-    'backedUp',
-    'name',
-    'createdAt',
-  ],
-  passkeys_update: ['id', 'counter', 'lastUsedAt'],
-  passkey_challenges: [
-    'id',
-    'userId',
-    'sessionId',
-    'challenge',
-    'origin',
-    'rpId',
-    'purpose',
-    'expires',
-  ],
-  passkey_recovery: ['id', 'userId', 'createdAt'],
   auth_challenges: [
     'email',
     'id',
@@ -69,7 +43,7 @@ export async function identityProof(tx: any, table: string, values: Record<strin
     transactionIds.set(tx, xid);
   }
   const payload = [
-    table === 'passkeys_update' ? 'passkeys' : table,
+    table,
     groupContext.getStore()!.id,
     xid,
     ...fields[table].map((k) => {

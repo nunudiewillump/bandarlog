@@ -58,17 +58,19 @@ export async function connect() {
       if (
         mode === 'http' &&
         process.env.NODE_ENV === 'production' &&
-        !(await connection.execute(sql`select bandarlog_api.mfa_enforced() as enabled`)).rows[0]
+        (await connection.execute(sql`select bandarlog_api.mfa_enforced() as enabled`)).rows[0]
           ?.enabled
       )
-        throw Error('La activación segura requiere MFA habilitado en PostgreSQL.');
+        throw Error(
+          'Aplica la migración de acceso simple antes de arrancar: MFA no debe estar exigido.',
+        );
       if (mode !== 'development') {
         const version = (
           await connection.execute(sql`select bandarlog_api.runtime_contract_version() as version`)
         ).rows[0]?.version;
-        if (typeof version !== 'number' || version < 36)
+        if (typeof version !== 'number' || version < 37)
           throw Error(
-            'El contrato SQL requiere completar las migraciones de mantenimiento hasta 0036 antes del arranque.',
+            'El contrato SQL requiere completar las migraciones de mantenimiento hasta 0037 antes del arranque.',
           );
       }
       const db = remoteDrizzle(scopedPool(pool) as pg.Pool, { schema, logger: queryLogger });

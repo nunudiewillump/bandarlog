@@ -15,8 +15,8 @@ try {
   const contract = (
     await maintenance.query('select bandarlog_api.runtime_contract_version() as version')
   ).rows[0]?.version;
-  if (typeof contract !== 'number' || contract < 36)
-    throw Error('Completa las migraciones hasta 0036 antes de retirar credenciales.');
+  if (typeof contract !== 'number' || contract < 37)
+    throw Error('Completa las migraciones hasta 0037 antes de retirar credenciales.');
   for (const [mode, appRole] of Object.entries(expected)) {
     const value = process.env[mode.toUpperCase() + '_DATABASE_URL'];
     if (!value) throw Error('Falta la conexión independiente de ' + mode + '.');
@@ -43,13 +43,13 @@ try {
     }
   }
   if (
-    !(
+    (
       await maintenance.query(
         'select mfa_enforced from bandarlog_api.security_configuration where id',
       )
     ).rows[0]?.mfa_enforced
   )
-    throw Error('MFA debe estar habilitado antes de activar el nuevo runtime.');
+    throw Error('Aplica la migración de acceso simple: MFA no debe estar exigido.');
   if (apply) {
     phase = 'retire';
     const c = await maintenance.connect();

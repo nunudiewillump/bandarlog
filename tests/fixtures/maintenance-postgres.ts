@@ -67,7 +67,7 @@ export async function exerciseMaintenance(owner: pg.Pool, url: string) {
     const keyEnv = { DISPATCH_PUBLIC_KEY: publicKey, DISPATCH_KEY_ID: id };
     try {
       await owner.query(
-        "create or replace function bandarlog_api.runtime_contract_version() returns integer language sql immutable set search_path=pg_catalog as 'select 35'",
+        "create or replace function bandarlog_api.runtime_contract_version() returns integer language sql immutable set search_path=pg_catalog as 'select 36'",
       );
       await assert.rejects(
         run('scripts/security/cutover.ts', ['--cutover'], {
@@ -106,7 +106,7 @@ export async function exerciseMaintenance(owner: pg.Pool, url: string) {
       );
     } finally {
       await owner.query(
-        "create or replace function bandarlog_api.runtime_contract_version() returns integer language sql immutable set search_path=pg_catalog as 'select 36'",
+        "create or replace function bandarlog_api.runtime_contract_version() returns integer language sql immutable set search_path=pg_catalog as 'select 37'",
       );
     }
 

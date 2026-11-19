@@ -260,6 +260,13 @@
       "when": 1794846200000,
       "tag": "0036_business_retention",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1794846300000,
+      "tag": "0037_simple_authentication",
+      "breakpoints": true
     }
   ]
 }

@@ -19,7 +19,6 @@ type TaskMailContext = {
     Pick<typeof s.commissions.$inferSelect, 'id' | 'name' | 'projectId' | 'deletedAt'> | undefined;
   project: Pick<typeof s.projects.$inferSelect, 'name'> | undefined;
 };
-import { passkeyRoutes } from './passkeys.js';
 import { identityProof } from './identity-proof.js';
 import { contentSecurityPolicy, sensitiveNavigation } from './http-security.js';
 import { component } from './components.js';
@@ -280,9 +279,7 @@ app.use(
     windowMs: 15 * 6e4,
     // Shared scout networks use one public IP; recipient/session limits remain in PostgreSQL.
     limit: 120,
-    skip: (q) =>
-      ['GET', 'HEAD'].includes(q.method) &&
-      ['/config', '/passkeys/status', '/passkeys/list'].includes(q.path),
+    skip: (q) => ['GET', 'HEAD'].includes(q.method) && q.path === '/config',
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     handler: (_q, r) => {
@@ -690,7 +687,7 @@ async function authenticatedUser(tx: any, recipient: string, invitationId?: stri
 async function createSession(
   tx: any,
   userId: string,
-  assurance: 'primary' | 'activation' | 'mfa' = 'primary',
+  assurance: 'primary' | 'activation' = 'primary',
   primaryVerifiedAt?: string,
 ) {
   const [account] = await tx.select(authUserColumns).from(s.users).where(eq(s.users.id, userId));
@@ -704,9 +701,9 @@ async function createSession(
       id: hash(raw),
       userId,
       csrf,
-      assurance: mode === 'development' ? 'mfa' : assurance,
+      assurance,
       primaryVerifiedAt: primaryVerifiedAt || stamp,
-      mfaVerifiedAt: assurance === 'mfa' || mode === 'development' ? stamp : null,
+      mfaVerifiedAt: null,
       createdAt: stamp,
       renewedAt: stamp,
       expires: new Date(Date.now() + SESSION_IDLE).toISOString(),
@@ -1226,30 +1223,6 @@ app.post('/api/auth/google/return', async (q, r) => {
   });
   r.json({ needsEmailVerification: true, email: result.email });
 });
-passkeyRoutes(app, {
-  db,
-  appUrl,
-  legacyGroupId: legacyGroup!.id,
-  legacyOrigins,
-  createSession,
-  cookie: sessionCookie,
-  notify: async (tx, actor, action) => {
-    const descriptions: Record<string, string> = {
-      'passkey.registered': 'Se ha añadido una passkey',
-      'passkey.removed': 'Se ha retirado una passkey',
-      'passkey.recovery.used': 'Se ha utilizado un código de recuperación',
-      'passkey.recovery.rotated': 'Se han renovado los códigos de recuperación',
-    };
-    await queue(
-      actor.email,
-      'Cambio de seguridad en Bandarlog',
-      `${descriptions[action]}. Si no has realizado este cambio, entra en Bandarlog, revisa tus sesiones y contacta con la administración de tu grupo.`,
-      'security-' + id(),
-      tx,
-    );
-  },
-  fail,
-});
 if (!prod)
   app.get('/api/dev/mail', async (_q, r) => {
     r.json(await db.select().from(s.notifications).orderBy(s.notifications.createdAt));
@@ -1763,7 +1736,6 @@ app.get('/api/me', (_q, r) => {
       +new Date(r.locals.session.absoluteExpiresAt),
     ),
     development: !prod,
-    passkeysEnabled: mode === 'http',
     googleEnabled: Boolean(process.env.GOOGLE_LOGIN_CLIENT_ID),
   });
 });

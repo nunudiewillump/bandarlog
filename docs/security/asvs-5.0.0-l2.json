@@ -493,10 +493,16 @@
       "section": "Cookie Setup",
       "requirement": "Verify that cookies have the 'Secure' attribute set, and if the '\\__Host-' prefix is not used for the cookie name, the '__Secure-' prefix must be used for the cookie name.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Cookies productivas con __Host-/Secure/HttpOnly/Lax y nombre por grupo; cookie heredada solo permite puente de reautenticación.",
-      "control": ["server/session-cookie.ts", "server/remembered-entry.ts", "server/index.ts"],
-      "evidence": ["tests/groups-postgres.test.ts", "tests/browser/passkeys.spec.ts"]
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
+      "control": [
+        "server/session-cookie.ts",
+        "server/remembered-entry.ts",
+        "server/index.ts"
+      ],
+      "evidence": [
+        "tests/groups-postgres.test.ts"
+      ]
     },
     {
       "id": "V3.3.2",
@@ -505,10 +511,16 @@
       "section": "Cookie Setup",
       "requirement": "Verify that each cookie's 'SameSite' attribute value is set according to the purpose of the cookie, to limit exposure to user interface redress attacks and browser-based request forgery attacks, commonly known as cross-site request forgery (CSRF).",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Cookies productivas con __Host-/Secure/HttpOnly/Lax y nombre por grupo; cookie heredada solo permite puente de reautenticación.",
-      "control": ["server/session-cookie.ts", "server/remembered-entry.ts", "server/index.ts"],
-      "evidence": ["tests/groups-postgres.test.ts", "tests/browser/passkeys.spec.ts"]
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
+      "control": [
+        "server/session-cookie.ts",
+        "server/remembered-entry.ts",
+        "server/index.ts"
+      ],
+      "evidence": [
+        "tests/groups-postgres.test.ts"
+      ]
     },
     {
       "id": "V3.3.3",
@@ -517,10 +529,16 @@
       "section": "Cookie Setup",
       "requirement": "Verify that cookies have the '__Host-' prefix for the cookie name unless they are explicitly designed to be shared with other hosts.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Cookies productivas con __Host-/Secure/HttpOnly/Lax y nombre por grupo; cookie heredada solo permite puente de reautenticación.",
-      "control": ["server/session-cookie.ts", "server/remembered-entry.ts", "server/index.ts"],
-      "evidence": ["tests/groups-postgres.test.ts", "tests/browser/passkeys.spec.ts"]
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
+      "control": [
+        "server/session-cookie.ts",
+        "server/remembered-entry.ts",
+        "server/index.ts"
+      ],
+      "evidence": [
+        "tests/groups-postgres.test.ts"
+      ]
     },
     {
       "id": "V3.3.4",
@@ -529,10 +547,16 @@
       "section": "Cookie Setup",
       "requirement": "Verify that if the value of a cookie is not meant to be accessible to client-side scripts (such as a session token), the cookie must have the 'HttpOnly' attribute set and the same value (e. g. session token) must only be transferred to the client via the 'Set-Cookie' header field.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Cookies productivas con __Host-/Secure/HttpOnly/Lax y nombre por grupo; cookie heredada solo permite puente de reautenticación.",
-      "control": ["server/session-cookie.ts", "server/remembered-entry.ts", "server/index.ts"],
-      "evidence": ["tests/groups-postgres.test.ts", "tests/browser/passkeys.spec.ts"]
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
+      "control": [
+        "server/session-cookie.ts",
+        "server/remembered-entry.ts",
+        "server/index.ts"
+      ],
+      "evidence": [
+        "tests/groups-postgres.test.ts"
+      ]
     },
     {
       "id": "V3.4.1",
@@ -565,8 +589,8 @@
       "section": "Browser Security Mechanism Headers",
       "requirement": "Verify that HTTP responses include a Content-Security-Policy response header field which defines directives to ensure the browser only loads and executes trusted content or resources, in order to limit execution of malicious JavaScript. As a minimum, a global policy must be used which includes the directives object-src 'none' and base-uri 'none' and defines either an allowlist or uses nonces or hashes. For an L3 application, a per-response policy with nonces or hashes must be defined.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/http-security.ts",
         "server/google-return.ts",
@@ -574,7 +598,6 @@
         "server/public-site.ts"
       ],
       "evidence": [
-        "tests/browser/passkeys.spec.ts",
         "tests/browser/auth-link.spec.ts",
         "tests/google-return.test.ts",
         "tests/groups-postgres.test.ts"
@@ -599,8 +622,8 @@
       "section": "Browser Security Mechanism Headers",
       "requirement": "Verify that the application sets a referrer policy to prevent leakage of technically sensitive data to third-party services via the 'Referer' HTTP request header field. This can be done using the Referrer-Policy HTTP response header field or via HTML element attributes. Sensitive data could include path and query data in the URL, and for internal non-public applications also the hostname.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/http-security.ts",
         "server/google-return.ts",
@@ -608,7 +631,6 @@
         "server/public-site.ts"
       ],
       "evidence": [
-        "tests/browser/passkeys.spec.ts",
         "tests/browser/auth-link.spec.ts",
         "tests/google-return.test.ts",
         "tests/groups-postgres.test.ts"
@@ -633,9 +655,12 @@
       "section": "Browser Origin Separation",
       "requirement": "Verify that, if the application does not rely on the CORS preflight mechanism to prevent disallowed cross-origin requests to use sensitive functionality, these requests are validated to ensure they originate from the application itself. This may be done by using and validating anti-forgery tokens or requiring extra HTTP header fields that are not CORS-safelisted request-header fields. This is to defend against browser-based request forgery attacks, commonly known as cross-site request forgery (CSRF).",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "",
-      "control": ["server/index.ts", "server/passkeys.ts", "server/groups.ts"],
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
+      "control": [
+        "server/index.ts",
+        "server/groups.ts"
+      ],
       "evidence": [
         "tests/api.test.ts",
         "tests/forest-auth.test.ts",
@@ -662,9 +687,12 @@
       "section": "Browser Origin Separation",
       "requirement": "Verify that HTTP requests to sensitive functionality use appropriate HTTP methods such as POST, PUT, PATCH, or DELETE, and not methods defined by the HTTP specification as \"safe\" such as HEAD, OPTIONS, or GET. Alternatively, strict validation of the Sec-Fetch-* request header fields can be used to ensure that the request did not originate from an inappropriate cross-origin call, a navigation request, or a resource load (such as an image source) where this is not expected.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "",
-      "control": ["server/index.ts", "server/passkeys.ts", "server/groups.ts"],
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
+      "control": [
+        "server/index.ts",
+        "server/groups.ts"
+      ],
       "evidence": [
         "tests/api.test.ts",
         "tests/forest-auth.test.ts",
@@ -691,8 +719,8 @@
       "section": "Browser Origin Separation",
       "requirement": "Verify that messages received by the postMessage interface are discarded if the origin of the message is not trusted, or if the syntax of the message is invalid.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/http-security.ts",
         "server/google-return.ts",
@@ -700,7 +728,6 @@
         "server/public-site.ts"
       ],
       "evidence": [
-        "tests/browser/passkeys.spec.ts",
         "tests/browser/auth-link.spec.ts",
         "tests/google-return.test.ts",
         "tests/groups-postgres.test.ts"
@@ -967,7 +994,9 @@
       "applicability": "applicable",
       "status": "verified_local",
       "rationale": "",
-      "control": ["docs/security/authentication-policy.md"],
+      "control": [
+        "docs/security/authentication-policy.md"
+      ],
       "evidence": [
         "docs/security/authentication-policy.md",
         "docs/security/verification-2026-11-16.md"
@@ -994,7 +1023,9 @@
       "applicability": "applicable",
       "status": "verified_local",
       "rationale": "",
-      "control": ["docs/security/authentication-policy.md"],
+      "control": [
+        "docs/security/authentication-policy.md"
+      ],
       "evidence": [
         "docs/security/authentication-policy.md",
         "docs/security/verification-2026-11-16.md"
@@ -1151,17 +1182,15 @@
       "section": "General Authentication Security",
       "requirement": "Verify that controls to prevent attacks such as credential stuffing and password brute force are implemented according to the application's security documentation.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Verificado en entorno aislado. MFA y separación de componentes todavía no activados en producción. Google se trata como SFA.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/auth-security.ts",
-        "server/passkeys.ts",
         "migrations/0030_passkeys.sql",
         "docs/security/authentication-policy.md"
       ],
       "evidence": [
         "tests/auth-security.test.ts",
-        "tests/passkeys.test.ts",
         "tests/groups-postgres.test.ts: production public pages and legacy-domain redirects preserve safe links without forwarding posts",
         "docs/security/verification-2026-11-16.md"
       ]
@@ -1185,17 +1214,15 @@
       "section": "General Authentication Security",
       "requirement": "Verify that either a multi-factor authentication mechanism or a combination of single-factor authentication mechanisms, must be used in order to access the application. For L3, one of the factors must be a hardware-based authentication mechanism which provides compromise and impersonation resistance against phishing attacks while verifying the intent to authenticate by requiring a user-initiated action (such as a button press on a FIDO hardware key or a mobile phone). Relaxing any of the considerations in this requirement requires a fully documented rationale and a comprehensive set of mitigating controls.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Verificado en entorno aislado. MFA y separación de componentes todavía no activados en producción. Google se trata como SFA.",
+      "status": "blocked",
+      "rationale": "Se ofrece correo/código o Google como alternativas de un solo factor. El usuario ha solicitado retirar passkeys y MFA. Esta configuración no satisface el requisito L2 de combinación de factores.",
       "control": [
         "server/auth-security.ts",
-        "server/passkeys.ts",
         "migrations/0030_passkeys.sql",
         "docs/security/authentication-policy.md"
       ],
       "evidence": [
         "tests/auth-security.test.ts",
-        "tests/passkeys.test.ts",
         "tests/groups-postgres.test.ts: production public pages and legacy-domain redirects preserve safe links without forwarding posts",
         "docs/security/verification-2026-11-16.md"
       ]
@@ -1207,17 +1234,15 @@
       "section": "General Authentication Security",
       "requirement": "Verify that, if the application includes multiple authentication pathways, there are no undocumented pathways and that security controls and authentication strength are enforced consistently.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Verificado en entorno aislado. MFA y separación de componentes todavía no activados en producción. Google se trata como SFA.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/auth-security.ts",
-        "server/passkeys.ts",
         "migrations/0030_passkeys.sql",
         "docs/security/authentication-policy.md"
       ],
       "evidence": [
         "tests/auth-security.test.ts",
-        "tests/passkeys.test.ts",
         "tests/groups-postgres.test.ts: production public pages and legacy-domain redirects preserve safe links without forwarding posts",
         "docs/security/verification-2026-11-16.md"
       ]
@@ -1264,18 +1289,16 @@
       "chapter": "Authentication",
       "section": "Authentication Factor Lifecycle and Recovery",
       "requirement": "Verify that if a multi-factor authentication factor is lost, evidence of identity proofing is performed at the same level as during enrollment.",
-      "applicability": "applicable",
-      "status": "implemented_unverified",
-      "rationale": "Passkey anterior o recuperación de uso único más primer factor fresco; pendiente ensayo de dispositivo anterior y definición de recuperación excepcional sin bypass.",
+      "applicability": "not_applicable",
+      "status": "not_applicable",
+      "rationale": "No se ofrece un segundo factor ni recuperación de passkeys tras su retirada. La recuperación de acceso se realiza por correo o Google sin presentar un factor adicional.",
       "control": [
         "server/auth-security.ts",
-        "server/passkeys.ts",
         "migrations/0030_passkeys.sql",
         "docs/security/authentication-policy.md"
       ],
       "evidence": [
         "tests/auth-security.test.ts",
-        "tests/passkeys.test.ts",
         "tests/groups-postgres.test.ts: production public pages and legacy-domain redirects preserve safe links without forwarding posts",
         "docs/security/verification-2026-11-16.md"
       ]
@@ -1287,17 +1310,15 @@
       "section": "General Multi-factor authentication requirements",
       "requirement": "Verify that lookup secrets, out-of-band authentication requests or codes, and time-based one-time passwords (TOTPs) are only successfully usable once.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Verificado en entorno aislado. MFA y separación de componentes todavía no activados en producción. Google se trata como SFA.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/auth-security.ts",
-        "server/passkeys.ts",
         "migrations/0030_passkeys.sql",
         "docs/security/authentication-policy.md"
       ],
       "evidence": [
         "tests/auth-security.test.ts",
-        "tests/passkeys.test.ts",
         "tests/groups-postgres.test.ts: production public pages and legacy-domain redirects preserve safe links without forwarding posts",
         "docs/security/verification-2026-11-16.md"
       ]
@@ -1309,17 +1330,15 @@
       "section": "General Multi-factor authentication requirements",
       "requirement": "Verify that, when being stored in the application's backend, lookup secrets with less than 112 bits of entropy (19 random alphanumeric characters or 34 random digits) are hashed with an approved password storage hashing algorithm that incorporates a 32-bit random salt. A standard hash function can be used if the secret has 112 bits of entropy or more.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Verificado en entorno aislado. MFA y separación de componentes todavía no activados en producción. Google se trata como SFA.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/auth-security.ts",
-        "server/passkeys.ts",
         "migrations/0030_passkeys.sql",
         "docs/security/authentication-policy.md"
       ],
       "evidence": [
         "tests/auth-security.test.ts",
-        "tests/passkeys.test.ts",
         "tests/groups-postgres.test.ts: production public pages and legacy-domain redirects preserve safe links without forwarding posts",
         "docs/security/verification-2026-11-16.md"
       ]
@@ -1331,17 +1350,15 @@
       "section": "General Multi-factor authentication requirements",
       "requirement": "Verify that lookup secrets, out-of-band authentication code, and time-based one-time password seeds, are generated using a Cryptographically Secure Pseudorandom Number Generator (CSPRNG) to avoid predictable values.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Verificado en entorno aislado. MFA y separación de componentes todavía no activados en producción. Google se trata como SFA.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/auth-security.ts",
-        "server/passkeys.ts",
         "migrations/0030_passkeys.sql",
         "docs/security/authentication-policy.md"
       ],
       "evidence": [
         "tests/auth-security.test.ts",
-        "tests/passkeys.test.ts",
         "tests/groups-postgres.test.ts: production public pages and legacy-domain redirects preserve safe links without forwarding posts",
         "docs/security/verification-2026-11-16.md"
       ]
@@ -1353,17 +1370,15 @@
       "section": "General Multi-factor authentication requirements",
       "requirement": "Verify that lookup secrets and out-of-band authentication codes have a minimum of 20 bits of entropy (typically 4 random alphanumeric characters or 6 random digits is sufficient).",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Verificado en entorno aislado. MFA y separación de componentes todavía no activados en producción. Google se trata como SFA.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/auth-security.ts",
-        "server/passkeys.ts",
         "migrations/0030_passkeys.sql",
         "docs/security/authentication-policy.md"
       ],
       "evidence": [
         "tests/auth-security.test.ts",
-        "tests/passkeys.test.ts",
         "tests/groups-postgres.test.ts: production public pages and legacy-domain redirects preserve safe links without forwarding posts",
         "docs/security/verification-2026-11-16.md"
       ]
@@ -1375,17 +1390,15 @@
       "section": "General Multi-factor authentication requirements",
       "requirement": "Verify that out-of-band authentication requests, codes, or tokens, as well as time-based one-time passwords (TOTPs) have a defined lifetime. Out of band requests must have a maximum lifetime of 10 minutes and for TOTP a maximum lifetime of 30 seconds.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Verificado en entorno aislado. MFA y separación de componentes todavía no activados en producción. Google se trata como SFA.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/auth-security.ts",
-        "server/passkeys.ts",
         "migrations/0030_passkeys.sql",
         "docs/security/authentication-policy.md"
       ],
       "evidence": [
         "tests/auth-security.test.ts",
-        "tests/passkeys.test.ts",
         "tests/groups-postgres.test.ts: production public pages and legacy-domain redirects preserve safe links without forwarding posts",
         "docs/security/verification-2026-11-16.md"
       ]
@@ -1409,17 +1422,15 @@
       "section": "Out-of-Band authentication mechanisms",
       "requirement": "Verify that out-of-band authentication requests, codes, or tokens are bound to the original authentication request for which they were generated and are not usable for a previous or subsequent one.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Verificado en entorno aislado. MFA y separación de componentes todavía no activados en producción. Google se trata como SFA.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/auth-security.ts",
-        "server/passkeys.ts",
         "migrations/0030_passkeys.sql",
         "docs/security/authentication-policy.md"
       ],
       "evidence": [
         "tests/auth-security.test.ts",
-        "tests/passkeys.test.ts",
         "tests/groups-postgres.test.ts: production public pages and legacy-domain redirects preserve safe links without forwarding posts",
         "docs/security/verification-2026-11-16.md"
       ]
@@ -1431,17 +1442,15 @@
       "section": "Out-of-Band authentication mechanisms",
       "requirement": "Verify that a code based out-of-band authentication mechanism is protected against brute force attacks by using rate limiting. Consider also using a code with at least 64 bits of entropy.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Verificado en entorno aislado. MFA y separación de componentes todavía no activados en producción. Google se trata como SFA.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/auth-security.ts",
-        "server/passkeys.ts",
         "migrations/0030_passkeys.sql",
         "docs/security/authentication-policy.md"
       ],
       "evidence": [
         "tests/auth-security.test.ts",
-        "tests/passkeys.test.ts",
         "tests/groups-postgres.test.ts: production public pages and legacy-domain redirects preserve safe links without forwarding posts",
         "docs/security/verification-2026-11-16.md"
       ]
@@ -1453,17 +1462,15 @@
       "section": "Authentication with an Identity Provider",
       "requirement": "Verify that, if the application supports multiple identity providers (IdPs), the user's identity cannot be spoofed via another supported identity provider (eg. by using the same user identifier). The standard mitigation would be for the application to register and identify the user using a combination of the IdP ID (serving as a namespace) and the user's ID in the IdP.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Verificado en entorno aislado. MFA y separación de componentes todavía no activados en producción. Google se trata como SFA.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/auth-security.ts",
-        "server/passkeys.ts",
         "migrations/0030_passkeys.sql",
         "docs/security/authentication-policy.md"
       ],
       "evidence": [
         "tests/auth-security.test.ts",
-        "tests/passkeys.test.ts",
         "tests/groups-postgres.test.ts: production public pages and legacy-domain redirects preserve safe links without forwarding posts",
         "docs/security/verification-2026-11-16.md"
       ]
@@ -1475,17 +1482,15 @@
       "section": "Authentication with an Identity Provider",
       "requirement": "Verify that the presence and integrity of digital signatures on authentication assertions (for example on JWTs or SAML assertions) are always validated, rejecting any assertions that are unsigned or have invalid signatures.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Verificado en entorno aislado. MFA y separación de componentes todavía no activados en producción. Google se trata como SFA.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/auth-security.ts",
-        "server/passkeys.ts",
         "migrations/0030_passkeys.sql",
         "docs/security/authentication-policy.md"
       ],
       "evidence": [
         "tests/auth-security.test.ts",
-        "tests/passkeys.test.ts",
         "tests/groups-postgres.test.ts: production public pages and legacy-domain redirects preserve safe links without forwarding posts",
         "docs/security/verification-2026-11-16.md"
       ]
@@ -1509,17 +1514,15 @@
       "section": "Authentication with an Identity Provider",
       "requirement": "Verify that, if an application uses a separate Identity Provider (IdP) and expects specific authentication strength, methods, or recentness for specific functions, the application verifies this using the information returned by the IdP. For example, if OIDC is used, this might be achieved by validating ID Token claims such as 'acr', 'amr', and 'auth_time' (if present). If the IdP does not provide this information, the application must have a documented fallback approach that assumes that the minimum strength authentication mechanism was used (for example, single-factor authentication using username and password).",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Verificado en entorno aislado. MFA y separación de componentes todavía no activados en producción. Google se trata como SFA.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/auth-security.ts",
-        "server/passkeys.ts",
         "migrations/0030_passkeys.sql",
         "docs/security/authentication-policy.md"
       ],
       "evidence": [
         "tests/auth-security.test.ts",
-        "tests/passkeys.test.ts",
         "tests/groups-postgres.test.ts: production public pages and legacy-domain redirects preserve safe links without forwarding posts",
         "docs/security/verification-2026-11-16.md"
       ]
@@ -1533,8 +1536,13 @@
       "applicability": "applicable",
       "status": "blocked",
       "rationale": "Persistencia de treinta/noventa días preservada; falta aceptación y revisión del análisis de riesgo frente a los plazos NIST AAL2.",
-      "control": ["server/auth-security.ts", "docs/security/authentication-policy.md"],
-      "evidence": ["docs/security/authentication-policy.md"]
+      "control": [
+        "server/auth-security.ts",
+        "docs/security/authentication-policy.md"
+      ],
+      "evidence": [
+        "docs/security/authentication-policy.md"
+      ]
     },
     {
       "id": "V7.1.2",
@@ -1545,8 +1553,12 @@
       "applicability": "applicable",
       "status": "verified_local",
       "rationale": "",
-      "control": ["docs/security/authentication-policy.md"],
-      "evidence": ["docs/security/authentication-policy.md"]
+      "control": [
+        "docs/security/authentication-policy.md"
+      ],
+      "evidence": [
+        "docs/security/authentication-policy.md"
+      ]
     },
     {
       "id": "V7.1.3",
@@ -1557,8 +1569,12 @@
       "applicability": "applicable",
       "status": "verified_local",
       "rationale": "",
-      "control": ["docs/security/authentication-policy.md"],
-      "evidence": ["docs/security/authentication-policy.md"]
+      "control": [
+        "docs/security/authentication-policy.md"
+      ],
+      "evidence": [
+        "docs/security/authentication-policy.md"
+      ]
     },
     {
       "id": "V7.2.1",
@@ -1567,11 +1583,10 @@
       "section": "Fundamental Session Management Security",
       "requirement": "Verify that the application performs all session token verification using a trusted, backend service.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Pruebas con roles reales y datos sintéticos; activación y verificación productiva pendientes.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/index.ts",
-        "server/passkeys.ts",
         "migrations/0027_sensitive_administration.sql",
         "migrations/0035_session_revocation.sql",
         "docs/security/authentication-policy.md"
@@ -1592,11 +1607,10 @@
       "section": "Fundamental Session Management Security",
       "requirement": "Verify that the application uses either self-contained or reference tokens that are dynamically generated for session management, i.e. not using static API secrets and keys.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Pruebas con roles reales y datos sintéticos; activación y verificación productiva pendientes.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/index.ts",
-        "server/passkeys.ts",
         "migrations/0027_sensitive_administration.sql",
         "migrations/0035_session_revocation.sql",
         "docs/security/authentication-policy.md"
@@ -1617,11 +1631,10 @@
       "section": "Fundamental Session Management Security",
       "requirement": "Verify that if reference tokens are used to represent user sessions, they are unique and generated using a cryptographically secure pseudo-random number generator (CSPRNG) and possess at least 128 bits of entropy.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Pruebas con roles reales y datos sintéticos; activación y verificación productiva pendientes.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/index.ts",
-        "server/passkeys.ts",
         "migrations/0027_sensitive_administration.sql",
         "migrations/0035_session_revocation.sql",
         "docs/security/authentication-policy.md"
@@ -1642,11 +1655,10 @@
       "section": "Fundamental Session Management Security",
       "requirement": "Verify that the application generates a new session token on user authentication, including re-authentication, and terminates the current session token.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Pruebas con roles reales y datos sintéticos; activación y verificación productiva pendientes.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/index.ts",
-        "server/passkeys.ts",
         "migrations/0027_sensitive_administration.sql",
         "migrations/0035_session_revocation.sql",
         "docs/security/authentication-policy.md"
@@ -1667,11 +1679,10 @@
       "section": "Session Timeout",
       "requirement": "Verify that there is an inactivity timeout such that re-authentication is enforced according to risk analysis and documented security decisions.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Pruebas con roles reales y datos sintéticos; activación y verificación productiva pendientes.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/index.ts",
-        "server/passkeys.ts",
         "migrations/0027_sensitive_administration.sql",
         "migrations/0035_session_revocation.sql",
         "docs/security/authentication-policy.md"
@@ -1692,11 +1703,10 @@
       "section": "Session Timeout",
       "requirement": "Verify that there is an absolute maximum session lifetime such that re-authentication is enforced according to risk analysis and documented security decisions.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Pruebas con roles reales y datos sintéticos; activación y verificación productiva pendientes.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/index.ts",
-        "server/passkeys.ts",
         "migrations/0027_sensitive_administration.sql",
         "migrations/0035_session_revocation.sql",
         "docs/security/authentication-policy.md"
@@ -1717,11 +1727,10 @@
       "section": "Session Termination",
       "requirement": "Verify that when session termination is triggered (such as logout or expiration), the application disallows any further use of the session. For reference tokens or stateful sessions, this means invalidating the session data at the application backend. Applications using self-contained tokens will need a solution such as maintaining a list of terminated tokens, disallowing tokens produced before a per-user date and time or rotating a per-user signing key.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Pruebas con roles reales y datos sintéticos; activación y verificación productiva pendientes.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/index.ts",
-        "server/passkeys.ts",
         "migrations/0027_sensitive_administration.sql",
         "migrations/0035_session_revocation.sql",
         "docs/security/authentication-policy.md"
@@ -1742,11 +1751,10 @@
       "section": "Session Termination",
       "requirement": "Verify that the application terminates all active sessions when a user account is disabled or deleted (such as an employee leaving the company).",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Pruebas con roles reales y datos sintéticos; activación y verificación productiva pendientes.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/index.ts",
-        "server/passkeys.ts",
         "migrations/0027_sensitive_administration.sql",
         "migrations/0035_session_revocation.sql",
         "docs/security/authentication-policy.md"
@@ -1767,11 +1775,10 @@
       "section": "Session Termination",
       "requirement": "Verify that the application gives the option to terminate all other active sessions after a successful change or removal of any authentication factor (including password change via reset or recovery and, if present, an MFA settings update).",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Pruebas con roles reales y datos sintéticos; activación y verificación productiva pendientes.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/index.ts",
-        "server/passkeys.ts",
         "migrations/0027_sensitive_administration.sql",
         "migrations/0035_session_revocation.sql",
         "docs/security/authentication-policy.md"
@@ -1804,11 +1811,10 @@
       "section": "Session Termination",
       "requirement": "Verify that application administrators are able to terminate active sessions for an individual user or for all users.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Pruebas con roles reales y datos sintéticos; activación y verificación productiva pendientes.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/index.ts",
-        "server/passkeys.ts",
         "migrations/0027_sensitive_administration.sql",
         "migrations/0035_session_revocation.sql",
         "docs/security/authentication-policy.md"
@@ -1829,11 +1835,10 @@
       "section": "Defenses Against Session Abuse",
       "requirement": "Verify that the application requires full re-authentication before allowing modifications to sensitive account attributes which may affect authentication such as email address, phone number, MFA configuration, or other information used in account recovery.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Pruebas con roles reales y datos sintéticos; activación y verificación productiva pendientes.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/index.ts",
-        "server/passkeys.ts",
         "migrations/0027_sensitive_administration.sql",
         "migrations/0035_session_revocation.sql",
         "docs/security/authentication-policy.md"
@@ -1854,11 +1859,10 @@
       "section": "Defenses Against Session Abuse",
       "requirement": "Verify that users are able to view and (having authenticated again with at least one factor) terminate any or all currently active sessions.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Pruebas con roles reales y datos sintéticos; activación y verificación productiva pendientes.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/index.ts",
-        "server/passkeys.ts",
         "migrations/0027_sensitive_administration.sql",
         "migrations/0035_session_revocation.sql",
         "docs/security/authentication-policy.md"
@@ -1879,11 +1883,10 @@
       "section": "Federated Re-authentication",
       "requirement": "Verify that session lifetime and termination between Relying Parties (RPs) and Identity Providers (IdPs) behave as documented, requiring re-authentication as necessary such as when the maximum time between IdP authentication events is reached.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Pruebas con roles reales y datos sintéticos; activación y verificación productiva pendientes.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "server/index.ts",
-        "server/passkeys.ts",
         "migrations/0027_sensitive_administration.sql",
         "migrations/0035_session_revocation.sql",
         "docs/security/authentication-policy.md"
@@ -2575,8 +2578,13 @@
       "applicability": "applicable",
       "status": "verified_local",
       "rationale": "El sobre propio usa AES-256-GCM y RSA-OAEP-SHA256; no extiende esta evidencia a proveedores externos.",
-      "control": ["server/dispatch-envelope.ts"],
-      "evidence": ["tests/dispatch-envelope.test.ts", "tests/fixtures/delivery-process-postgres.ts"]
+      "control": [
+        "server/dispatch-envelope.ts"
+      ],
+      "evidence": [
+        "tests/dispatch-envelope.test.ts",
+        "tests/fixtures/delivery-process-postgres.ts"
+      ]
     },
     {
       "id": "V11.3.3",
@@ -2587,8 +2595,13 @@
       "applicability": "applicable",
       "status": "verified_local",
       "rationale": "El sobre propio usa AES-256-GCM y RSA-OAEP-SHA256; no extiende esta evidencia a proveedores externos.",
-      "control": ["server/dispatch-envelope.ts"],
-      "evidence": ["tests/dispatch-envelope.test.ts", "tests/fixtures/delivery-process-postgres.ts"]
+      "control": [
+        "server/dispatch-envelope.ts"
+      ],
+      "evidence": [
+        "tests/dispatch-envelope.test.ts",
+        "tests/fixtures/delivery-process-postgres.ts"
+      ]
     },
     {
       "id": "V11.4.1",
@@ -2959,8 +2972,16 @@
       "applicability": "applicable",
       "status": "implemented_unverified",
       "rationale": "Nuevos enlaces con fragmento y transmisión por POST activados en producción el 18 de noviembre de 2026. Compatibilidad temporal con enlaces query anteriores; requiere cierre de su ventana de vida y verificación de logs/proxies para declarar el control completo.",
-      "control": ["public/auth-link.js", "server/groups.ts", "server/index.ts", "src/main.tsx"],
-      "evidence": ["tests/browser/auth-link.spec.ts", "tests/groups-postgres.test.ts"]
+      "control": [
+        "public/auth-link.js",
+        "server/groups.ts",
+        "server/index.ts",
+        "src/main.tsx"
+      ],
+      "evidence": [
+        "tests/browser/auth-link.spec.ts",
+        "tests/groups-postgres.test.ts"
+      ]
     },
     {
       "id": "V14.2.2",
@@ -3006,7 +3027,7 @@
       "requirement": "Verify that authenticated data is cleared from client storage, such as the browser DOM, after the client or session is terminated. The 'Clear-Site-Data' HTTP response header field may be able to help with this but the client-side should also be able to clear up if the server connection is not available when the session is terminated.",
       "applicability": "applicable",
       "status": "blocked",
-      "rationale": "Se limpian snapshots activos y DOM al logout/revocación detectada y se notifican cambios de cuenta entre pestañas. Los pendientes en cuarentena permanecen sensibles; falta decisión de persistencia y verificación completa de caducidad del DOM en una pestaña permanentemente desconectada.",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "public/offline-store.js",
         "public/sw.js",
@@ -3016,7 +3037,6 @@
       ],
       "evidence": [
         "tests/browser/security-storage.spec.ts",
-        "tests/browser/passkeys.spec.ts",
         "tests/groups-postgres.test.ts"
       ]
     },
@@ -3027,8 +3047,8 @@
       "section": "Client-side Data Protection",
       "requirement": "Verify that the application sets sufficient anti-caching HTTP response header fields (i.e., Cache-Control: no-store) so that sensitive data is not cached in browsers.",
       "applicability": "applicable",
-      "status": "verified_local",
-      "rationale": "Logout y revocación detectada limpian datos activos y DOM; pendientes de otras cuentas quedan en cuarentena. Un dispositivo desconectado no recibe revocaciones remotas instantáneamente.",
+      "status": "implemented_unverified",
+      "rationale": "Passkeys retiradas por petición del usuario el 19 de noviembre de 2026. Se conserva correo/código y Google; la evidencia anterior dependiente de WebAuthn no se considera vigente. Requiere revisión del control para el flujo simplificado.",
       "control": [
         "public/offline-store.js",
         "public/sw.js",
@@ -3038,7 +3058,6 @@
       ],
       "evidence": [
         "tests/browser/security-storage.spec.ts",
-        "tests/browser/passkeys.spec.ts",
         "tests/groups-postgres.test.ts"
       ]
     },
@@ -3051,8 +3070,12 @@
       "applicability": "applicable",
       "status": "blocked",
       "rationale": "Actualmente se persisten datos de trabajo y pendientes sensibles. Plazo, cuarentena y limpieza no equivalen a cumplir este requisito. Pendiente decisión explícita sobre retirar esa persistencia.",
-      "control": ["public/offline-store.js"],
-      "evidence": ["tests/browser/security-storage.spec.ts"]
+      "control": [
+        "public/offline-store.js"
+      ],
+      "evidence": [
+        "tests/browser/security-storage.spec.ts"
+      ]
     },
     {
       "id": "V15.1.1",
@@ -3339,8 +3362,14 @@
       "applicability": "applicable",
       "status": "verified_local",
       "rationale": "Formato estructurado y campos controlados; no se incorporan parámetros, URLs ni cuerpos privados a eventos de seguridad.",
-      "control": ["server/security-events.ts", "server/metrics.ts"],
-      "evidence": ["tests/security-events.test.ts", "tests/metrics.test.ts"]
+      "control": [
+        "server/security-events.ts",
+        "server/metrics.ts"
+      ],
+      "evidence": [
+        "tests/security-events.test.ts",
+        "tests/metrics.test.ts"
+      ]
     },
     {
       "id": "V16.4.2",

@@ -3,7 +3,7 @@ import { internalOrigin } from './components.js';
 // A closed set: never proxy arbitrary private paths or accept a caller-supplied origin.
 export function identityPath(path: string) {
   return (
-    /^(?:\/g\/[a-f0-9]{32})?\/api\/auth\/(?:request|verify|config|code\/(?:request|verify)|google\/(?:start|callback|return)|passkeys\/(?:status|logout|register\/(?:options|verify)|authenticate\/(?:options|verify)|recovery\/(?:verify|new)|list|remove))$/.test(
+    /^(?:\/g\/[a-f0-9]{32})?\/api\/auth\/(?:request|verify|config|code\/(?:request|verify)|google\/(?:start|callback|return))$/.test(
       path,
     ) ||
     [

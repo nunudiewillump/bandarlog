@@ -21,7 +21,7 @@ export async function exerciseRestore(owner: pg.Pool, url: string) {
   assert.ok(actor);
   const bearer = randomBytes(32).toString('hex');
   await owner.query(
-    "insert into sessions(id,group_id,user_id,csrf,expires,assurance,mfa_verified_at) values($1,$2,$3,'restore-fixture',now()+interval '1 day','mfa',now())",
+    "insert into sessions(id,group_id,user_id,csrf,expires,assurance,primary_verified_at) values($1,$2,$3,'restore-fixture',now()+interval '1 day','primary',now())",
     [createHash('sha256').update(bearer).digest('hex'), actor.group_id, actor.id],
   );
   const tables = ['users', 'tasks', 'commissions', 'projects', 'activity', 'assignments'];
