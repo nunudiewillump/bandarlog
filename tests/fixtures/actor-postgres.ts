@@ -47,7 +47,7 @@ export async function exerciseActorBoundary(owner: pg.Pool, testUrl: string) {
           role === 'responsible' ? 'member' : role,
         ]);
         await owner.query(
-          "insert into sessions(group_id,id,user_id,csrf,expires,assurance,mfa_verified_at) values($1,$2,$3,'synthetic',now()+interval '1 day','mfa',now())",
+          "insert into sessions(group_id,id,user_id,csrf,expires,assurance,primary_verified_at) values($1,$2,$3,'synthetic',now()+interval '1 day','primary',now())",
           [g.id, hash(bearer), uid],
         );
       }
@@ -124,7 +124,7 @@ export async function exerciseActorBoundary(owner: pg.Pool, testUrl: string) {
           run(
             g.id,
             bearer,
-            "insert into sessions(group_id,id,user_id,csrf,expires,assurance,mfa_verified_at) values($1,'forged',$2,'x',now()+interval '1 day','mfa',now())",
+            "insert into sessions(group_id,id,user_id,csrf,expires,assurance,primary_verified_at) values($1,'forged',$2,'x',now()+interval '1 day','primary',now())",
             [g.id, g.id + '-admin'],
           ),
           { code: '42501' },
@@ -207,7 +207,7 @@ export async function exerciseActorBoundary(owner: pg.Pool, testUrl: string) {
     );
     const extra = randomBytes(32).toString('hex');
     await owner.query(
-      "insert into sessions(group_id,id,user_id,csrf,expires,assurance,mfa_verified_at) values($1,$2,$3,'synthetic',now()+interval '1 day','mfa',now())",
+      "insert into sessions(group_id,id,user_id,csrf,expires,assurance,primary_verified_at) values($1,$2,$3,'synthetic',now()+interval '1 day','primary',now())",
       [sessionGroup.id, hash(extra), sessionGroup.id + '-admin'],
     );
     assert.equal(

@@ -1,4 +1,3 @@
-import type { PasskeyStatus } from './PasskeyGate';
 import { SnapshotRefresh, covers } from './snapshot-refresh';
 import { snapshotRevision } from './api';
 import { PagedActivity } from './PagedActivity';
@@ -114,7 +113,6 @@ const initial: Data = {
   activity: [],
   invitations: [],
 };
-const PasskeyGate = lazy(() => import('./PasskeyGate').then((m) => ({ default: m.PasskeyGate })));
 const icons: Record<string, typeof Tent> = {
   chef: ChefHat,
   tent: Tent,
@@ -184,8 +182,6 @@ function App() {
     [pendingTasks, setPendingTasks] = useState(new Set<string>()),
     [undo, setUndo] = useState<{ task: Task; expected: string; last: boolean } | null>(null),
     [outbox, setOutbox] = useState<any[]>([]);
-  const [passkeysEnabled, setPasskeysEnabled] = useState(false);
-  const [passkeyStatus, setPasskeyStatus] = useState<PasskeyStatus | null>(null);
   const [reauthNotice, setReauthNotice] = useState('');
   const tutorial = useTutorial(me);
   const [restartTutorial, setRestartTutorial] = useState(false);
@@ -316,7 +312,6 @@ function App() {
     const reset = () => {
       loadSequence.current++;
       snapshots.current = new SnapshotRefresh(fetchSnapshot, snapshotRevision);
-      setPasskeyStatus(null);
       setReauthNotice('');
       setCSRF('');
       setMe(null);
@@ -431,13 +426,11 @@ function App() {
       if (healthResult.status === 'rejected') throw healthResult.reason;
       if (sessionResult.status === 'rejected') throw sessionResult.reason;
       if (dataResult.status === 'rejected') throw dataResult.reason;
-      setPasskeyStatus(null);
       setReauthNotice('');
       const session = sessionResult.value;
       const visible = dataResult.value.users.find((user) => user.id === session.user.id);
       setMe({ ...session.user, ...visible });
       setDevelopment(session.development);
-      setPasskeysEnabled(Boolean(session.passkeysEnabled));
       const route = readNavigation(location.search);
       setView(route.view);
       setProject(route.project);
@@ -452,29 +445,10 @@ function App() {
         history.replaceState({}, '', url);
       }
     } catch (error) {
-      if (error instanceof ApiError && error.status === 428) {
-        try {
-          const status: PasskeyStatus = await api('/auth/passkeys/status');
-          setMe(null);
-          setData(initial);
-          setCSRF(status.csrf || '');
-          if (status.required && !status.reauthenticate) {
-            setPasskeyStatus(status);
-            setReauthNotice('');
-          } else {
-            setPasskeyStatus(null);
-            setReauthNotice(
-              'Vuelve a entrar con tu correo o Google para activar la protección con passkey.',
-            );
-          }
-        } catch {
-          setPasskeyStatus(null);
-          setMe(null);
-          setCSRF('');
-        }
-      } else if (error instanceof ApiError && error.status === 401) {
+      if (error instanceof ApiError && [401, 428].includes(error.status)) {
         setMe(null);
         setCSRF('');
+        setReauthNotice(error.status === 428 ? 'Vuelve a entrar con tu correo o Google.' : '');
       } else {
         setBootError((error as Error).message || 'No se ha podido cargar Bandarlog.');
       }
@@ -1368,12 +1342,6 @@ function App() {
     history.replaceState({}, '', next);
     await bootup();
   }
-  if (passkeyStatus && !invitationAccess)
-    return (
-      <Suspense fallback={<BananaLoader label="Preparando acceso seguro…" />}>
-        <PasskeyGate status={passkeyStatus} onDone={authenticated} />
-      </Suspense>
-    );
   if (!me || invitationAccess)
     return (
       <AuthScreen
@@ -2195,7 +2163,6 @@ function App() {
                   </div>
                 </div>
                 <ProfilePanel
-                  passkeysEnabled={passkeysEnabled}
                   group={data.group}
                   user={me}
                   onReplayTutorial={() => {

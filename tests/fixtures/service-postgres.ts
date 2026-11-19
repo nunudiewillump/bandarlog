@@ -3,6 +3,19 @@ import assert from 'node:assert/strict';
 import pg from 'pg';
 import { createHmac } from 'node:crypto';
 export async function exerciseServiceBoundary(owner: pg.Pool, url: string, secret: string) {
+  const retiredTables = await owner.query(
+    "select name from unnest(array['passkeys','passkey_accounts','passkey_challenges','passkey_recovery']) name where has_table_privilege('bandarlog_identity_app','public.'||name,'SELECT,INSERT,UPDATE,DELETE')",
+  );
+  assert.equal(retiredTables.rows.length, 0, 'identity has no access to retired credentials');
+  const retiredFunctions = await owner.query(
+    "select name from unnest(array['passkey_actor(text,boolean)','identity_actor_id()','record_passkey_event(text)','clear_recovery(text)','consume_recovery(text,text)','remove_passkey(text,text)']) name where has_function_privilege('bandarlog_identity_app','bandarlog_api.'||name,'EXECUTE')",
+  );
+  assert.equal(
+    retiredFunctions.rows.length,
+    0,
+    'retired authentication capabilities are not executable',
+  );
+
   const unsafe = await owner.query(
     `select p.proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='bandarlog_api' and p.prosecdef and (not coalesce(p.proconfig @> array['search_path=pg_catalog'],false) or exists(select from aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a where a.grantee=0 and a.privilege_type='EXECUTE'))`,
   );

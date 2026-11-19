@@ -1,34 +1,27 @@
-# Autenticación y sesiones · objetivo ASVS 5.0 L2
+# Política de autenticación · 19 de noviembre de 2026
 
-Estado: implementado y ensayado localmente; no activado en producción. La matriz ASVS es el registro de verificación, no un certificado.
+El usuario ha solicitado retirar passkeys y volver al acceso simple. Se admiten dos alternativas: correo con el código recibido por email, o Google. No se utiliza contraseña fija ni se exige un segundo factor después del primer acceso verificado.
 
-## Rutas y fuerza de autenticación
+## Acceso y retirada de passkeys
 
-Google OIDC y correo (código o enlace de diez minutos, uso único) son vías alternativas de primer factor. Google se trata siempre como autenticación de un solo factor: no se infiere MFA de una sesión Google, del correo verificado ni de la existencia de biometría en ese proveedor. Sujeto e identidad están vinculados en PostgreSQL; state, navegador iniciador, PKCE, nonce, firma, emisor y audiencia se comprueban antes de emitir sesión.
+La sesión emitida tras verificar correo o Google permite acceder directamente al grupo autorizado. También se conserva la activación de grupos, las invitaciones y la compatibilidad de sesiones existentes. Los permisos individuales, el grupo, la vigencia y la baja de la cuenta se verifican en PostgreSQL en cada consulta de usuario.
 
-Después se requiere una passkey con presencia y verificación del usuario obligatorias. La biometría o PIN se comprueban en el autenticador; Bandarlog no recibe ni guarda esos datos. Se permiten autenticadores compatibles, incluidos los flujos de otro dispositivo que ofrezca el navegador. La compatibilidad concreta de QR/Bluetooth, iCloud y Google Password Manager requiere ensayos en dispositivos reales; no se garantiza a partir del autenticador virtual de Chromium.
+Se retiran registro, autenticación, recuperación y ajustes de passkeys, sus rutas y dependencias WebAuthn. La migración 0037 desactiva la exigencia MFA, conserva las tablas históricas sin conceder lectura/escritura o ejecución de sus funciones a identidad y mantiene las sesiones existentes. No se eliminan personas ni credenciales históricas. Las cookies antiguas sin ámbito de grupo siguen requiriendo entrar de nuevo con correo o Google para obtener una cookie moderna.
 
-Una sesión de primer factor no puede leer `/data`, mutar recursos, conectarse a los datos SSE ni usar las capacidades personales SQL. El alta/activación tampoco equivale a autenticación reciente: exige primer factor fresco antes de registrar la primera passkey. Las cuentas que ya tienen passkeys no pueden sustituirlas con solo un correo o una sesión Google. No hay cuentas de demostración en el arranque productivo ni contraseñas estáticas de acceso.
+La biometría para autenticar una web utiliza WebAuthn/passkeys. Al retirar esa tecnología no se ofrece un acceso biométrico independiente de la web. La protección biométrica del teléfono o del gestor de sesiones del sistema es una función distinta; no se presenta como factor verificado por Bandarlog.
 
-## Alta, recuperación y cambios sensibles
+## Correo, Google y sesiones
 
-Primer registro de passkey: primer factor verificado en los diez minutos anteriores. Passkeys adicionales, retirada de una passkey y renovación de recuperación: MFA verificada en los quince minutos anteriores. No se puede retirar la última passkey. Cada reto dura cinco minutos y se asocia a sesión, grupo, usuario, propósito, RP y origen. Una verificación consume el reto; errores de firma no lo convierten en reutilizable.
+- Código de seis cifras generado con CSPRNG, ligado al reto y grupo, de un uso, con plazo de diez minutos; PBKDF2-HMAC-SHA-256 de 600.000 iteraciones, sal por reto y pepper privado. No se confirma si una cuenta existe al solicitar acceso.
+- Límites por IP: 120 solicitudes cada quince minutos; por destinatario/grupo: un código por minuto y cinco solicitudes cada quince minutos; máximo cinco intentos fallidos por reto. El bloqueo de un reto no deshabilita permanentemente la cuenta.
+- Google: PKCE, estado y cookie por flujo, nonce y comprobación de firma, emisor, audiencia y caducidad. Vinculación por identidad estable; cuando Google no garantiza el dominio de correo, se exige verificarlo por email. El retorno PWA mantiene ticket efímero, de uso único, ligado al secreto del navegador iniciador.
+- Bearer de sesión aleatorio de 256 bits, hash en servidor y cookie `__Host-` Secure/HttpOnly/SameSite=Lax por grupo, sin Domain y con Path=/. El indicador de navegación nunca autentica.
+- Inactividad de treinta días y máximo absoluto de noventa días; la renovación no extiende el absoluto. Cada login o reautenticación rota el bearer del navegador y revoca el anterior. Las sesiones paralelas pueden consultarse y revocarse; las operaciones sensibles mantienen la exigencia de autenticación reciente y CSRF. Administración puede revocar sesiones solo dentro de su grupo.
 
-Si está disponible la passkey anterior, el usuario puede utilizar ese dispositivo o un autenticador sincronizado compatible. Como recuperación independiente se generan diez códigos de 128 bits, mostrados una vez; se guardan exclusivamente sus hashes SHA-256. No son hashes que el usuario tenga que calcular. Cada código requiere además primer factor fresco, solo puede consumirse una vez y se sustituye al renovar el conjunto. No hay preguntas secretas, restablecimiento automático por administradores ni bypass de MFA mediante invitación. La pérdida simultánea de todos los autenticadores y códigos bloquea el acceso: cualquier recuperación excepcional requiere un procedimiento de identificación aprobado, aún pendiente de definición, y nunca se debe resolver con SQL improvisado.
+Google y Bandarlog conservan ciclos de sesión independientes. Salir de uno no revoca las sesiones del otro. Se conserva la separación de procesos y secretos entre HTTP, identidad y entrega; la cuenta SQL del HTTP no puede convertirse en propietario ni omitir RLS.
 
-Se auditan los cambios de factores y se encolan avisos de seguridad al correo del actor. Los avisos no contienen códigos, claves ni el secreto de recuperación. Las personas pueden consultar y cerrar sus sesiones, incluida la opción de cerrar las demás tras un cambio de factores. Administración puede revocar sesiones de personas de su grupo o del grupo completo, con autenticación reciente y auditoría; no puede hacerlo en otro grupo.
+## ASVS y límites
 
-## Límites, abuso y caducidad
+Las dos alternativas son factores únicos, no una combinación de factores. La retirada solicitada impide declarar cumplido ASVS 5.0 L2 V6.3.3; el control queda bloqueado explícitamente en la matriz. No se declara NIST AAL2 ni L2 completo. Los plazos de sesión, el almacenamiento privado offline y los demás pendientes documentados requieren revisión independiente.
 
-- Por IP: 120 solicitudes de autenticación cada quince minutos; lecturas de configuración/estado/listado no consumen esa cuota. El margen permite redes compartidas de grupos scouts. Es un freno adicional, no la única defensa.
-- Por destinatario y grupo: un código por minuto y cinco solicitudes cada quince minutos, serializadas en PostgreSQL; máximo cinco intentos fallidos por reto. La respuesta no confirma si existe la cuenta. Bloquear un reto no deshabilita permanentemente una cuenta.
-- Por sesión: cinco retos activos de passkey, con plazo de cinco minutos. La prueba criptográfica es obligatoria; conocer el ID del reto no basta.
-- Códigos de seis cifras: CSPRNG, PBKDF2-HMAC-SHA-256 de 600.000 iteraciones, sal derivada de un reto aleatorio y pepper privado. Solo se admiten verificadores anteriores para retos no caducados durante la transición.
-- Sesión: bearer aleatorio de 256 bits, hash en servidor, cookie `__Host-` Secure/HttpOnly/SameSite=Lax, nombre distinto por grupo, sin Domain y Path=/. Google usa cookies independientes por flujo; el indicador de navegación nunca autentica.
-- Inactividad: treinta días. Absoluto: noventa días. Renovar actividad no extiende el absoluto. Todo login/reauthentificación rota el bearer y revoca el anterior del mismo navegador. Otras sesiones permanecen disponibles hasta caducidad o revocación explícita.
-
-Se permiten sesiones paralelas sin un máximo numérico fijo, para dispositivos de uso intermitente; se muestran todas las vigentes y pueden revocarse. Esto implica retención y tamaño de listado que deben vigilarse. Los límites por IP, destinatario y reto reducen abuso, sin sustituir una política futura de capacidad.
-
-Los plazos de treinta/noventa días exceden las recomendaciones NIST para AAL2. Se conservan por el uso scout intermitente y la persistencia de la PWA. Las compensaciones son passkeys con UV, revocación en servidor, comprobación de baja/permisos actuales, CSRF y reautenticación de quince minutos en operaciones sensibles. No se declara cumplimiento NIST AAL2; la aceptación del riesgo y de estos plazos debe revisarse antes de declarar verificado ASVS V7.1.1. La persistencia de datos privados offline continúa pendiente de decisión y no se presenta como V14.3.3 cumplido.
-
-Google y Bandarlog tienen ciclos de sesión independientes: salir de Bandarlog no cierra Google; cerrar Google no revoca las sesiones ya emitidas por Bandarlog. El límite absoluto propio exige una nueva interacción. No se ofrece SSO silencioso ni se confía en `auth_time` no recibido. El ticket de retorno de la PWA es efímero, de uso único y exige el secreto del navegador iniciador; no es una sesión.
+La firma RSA-2048 publicada por Google continúa por debajo del mínimo literal de 128 bits de V11.2.3. Retirar passkeys no resuelve esa limitación ni los riesgos de un origen/host compartido. La biometría física y el acceso completo a una cuenta Google real necesitan comprobación interactiva; las pruebas sintéticas no los sustituyen.

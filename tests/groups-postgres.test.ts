@@ -1,6 +1,5 @@
 import { exerciseDeliveryProcess } from './fixtures/delivery-process-postgres';
 import { exerciseMaintenance } from './fixtures/maintenance-postgres';
-import { syntheticPasskey } from './fixtures/webauthn';
 import { exerciseRestore } from './fixtures/restore-postgres';
 import { exerciseServiceBoundary } from './fixtures/service-postgres';
 import { startComponents } from './fixtures/components-postgres';
@@ -291,7 +290,7 @@ test('production public pages and legacy-domain redirects preserve safe links wi
   const { spawn } = await import('node:child_process');
   const testUrl = process.env.TEST_POSTGRES_URL!;
   assert.ok(['127.0.0.1', 'localhost'].includes(new URL(testUrl).hostname));
-  await ownerPool.query('update bandarlog_api.security_configuration set mfa_enforced=true');
+  await ownerPool.query('update bandarlog_api.security_configuration set mfa_enforced=false');
   const { stop, decode } = await startComponents(testUrl, TEST_CONTEXT_SECRET);
   try {
     const { request: httpRequest } = await import('node:http');
@@ -372,82 +371,36 @@ test('production public pages and legacy-domain redirects preserve safe links wi
       ) || '',
       /no-store/,
     );
-    const passkeys = new Map<string, ReturnType<typeof syntheticPasskey>>();
-    const recoveryCodes = new Map<string, string[]>();
-    async function completePasskey(login: Login) {
-      let status = await api('/api/auth/passkeys/status', 'GET', undefined, login);
-      assert.equal(status.status, 200);
-      if (status.data.reauthenticate) {
-        const raw = login.cookie.slice(login.cookie.indexOf('=') + 1);
-        const [session] = await ownerDb
-          .select()
-          .from(s.sessions)
-          .where(eq(s.sessions.id, hashForTest('sha256').update(raw).digest('hex')));
-        const [user] = await ownerDb.select().from(s.users).where(eq(s.users.id, session.userId));
-        const requested = await api('/api/auth/code/request', 'POST', { email: user.email }, login);
-        assert.equal(requested.status, 200);
-        const mails = (
-          await ownerDb.select().from(s.notifications).where(eq(s.notifications.email, user.email))
-        ).map(decode);
-        const mail = mails.filter((m) => m.body.includes('Tu código de acceso es:')).at(-1)!;
-        const verified = await api(
-          '/api/auth/code/verify',
-          'POST',
-          {
-            challengeId: requested.data.challengeId,
-            code: mail.body.match(/código de acceso es: (\d{6})/)![1],
-          },
-          login,
-        );
-        assert.equal(verified.status, 200);
-        login.cookie = verified.headers
-          .getSetCookie()
-          .find((c) => /^(?:__Host-bandarlog-[a-f0-9]{32}|bandarlog)=/.test(c))!
-          .split(';')[0];
-        status = await api('/api/auth/passkeys/status', 'GET', undefined, login);
-      }
-      assert.equal(status.data.reauthenticate, false);
-      login.csrf = status.data.csrf;
-      const kind = status.data.hasPasskeys ? 'authenticate' : 'register';
-      const options = await api('/api/auth/passkeys/' + kind + '/options', 'POST', {}, login);
-      assert.equal(options.status, 200, JSON.stringify(options.data));
-      let key = passkeys.get(login.base);
-      if (!key) {
-        key = syntheticPasskey();
-        passkeys.set(login.base, key);
-      }
-      const priorCookie = login.cookie;
-      const verify = await api(
-        '/api/auth/passkeys/' + kind + '/verify',
+    async function completeEmailLogin(login: Login) {
+      const raw = login.cookie.slice(login.cookie.indexOf('=') + 1);
+      const [session] = await ownerDb
+        .select()
+        .from(s.sessions)
+        .where(eq(s.sessions.id, hashForTest('sha256').update(raw).digest('hex')));
+      const [user] = await ownerDb.select().from(s.users).where(eq(s.users.id, session.userId));
+      const requested = await api('/api/auth/code/request', 'POST', { email: user.email }, login);
+      assert.equal(requested.status, 200);
+      const mails = (
+        await ownerDb.select().from(s.notifications).where(eq(s.notifications.email, user.email))
+      ).map(decode);
+      const mail = mails.filter((m) => m.body.includes('Tu código de acceso es:')).at(-1)!;
+      const verified = await api(
+        '/api/auth/code/verify',
         'POST',
         {
-          id: options.data.id,
-          response:
-            kind === 'register'
-              ? key.register(options.data.options)
-              : key.authenticate(options.data.options),
+          challengeId: requested.data.challengeId,
+          code: mail.body.match(/código de acceso es: (\d{6})/)![1],
         },
         login,
       );
-      assert.equal(verify.status, 200, JSON.stringify(verify.data));
-      login.cookie = verify.headers
+      assert.equal(verified.status, 200);
+      login.cookie = verified.headers
         .getSetCookie()
         .find((c) => /^(?:__Host-bandarlog-[a-f0-9]{32}|bandarlog)=/.test(c))!
         .split(';')[0];
-      if (kind === 'register') {
-        assert.equal(verify.data.recoveryCodes.length, 10);
-        recoveryCodes.set(login.base, verify.data.recoveryCodes);
-        const stored = await ownerDb.select().from(s.passkeyRecovery);
-        assert.ok(
-          verify.data.recoveryCodes.every((code: string) => !JSON.stringify(stored).includes(code)),
-        );
-      }
-      assert.notEqual(login.cookie, priorCookie);
-      assert.equal(
-        (await api('/api/me', 'GET', undefined, { ...login, cookie: priorCookie })).status,
-        401,
-      );
-      login.csrf = (await api('/api/me', 'GET', undefined, login)).data.csrf;
+      const me = await api('/api/me', 'GET', undefined, login);
+      assert.equal(me.status, 200);
+      login.csrf = me.data.csrf;
     }
     async function register(name: string): Promise<Login> {
       const email = ('pg-' + name + '@example.test').toLowerCase();
@@ -536,8 +489,8 @@ test('production public pages and legacy-domain redirects preserve safe links wi
         csrf: '',
         userId: '',
       };
-      assert.equal((await api('/api/me', 'GET', undefined, login)).status, 428);
-      await completePasskey(login);
+      assert.equal((await api('/api/me', 'GET', undefined, login)).status, 200);
+      await completeEmailLogin(login);
       const me = await api('/api/me', 'GET', undefined, login);
       assert.equal(me.status, 200);
       assert.equal(JSON.parse(me.data.user.preferences).foundingAdmin, true);
@@ -573,36 +526,11 @@ test('production public pages and legacy-domain redirects preserve safe links wi
       .getSetCookie()
       .find((c) => /^(?:__Host-bandarlog-[a-f0-9]{32}|bandarlog)=/.test(c))!
       .split(';')[0];
-    assert.equal((await api('/api/me', 'GET', undefined, a)).status, 428);
-    const primaryStatus = await api('/api/auth/passkeys/status', 'GET', undefined, a);
-    a.csrf = primaryStatus.data.csrf;
-    assert.equal((await api('/api/auth/passkeys/register/options', 'POST', {}, a)).status, 428);
-    assert.equal(
-      (await api('/api/auth/passkeys/authenticate/options', 'POST', {}, { ...a, csrf: 'wrong' }))
-        .status,
-      403,
-    );
-    const recovered = await Promise.all([
-      api('/api/auth/passkeys/recovery/verify', 'POST', { code: recoveryCodes.get(a.base)![0] }, a),
-      api('/api/auth/passkeys/recovery/verify', 'POST', { code: recoveryCodes.get(a.base)![0] }, a),
-    ]);
-    assert.equal(recovered.filter((r) => r.status === 200).length, 1);
-    assert.ok(
-      recovered.filter((r) => r.status !== 200).every((r) => [401, 403].includes(r.status)),
-    );
-    a.cookie = recovered
-      .find((r) => r.status === 200)!
-      .headers.getSetCookie()
-      .find((c) => /^__Host-bandarlog-[a-f0-9]{32}=/.test(c))!
-      .split(';')[0];
-    a.csrf = (await api('/api/me', 'GET', undefined, a)).data.csrf;
-    const ownKeys = await api('/api/auth/passkeys/list', 'GET', undefined, a);
-    assert.equal(ownKeys.data.length, 1);
-    assert.equal(
-      (await api('/api/auth/passkeys/remove', 'POST', { id: ownKeys.data[0].id }, a)).status,
-      409,
-    );
-    await completePasskey(a);
+    const primaryMe = await api('/api/me', 'GET', undefined, a);
+    assert.equal(primaryMe.status, 200, 'Google primary session grants direct access');
+    a.csrf = primaryMe.data.csrf;
+    assert.equal((await api('/api/auth/passkeys/status', 'GET', undefined, a)).status, 404);
+    assert.equal((await api('/api/auth/passkeys/register/options', 'POST', {}, a)).status, 404);
     assert.ok(
       returned.headers
         .getSetCookie()
@@ -633,19 +561,7 @@ test('production public pages and legacy-domain redirects preserve safe links wi
       .headers.getSetCookie()
       .find((c) => /^(?:__Host-bandarlog-[a-f0-9]{32}|bandarlog)=/.test(c))!
       .split(';')[0];
-    a.csrf = (await api('/api/auth/passkeys/status', 'GET', undefined, a)).data.csrf;
-    assert.equal(
-      (
-        await api(
-          '/api/auth/passkeys/recovery/verify',
-          'POST',
-          { code: recoveryCodes.get(a.base)![0] },
-          a,
-        )
-      ).status,
-      403,
-    );
-    await completePasskey(a);
+    a.csrf = (await api('/api/me', 'GET', undefined, a)).data.csrf;
     const expired = randomBytes(32).toString('hex');
     await ownerDb.insert(s.googleHandoffs).values({
       id: digest(expired),
@@ -779,11 +695,8 @@ test('production public pages and legacy-domain redirects preserve safe links wi
       assert.equal(
         (await request('/api/me', legacy, 'GET', undefined, 'bandarlog=' + token)).status,
         428,
-        'Legacy sessions require step-up when MFA is enforced',
+        'Unscoped legacy cookies still require a new login with email or Google',
       );
-      await client.query("update sessions set assurance='mfa',mfa_verified_at=now() where id=$1", [
-        createHash('sha256').update(token).digest('hex'),
-      ]);
       const legacyPrivate = (
         await ownerDb.select().from(s.groups).where(eq(s.groups.id, 'rosales-702'))
       )[0].privateId;
