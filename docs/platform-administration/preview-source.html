@@ -1,0 +1,1158 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; img-src data:; font-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; frame-src about:; connect-src 'none'; form-action 'none'; base-uri 'none'"
+    />
+    <title>Bandarlog · Propuesta de administración</title>
+    <style>
+      @font-face {
+        font-family: Poppins;
+        src: url('{{REGULAR}}');
+      }
+      @font-face {
+        font-family: Poppins;
+        src: url('{{BOLD}}');
+        font-weight: 700;
+      }
+      @font-face {
+        font-family: Bungee;
+        src: url('{{BUNGEE}}');
+      }
+      :root {
+        --deep: #103b2d;
+        --green: #124d38;
+        --paper: #fffefa;
+        --cream: #faf8f2;
+        --ink: #24352b;
+        --muted: #52675a;
+        --line: #dfe5da;
+        --amber: #805006;
+        --red: #bd352f;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: Poppins, system-ui, sans-serif;
+        font-size: 14px;
+        line-height: 1.6;
+        background: var(--deep);
+        color: var(--ink);
+      }
+      ::selection {
+        background: #e9eddf;
+        color: var(--deep);
+      }
+      * {
+        scrollbar-color: #386c4c #edf0e5;
+        scrollbar-width: thin;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+      button,
+      a,
+      input,
+      select,
+      textarea {
+        touch-action: manipulation;
+      }
+      button,
+      a {
+        cursor: pointer;
+      }
+      button:focus-visible,
+      a:focus-visible,
+      summary:focus-visible {
+        outline: 3px solid #e8a33c;
+        outline-offset: 3px;
+      }
+      input:focus-visible,
+      textarea:focus-visible,
+      select:focus-visible {
+        outline: 2px solid #21865c;
+        outline-offset: 2px;
+      }
+      input,
+      textarea {
+        caret-color: var(--green);
+      }
+      button {
+        min-height: 44px;
+        border-radius: 8px;
+        padding: 10px 16px;
+        background: var(--green);
+        color: white;
+        border: 1px solid transparent;
+        font-weight: 700;
+      }
+      button:hover {
+        background: #1b674b;
+      }
+      button.secondary {
+        background: white;
+        color: var(--green);
+        border-color: #8b9d85;
+      }
+      button.secondary:hover {
+        background: #edf0e5;
+      }
+      button.danger {
+        color: var(--red);
+        background: white;
+        border-color: #bd352f;
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      a {
+        color: var(--green);
+        text-underline-offset: 3px;
+      }
+      p {
+        margin: 0 0 14px;
+        max-width: 74ch;
+      }
+      h1,
+      h2,
+      h3 {
+        line-height: 1.25;
+        letter-spacing: -0.025em;
+      }
+      h1 {
+        font-size: 30px;
+        margin: 0 0 8px;
+      }
+      h2 {
+        font-size: 20px;
+        margin: 0 0 16px;
+      }
+      h3 {
+        font-size: 16px;
+        margin: 0 0 10px;
+      }
+      small,
+      .muted {
+        color: var(--muted);
+      }
+      .demo {
+        background: #e9eddf;
+        color: var(--deep);
+        padding: 10px 24px;
+        text-align: center;
+        font-size: 12px;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 230px minmax(0, 1fr);
+        min-height: calc(100vh - 40px);
+      }
+      aside {
+        background: var(--paper);
+        padding: 28px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: Bungee, sans-serif;
+        font-size: 20px;
+      }
+      .brand img {
+        width: 40px;
+        height: 40px;
+      }
+      .access-label {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 8px;
+      }
+      nav {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      nav button {
+        background: transparent;
+        color: var(--muted);
+        text-align: left;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 400;
+        white-space: nowrap;
+      }
+      nav button:hover {
+        background: #edf0e5;
+      }
+      nav button[aria-current='page'] {
+        background: #e9eddf;
+        color: var(--deep);
+        font-weight: 700;
+      }
+      nav svg {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+      }
+      .nav-count {
+        margin-left: auto;
+        background: white;
+        min-width: 24px;
+        text-align: center;
+        border-radius: 4px;
+        font-size: 12px;
+      }
+      .session-note {
+        margin-top: auto;
+        border-top: 1px solid var(--line);
+        padding-top: 18px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .session-note strong {
+        display: block;
+        color: var(--ink);
+        margin-bottom: 5px;
+      }
+      .workspace {
+        padding: 30px;
+        min-width: 0;
+      }
+      .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 0 0 20px;
+        color: #fffefa;
+        gap: 16px;
+      }
+      .top p {
+        margin: 0;
+      }
+      .top small {
+        color: #faf8f2;
+      }
+      .sheet {
+        background: var(--paper);
+        border-radius: 12px;
+        min-height: calc(100vh - 150px);
+        padding: 30px;
+      }
+      .page-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 24px;
+        margin-bottom: 25px;
+      }
+      .page-title p {
+        color: var(--muted);
+        margin: 0;
+      }
+      .toolbar {
+        display: flex;
+        align-items: end;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin: 18px 0 24px;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 160px;
+      }
+      .field.grow {
+        flex: 1;
+      }
+      .field span {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      input,
+      select,
+      textarea {
+        padding: 11px 12px;
+        border: 1px solid #8b9d85;
+        border-radius: 8px;
+        background: white;
+        min-height: 44px;
+        color: var(--ink);
+        max-width: 100%;
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 24px;
+        margin: 0 0 32px;
+        padding: 0 0 24px;
+        border-bottom: 1px solid var(--line);
+      }
+      .metrics dt {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .metrics dd {
+        font-size: 32px;
+        font-weight: 700;
+        margin: 5px 0 0;
+        line-height: 1.3;
+        color: var(--green);
+        font-variant-numeric: tabular-nums;
+      }
+      .metrics small {
+        font-size: 11px;
+      }
+      .columns {
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(240px, 1fr);
+        gap: 32px;
+      }
+      .section {
+        margin: 0 0 30px;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 18px;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .row p {
+        margin: 3px 0 0;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .row strong {
+        display: block;
+      }
+      .row .secondary {
+        flex-shrink: 0;
+      }
+      .pill {
+        display: inline-block;
+        font-size: 11px;
+        line-height: 1.6;
+        padding: 4px 8px;
+        border-radius: 4px;
+        background: #e9eddf;
+        color: var(--green);
+        white-space: nowrap;
+      }
+      .pill.warn {
+        background: #faf8f2;
+        color: var(--amber);
+      }
+      .pill.error {
+        background: #faf8f2;
+        color: var(--red);
+      }
+      .panel-note {
+        padding: 18px;
+        background: var(--cream);
+        border-radius: 8px;
+        font-size: 13px;
+        margin: 22px 0;
+      }
+      .panel-note p:last-child {
+        margin: 0;
+      }
+      .table-wrap {
+        max-width: 100%;
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: 13px;
+      }
+      caption {
+        text-align: left;
+        margin-bottom: 12px;
+        color: var(--muted);
+      }
+      th {
+        font-weight: 400;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      td,
+      th {
+        padding: 14px 12px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: middle;
+      }
+      td:first-child,
+      th:first-child {
+        padding-left: 0;
+      }
+      td strong {
+        display: block;
+      }
+      td small {
+        display: block;
+        font-size: 11px;
+      }
+      td.number {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      td .secondary {
+        padding: 7px 12px;
+        min-height: 38px;
+        font-size: 12px;
+      }
+      .chart {
+        display: flex;
+        gap: 16px;
+        align-items: stretch;
+        height: 190px;
+        margin: 20px 0 12px;
+        border-bottom: 1px solid var(--line);
+        padding: 0 16px;
+      }
+      .bar-cell {
+        display: flex;
+        flex-direction: column;
+        justify-content: end;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        min-width: 32px;
+      }
+      .bar-cell strong {
+        font-size: 13px;
+        color: var(--green);
+      }
+      .bar {
+        width: 100%;
+        max-width: 56px;
+        background: #124d38;
+        border-radius: 4px 4px 0 0;
+      }
+      .chart-labels {
+        display: flex;
+        justify-content: space-around;
+        font-size: 11px;
+        color: var(--muted);
+        gap: 8px;
+      }
+      .definition {
+        margin-top: 24px;
+        border-top: 1px solid var(--line);
+        padding-top: 16px;
+      }
+      summary {
+        cursor: pointer;
+        min-height: 44px;
+        padding: 10px 0;
+        color: var(--green);
+        font-weight: 700;
+      }
+      .empty {
+        text-align: center;
+        padding: 45px 16px;
+        color: var(--muted);
+      }
+      .empty h2 {
+        color: var(--ink);
+      }
+      .back {
+        margin-bottom: 18px;
+      }
+      .detail-list {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 12px 20px;
+        margin: 20px 0;
+      }
+      .detail-list dt {
+        color: var(--muted);
+      }
+      .detail-list dd {
+        margin: 0;
+      }
+      .decision {
+        max-width: 650px;
+        border-top: 1px solid var(--line);
+        padding-top: 20px;
+        margin-top: 24px;
+      }
+      .decision textarea {
+        width: 100%;
+        min-height: 100px;
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 16px;
+      }
+      .message.error {
+        color: var(--red);
+      }
+      input[type='checkbox'] {
+        accent-color: var(--green);
+      }
+      .message {
+        padding: 14px 0;
+        color: var(--green);
+        font-weight: 700;
+      }
+      .mail-toolbar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin: 16px 0;
+        flex-wrap: wrap;
+      }
+      .mail-frame {
+        display: block;
+        width: 100%;
+        max-width: 720px;
+        margin: 0 auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--cream);
+        height: 1260px;
+      }
+      .mail-frame.mobile {
+        max-width: 390px;
+      }
+      .checklist {
+        padding-left: 20px;
+        color: var(--muted);
+      }
+      .checklist li {
+        margin-bottom: 8px;
+      }
+      .skip {
+        position: absolute;
+        left: 10px;
+        top: -60px;
+        background: white;
+        padding: 12px;
+        z-index: 10;
+      }
+      .skip:focus {
+        top: 10px;
+      }
+      .privacy {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 22px;
+      }
+      .not-live {
+        display: block;
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+      @media (max-width: 1050px) {
+        .workspace {
+          padding: 22px;
+        }
+        .sheet {
+          padding: 24px;
+        }
+        .columns {
+          grid-template-columns: 1fr;
+        }
+        .layout {
+          grid-template-columns: 205px minmax(0, 1fr);
+        }
+      }
+      @media (max-width: 700px) {
+        body {
+          background: var(--cream);
+          font-size: 14px;
+        }
+        .demo {
+          padding: 9px 16px;
+          text-align: left;
+        }
+        .layout {
+          display: block;
+        }
+        aside {
+          padding: 16px 16px 0;
+          gap: 14px;
+        }
+        .brand {
+          font-size: 19px;
+        }
+        .brand img {
+          width: 36px;
+          height: 36px;
+        }
+        .access-label,
+        .session-note {
+          display: none;
+        }
+        nav {
+          flex-direction: row;
+          overflow: auto;
+          padding-bottom: 12px;
+          gap: 3px;
+        }
+        nav button {
+          padding: 10px 12px;
+          min-width: max-content;
+          font-size: 12px;
+          gap: 7px;
+        }
+        nav svg {
+          width: 17px;
+          height: 17px;
+        }
+        .workspace {
+          padding: 18px 0 0;
+        }
+        .top {
+          color: var(--ink);
+          padding: 0 20px;
+          display: block;
+        }
+        .top small {
+          color: var(--muted);
+        }
+        .sheet {
+          border-radius: 0;
+          padding: 24px 20px;
+          background: var(--cream);
+          min-height: 70vh;
+        }
+        .page-title {
+          display: block;
+        }
+        h1 {
+          font-size: 26px;
+        }
+        .page-title button {
+          margin-top: 15px;
+        }
+        .metrics {
+          gap: 15px;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          margin-bottom: 26px;
+        }
+        .metrics dd {
+          font-size: 28px;
+        }
+        .metrics > div:last-child {
+          grid-column: 1/-1;
+        }
+        .metrics small {
+          display: block;
+        }
+        .toolbar {
+          align-items: stretch;
+        }
+        .field {
+          min-width: 0;
+          flex: 1;
+        }
+        .field.grow {
+          flex-basis: 100%;
+        }
+        .row {
+          align-items: flex-start;
+        }
+        .row .secondary {
+          padding: 8px;
+          font-size: 12px;
+        }
+        .detail-list {
+          display: block;
+        }
+        .detail-list dt {
+          font-size: 12px;
+          margin-top: 16px;
+        }
+        .panel-note {
+          background: white;
+        }
+        .table-wrap {
+          margin-right: -20px;
+          padding-right: 20px;
+        }
+        .mail-frame {
+          height: 1460px;
+        }
+        .top .pill {
+          margin-top: 10px;
+        }
+        .bar-cell {
+          min-width: 25px;
+        }
+        .privacy {
+          font-size: 11px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#content">Saltar al contenido</a>
+    <div class="demo">
+      <strong>Propuesta para revisar.</strong> Todos los grupos, personas y datos son ficticios. Las
+      acciones solo afectan a esta demostración.
+    </div>
+    <div class="layout">
+      <aside>
+        <div>
+          <div class="brand"><img src="{{BRAND}}" alt="" />Bandarlog</div>
+          <div class="access-label">Administración de la plataforma</div>
+        </div>
+        <nav aria-label="Administración" id="navigation"></nav>
+        <div class="session-note">
+          <strong>Acceso reservado</strong>El enlace no concede permisos.<br />La autorización se
+          comprobará en servidor.<br /><br />Vista previa sin conexión a producción.
+        </div>
+      </aside>
+      <div class="workspace">
+        <header class="top">
+          <div>
+            <p>Administración de la plataforma</p>
+            <small>Consulta global · contenido privado de los grupos excluido</small>
+          </div>
+          <span class="pill">Demostración local</span>
+        </header>
+        <main class="sheet" id="content" tabindex="-1"></main>
+      </div>
+    </div>
+    <script>
+      'use strict';
+      const esc = (value) =>
+        String(value).replace(
+          /[&<>"']/g,
+          (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+        );
+      const icons = {
+        home: 'M3 10 12 3l9 7v11h-6v-7H9v7H3z',
+        metrics: 'M4 20V10m8 10V4m8 16v-7',
+        groups:
+          'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m14-18a4 4 0 0 1 0 8m6 10v-2a4 4 0 0 0-3-3.87M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0',
+        requests: 'M9 3h6v4H9zM8 5H5v16h14V5h-3M8 12h8m-8 4h5',
+        access: 'M12 3 3 7v6c0 5 9 9 9 9s9-4 9-9V7zM8 12l3 3 5-6',
+        mail: 'M3 5h18v14H3zM3 5l9 7 9-7',
+        audit: 'M5 3h14v18H5zM8 8h8m-8 4h8m-8 4h5',
+      };
+      const sections = [
+        ['home', 'Inicio'],
+        ['metrics', 'Métricas'],
+        ['groups', 'Grupos'],
+        ['requests', 'Solicitudes'],
+        ['access', 'Accesos'],
+        ['mail', 'Comunicaciones'],
+        ['audit', 'Auditoría'],
+      ];
+      const groups = [
+        {
+          name: 'Grupo Alameda',
+          members: 42,
+          active: 24,
+          projects: 3,
+          completed: 26,
+          total: 40,
+          last: 'Hoy, 10:24',
+          created: '12 sep 2026',
+        },
+        {
+          name: 'Grupo Encina',
+          members: 31,
+          active: 18,
+          projects: 2,
+          completed: 21,
+          total: 32,
+          last: 'Hoy, 09:48',
+          created: '21 sep 2026',
+        },
+        {
+          name: 'Grupo Pinar',
+          members: 28,
+          active: 15,
+          projects: 4,
+          completed: 15,
+          total: 28,
+          last: 'Ayer, 19:12',
+          created: '4 oct 2026',
+        },
+        {
+          name: 'Grupo Mirador',
+          members: 17,
+          active: 0,
+          projects: 1,
+          completed: 0,
+          total: 8,
+          last: 'Hace 19 días',
+          created: '1 nov 2026',
+        },
+      ];
+      const requests = [
+        {
+          id: 'demo-albor',
+          name: 'Grupo Albor',
+          person: 'Álex de ejemplo',
+          email: 'alex@albor.example.test',
+          date: '18 nov 2026',
+          state: 'Pendiente',
+          reason: '',
+        },
+        {
+          id: 'demo-arroyo',
+          name: 'Grupo Arroyo',
+          person: 'Dani de ejemplo',
+          email: 'dani@arroyo.example.test',
+          date: '17 nov 2026',
+          state: 'Pendiente',
+          reason: '',
+        },
+        {
+          id: 'demo-senda',
+          name: 'Grupo Senda',
+          person: 'Mar de ejemplo',
+          email: 'mar@senda.example.test',
+          date: '10 nov 2026',
+          state: 'Activada',
+          reason: '',
+        },
+      ];
+      const audit = [
+        {
+          date: '18 nov · 18:40',
+          action: 'Solicitud aprobada',
+          target: 'Grupo Senda',
+          actor: 'Administración de ejemplo',
+          result: 'Confirmada',
+        },
+        {
+          date: '18 nov · 18:32',
+          action: 'Sesión administrativa cerrada',
+          target: 'Sesión propia',
+          actor: 'Administración de ejemplo',
+          result: 'Confirmada',
+        },
+      ];
+      const sum = (key) => groups.reduce((n, g) => n + g[key], 0);
+      let period = '7',
+        groupSearch = '',
+        groupFilter = 'all',
+        requestFilter = 'Pendiente',
+        selectedRequest = null,
+        selectedGroup = null,
+        notice = '',
+        mailMobile = false;
+      const content = document.getElementById('content');
+      function badge(label, kind = '') {
+        return `<span class="pill ${kind}">${esc(label)}</span>`;
+      }
+      function title(name, description, action = '') {
+        return `<div class="page-title"><div><h1>${esc(name)}</h1><p>${esc(description)}</p></div>${action}</div>`;
+      }
+      function metrics(values) {
+        return `<dl class="metrics">${values.map(([label, value, note]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd><small>${esc(note)}</small></div>`).join('')}</dl>`;
+      }
+      function footer() {
+        return '<p class="privacy">Datos ficticios · Zona horaria: Europe/Madrid · Sin tokens, códigos, direcciones IP ni contenido privado de tareas.</p>';
+      }
+      function navigate(section) {
+        location.hash = section;
+      }
+      function page() {
+        const section = location.hash.slice(1);
+        return sections.some((s) => s[0] === section) ? section : 'home';
+      }
+      function render(focus = false) {
+        const section = page();
+        document.getElementById('navigation').innerHTML = sections
+          .map(
+            ([key, label]) =>
+              `<button type="button" data-nav="${key}" ${key === section ? 'aria-current="page"' : ''}><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${icons[key]}"></path></svg>${label}${key === 'requests' ? `<span class="nav-count">${requests.filter((r) => r.state === 'Pendiente').length}</span>` : ''}</button>`,
+          )
+          .join('');
+        content.innerHTML =
+          {
+            home: home,
+            metrics: metricsPage,
+            groups: groupsPage,
+            requests: requestsPage,
+            access: accessPage,
+            mail: mailPage,
+            audit: auditPage,
+          }[section]() + footer();
+        if (section === 'mail') document.getElementById('mail-preview').srcdoc = mailHtml();
+        if (focus) content.focus({ preventScroll: true });
+      }
+      function home() {
+        return (
+          title(
+            'Una vista del conjunto',
+            'Qué requiere atención y cómo se está utilizando Bandarlog.',
+          ) +
+          metrics([
+            [
+              'Grupos con actividad',
+              groups.filter((g) => g.active > 0).length + ' / ' + groups.length,
+              'En los últimos 7 días',
+            ],
+            ['Cuentas activas', sum('active'), 'Cuentas de grupo · últimos 7 días'],
+            [
+              'Solicitudes pendientes',
+              requests.filter((r) => r.state === 'Pendiente').length,
+              'Por revisar',
+            ],
+          ]) +
+          `<div class="columns"><div><section class="section"><h2>Necesita atención</h2><div class="row"><div><strong>${requests.filter((r) => r.state === 'Pendiente').length} solicitudes por revisar</strong><p>La aprobación no activa el grupo: su responsable debe confirmar el alta.</p></div><button class="secondary" data-nav="requests">Revisar</button></div><div class="row"><div><strong>2 correos necesitan revisión</strong><p>Se han agotado los intentos automáticos. No se reenviarán desde esta vista.</p></div><button class="secondary" data-nav="mail">Ver envíos</button></div><div class="row"><div><strong>Grupo Mirador sin actividad reciente</strong><p>No implica baja ni bloqueo de sus cuentas.</p></div><button class="secondary" data-group="3">Ver grupo</button></div></section><section><h2>Actividad por grupo</h2><div class="table-wrap"><table><caption>Cuentas activas en los últimos 7 días. Un usuario se cuenta una vez dentro de cada grupo.</caption><thead><tr><th>Grupo</th><th>Actividad</th><th>Última actividad</th></tr></thead><tbody>${groups.map((g) => `<tr><td><strong>${g.name}</strong></td><td>${g.active} de ${g.members} cuentas</td><td>${g.last}</td></tr>`).join('')}</tbody></table></div></section></div><div><section><h2>Estado de los envíos</h2><div class="row"><span>Aceptados por el proveedor</span><strong>76</strong></div><div class="row"><span>En cola o reintento</span><strong>4</strong></div><div class="row"><span>Necesitan revisión</span>${badge('2', 'warn')}</div><p class="privacy">Aceptado por el proveedor no significa entregado ni leído. No se usan píxeles de seguimiento.</p></section><div class="panel-note"><strong>La privacidad marca el límite.</strong><p>Este panel consulta cifras y operaciones de plataforma. Los textos de tareas, comentarios y mensajes privados permanecen fuera.</p></div></div></div>`
+        );
+      }
+      function metricsPage() {
+        const active = period === '7' ? 57 : 86;
+        const values = period === '7' ? [32, 41, 49, 57] : [58, 66, 74, 86];
+        return (
+          title('Métricas', 'Cifras con definición, periodo y límites explícitos.') +
+          `<div class="toolbar"><label class="field"><span>Periodo de consulta</span><select id="period"><option value="7" ${period === '7' ? 'selected' : ''}>Últimos 7 días</option><option value="30" ${period === '30' ? 'selected' : ''}>Últimos 30 días</option></select></label></div>` +
+          metrics([
+            ['Cuentas habilitadas', sum('members'), 'Stock actual, no altas del periodo'],
+            ['Cuentas activas', active, `Durante los últimos ${period} días`],
+            [
+              'Tareas terminadas',
+              period === '7' ? 12 : 31,
+              'Finalizaciones observadas en el periodo',
+            ],
+          ]) +
+          `<div class="columns"><section><h2>Evolución de actividad</h2><p class="muted">Cuentas de grupo con una consulta privada autorizada o una modificación válida.</p><div class="chart" role="img" aria-label="Serie ficticia: ${values.join(', ')} cuentas activas en cuatro periodos comparables">${values.map((v) => `<div class="bar-cell"><strong>${v}</strong><div class="bar" style="height:${(v / 86) * 120}px"></div></div>`).join('')}</div><div class="chart-labels"><span>Hace 3 periodos</span><span>Hace 2</span><span>Anterior</span><span>Actual</span></div><p class="privacy">Demostración del gráfico. La serie real solo existirá desde que se incorpore la medición.</p></section><section><h2>Qué estamos contando</h2><div class="row"><div><strong>Cuentas, no personas únicas globales</strong><p>Una misma persona en dos grupos cuenta dos veces. No se cruzan identidades entre grupos.</p></div></div><div class="row"><div><strong>Actividad no equivale a sesión abierta</strong><p>Una sesión vigente puede llevar días sin utilizarse.</p></div></div><div class="row"><div><strong>Sin historial inventado</strong><p>Los días anteriores al inicio de la medición aparecerán como «Sin datos».</p></div></div></section></div><details class="definition"><summary>Ver definiciones y disponibilidad</summary><p>Grupos: filas vigentes de scout_groups. Cuentas: usuarios sin disabled_at. Finalizaciones: completed_at dentro del periodo; no se presenta como historial completo de reaperturas.</p><p>Actividad y accesos completados requieren instrumentación nueva. Las solicitudes y los estados de la cola ya tienen datos persistidos. El rendimiento se compara antes y después de implementar, no con estas cifras de ejemplo.</p></details>`
+        );
+      }
+      function groupsPage() {
+        if (selectedGroup !== null) {
+          const g = groups[selectedGroup];
+          return (
+            `<button class="secondary back" data-back="groups">Volver a grupos</button>` +
+            title(g.name, 'Ficha administrativa · datos agregados') +
+            metrics([
+              ['Cuentas habilitadas', g.members, 'Estado actual'],
+              ['Cuentas activas', g.active, 'Últimos 7 días'],
+              ['Proyectos vigentes', g.projects, 'Sin contenido de tareas'],
+            ]) +
+            `<dl class="detail-list"><dt>Fecha de alta</dt><dd>${g.created}</dd><dt>Última actividad</dt><dd>${g.last}</dd><dt>Plan</dt><dd>Gratuito</dd><dt>Estado de actividad</dt><dd>${badge(g.active ? 'Con actividad' : 'Sin actividad reciente', g.active ? '' : 'warn')}</dd></dl><div class="panel-note">Esta ficha no permite entrar como otra persona, abrir contenido del grupo, copiar su enlace privado ni borrar sus datos.</div>`
+          );
+        }
+        const found = groups.filter(
+          (g) =>
+            g.name.toLocaleLowerCase('es').includes(groupSearch.toLocaleLowerCase('es')) &&
+            (groupFilter === 'all' || (groupFilter === 'active' ? g.active > 0 : g.active === 0)),
+        );
+        return (
+          title(
+            'Grupos',
+            'Consulta el estado y la actividad sin entrar en sus espacios privados.',
+          ) +
+          `<div class="toolbar"><label class="field grow"><span>Buscar grupo</span><input id="group-search" type="search" value="${esc(groupSearch)}" placeholder="Nombre del grupo"></label><label class="field"><span>Actividad</span><select id="group-filter"><option value="all" ${groupFilter === 'all' ? 'selected' : ''}>Todos</option><option value="active" ${groupFilter === 'active' ? 'selected' : ''}>Con actividad</option><option value="idle" ${groupFilter === 'idle' ? 'selected' : ''}>Sin actividad reciente</option></select></label></div>` +
+          (found.length
+            ? `<div class="table-wrap"><table><caption>${found.length} grupos ficticios · En producción: paginación de 25 filas.</caption><thead><tr><th>Grupo</th><th>Cuentas</th><th>Actividad 7 días</th><th>Estado</th><th>Ficha</th></tr></thead><tbody>${found.map((g) => `<tr><td><strong>${g.name}</strong><small>Alta: ${g.created}</small></td><td class="number">${g.members}</td><td class="number">${g.active}</td><td>${badge(g.active ? 'Con actividad' : 'Sin actividad', g.active ? '' : 'warn')}</td><td><button class="secondary" data-group="${groups.indexOf(g)}" aria-label="Ver ${g.name}">Ver</button></td></tr>`).join('')}</tbody></table></div>`
+            : '<div class="empty"><h2>No hay grupos con este filtro</h2><p>Cambia el nombre o selecciona todas las actividades.</p></div>')
+        );
+      }
+      function requestsPage() {
+        if (selectedRequest) {
+          const r = requests.find((r) => r.id === selectedRequest);
+          return (
+            `<button class="secondary back" data-back="requests">Volver a solicitudes</button>` +
+            title(r.name, 'Solicitud de alta · revisar antes de decidir') +
+            `<dl class="detail-list"><dt>Responsable</dt><dd>${r.person}</dd><dt>Correo de contacto</dt><dd>${r.email}<small class="not-live">Dirección ficticia reservada para ejemplos.</small></dd><dt>Recibida</dt><dd>${r.date}</dd><dt>Estado</dt><dd>${badge(r.state, r.state === 'Pendiente' ? 'warn' : '')}</dd></dl>${r.state === 'Pendiente' ? `<div class="decision"><h2>Decisión administrativa</h2><p>Una aprobación permitirá que el responsable confirme el alta. No creará una sesión ni activará el grupo por sí sola.</p><label class="field"><span>Motivo de la decisión (obligatorio)</span><textarea id="decision-reason" aria-describedby="decision-message" maxlength="500" placeholder="Describe brevemente el motivo"></textarea></label><label style="display:flex;gap:10px;align-items:center;margin-top:16px"><input id="decision-confirm" aria-describedby="decision-message" type="checkbox">He revisado la solicitud y quiero registrar esta decisión.</label><div class="actions"><button data-decision="Aprobada">Aprobar solicitud de ejemplo</button><button class="danger" data-decision="Rechazada">Rechazar solicitud de ejemplo</button></div><p class="message" role="status" id="decision-message"></p></div>` : `<div class="panel-note">La solicitud ya tiene una decisión. Esta demostración no permite decidir de nuevo.${r.reason ? '<p>Motivo: ' + esc(r.reason) + '</p>' : ''}</div>${notice ? `<p class="message" role="status">${esc(notice)}</p>` : ''}`}`
+          );
+        }
+        const found = requests.filter((r) => requestFilter === 'all' || r.state === requestFilter);
+        return (
+          title('Solicitudes', 'Revisión de altas, decisiones e historial.') +
+          `<div class="toolbar"><label class="field"><span>Estado de la solicitud</span><select id="request-filter">${[
+            ['Pendiente', 'Pendientes'],
+            ['Aprobada', 'Aprobadas'],
+            ['Rechazada', 'Rechazadas'],
+            ['Activada', 'Activadas'],
+            ['all', 'Todas'],
+          ]
+            .map(
+              ([v, l]) =>
+                `<option value="${v}" ${requestFilter === v ? 'selected' : ''}>${l}</option>`,
+            )
+            .join('')}</select></label></div>` +
+          (found.length
+            ? `<div class="table-wrap"><table><caption>La decisión real requerirá autenticación reciente y se registrará de forma atómica.</caption><thead><tr><th>Grupo</th><th>Recibida</th><th>Estado</th><th>Revisión</th></tr></thead><tbody>${found.map((r) => `<tr><td><strong>${r.name}</strong><small>${r.person}</small></td><td>${r.date}</td><td>${badge(r.state, r.state === 'Pendiente' ? 'warn' : '')}</td><td><button class="secondary" data-request="${r.id}" aria-label="Revisar ${r.name}">Revisar</button></td></tr>`).join('')}</tbody></table></div>`
+            : '<div class="empty"><h2>No hay solicitudes en este estado</h2><p>Selecciona otro filtro para consultar el historial.</p></div>')
+        );
+      }
+      function accessPage() {
+        return (
+          title('Accesos', 'Visibilidad sobre autenticación sin exponer credenciales.') +
+          metrics([
+            ['Accesos completados', 64, 'Ejemplo · sesiones emitidas en 7 días'],
+            ['Verificaciones rechazadas', 7, 'No equivale a siete personas'],
+            ['Sesiones administrativas', 1, 'Ejemplo · sesión propia'],
+          ]) +
+          `<div class="panel-note"><strong>Este historial necesita medición nueva.</strong><p>Los logs actuales incluyen pasos de Google y respuestas HTTP. No se convertirán en un contador de inicios de sesión sin distinguir sesión emitida, cancelación, error y reintento.</p></div><div class="table-wrap"><table><caption>Eventos de ejemplo. No se muestran códigos, tickets, IP ni cookies.</caption><thead><tr><th>Fecha</th><th>Ámbito</th><th>Evento</th><th>Resultado</th></tr></thead><tbody><tr><td>19 nov · 10:24</td><td>Grupo Alameda</td><td>Sesión emitida · Google</td><td>${badge('Completado')}</td></tr><tr><td>19 nov · 10:10</td><td>Grupo Encina</td><td>Verificación de código</td><td>${badge('Rechazada', 'warn')}</td></tr><tr><td>19 nov · 09:55</td><td>Plataforma</td><td>Autenticación administrativa</td><td>${badge('Completada')}</td></tr></tbody></table></div><h2 style="margin-top:30px">Tu sesión administrativa</h2><p>El panel tendrá una sesión propia, corta y revocable. Cerrar esta sesión no debe cerrar las sesiones ordinarias de tus grupos.</p><button class="secondary" id="session-demo">Simular cierre administrativo</button>${notice ? `<p class="message" role="status">${esc(notice)}</p>` : ''}`
+        );
+      }
+      function mailPage() {
+        return (
+          title(
+            'Comunicaciones',
+            'Resumen semanal y seguimiento de la cola, sin seguimiento de lectura.',
+          ) +
+          metrics([
+            ['Aceptados por el proveedor', 76, 'No confirma entrega al buzón'],
+            ['Pendientes o en reintento', 4, 'Conservan sus claves de deduplicación'],
+            ['Necesitan revisión', 2, 'Sin reenvío manual desde este panel'],
+          ]) +
+          `<section><h2>Resumen semanal propuesto</h2><p>Un correo por proyecto, con atención primero y avance de la semana después. Se mantienen los destinatarios actuales y sus preferencias.</p><div class="mail-toolbar"><button class="secondary" data-mail-size="desktop" aria-pressed="${!mailMobile}">Vista amplia</button><button class="secondary" data-mail-size="mobile" aria-pressed="${mailMobile}">Vista móvil</button></div><iframe class="mail-frame ${mailMobile ? 'mobile' : ''}" id="mail-preview" title="Vista previa del resumen semanal con datos ficticios" sandbox=""></iframe><div class="panel-note"><strong>Envío de prueba, antes de activar.</strong><p>La implementación permitirá enviarlo únicamente al correo verificado de la sesión administrativa. Esta vista no envía mensajes.</p><button disabled>Enviar prueba · disponible en la implementación</button></div></section>`
+        );
+      }
+      function auditPage() {
+        return (
+          title('Auditoría', 'Decisiones de plataforma y sesiones administrativas.') +
+          `<div class="table-wrap"><table><caption>Historial ficticio en memoria; se reinicia al recargar esta propuesta.</caption><thead><tr><th>Fecha</th><th>Acción</th><th>Ámbito</th><th>Actor</th><th>Resultado</th></tr></thead><tbody>${audit.map((a) => `<tr><td>${esc(a.date)}</td><td>${esc(a.action)}</td><td>${esc(a.target)}</td><td>${esc(a.actor)}</td><td>${badge(a.result)}</td></tr>`).join('')}</tbody></table></div><div class="panel-note">En producción, el registro será append-only para los roles runtime. No incluirá cuerpos de correos, tokens, códigos ni texto privado de tareas. El motivo de decisiones solo será visible para la administración autorizada.</div>`
+        );
+      }
+      function mailHtml() {
+        return `<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body style="margin:0;background:#faf8f2;color:#24352b;font-family:Arial,sans-serif"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center" style="padding:24px 12px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px"><tr><td style="padding:0 8px 20px;color:#124d38"><img src="{{BRAND}}" width="34" height="34" alt="" style="vertical-align:middle;margin-right:8px"><strong style="font-size:23px">Bandarlog</strong><p style="font-size:12px;margin:14px 0 0">Vista previa · datos ficticios · semana del 16 al 22 de noviembre</p></td></tr><tr><td style="padding:26px 22px;background:#fff;border-radius:12px"><h1 style="font-size:25px;line-height:1.25;margin:0 0 8px">Tu semana en Campamento de verano</h1><p style="font-size:13px;color:#52675a;margin:0 0 22px">Grupo Alameda · ejemplo</p><p style="font-size:16px;line-height:1.65;margin:0 0 22px">Habéis terminado 4 tareas esta semana. Hay un bloqueo que conviene resolver antes de seguir.</p><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#faf8f2"><tr><td style="padding:16px;font-size:13px;line-height:1.8"><strong style="color:#805006">1 bloqueada</strong><br>2 vencidas · 3 próximos plazos</td></tr></table><h2 style="font-size:19px;margin:26px 0 6px">Primero, lo que necesita atención</h2><p style="font-size:12px;line-height:1.6;color:#52675a">Las categorías pueden coincidir; cada tarea aparece una sola vez.</p><table role="presentation" width="100%" cellspacing="0" cellpadding="0">${[
+          [
+            'Cerrar el menú y las alergias',
+            'Cocina · bloqueada · venció el 18 nov',
+            'Faltan dos confirmaciones de las familias.',
+          ],
+          ['Confirmar la ruta alternativa', 'Rutas · vence el 23 nov', ''],
+          ['Reservar el transporte', 'Logística · vence el 24 nov', ''],
+        ]
+          .map(
+            ([t, c, n]) =>
+              `<tr><td style="padding:16px 0;border-bottom:1px solid #dfe5da"><a href="#tarea-de-ejemplo" style="font-size:16px;line-height:1.4;font-weight:bold;color:#124d38">${t}</a><p style="font-size:12px;color:#52675a;line-height:1.6;margin:7px 0">${c}</p>${n ? `<p style="font-size:13px;line-height:1.6;margin:0">${n}</p>` : ''}</td></tr>`,
+          )
+          .join(
+            '',
+          )}</table><p style="font-size:12px;line-height:1.7;color:#52675a">2 tareas más requieren atención. Consúltalas en el proyecto.</p><h2 style="font-size:19px;margin:28px 0 12px">Lo que habéis sacado adelante</h2><p style="font-size:14px;line-height:1.7">4 tareas terminadas esta semana. Entre ellas, confirmar los puntos de agua y preparar la lista de material común.</p><p style="font-size:14px;line-height:1.7;color:#52675a">Avance acumulado: 12 de 20 tareas terminadas (60 %). No es el avance exclusivo de esta semana.</p><a href="#proyecto-de-ejemplo" style="display:inline-block;margin:12px 0;padding:14px 18px;background:#124d38;color:white;text-decoration:none;border-radius:8px;font-size:14px;font-weight:bold">Ver proyecto</a><p style="font-size:12px;line-height:1.7;color:#52675a;margin-top:18px">Este correo no cambia estados. Abre Bandarlog para consultar y confirmar cualquier acción.</p></td></tr><tr><td style="padding:20px 10px;font-size:12px;line-height:1.7;color:#52675a">Recibes el resumen por tu rol de Administración o Coordinación y tus preferencias de avisos.<br><a href="#preferencias-de-ejemplo" style="color:#124d38">Gestionar el resumen en Perfil</a><br><br>Demostración: los enlaces no llevan a grupos reales.</td></tr></table></td></tr></table></body></html>`;
+      }
+      document.addEventListener('click', (event) => {
+        const b = event.target.closest('button');
+        if (!b || b.disabled) return;
+        if (b.dataset.nav) {
+          notice = '';
+          selectedGroup = null;
+          selectedRequest = null;
+          navigate(b.dataset.nav);
+        }
+        if (b.dataset.group !== undefined) {
+          selectedGroup = Number(b.dataset.group);
+          if (page() !== 'groups') navigate('groups');
+          else render(true);
+        }
+        if (b.dataset.request) {
+          selectedRequest = b.dataset.request;
+          notice = '';
+          render(true);
+        }
+        if (b.dataset.back) {
+          selectedGroup = null;
+          selectedRequest = null;
+          notice = '';
+          render(true);
+        }
+        if (b.dataset.mailSize) {
+          mailMobile = b.dataset.mailSize === 'mobile';
+          render();
+        }
+        if (b.id === 'session-demo') {
+          notice =
+            'Demostración: la sesión administrativa se cerraría sin afectar a las sesiones de grupo.';
+          audit.unshift({
+            date: 'Ahora · ejemplo',
+            action: 'Cierre administrativo simulado',
+            target: 'Sesión propia',
+            actor: 'Administración de ejemplo',
+            result: 'Simulado',
+          });
+          render();
+        }
+        if (b.dataset.decision) {
+          const reason = document.getElementById('decision-reason').value.trim();
+          if (!reason || !document.getElementById('decision-confirm').checked) {
+            document.getElementById('decision-message').classList.add('error');
+            document
+              .getElementById('decision-reason')
+              .setAttribute('aria-invalid', String(!reason));
+            document
+              .getElementById('decision-confirm')
+              .setAttribute(
+                'aria-invalid',
+                String(!document.getElementById('decision-confirm').checked),
+              );
+            document.getElementById('decision-message').textContent =
+              'Escribe un motivo y confirma que has revisado la solicitud.';
+            return;
+          }
+          const r = requests.find((r) => r.id === selectedRequest);
+          if (r.state !== 'Pendiente') return;
+          r.state = b.dataset.decision;
+          r.reason = reason;
+          audit.unshift({
+            date: 'Ahora · ejemplo',
+            action: 'Solicitud ' + r.state.toLowerCase(),
+            target: r.name,
+            actor: 'Administración de ejemplo',
+            result: 'Simulada',
+          });
+          notice =
+            'Decisión simulada guardada en esta vista. No se ha enviado correo ni cambiado ningún grupo real.';
+          render(true);
+        }
+      });
+      function clearDecisionError() {
+        const message = document.getElementById('decision-message');
+        if (message) {
+          message.textContent = '';
+          message.classList.remove('error');
+        }
+        document.getElementById('decision-reason')?.removeAttribute('aria-invalid');
+        document.getElementById('decision-confirm')?.removeAttribute('aria-invalid');
+      }
+      document.addEventListener('change', (event) => {
+        const e = event.target;
+        if (e.id === 'decision-confirm') clearDecisionError();
+        if (e.id === 'period') period = e.value;
+        if (e.id === 'group-filter') groupFilter = e.value;
+        if (e.id === 'request-filter') requestFilter = e.value;
+        if (['period', 'group-filter', 'request-filter'].includes(e.id)) render();
+      });
+      document.addEventListener('input', (event) => {
+        if (event.target.id === 'decision-reason') clearDecisionError();
+        if (event.target.id === 'group-search') {
+          const pos = event.target.selectionStart;
+          groupSearch = event.target.value;
+          render();
+          const input = document.getElementById('group-search');
+          input.focus();
+          try {
+            input.setSelectionRange(pos, pos);
+          } catch {}
+        }
+      });
+      window.addEventListener('hashchange', () => render(true));
+      render();
+    </script>
+  </body>
+</html>
