@@ -18,7 +18,7 @@ test('review artifact works offline, exposes all seven destinations, and fits de
   page.on('pageerror', (error) => errors.push(error.message));
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(preview);
-  await expect(page.getByRole('heading', { name: 'Una vista del conjunto' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Resumen' })).toBeVisible();
   await expect(
     page.getByRole('navigation', { name: 'Administración' }).getByRole('button'),
   ).toHaveCount(7);
@@ -40,7 +40,7 @@ test('review artifact works offline, exposes all seven destinations, and fits de
   }
   await page.getByRole('navigation').getByRole('button', { name: 'Inicio', exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByRole('heading', { name: 'Una vista del conjunto' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Resumen' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await page.screenshot({ path: `${captures}/inicio-390.png`, fullPage: true });
   expect(external).toEqual([]);
@@ -103,7 +103,7 @@ test('period changes are labelled and the proposed mail is readable at both widt
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(preview + '#metrics');
   await page.getByLabel('Periodo de consulta').selectOption('30');
-  await expect(page.getByText('Durante los últimos 30 días', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Periodo de consulta')).toHaveValue('30');
   await page.screenshot({ path: `${captures}/metricas-1440.png`, fullPage: true });
   await page
     .getByRole('navigation')
@@ -141,5 +141,42 @@ test('period changes are labelled and the proposed mail is readable at both widt
   await mailPage.screenshot({ path: `${captures}/correo-390.png`, fullPage: true });
   await mailPage.close();
   await expect(page.getByRole('button', { name: /Enviar prueba/ })).toBeDisabled();
+  expect(external).toEqual([]);
+});
+
+test('usage metrics change with the period and overview keeps its seven-day scope', async ({
+  page,
+}) => {
+  const external: string[] = [];
+  page.on('request', (request) => {
+    if (/^https?:/.test(request.url()) && request.url() !== preview) external.push(request.url());
+  });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto(preview + '#metrics');
+  const usage = page.getByRole('region', { name: 'Uso de funcionalidades' });
+  await expect(usage.getByRole('row', { name: /Tareas creadas/ })).toContainText('18');
+  await expect(usage.getByRole('row', { name: /Tareas creadas/ })).toContainText(/15,8\s*%/);
+  const recurrence = page.getByRole('table', { name: 'Recurrencia', exact: true });
+  await expect(recurrence.getByRole('row', { name: /Retención/ })).toContainText(/89,8\s*%/);
+  await expect(page.getByText('Cuentas distintas por grupo', { exact: false })).toBeHidden();
+  await page.getByLabel('Periodo de consulta').selectOption('30');
+  await expect(usage.getByRole('row', { name: /Tareas creadas/ })).toContainText('49');
+  await expect(usage.getByRole('row', { name: /Tareas creadas/ })).toContainText(/25,6\s*%/);
+  await expect(recurrence.getByRole('row', { name: /Retención/ })).toContainText(/82,4\s*%/);
+  await page.getByText('Definiciones y fuentes', { exact: true }).click();
+  await expect(page.getByText('Cuentas distintas por grupo', { exact: false })).toBeVisible();
+  await page.getByText('Definiciones y fuentes', { exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await page.screenshot({ path: `${captures}/metricas-390.png`, fullPage: true });
+  await page.getByRole('navigation').getByRole('button', { name: 'Inicio', exact: true }).click();
+  await expect(
+    page.getByRole('region', { name: 'Uso de funcionalidades' }).getByRole('caption'),
+  ).toHaveText('Acciones confirmadas · 7 días');
+  await expect(
+    page
+      .getByRole('region', { name: 'Uso de funcionalidades' })
+      .getByRole('row', { name: /Tareas creadas/ }),
+  ).toContainText('18');
   expect(external).toEqual([]);
 });

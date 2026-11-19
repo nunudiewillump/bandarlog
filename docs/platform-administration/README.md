@@ -49,6 +49,35 @@ Periodos con límites `[inicio, fin)`, timezone Europe/Madrid, últimas 7/30 fec
 | Correos aceptados                  | Transiciones confirmadas de envío aceptado por proveedor; desglosar tipo y fecha de envío.                                                    | Metadatos disponibles durante su retención; no afirmar entrega al buzón ni lectura.                                                                                             |
 | Pendientes / reintentos / fallidos | Estado actual de notificaciones y cola de plataforma, respetando intentos, cancelaciones y leases.                                            | Disponible. «Procesando» no es «enviado». Un reintento no suma otro envío confirmado.                                                                                           |
 
+### Uso ampliado · revisión solicitada
+
+La interfaz reduce el texto permanente a etiquetas, periodos y acciones. Las explicaciones de privacidad, fuentes y fórmulas pasan a «Definiciones y fuentes». Se conserva la confirmación de decisiones. No se simplifica el correo: esta revisión afecta al panel de administración.
+
+| Indicador               | Fórmula / interpretación                                                                                                                                                                |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DAU / WAU / MAU         | Cuentas distintas por grupo activas hoy, en 7 y en 30 fechas locales. Se muestran siempre esas ventanas, aunque se cambie el periodo de las tablas. Hoy incluye solo hasta el snapshot. |
+| Adopción                | Activas del periodo / cuentas actualmente habilitadas. No es conversión de altas.                                                                                                       |
+| Colaboración            | Cuentas distintas que crean, actualizan o comentan una tarea / activas. No sumar los actores de cada función: pueden coincidir.                                                         |
+| Uso recurrente          | Activas en dos o más fechas locales del periodo / activas.                                                                                                                              |
+| Retención               | Activas tanto en el periodo anterior como en el actual / activas del anterior. No confundir con recurrencia dentro de un periodo.                                                       |
+| Variación de actividad  | (Activas actuales − anteriores) / anteriores. El actual incluye hoy parcial y la comparación es provisional; no se presenta como comparación a igual tiempo transcurrido.               |
+| Días activos por cuenta | Suma de pares cuenta/fecha activa / activas. No es duración de sesión ni tiempo en pantalla.                                                                                            |
+| Proyectos activos       | Proyectos vigentes con al menos una acción confirmada de tarea en el periodo / proyectos vigentes.                                                                                      |
+| Uso de funciones        | Eventos, actores distintos por grupo y porcentaje de activas que utilizan creación/actualización de tareas, finalización, comentarios y checklist.                                      |
+| Adopción por grupo      | Activas / habilitadas; además, cuentas que colaboran y proyectos activos. Ficha con DAU/WAU/MAU y desglose de acciones de ese grupo.                                                    |
+| Método de acceso        | Sesiones primarias emitidas por Google o código / accesos completados. Las verificaciones rechazadas son otro contador, no el complemento de una tasa de éxito de flujos.               |
+
+El selector 7/30 cambia uso, adopción, recurrencia y comparaciones. Inicio conserva explícitamente su ventana de siete días al regresar desde otra selección. Los valores numéricos de esta propuesta se calculan desde un fixture sintético compartido; no son cifras medidas de Bandarlog. El modelo evita NaN/Infinity: si no hay denominador, presenta «—». Una falta de cobertura real deberá distinguirse de un cero observado.
+
+Fuentes y coste previsto:
+
+- `activity.kind` ya distingue `created`, `updated`, `comment` y `deleted`. Se pueden agregar sus metadatos sin consultar ni almacenar el cuerpo. No contar el borrado como uso de una funcionalidad que no aparece en la tabla.
+- Las actualizaciones de estado y checklist se guardan hoy como `updated` con texto de descripción. **No analizar ese texto para reconstruir métricas.** Añadir un subtipo estructurado a la misma transacción confirmada; registrar una finalización solo ante transición real al estado terminado y una marca de checklist solo al pasar a marcado. Deshacer/reabrir y reintentos idempotentes no duplicarán un mismo evento confirmado.
+- Finalización y checklist son subtipos de actualización: sus filas pueden coincidir. El total de operaciones distintas del ejemplo suma solo creación + actualización + comentario; no sumar todas las filas de la tabla. La métrica por eventos futura es distinta del stock de tareas terminadas por `completed_at` ya descrito arriba.
+- Actividad diaria, intersección de cohortes y frecuencia necesitan presencia diaria acotada por grupo/cuenta. Mantener retención y periodos en Europe/Madrid, incluida DST. No usar sesiones abiertas, pulsaciones, duración de pantalla, textos o seguimiento continuo como sustitutos.
+- Una retención real requiere cobertura de ambos periodos completos; antes se mostrará «Sin datos». No rellenar retrospectivamente fechas sin medición. Mantener elegibilidad de las cohortes explícita y no unir cuentas entre grupos por email/Google.
+- Instrumentación en las operaciones existentes, con agregación y límites. No se añaden polling, consultas de métricas al arranque normal, conexiones por petición ni un cron por indicador.
+
 Las series no disponibles no se rellenarán con cifras sintéticas en producción. La vista revisable sí muestra ejemplos, señalados en todas las pantallas.
 
 ## Resumen semanal propuesto
@@ -94,16 +123,13 @@ Límite: una toma completa del proceso de identidad con su autoridad de firma o 
 4. Conectar pantallas sin cambiar la PWA habitual; verificar estados de carga/error/sin datos/denegación, teclado y móvil, cierre administrativo independiente y ausencia de caché de datos de plataforma.
 5. PR revisable, checks pertinentes y obligatorios de CI. No fusionar o desplegar esta nueva capacidad global automáticamente usando la autorización de despliegue del arreglo anterior. La activación necesita confirmar la cuenta administrativa inicial y revisar el aprovisionamiento concreto; no se requieren valores de secretos en el chat.
 
-## Evidencia de esta primera entrega
+## Evidencia de la propuesta actualizada
 
-Comprobaciones ejecutadas:
+- Generador `node --import tsx scripts/preview-platform-administration.ts`: correcto. Incrusta el fixture y el mismo cálculo probado mediante `stripTypeScriptTypes` de Node 24, sin librerías nuevas ni llamadas de red. Su advertencia experimental corresponde al generador de revisión, no al runtime de Bandarlog.
+- `node --import tsx --test tests/platform-admin-usage.test.ts`: cuatro casos correctos, sin omisiones. Validan denominadores, cohortes, cambio de periodo, coherencia del fixture y tasas sin denominador; finalización/checklist no se suman dos veces al total de operaciones.
+- `npx playwright test --config tests/platform-admin-preview.config.ts`: cinco casos específicos correctos, sin omisiones. Además de navegación, filtros, solicitud y correo, verifica que 7/30 actualiza porcentajes y eventos, que las definiciones se despliegan y que Inicio conserva siete días. Sin peticiones a la API ni recursos externos.
+- `npm run build`: compilación TypeScript/Vite correcta. El bundle habitual mantiene `index-CRYIxMXo.js` de 499,54 kB y `index-DNm8xbaU.css` de 116,32 kB. No se han cambiado `src/`, `server/`, `public/`, dependencias, roles o migraciones.
+- Capturas: Inicio 1440/390, Métricas 1440/390, Solicitud 1440 y correo amplio/390. Pruebas y capturas se repiten solo tras cambios pertinentes. No se ejecuta la suite local completa ni PostgreSQL: no existe un cambio de autorización/backend que validar en esta iteración.
+- Detector de diseño ejecutado una vez en esta revisión. Conserva avisos de Arial como fallback de correo y crema móvil, ambos propios de la propuesta existente. Paleta y componentes de DESIGN.md se mantienen; no se cambia el sistema visual.
 
-- Generador: `node --import tsx scripts/preview-platform-administration.ts`, correcto; HTML autónomo de aproximadamente 134 kB con marca y fuentes incrustadas.
-- `npx playwright test --config tests/platform-admin-preview.config.ts`: cuatro pruebas específicas correctas, sin omisiones. Cubren siete destinos, móvil sin desbordamiento global, ausencia de solicitudes externas, búsqueda/vacío/filtro/ficha, motivo y confirmación, escaping, decisión simulada de un uso, auditoría local, periodo y correo a dos anchos. Se repitieron tras corregir el selector accesible de la prueba y la validación persistente del prototipo. El primer intento con file:// quedó bloqueado por una política del navegador gestionado; la ejecución final sirve el mismo HTML en memoria mediante interceptación local, sin arrancar la API.
-- `npm run build`: TypeScript/Vite correcto. El bundle ordinario conserva `index-CRYIxMXo.js` (499,54 kB) y `index-DNm8xbaU.css` (116,32 kB), como en main. No se importa el prototipo ni se cambia código runtime. No se ha ejecutado una suite completa local ni PostgreSQL porque no cambian tablas, permisos o código servidor.
-- Capturas verificadas: Inicio 1440/390, Métricas 1440, Solicitud 1440 y correo amplio/390, en `captures/`. El correo se captura como documento completo para evitar recortes del iframe.
-- Detector Impeccable ejecutado una vez. Se alinearon tonos nuevos a los tokens existentes. Los avisos de fondo crema, Arial como fallback de correo y tamaños/radio 4 documentados no justifican cambiar la identidad. No se ha reescrito PRODUCT.md, DESIGN.md ni su sidecar. El cargador se localizó y ejecutó después de fallar su ubicación inicial; informa de formato antiguo de PRODUCT.md, cuya actualización queda fuera de este trabajo.
-- Pase de documentación independiente: la propuesta preserva paleta, marca y componentes existentes; basta documentarla aquí. No se modifica DESIGN.md ni su sidecar. Se detecta una discrepancia preexistente de cuatro/cinco destinos en DESIGN.md, fuera del encargo y sin cambios.
-- Revisión independiente: disposición **ship para revisión del prototipo**, tras resolver el motivo de prueba visible y el aviso de validación que no se limpiaba. El veredicto se limita a esos hallazgos y no certifica una implementación productiva.
-
-El HTML de revisión utiliza estilos/scripts inline y bloquea conexiones de red; no es una plantilla de CSP para el panel productivo. La implementación conectada conservará CSP de producción, protección CSRF y autorización SQL independiente. No se ha probado todavía un control de autorización de plataforma: esas capacidades aún no existen. No se ha enviado ningún resumen de prueba ni se han modificado recursos de Neon/Railway.
+Esta evidencia corresponde al prototipo, no a un panel conectado. No se ha probado autorización administrativa nueva, medido p95 productivo, enviado correo o modificado Neon/Railway. Revisión visual independiente: **ship**, limitada al prototipo y a esta iteración; se revisaron Inicio/Métricas a 1440/390 px, sin hallazgos materiales. El pase documental confirma continuidad del sistema visual y claridad de fuentes/solapamiento; no requiere cambiar DESIGN.md o su sidecar.
