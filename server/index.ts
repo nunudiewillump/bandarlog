@@ -1,3 +1,5 @@
+import { platformAdminRoutes } from './platform-admin.js';
+import { dailyPresenceBudget, authenticationDenials } from './usage-presence.js';
 import { googleResumeCookieName } from './session-cookie.js';
 import { securityEvents } from './security-events.js';
 import {
@@ -99,8 +101,16 @@ const runsJobs = mode === 'delivery' || mode === 'development';
 const jobsPaused = mode === 'delivery' && process.env.DELIVERY_PAUSED === '1';
 const { production: prod, appUrl, legacyOrigins } = validateEnvironment();
 const { db, global: platform, close } = await connect();
+const denialMetrics = authenticationDenials((method, count) => platform.adminDenial(method, count));
+const checkedGoogleToken: typeof verifyGoogleToken = (...args) => {
+  try {
+    return verifyGoogleToken(...args);
+  } catch (error) {
+    if (mode === 'identity') denialMetrics.record('google');
+    throw error;
+  }
+};
 const legacyGroup = await platform.resolveGroup('legacy');
-if (!legacyGroup) throw Error('Ejecuta las migraciones de mantenimiento antes de arrancar.');
 const site = express();
 site.disable('x-powered-by');
 if (prod) site.set('trust proxy', 1);
@@ -113,6 +123,7 @@ site.use(helmet({ contentSecurityPolicy: prod ? contentSecurityPolicy : false })
 site.use((q, r, next) => {
   const oldHost = prod && legacyOrigins.includes('https://' + (q.get('host') || '').toLowerCase());
   const publicRoute = [
+    '/plataforma',
     '/presentacion',
     '/privacidad',
     '/condiciones',
@@ -145,7 +156,7 @@ function allowedOrigin(q: express.Request) {
   return (
     !origin ||
     origin === appUrl ||
-    (groupContext.getStore()!?.id === legacyGroup!.id &&
+    (groupContext.getStore()!?.id === legacyGroup?.id &&
       legacyOrigins.includes(origin) &&
       origin ===
         'https://' +
@@ -162,6 +173,16 @@ if (mode === 'identity')
     identityPath(q.path) || ['/api/live', '/api/health'].includes(q.path)
       ? next()
       : r.sendStatus(404),
+  );
+if (mode !== 'delivery')
+  site.use(
+    platformAdminRoutes(platform, {
+      origin: appUrl,
+      production: prod,
+      signingKeys,
+      mail: (subject, body, html) => platformMail(subject, body, html),
+      wake: deliverPlatform,
+    }),
   );
 if (mode === 'delivery') site.use('/internal/wake', express.json({ limit: '2kb' }));
 if (mode === 'delivery')
@@ -375,33 +396,37 @@ async function queue(
     await issueInsert(s.notifications, values, tx === db ? void 0 : tx, true);
   else await tx.insert(s.notifications).values(values).onConflictDoNothing();
 }
-function platformMail(subject: string, body: string) {
+function platformMail(subject: string, body: string, html?: string) {
   const link = body
     .split('\n')
     .find(
       (line) =>
         line.startsWith(appUrl + '/aprobar-grupo?token=') ||
-        line.startsWith(appUrl + '/confirmar-grupo?token='),
+        line.startsWith(appUrl + '/confirmar-grupo?token=') ||
+        line.startsWith(appUrl + '/confirmar-grupo#token=') ||
+        line.startsWith(appUrl + '/aprobar-grupo#token='),
     );
   return {
     ...queuedContent({
       subject,
       body,
-      html: renderMail({
-        title: subject,
-        body,
-        appUrl,
-        actions: [
-          {
-            label: link?.includes('/aprobar-grupo')
-              ? 'Revisar solicitud'
-              : link
-                ? 'Activar grupo'
-                : 'Ver Bandarlog',
-            url: link || appUrl + '/',
-          },
-        ],
-      }),
+      html:
+        html ||
+        renderMail({
+          title: subject,
+          body,
+          appUrl,
+          actions: [
+            {
+              label: link?.includes('/aprobar-grupo')
+                ? 'Revisar solicitud'
+                : link
+                  ? 'Activar grupo'
+                  : 'Ver Bandarlog',
+              url: link || appUrl + '/',
+            },
+          ],
+        }),
     }),
     status: mode === 'development' ? (mailEnabled ? 'pending' : 'preview') : 'pending_v2',
   };
@@ -699,16 +724,25 @@ async function createSession(
   userId: string,
   assurance: 'primary' | 'activation' = 'primary',
   primaryVerifiedAt?: string,
+  authMethod: 'email' | 'google' = 'email',
 ) {
   const [account] = await tx.select(authUserColumns).from(s.users).where(eq(s.users.id, userId));
   if (!account || account.disabledAt) fail(403, 'Esta cuenta no tiene acceso.');
   const raw = secret(),
     csrf = secret(),
     stamp = now();
+  if (mode === 'identity')
+    await identityProof(
+      tx,
+      'session_metric',
+      { id: hash(raw), authMethod },
+      'bandarlog.metric_proof',
+    );
   await issueInsert(
     s.sessions,
     {
       id: hash(raw),
+      authMethod: mode === 'identity' ? authMethod : null,
       userId,
       csrf,
       assurance,
@@ -737,7 +771,7 @@ function sessionCookie(r: express.Response, raw: string, expires = Date.now() + 
     maxAge: Math.max(0, expires - Date.now()),
     path: prod ? '/' : groupPath() || '/',
   });
-  if (!prod && groupContext.getStore()!?.id === legacyGroup!.id && groupPath())
+  if (!prod && groupContext.getStore()!?.id === legacyGroup?.id && groupPath())
     r.cookie('bandarlog', raw, {
       httpOnly: true,
       secure: prod,
@@ -948,6 +982,7 @@ app.post('/api/auth/code/verify', async (q, r) => {
             ? 'Se han agotado los intentos. Solicita un nuevo código.'
             : 'El código no es correcto. Compruébalo e inténtalo de nuevo.',
         status: challenge.attempts >= 4 ? 429 : 400,
+        proofDenied: true,
       };
     }
     const user = await authenticatedUser(tx, challenge.email);
@@ -978,7 +1013,10 @@ app.post('/api/auth/code/verify', async (q, r) => {
       .where(eq(s.authChallenges.email, challenge.email));
     return { session: await createSession(tx, user.id) };
   });
-  if ('error' in result) return r.status(result.status || 400).json({ error: result.error });
+  if ('error' in result) {
+    if ('proofDenied' in result && mode === 'identity') denialMetrics.record('email');
+    return r.status(result.status || 400).json({ error: result.error });
+  }
   sessionCookie(r, result.session.raw);
   r.clearCookie(googleLinkCookieName(), { path: '/', secure: prod });
   r.json({ ok: true });
@@ -999,7 +1037,7 @@ app.get('/api/auth/google/start', async (q, r) => {
     typeof returnOrigin !== 'string' ||
     !(
       returnOrigin === appUrl ||
-      (groupContext.getStore()!.id === legacyGroup!.id && legacyOrigins.includes(returnOrigin))
+      (groupContext.getStore()!.id === legacyGroup?.id && legacyOrigins.includes(returnOrigin))
     )
   )
     return r.status(400).json({ error: 'Origen de acceso no válido.' });
@@ -1085,7 +1123,7 @@ app.get('/api/auth/google/callback', async (q, r) => {
     if (flow?.returnOrigin) {
       if (!(
         flow.returnOrigin === appUrl ||
-        (groupContext.getStore()!.id === legacyGroup!.id &&
+        (groupContext.getStore()!.id === legacyGroup?.id &&
           legacyOrigins.includes(flow.returnOrigin))
       ))
         throw Error('Invalid return origin');
@@ -1110,7 +1148,7 @@ app.get('/api/auth/google/callback', async (q, r) => {
     if (!response.ok) throw new Error('OAuth exchange failed');
     const token = await response.json();
     if (!token.id_token) throw new Error('Missing Google token');
-    const claims = verifyGoogleToken(
+    const claims = checkedGoogleToken(
       token.id_token,
       await signingKeys(),
       process.env.GOOGLE_LOGIN_CLIENT_ID!,
@@ -1196,7 +1234,9 @@ app.get('/api/auth/google/callback', async (q, r) => {
           .where(eq(s.googleIdentities.subject, claims.sub));
         if (identity?.userId !== user.id) fail(403, 'Identidad de Google ya vinculada.');
       }
-      return popupChallenge ? { userId: user.id } : createSession(tx, user.id);
+      return popupChallenge
+        ? { userId: user.id }
+        : createSession(tx, user.id, 'primary', undefined, 'google');
     });
     if ('userId' in session) return await handoff({ userId: session.userId });
     sessionCookie(r, session.raw);
@@ -1255,7 +1295,8 @@ async function finishGoogleReturn(q: express.Request, r: express.Response, resum
       if (resume) return { pending: true };
       fail(403, 'El acceso ha caducado. Solicita un código de correo.');
     }
-    if (grant.userId) return { session: await createSession(tx, grant.userId) };
+    if (grant.userId)
+      return { session: await createSession(tx, grant.userId, 'primary', undefined, 'google') };
     const link = secret();
     await issueInsert(
       s.googleLinks,
@@ -1293,7 +1334,7 @@ if (!prod)
 for (const file of ['sw.js', 'offline-store.js', 'offline.html'])
   app.get('/' + file, async (_q, r) => {
     if (file === 'offline-store.js') {
-      const legacy = groupContext.getStore()!?.id === legacyGroup!.id && Boolean(groupPath());
+      const legacy = groupContext.getStore()!?.id === legacyGroup?.id && Boolean(groupPath());
       return r
         .set('Cache-Control', 'no-store')
         .type('js')
@@ -1326,12 +1367,20 @@ app.get('/manifest.webmanifest', (_q, r) => {
     });
 });
 app.use('/api', (q, _r, n) => sessionContext.run(sessionBearer(q.headers.cookie) || '', n));
+const presenceBudget = dailyPresenceBudget();
 app.use('/api', async (q, r, n) => {
   const raw = sessionBearer(q.headers.cookie);
   if (!raw || !/^[a-f0-9]{64}$/.test(raw))
     return r.status(401).json({ error: 'Inicia sesión para continuar.' });
   if (prod && mode === 'http' && !modernSession(q.headers.cookie))
     return r.status(428).json({ error: 'Vuelve a iniciar sesión para proteger este acceso.' });
+  const bearerId = hash(raw),
+    observedGroupId = groupContext.getStore()!.id;
+  const observeToday =
+    mode === 'http' &&
+    q.method === 'GET' &&
+    ['/me', '/data'].includes(q.path) &&
+    presenceBudget.claim(observedGroupId, bearerId);
   const { avatarUrl: _avatar, ...baseAuthColumns } = getTableColumns(s.users);
   const authColumns = {
     ...baseAuthColumns,
@@ -1339,6 +1388,7 @@ app.use('/api', async (q, r, n) => {
   };
   const [account] = await db
     .select({
+      ...(observeToday ? { presence: sql<boolean>`bandarlog_api.platform_admin_presence()` } : {}),
       session: s.sessions,
       user: q.path === '/me' ? { ...authColumns, avatarUrl: s.users.avatarUrl } : authColumns,
     })
@@ -1346,15 +1396,18 @@ app.use('/api', async (q, r, n) => {
     .innerJoin(s.users, eq(s.users.id, s.sessions.userId))
     .where(
       and(
-        eq(s.sessions.id, hash(raw)),
+        eq(s.sessions.id, bearerId),
         sql`${s.sessions.expires}>now()`,
         sql`${s.sessions.absoluteExpiresAt}>now()`,
       ),
     )
     .catch((error) => {
+      if (observeToday) presenceBudget.retry(observedGroupId, bearerId);
       if ((error.code || error.cause?.code) === '42501') return [];
       throw error;
     });
+  if (observeToday && (!account || account.presence === false))
+    presenceBudget.retry(observedGroupId, bearerId);
   if (!account) return r.status(401).json({ error: 'Tu sesión ha caducado.' });
   const { session, user } = account;
   if (q.get('X-Offline-User') && q.get('X-Offline-User') !== user.id)
@@ -1533,10 +1586,29 @@ async function editableTask(u: any, taskId: string, tx: any = db, manage = false
   if (project?.archived === 'true') fail(409, 'El proyecto está archivado.');
   return task;
 }
-async function event(tx: any, taskId: string, uid: string, kind: string, body: string) {
-  await tx
-    .insert(s.activity)
-    .values({ id: id(), taskId, userId: uid, kind, body, createdAt: now() });
+const {
+  completedTransition: _metricCompleted,
+  checklistMarks: _metricChecks,
+  ...activityProjection
+} = getTableColumns(s.activity);
+async function event(
+  tx: any,
+  taskId: string,
+  uid: string,
+  kind: string,
+  body: string,
+  metric: { completedTransition?: boolean; checklistMarks?: number } = {},
+) {
+  await tx.insert(s.activity).values({
+    id: id(),
+    taskId,
+    userId: uid,
+    kind,
+    body,
+    createdAt: now(),
+    completedTransition: metric.completedTransition || false,
+    checklistMarks: metric.checklistMarks || 0,
+  });
 }
 async function removeAssignments(tx: any, uid: string, actor: string, name: string, cid?: string) {
   const removed = await tx
@@ -1901,7 +1973,7 @@ app.post('/api/logout', async (q, r) => {
     groupContext.getStore()!.privateId + '.' + r.locals.session.id
   )
     clearEntry(r, prod);
-  if (groupContext.getStore()!?.id === legacyGroup!.id)
+  if (groupContext.getStore()!?.id === legacyGroup?.id)
     r.clearCookie('bandarlog', { path: '/', secure: prod });
   r.clearCookie(sessionCookieName(), { path: prod ? '/' : groupPath() || '/', secure: prod }).json({
     ok: true,
@@ -2047,7 +2119,7 @@ app.get('/api/activity', async (q, r) => {
     filter,
   ]);
   const rows = await db
-    .select()
+    .select(activityProjection)
     .from(s.activity)
     .where(
       and(
@@ -2194,7 +2266,7 @@ app.get('/api/data', async (_q, r) => {
       assignments,
       activity: tids.length
         ? await db2
-            .select()
+            .select(activityProjection)
             .from(s.activity)
             .where(inArray(s.activity.taskId, tids))
             .orderBy(sql`${s.activity.createdAt} desc`, sql`${s.activity.id} desc`)
@@ -2578,6 +2650,18 @@ app.patch('/api/tasks/:id', async (q, r) => {
             ]
               .filter(Boolean)
               .join(' '),
+      {
+        completedTransition: input.status === 'done' && t.status !== 'done',
+        checklistMarks:
+          input.checklistChange?.action === 'toggle' &&
+          input.checklistChange.done &&
+          t.checklist.some(
+            (step: { id: string; done: boolean }) =>
+              step.id === input.checklistChange!.id && !step.done,
+          )
+            ? 1
+            : 0,
+      },
     );
     if (
       !input.checklistChange ||
@@ -3073,24 +3157,35 @@ async function reminders() {
     const week = new Date(localDate + 'T12:00:00Z');
     week.setUTCDate(week.getUTCDate() - ((week.getUTCDay() + 6) % 7));
     const stamp = week.toISOString().slice(0, 10);
-    const us = recipients;
-    for (const u of us) {
-      const pref = preferences(u.preferences);
-      if (u.disabledAt || !globalManage(u) || !pref.notifications || !pref.weekly) continue;
-      for (const p of ps.filter((p2) => p2.archived === 'false')) {
-        const pts = ts.filter((t) =>
-          cs.some((c) => c.id === t.commissionId && c.projectId === p.id),
-        );
+    const tasksByProject = new Map<string, typeof ts>();
+    for (const task of ts) {
+      const projectId = commissionsById.get(task.commissionId)?.projectId;
+      if (projectId) {
+        const list = tasksByProject.get(projectId) || [];
+        list.push(task);
+        tasksByProject.set(projectId, list);
+      }
+    }
+    const snapshots = ps
+      .filter((p) => p.archived === 'false')
+      .map((p) => {
         const projectUrl = `${groupUrl(appUrl)}?project=${encodeURIComponent(p.id)}`;
         const digest = weeklyMail({
           project: p.name,
           groupName: groupContext.getStore()!.name,
-          tasks: pts,
+          tasks: tasksByProject.get(p.id) || [],
           commissions: cs,
           appUrl,
           projectUrl,
           taskUrl: (taskId) => `${groupUrl(appUrl)}?task=${encodeURIComponent(taskId)}`,
         });
+        return { p, digest };
+      })
+      .filter((row) => row.digest.shouldSend);
+    for (const u of recipients) {
+      const pref = preferences(u.preferences);
+      if (u.disabledAt || !globalManage(u) || !pref.notifications || !pref.weekly) continue;
+      for (const { p, digest } of snapshots) {
         await queue(
           u.email,
           `Resumen semanal · ${p.name}`,
@@ -3186,6 +3281,7 @@ const recoveryJobs = new IdleJobs<void>(
       for (const group of await platform.jobGroups(true, Boolean(mailTransport)))
         await groupContext.run(group, deliver);
       await deliverPlatform();
+      if (mode === 'delivery') await platform.adminPrune();
       return Date.now() + 3600000;
     }),
   () => console.error('No se pudo recuperar el trabajo pendiente.'),
@@ -3196,6 +3292,27 @@ if (runsJobs && !jobsPaused) {
 }
 app.use('/api', (_q, r) => r.status(404).json({ error: 'Ruta no encontrada.' }));
 if (prod) {
+  const platformHtml = await readFile('dist/platform.html', 'utf8');
+  site.get('/plataforma', (_q, r) =>
+    r
+      .set({
+        'Cache-Control': 'no-store',
+        'Referrer-Policy': 'no-referrer',
+        'X-Robots-Tag': 'noindex, nofollow',
+        'Content-Security-Policy':
+          String(r.getHeader('Content-Security-Policy') || "default-src 'self'").replace(
+            /worker-src[^;]+;?/,
+            "worker-src 'none';",
+          ) + "; frame-src 'self'",
+      })
+      .type('html')
+      .send(platformHtml),
+  );
+  site.use('/assets', express.static('dist/assets', { maxAge: '1y', immutable: true }));
+  site.use('/public-fonts', express.static('dist/public-fonts'));
+  site.get('/brand-mark.png', (_q, r) =>
+    r.sendFile('public/brand-mark.png', { root: process.cwd() }),
+  );
   const spaHtml = await readFile('dist/index.html', 'utf8');
   app.use(
     express.static('dist', {
@@ -3257,15 +3374,17 @@ if (!prod && !process.env.DATABASE_URL)
   site.get('/api/dev/platform-mail', async (_q, r) => r.json(await localPlatformPreview()));
 site.use('/g/:groupId', groupResolver(platform), app);
 site.get('/acceso', (q, r) =>
-  r
-    .set('Cache-Control', 'no-store')
-    .redirect(
-      303,
-      '/g/' +
-        legacyGroup.privateId +
-        '/' +
-        (q.originalUrl.includes('?') ? q.originalUrl.slice(q.originalUrl.indexOf('?')) : ''),
-    ),
+  !legacyGroup
+    ? r.status(404).send('Acceso no disponible.')
+    : r
+        .set('Cache-Control', 'no-store')
+        .redirect(
+          303,
+          '/g/' +
+            legacyGroup.privateId +
+            '/' +
+            (q.originalUrl.includes('?') ? q.originalUrl.slice(q.originalUrl.indexOf('?')) : ''),
+        ),
 );
 site.get('/', async (q, r, next) => {
   r.set('Cache-Control', 'private, no-store').vary('Cookie');
@@ -3279,12 +3398,12 @@ site.get('/', async (q, r, next) => {
     'email',
     'action',
   ].some((key) => typeof q.query[key] === 'string');
-  if (legacyQuery)
+  if (legacyQuery && legacyGroup)
     return r.redirect(
       303,
       '/g/' + legacyGroup.privateId + '/' + q.originalUrl.slice(q.originalUrl.indexOf('?')),
     );
-  const entry = await rememberedEntry(platform, q.headers.cookie, legacyGroup!.id);
+  const entry = await rememberedEntry(platform, q.headers.cookie, legacyGroup?.id || '');
   if (entry) return r.redirect(303, entry);
   if (entryMarker(q.headers.cookie)) clearEntry(r, prod);
   if (prod && legacyOrigins.includes('https://' + (q.get('host') || '').toLowerCase()))
@@ -3292,11 +3411,12 @@ site.get('/', async (q, r, next) => {
   r.type('html').send(renderPublicHome(appUrl));
 });
 site.use(async (q, r, next) => {
-  let group: Group = { ...legacyGroup, legacyAccess: true };
+  let group: Group | null = legacyGroup ? { ...legacyGroup, legacyAccess: true } : null;
   if (q.path === '/api/auth/google/callback' && typeof q.query.state === 'string') {
     const found = await platform.oauthGroup(hash(q.query.state));
     if (found) group = found;
   }
+  if (!group) return r.status(404).json({ error: 'Grupo no disponible.' });
   groupContext.run(group, () => app(q, r, next));
 });
 site.use((_q, r) => r.status(404).type('text').send('Página no encontrada.'));
@@ -3317,5 +3437,11 @@ process.on('SIGTERM', () => {
   recoveryJobs.stop();
   wakeJobs.stop();
   for (const view of liveViews.keys()) view.end();
-  server.close(() => void close().then(() => process.exit(0)));
+  server.close(
+    () =>
+      void denialMetrics
+        .flush()
+        .then(close)
+        .then(() => process.exit(0)),
+  );
 });

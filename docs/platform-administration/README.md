@@ -1,6 +1,6 @@
-# Administración de plataforma y resumen semanal: propuesta revisable
+# Administración de plataforma y resumen semanal
 
-Estado: primera entrega para revisar pantallas, contenido y definiciones antes de implementar o activar capacidades globales. La rama `feat/platform-admin-preview` contiene una demostración autónoma y este diseño técnico. No incorpora rutas administrativas, migraciones, secretos ni cambios en los correos que se envían actualmente.
+Estado: propuesta aprobada e implementación conectada en esta rama, pendiente de revisión y activación productiva. La identidad administrativa es independiente de cualquier usuario o grupo, incluso después de su eliminación y del reinicio. Consulta [seguridad, despliegue y rollback](OPERATIONS.md) para el diseño definitivo, permisos y pasos operativos. Las secciones de propuesta y sus capturas se conservan como antecedente; su evidencia no sustituye las pruebas de la implementación.
 
 Abrir [preview.html](preview.html) en un navegador. Funciona sin servidor y sin acceso a Internet: siete pantallas, filtros, ficha de grupo, decisión simulada con confirmación y motivo, auditoría de esa decisión y correo adaptable a móvil. Todos los nombres, cuentas y cifras son ficticios. Recargar reinicia las decisiones. La demostración no es una barrera de autenticación ni una consola operativa.
 
@@ -96,7 +96,7 @@ La vista previa del correo es una propuesta editorial, no una modificación de `
 ## Arquitectura que conserva mínimo privilegio
 
 - Ruta de entrada reservada, sin enlace en la navegación ordinaria. El secreto de la dirección no autentica y no será un token en query string. No añadir robots.txt con una ruta que se considere secreta.
-- Membresía de plataforma explícita por identificador de cuenta y grupo de origen, provisionada/revocada mediante mantenimiento independiente. Nadie obtiene esta membresía por ser administrador de su grupo o por escribir un correo coincidente. La cuenta inicial se identificará antes de activar; esta propuesta no concede acceso a nadie.
+- Identidad de plataforma independiente, sin clave foránea hacia usuario ni grupo de origen, provisionada/revocada mediante mantenimiento independiente. Nadie obtiene esta identidad por ser administrador de su grupo; el correo debe estar autorizado por mantenimiento y demostrarse mediante autenticación. La cuenta inicial ha sido indicada fuera del repositorio; el alta real queda pendiente de activación aprobada.
 - Identidad verifica correo/Google y emite una sesión administrativa propia solo para la membresía autorizada. Cookie Secure/HttpOnly/SameSite=Strict por host, distinta de las cookies de grupo, sin almacenamiento web. Propuesta: 30 minutos inactiva, 8 horas absolutas y reautenticación de menos de 15 minutos para decidir solicitudes. Cerrar administración no cierra los grupos. Sin reintroducir passkeys ni presentar este factor único como ASVS L2 completo.
 - HTTP mantiene su LOGIN sin propietario, BYPASSRLS, rol elevado ni secretos administrativos. Capacidades SQL SECURITY DEFINER estrechas para resumen, listados paginados, detalle autorizado y decisión: cada una valida sesión administrativa, membresía vigente, expiración y parámetros. `search_path` fijo, nombres cualificados, EXECUTE revocado a PUBLIC y concedido solo al rol concreto. Sin SQL dinámico ni selección de tablas libre. No basta una comprobación TypeScript.
 - La emisión de sesión administrativa exige prueba de autoridad de identidad ligada a actor, audiencia de plataforma, payload y transacción. Una inyección SQL con el LOGIN ordinario no puede insertar sesiones administrativas o membresías. No reutilizar ciegamente `actor()` del grupo para autorizar una consulta global. La validación de sesión sigue dentro de cada capacidad, sin caché que retrase revocaciones.
@@ -123,7 +123,7 @@ Límite: una toma completa del proceso de identidad con su autoridad de firma o 
 4. Conectar pantallas sin cambiar la PWA habitual; verificar estados de carga/error/sin datos/denegación, teclado y móvil, cierre administrativo independiente y ausencia de caché de datos de plataforma.
 5. PR revisable, checks pertinentes y obligatorios de CI. No fusionar o desplegar esta nueva capacidad global automáticamente usando la autorización de despliegue del arreglo anterior. La activación necesita confirmar la cuenta administrativa inicial y revisar el aprovisionamiento concreto; no se requieren valores de secretos en el chat.
 
-## Evidencia de la propuesta actualizada
+## Evidencia histórica del prototipo aprobado
 
 - Generador `node --import tsx scripts/preview-platform-administration.ts`: correcto. Incrusta el fixture y el mismo cálculo probado mediante `stripTypeScriptTypes` de Node 24, sin librerías nuevas ni llamadas de red. Su advertencia experimental corresponde al generador de revisión, no al runtime de Bandarlog.
 - `node --import tsx --test tests/platform-admin-usage.test.ts`: cuatro casos correctos, sin omisiones. Validan denominadores, cohortes, cambio de periodo, coherencia del fixture y tasas sin denominador; finalización/checklist no se suman dos veces al total de operaciones.
@@ -133,3 +133,13 @@ Límite: una toma completa del proceso de identidad con su autoridad de firma o 
 - Detector de diseño ejecutado una vez en esta revisión. Conserva avisos de Arial como fallback de correo y crema móvil, ambos propios de la propuesta existente. Paleta y componentes de DESIGN.md se mantienen; no se cambia el sistema visual.
 
 Esta evidencia corresponde al prototipo, no a un panel conectado. No se ha probado autorización administrativa nueva, medido p95 productivo, enviado correo o modificado Neon/Railway. Revisión visual independiente: **ship**, limitada al prototipo y a esta iteración; se revisaron Inicio/Métricas a 1440/390 px, sin hallazgos materiales. El pase documental confirma continuidad del sistema visual y claridad de fuentes/solapamiento; no requiere cambiar DESIGN.md o su sidecar.
+
+
+## Evidencia de la implementación conectada
+
+- `npm run build`: TypeScript y ambos builds correctos. PWA conserva `index-CRYIxMXo.js` (499,54 kB); el panel se sirve en un bundle separado. No se han medido latencias productivas.
+- Pruebas unitarias específicas: 19 correctas, sin omisiones (correo semanal, plantilla, presencia/contadores, autenticación y cálculo del prototipo).
+- PostgreSQL 17 aislado: nueve pruebas correctas, sin omisiones; repetición específica de administración tras ampliar denegaciones de HTTP/entrega: una correcta. Nunca contra producción.
+- Navegador: 19 correctas sobre panel, Google/PWA, recuperación, almacenamiento y SSE en reposo. Se amplió la cobertura por cambios compartidos de arranque, autenticación y Service Worker. Tras las correcciones visuales se repitieron únicamente las cuatro del panel: correctas.
+- Capturas conectadas en `implementation-captures/`, con datos ficticios interceptados para UI; la autorización real se valida por separado en PostgreSQL. Revisión visual independiente: cuatro ajustes resueltos, disposición `ship` limitada a esos ajustes. El detector regex no encontró antipatrones y emitió 21 avisos consultivos de tamaños/radios; no sustituye una auditoría de contraste del DOM.
+- Pendiente: checks remotos del PR y activación expresamente aprobada. No se han enviado correos reales, dado de alta cuentas reales, desplegado ni cambiado Neon/Railway.

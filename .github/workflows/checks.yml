@@ -47,6 +47,7 @@ jobs:
           name: web-build
           path: |
             dist/index.html
+            dist/platform.html
             dist/assets/
           retention-days: 1
           overwrite: true

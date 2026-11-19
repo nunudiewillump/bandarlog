@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node --env-file-if-exists=.env --import tsx --watch server/index.ts",
     "dev:web": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && vite build --mode platform",
     "start": "node --env-file-if-exists=.env --import tsx server/index.ts",
     "test": "tsx --test tests/*.test.ts",
     "test:e2e": "npm run build && playwright test",

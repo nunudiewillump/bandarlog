@@ -163,6 +163,8 @@ export const assignments = pgTable(
   (t) => [uniqueIndex('assignment').on(t.taskId, t.userId)],
 );
 export const activity = pgTable('activity', {
+  completedTransition: boolean('completed_transition').notNull().default(false),
+  checklistMarks: integer('checklist_marks').notNull().default(0),
   groupId: groupColumn(),
   id: text().primaryKey(),
   taskId: text('task_id')
@@ -176,6 +178,7 @@ export const activity = pgTable('activity', {
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
 });
 export const sessions = pgTable('sessions', {
+  authMethod: text('auth_method'),
   groupId: groupColumn(),
   id: text().primaryKey(),
   userId: text('user_id')

@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     {
@@ -36,8 +36,12 @@ export default defineConfig({
       ].map((path) => [path, `http://127.0.0.1:${process.env.API_PORT || 3001}`]),
     ),
   },
-  build: { outDir: 'dist' },
-});
+  build: {
+    outDir: 'dist',
+    emptyOutDir: mode !== 'platform',
+    rolldownOptions: { input: mode === 'platform' ? 'platform.html' : 'index.html' },
+  },
+}));
 
 function groupSlash(
   req: { url?: string },
@@ -47,6 +51,7 @@ function groupSlash(
   },
   next: () => void,
 ) {
+  if (req.url?.split('?')[0] === '/plataforma') req.url = '/platform.html';
   const match = req.url?.match(/^(\/g\/[a-f0-9]{32})(\?.*)?$/);
   if (match) {
     res.writeHead(308, { Location: match[1] + '/' + (match[2] || '') });

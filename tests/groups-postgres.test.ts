@@ -1042,3 +1042,9 @@ test('maintenance scripts preserve mail, provision exclusive protected keys and 
 test('production delivery decrypts isolated email/push and preserves retries, leases and receipts across restart', async () => {
   await exerciseDeliveryProcess(ownerPool, process.env.TEST_POSTGRES_URL!, TEST_CONTEXT_SECRET);
 });
+
+test('platform administration remains independent after deleting its source group and user, including Google and restart', async () => {
+  const { exercisePlatformAdministration } =
+    await import('./fixtures/platform-administration-postgres');
+  await exercisePlatformAdministration(testUrl!, ownerPool);
+});

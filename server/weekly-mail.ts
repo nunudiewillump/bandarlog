@@ -7,6 +7,8 @@ type Task = {
   due: string;
   status: string;
   blockedReason?: string | null;
+  completedAt?: string | null;
+  updatedAt?: string;
 };
 export const mailDate = (value: string | Date) =>
   new Intl.DateTimeFormat('es-ES', {
@@ -35,17 +37,17 @@ export function weeklyMail({
   taskUrl: (id: string) => string;
   at?: Date;
 }) {
+  const dateFormatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Madrid',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
   const open = tasks.filter((t) => t.status !== 'done');
   const completed = tasks.length - open.length;
   const overdue = (t: Task) => +new Date(t.due) < +at;
   // Seven local calendar days, including weeks that cross a daylight-saving change.
-  const localDay = (value: string | Date) =>
-    new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Europe/Madrid',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(new Date(value));
+  const localDay = (value: string | Date) => dateFormatter.format(new Date(value));
   const day = Date.parse(localDay(at));
   const upcoming = (t: Task) => !overdue(t) && Date.parse(localDay(t.due)) - day <= 7 * 86400000;
   const counts = [
@@ -70,11 +72,20 @@ export function weeklyMail({
     context: `${commissions.find((c) => c.id === t.commissionId)?.name || 'Comisión'} · ${t.status === 'blocked' ? 'Bloqueada · ' : ''}${overdue(t) ? 'Vencida desde' : 'Vence el'} ${mailDate(t.due)}`,
     note: t.status === 'blocked' && t.blockedReason ? `Motivo del bloqueo: ${t.blockedReason}` : '',
   }));
+  const inWeek = (value: string | null | undefined) =>
+    Boolean(value && +new Date(value) <= +at && Date.parse(localDay(value)) >= day - 6 * 86400000);
+  const finished = tasks.filter((t) => t.status === 'done' && inWeek(t.completedAt));
+  const updated = tasks.filter((t) => inWeek(t.updatedAt));
+  const weekly = {
+    completed: finished.length,
+    updated: updated.length,
+    items: finished.slice(0, 2).map((t) => ({ title: t.title, url: taskUrl(t.id) })),
+  };
   const intro = !tasks.length
     ? 'Este proyecto todavía no tiene tareas. Cuando las añadáis, aquí verás su avance.'
     : !open.length
       ? 'Todas las tareas del proyecto están terminadas. Gracias por sacar el trabajo adelante.'
-      : 'Este es el estado del proyecto. Revisa primero los bloqueos, las tareas vencidas y los próximos plazos.';
+      : `${finished.length} tareas terminadas en los últimos 7 días. Revisa los bloqueos y los próximos plazos.`;
   const progress = tasks.length ? Math.round((completed / tasks.length) * 100) : null;
   const body = [
     `Resumen semanal · ${project}`,
@@ -93,10 +104,14 @@ export function weeklyMail({
     ...(attention.length > items.length
       ? [`${attention.length - items.length} tareas más requieren atención.`]
       : []),
+    'Lo que habéis sacado adelante',
+    `${weekly.completed} tareas terminadas esta semana · ${weekly.updated} tareas actualizadas.`,
+    ...weekly.items.map((t) => `${t.title}\n${t.url}`),
     'Las tareas vencidas y bloqueadas pueden coincidir. El progreso es acumulado, no solo de esta semana.',
     `Ver proyecto: ${projectUrl}`,
   ].join('\n');
   return {
+    shouldSend: attention.length > 0 || finished.length > 0 || updated.length > 0,
     body,
     html: renderMail({
       title: project,
@@ -105,6 +120,7 @@ export function weeklyMail({
       body: `Situación a ${mailDate(at)}`,
       appUrl,
       summary: {
+        weekly,
         progress,
         completed,
         total: tasks.length,
@@ -114,7 +130,13 @@ export function weeklyMail({
         items,
         remaining: Math.max(0, attention.length - items.length),
       },
-      actions: [{ label: 'Ver proyecto', url: projectUrl }],
+      actions: [
+        { label: 'Ver proyecto', url: projectUrl },
+        {
+          label: 'Preferencias de resumen',
+          url: appUrl + new URL(projectUrl).pathname + '?view=profile',
+        },
+      ],
     }),
   };
 }
