@@ -59,70 +59,144 @@ test('popup return stays in the PWA and retains additional email verification', 
   expect(exchanges).toBe(1);
 });
 
-test('PWA resumes immediately on foreground return when Google loses its opener', async ({
-  page,
-  context,
-}) => {
-  const { mobileFixture } = await import('../fixtures/mobile');
-  const fixture = mobileFixture(1);
-  fixture.user.onboardingCompletedAt = '2026-11-01T00:00:00Z';
-  await page.addInitScript(() => Object.defineProperty(navigator, 'standalone', { value: true }));
-  let challenge = '',
-    authenticated = false,
-    resumes = 0;
-  await context.route(/\/api\/auth\/google\/start\?handoff_challenge=/, async (route) => {
-    const url = new URL(route.request().url());
-    challenge = url.searchParams.get('handoff_challenge')!;
-    expect(url.searchParams.get('handoff_origin')).toBe(url.origin);
-    await route.fulfill({
-      headers: {
-        'Set-Cookie':
-          'synthetic_google_return=' + 'b'.repeat(64) + '; Path=/; HttpOnly; SameSite=Lax',
-      },
-      contentType: 'text/html',
-      body: '<title>Google finished</title><script>window.opener=null</script>',
-    });
-  });
-  await page.route('**/api/**', async (route) => {
-    const path = new URL(route.request().url()).pathname;
-    if (path.endsWith('/auth/config'))
-      return route.fulfill({ json: { googleEnabled: true, group: { name: 'Synthetic' } } });
-    if (path.endsWith('/auth/google/resume')) {
-      resumes++;
-      expect(createHash('sha256').update(route.request().postDataJSON().proof).digest('hex')).toBe(
-        challenge,
-      );
-      expect(route.request().headers().cookie).toContain('synthetic_google_return=');
-      authenticated = true;
-      return route.fulfill({ json: { ok: true } });
-    }
-    if (path.endsWith('/health')) return route.fulfill({ json: { ok: true } });
-    if (path.endsWith('/me'))
-      return route.fulfill(
-        authenticated
-          ? { json: { user: fixture.user, csrf: 'synthetic-csrf' } }
-          : { status: 401, json: { error: 'Inicia sesión' } },
-      );
-    if (path.endsWith('/data')) return route.fulfill({ json: fixture.data });
-    if (path.endsWith('/tutorial'))
-      return route.fulfill({ json: { events: { tutorial_skipped: '2026-11-01T00:00:00Z' } } });
-    return route.fulfill({ json: [] });
-  });
-  await page.goto('/acceso');
-  const opened = page.waitForEvent('popup');
-  await page.getByRole('button', { name: 'Continuar con Google', exact: true }).click();
-  const popup = await opened;
-  await popup.waitForLoadState('domcontentloaded');
-  await expect.poll(() => challenge).not.toBe('');
-  await expect(page.getByRole('status', { name: 'Comprobando acceso…' })).toHaveCount(0);
-  const began = Date.now();
-  await popup.close();
-  await page.bringToFront();
-  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
-  await expect(page.locator('.app-shell')).toBeVisible({ timeout: 2000 });
-  expect(Date.now() - began).toBeLessThan(2000);
-  expect(resumes).toBe(1);
-});
+for (const pendingResponses of [0, 5, 99])
+  test(
+    pendingResponses === 99
+      ? 'pending Google recovery pauses while hidden, stops at its budget and cancels for email'
+      : pendingResponses
+        ? 'Android PWA completes a delayed openerless Google return and retains the session on reopening'
+        : 'PWA resumes immediately on foreground return when Google loses its opener',
+    async ({ page, context }) => {
+      const { mobileFixture } = await import('../fixtures/mobile');
+      const fixture = mobileFixture(1);
+      fixture.user.onboardingCompletedAt = '2026-11-01T00:00:00Z';
+      await page.addInitScript((android) => {
+        if (!android) Object.defineProperty(navigator, 'standalone', { value: true });
+        else {
+          const original = window.matchMedia.bind(window);
+          window.matchMedia = (query) => {
+            const media = original(query);
+            if (query === '(display-mode: standalone)')
+              Object.defineProperty(media, 'matches', { value: true });
+            return media;
+          };
+        }
+      }, pendingResponses > 0);
+      if (pendingResponses) await page.setViewportSize({ width: 412, height: 915 });
+      if (pendingResponses === 99) await page.clock.install();
+      let challenge = '',
+        authenticated = false,
+        resumes = 0;
+      await context.route(/\/api\/auth\/google\/start\?handoff_challenge=/, async (route) => {
+        const url = new URL(route.request().url());
+        challenge = url.searchParams.get('handoff_challenge')!;
+        expect(url.searchParams.get('handoff_origin')).toBe(url.origin);
+        await route.fulfill({
+          headers: {
+            'Set-Cookie':
+              'synthetic_google_return=' + 'b'.repeat(64) + '; Path=/; HttpOnly; SameSite=Lax',
+          },
+          contentType: 'text/html',
+          body: '<title>Google finished</title><script>window.opener=null</script>',
+        });
+      });
+      await page.route('**/api/**', async (route) => {
+        const path = new URL(route.request().url()).pathname;
+        if (path.endsWith('/auth/config'))
+          return route.fulfill({ json: { googleEnabled: true, group: { name: 'Synthetic' } } });
+        if (path.endsWith('/auth/google/resume')) {
+          resumes++;
+          expect(
+            createHash('sha256').update(route.request().postDataJSON().proof).digest('hex'),
+          ).toBe(challenge);
+          expect(route.request().headers().cookie).toContain('synthetic_google_return=');
+          if (resumes <= pendingResponses)
+            return route.fulfill({ status: 202, json: { pending: true } });
+          authenticated = true;
+          return route.fulfill({
+            headers: {
+              'Set-Cookie':
+                'synthetic_session=verified; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000',
+            },
+            json: { ok: true },
+          });
+        }
+        if (path.endsWith('/health')) return route.fulfill({ json: { ok: true } });
+        if (path.endsWith('/me'))
+          return route.fulfill(
+            authenticated &&
+              route.request().headers().cookie?.includes('synthetic_session=verified')
+              ? { json: { user: fixture.user, csrf: 'synthetic-csrf' } }
+              : { status: 401, json: { error: 'Inicia sesión' } },
+          );
+        if (path.endsWith('/data')) return route.fulfill({ json: fixture.data });
+        if (path.endsWith('/tutorial'))
+          return route.fulfill({ json: { events: { tutorial_skipped: '2026-11-01T00:00:00Z' } } });
+        return route.fulfill({ json: [] });
+      });
+      await page.goto('/acceso');
+      const opened = page.waitForEvent('popup');
+      await page.getByRole('button', { name: 'Continuar con Google', exact: true }).click();
+      const popup = await opened;
+      await popup.waitForLoadState('domcontentloaded');
+      await expect.poll(() => challenge).not.toBe('');
+      await expect(page.getByRole('status', { name: 'Comprobando acceso…' })).toHaveCount(0);
+      const began = Date.now();
+      await popup.close();
+      await page.bringToFront();
+      await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+      if (pendingResponses === 99) {
+        const fallback = page.getByRole('button', { name: 'Usar código de correo', exact: true });
+        await expect.poll(() => resumes).toBe(1);
+        await expect(fallback).toBeEnabled();
+        await page.evaluate(() => {
+          Object.defineProperty(document, 'visibilityState', {
+            value: 'hidden',
+            configurable: true,
+          });
+          document.dispatchEvent(new Event('visibilitychange'));
+        });
+        await page.clock.fastForward(10000);
+        expect(resumes).toBe(1);
+        await page.evaluate(() => {
+          Object.defineProperty(document, 'visibilityState', {
+            value: 'visible',
+            configurable: true,
+          });
+          document.dispatchEvent(new Event('visibilitychange'));
+        });
+        await expect.poll(() => resumes).toBe(2);
+        await expect(fallback).toBeEnabled();
+        // A foreground return starts one bounded burst, not an idle polling loop.
+        for (let attempt = 3; attempt <= 13; attempt++) {
+          await page.clock.fastForward(2100);
+          await expect.poll(() => resumes).toBe(attempt);
+          await expect(fallback).toBeEnabled();
+        }
+        await page.clock.fastForward(10000);
+        expect(resumes).toBe(13);
+        await fallback.click();
+        await page.clock.fastForward(10000);
+        expect(resumes).toBe(13);
+        await expect(
+          page.getByRole('button', { name: 'Recibir código', exact: true }),
+        ).toBeEnabled();
+        return;
+      }
+      await expect(page.locator('.app-shell')).toBeVisible({
+        timeout: pendingResponses ? 8000 : 2000,
+      });
+      expect(Date.now() - began).toBeLessThan(pendingResponses ? 8000 : 2000);
+      expect(resumes).toBe(pendingResponses + 1);
+      if (pendingResponses) {
+        await page.reload();
+        await expect(page.locator('.app-shell')).toBeVisible();
+        await expect(
+          page.getByRole('button', { name: 'Continuar con Google', exact: true }),
+        ).toHaveCount(0);
+      }
+    },
+  );
 
 test('legacy PWA accepts only the configured canonical Google return origin', async ({
   page,
