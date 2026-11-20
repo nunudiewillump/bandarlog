@@ -99,14 +99,20 @@ export function AuthScreen({
       consuming = false,
       queuedTicket: string | null = null,
       resumeAttempts = 0;
+    let resumeTimer: number | undefined;
+    const clearResumeTimer = () => {
+      if (resumeTimer !== undefined) window.clearTimeout(resumeTimer);
+      resumeTimer = undefined;
+    };
     const exchange = async (ticket?: string) => {
       if (disposed) return;
       if (consuming) {
         if (ticket) queuedTicket = ticket;
         return;
       }
-      if (!ticket && resumeAttempts >= 4) return;
+      if (!ticket && resumeAttempts >= 12) return;
       if (!ticket) resumeAttempts++;
+      clearResumeTimer();
       consuming = true;
       setBusy(true);
       try {
@@ -116,7 +122,19 @@ export function AuthScreen({
           ticket ? { ticket, proof } : { proof },
         );
         if (disposed) return;
-        if (result.pending) return;
+        if (result.pending) {
+          // A foreground event can precede the callback cookie. Retry only this
+          // active return, with backoff and a strict budget; never poll hidden apps.
+          if (resumeAttempts < 12 && document.visibilityState !== 'hidden')
+            resumeTimer = window.setTimeout(
+              () => {
+                resumeTimer = undefined;
+                resume();
+              },
+              Math.min(2000, 150 * 2 ** (resumeAttempts - 1)),
+            );
+          return;
+        }
         stopGoogle();
         if (result.needsEmailVerification) {
           setEmail(result.email);
@@ -166,10 +184,13 @@ export function AuthScreen({
     // Native PWA/Safari returns can lose opener/postMessage. Resume only on
     // foreground return or a closed popup, never by polling an idle hidden app.
     const onFocus = () => {
-      if (document.visibilityState !== 'hidden') {
-        resumeAttempts = 0;
-        resume();
+      if (document.visibilityState === 'hidden') {
+        clearResumeTimer();
+        return;
       }
+      if (consuming || resumeTimer !== undefined) return;
+      resumeAttempts = 0;
+      resume();
     };
     window.addEventListener('focus', onFocus);
     document.addEventListener('visibilitychange', onFocus);
@@ -177,7 +198,10 @@ export function AuthScreen({
     const poll = window.setInterval(() => {
       if (document.visibilityState === 'hidden' || !document.hasFocus()) return;
       try {
-        if (popup.closed) resume();
+        if (popup.closed) {
+          clearInterval(poll);
+          onFocus();
+        }
       } catch {}
     }, 1000);
     const timeout = window.setTimeout(() => {
@@ -188,6 +212,7 @@ export function AuthScreen({
       disposed = true;
       clearTimeout(timeout);
       clearInterval(poll);
+      clearResumeTimer();
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onFocus);
       window.removeEventListener('message', receive);
