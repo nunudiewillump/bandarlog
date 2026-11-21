@@ -1,3 +1,5 @@
+import { HomeTaskAction } from './HomeTaskAction';
+import { taskHaptic } from './haptics';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
@@ -212,10 +214,12 @@ export function TutorialMission({
   tutorial,
   restart,
   onBack,
+  hapticsEnabled = true,
 }: {
   tutorial: TutorialController;
   restart: boolean;
   onBack: () => void;
+  hapticsEnabled?: boolean;
 }) {
   const [ready, setReady] = useState(false),
     [celebrate, setCelebrate] = useState(false),
@@ -272,6 +276,8 @@ export function TutorialMission({
   async function status(status: PracticeStatus) {
     const result = await tutorial.perform({ action: 'status', status });
     if (result?.celebrate) setCelebrate(true);
+    if (result && ['in_progress', 'done'].includes(status))
+      taskHaptic(status === 'done' ? 'done' : 'start', hapticsEnabled);
   }
   return (
     <section className="panel tutorial-mission" aria-label="Tu primera misión">
@@ -381,31 +387,48 @@ export function TutorialMission({
           <Send size={17} /> Publicar actualización
         </button>
       </form>
-      <div className="detail-actions tutorial-actions">
+      <section className="tutorial-home-actions" aria-label="Acciones rápidas de Inicio">
+        <h3>Empieza y termina desde Inicio</h3>
+        <p>
+          Desliza para empezar; cuando esté en curso, pulsa Finalizar tarea. En ordenador, utiliza
+          Empezar tarea.
+        </p>
+        <HomeTaskAction
+          title={task.title}
+          status={p.taskStatus}
+          version={String(p.version)}
+          disabled={busy}
+          onStart={() => void status('in_progress')}
+          onFinish={() => void status('done')}
+        />
+        {p.taskStatus === 'in_progress' && (
+          <button className="text-link" disabled={busy} onClick={() => void status('pending')}>
+            Deshacer inicio
+          </button>
+        )}
+        {p.taskStatus === 'blocked' && (
+          <>
+            <p>
+              Una tarea bloqueada no se puede empezar desde Inicio. Consulta su motivo y resuélvelo
+              en el detalle.
+            </p>
+            <button className="secondary" disabled={busy} onClick={() => void status('pending')}>
+              Volver a pendiente
+            </button>
+          </>
+        )}
         <button
-          className="primary"
-          disabled={busy || p.taskStatus === 'done'}
-          onClick={() => void status('done')}
-        >
-          <Check size={18} />
-          Completar
-        </button>
-        <button
-          className="secondary"
-          disabled={busy || p.taskStatus === 'done' || p.taskStatus === 'in_progress'}
-          onClick={() => void status('in_progress')}
-        >
-          Marcar en curso
-        </button>
-        <button
-          className="warning"
-          disabled={busy || p.taskStatus === 'done' || p.taskStatus === 'blocked'}
+          className="text-link"
+          disabled={busy || ['done', 'blocked'].includes(p.taskStatus)}
           onClick={() => void status('blocked')}
         >
-          <LockKeyhole size={17} />
-          Bloquear
+          <LockKeyhole size={17} /> Bloquear
         </button>
-      </div>
+        <p className="muted">
+          Abajo tienes Inicio, Mis tareas, Proyectos y Comisiones. Para abrir tu perfil, pulsa tu
+          avatar en la cabecera, también desde Perfil.
+        </p>
+      </section>
       {p.taskStatus === 'done' && p.previousStatus && (
         <div className="action-confirm tutorial-undo" role="status">
           Misión completada{' '}

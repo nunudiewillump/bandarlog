@@ -2,6 +2,25 @@ import { test, expect, type Page } from '@playwright/test';
 import { mobileFixture } from '../fixtures/mobile';
 import { artworkCatalog } from '../../shared/scout-catalog';
 import { mkdir } from 'node:fs/promises';
+async function completeHome(page: Page, title: string) {
+  const start = page
+    .locator('.mobile-focus')
+    .getByRole('button', { name: 'Empezar tarea: ' + title, exact: true });
+  if (await start.count()) {
+    await start.press('Enter');
+    await expect(
+      page
+        .locator('.mobile-focus')
+        .getByRole('button', { name: 'Finalizar tarea: ' + title, exact: true }),
+    ).toBeEnabled();
+  }
+  const dismiss = page.locator('.undo-toast').getByRole('button', { name: 'Cerrar confirmación' });
+  if (await dismiss.count()) await dismiss.click();
+  await page
+    .locator('.mobile-focus')
+    .getByRole('button', { name: 'Finalizar tarea: ' + title, exact: true })
+    .click();
+}
 async function setup(
   page: Page,
   options: {
@@ -98,7 +117,11 @@ for (const count of [1, 5, 10] as const)
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
       );
-      const control = await page.getByRole('checkbox').first().boundingBox();
+      const control = await page
+        .locator('.mobile-focus')
+        .getByRole('button', { name: /^Empezar tarea:/ })
+        .first()
+        .boundingBox();
       expect(control!.width).toBeGreaterThanOrEqual(44);
       expect(control!.height).toBeGreaterThanOrEqual(44);
       await mkdir('artifacts/mobile-v2', { recursive: true });
@@ -144,7 +167,7 @@ test('mobile completion animates 7→6, done and progress, then undo restores au
         });
     });
   });
-  await page.getByRole('checkbox', { name: 'Completar Mi tarea 1', exact: true }).click();
+  await completeHome(page, 'Mi tarea 1');
   await expect(metric(page, 'Por completar')).toHaveAttribute('data-value', '6');
   await expect(metric(page, 'Terminadas')).toHaveAttribute('data-value', '9');
   await expect
@@ -182,7 +205,7 @@ test('the last personal task celebrates without hiding the read-only team contex
       task.status = 'done';
   await page.reload();
   await expect(metric(page, 'Por completar')).toHaveAttribute('data-value', '1');
-  await page.getByRole('checkbox', { name: 'Completar Mi tarea 1', exact: true }).click();
+  await completeHome(page, 'Mi tarea 1');
   await expect(page.locator('.mobile-focus')).toHaveAttribute('data-holding', 'true');
   await expect(page.locator('.personal-clear')).toContainText('¡Tus tareas están al día!');
   expect(await page.locator('.mobile-focus .focus-primary').isVisible()).toBe(true);
@@ -229,7 +252,10 @@ for (const level of ['projects', 'clear'] as const)
   });
 test('failed saves produce no celebration or definitive counter change', async ({ page }) => {
   await setup(page, { fail: true });
-  await page.getByRole('checkbox', { name: 'Completar Mi tarea 1', exact: true }).click();
+  await page
+    .locator('.mobile-focus')
+    .getByRole('button', { name: 'Empezar tarea: Mi tarea 1', exact: true })
+    .press('Enter');
   await expect(page.getByRole('alert')).toContainText('No se ha podido guardar');
   await expect(metric(page, 'Por completar')).toHaveAttribute('data-value', '7');
   await expect(page.locator('.task-celebration')).toHaveCount(0);
@@ -246,12 +272,12 @@ test('quick consecutive actions stay synchronised and reduced motion updates dir
       if ((event.target as Element).matches('.vine-swing')) (window as any).__vineStarts++;
     });
   });
-  await page.getByRole('checkbox', { name: 'Completar Mi tarea 1', exact: true }).click();
-  await page.getByRole('checkbox', { name: 'Completar Mi tarea 7', exact: true }).click();
+  await completeHome(page, 'Mi tarea 1');
+  await completeHome(page, 'Mi tarea 2');
   await expect(metric(page, 'Por completar')).toHaveAttribute('data-value', '5');
   await expect(metric(page, 'Terminadas')).toHaveAttribute('data-value', '10');
   await expect(metric(page, 'Por completar')).toHaveAttribute('data-animating', 'false');
-  expect(fixture.calls.length).toBe(2);
+  expect(fixture.calls.length).toBe(4);
   expect(new Set(fixture.calls).size).toBe(2);
   await expect
     .poll(() => page.evaluate(() => (window as any).__vineStarts), { timeout: 6500 })
@@ -260,9 +286,7 @@ test('quick consecutive actions stay synchronised and reduced motion updates dir
   await page.waitForTimeout(350);
   const afterCross = await page.locator('.vine-swing').boundingBox();
   expect(afterCross!.x).toBeGreaterThan(beforeCross!.x + 20);
-  await expect(
-    page.locator('.mobile-focus .focus-counts > span').filter({ hasText: 'Bloqueadas' }),
-  ).toHaveCount(0);
+  await expect(metric(page, 'Bloqueadas')).toHaveAttribute('data-value', '1');
 });
 test('detail back navigation preserves filters and the scroll position', async ({ page }) => {
   await setup(page);
@@ -293,8 +317,12 @@ test('simultaneous quick actions animate once and ignore duplicate submissions',
   page,
 }) => {
   const fixture = await setup(page, { delay: 150 });
+  for (const task of fixture.data.tasks)
+    if (['v2-task-0', 'v2-task-1'].includes(task.id)) task.status = 'in_progress';
+  await page.reload();
+  await expect(page.locator('.mobile-focus .home-finish')).toHaveCount(2);
   await page.evaluate(() => {
-    const controls = document.querySelectorAll<HTMLButtonElement>('.mobile-focus .quick-complete');
+    const controls = document.querySelectorAll<HTMLButtonElement>('.mobile-focus .home-finish');
     controls[0].click();
     controls[0].click();
     controls[1].click();
@@ -462,7 +490,7 @@ test.describe('mobile touch scrolling', () => {
     page,
   }) => {
     await setup(page, { lastPersonal: true });
-    await page.getByRole('checkbox', { name: 'Completar Mi tarea 1', exact: true }).click();
+    await completeHome(page, 'Mi tarea 1');
     await expect(page.locator('.mobile-focus')).toHaveAttribute('data-holding', 'true');
     await expect(page.locator('.task-celebration')).toBeVisible();
     expect(await page.locator('.mobile-focus .focus-primary').isVisible()).toBe(true);
@@ -487,7 +515,9 @@ test.describe('mobile touch scrolling', () => {
     await swipe();
     await page.getByRole('button', { name: 'Deshacer', exact: true }).click();
     await expect(
-      page.getByRole('checkbox', { name: 'Completar Mi tarea 1', exact: true }),
+      page
+        .locator('.mobile-focus')
+        .getByRole('button', { name: 'Finalizar tarea: Mi tarea 1', exact: true }),
     ).toBeVisible();
     await page.evaluate(() => scrollTo(0, 0));
     await swipe();

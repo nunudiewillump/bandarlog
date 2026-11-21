@@ -347,7 +347,8 @@
   async function flush() {
     return lock(async () => {
       const state = await read((s) => s);
-      if (!state.queue.length) return;
+      if (!state.queue.length) return [];
+      const confirmed = [];
       let response;
       try {
         response = await fetch(groupBase + '/api/me', { cache: 'no-store' });
@@ -407,6 +408,14 @@
             });
             break;
           }
+          if (saved.task && /^\/tasks\/[^/]+$/.test(job.path) && job.method === 'PATCH')
+            confirmed.push({
+              mutationId: job.id,
+              taskId: saved.task.id,
+              status: saved.task.status,
+              updatedAt: saved.task.updatedAt,
+              userId: session.user.id,
+            });
           await update((s) => {
             s.queue = s.queue.filter((j) => j.id !== job.id);
             s.error = '';
@@ -426,9 +435,19 @@
         if (current.ok) await remember('/data', await current.json(), true);
       } catch {}
       if (globalThis.clients) {
-        for (const client of await clients.matchAll())
-          client.postMessage({ type: 'bandarlog:synced' });
+        for (const client of await clients.matchAll()) {
+          const path = new URL(client.url).pathname;
+          const sameGroup = groupBase
+            ? path.match(/^\/g\/[a-f0-9]{32}(?=\/|$)/)?.[0] === groupBase
+            : ['/', '/acceso', '/index.html'].includes(path);
+          client.postMessage({
+            type: 'bandarlog:synced',
+            groupBase,
+            confirmed: sameGroup ? confirmed : [],
+          });
+        }
       } else globalThis.dispatchEvent(new Event('bandarlog:data'));
+      return confirmed;
     });
   }
   async function discard() {
@@ -525,6 +544,14 @@
     status: () =>
       read((s) => ({
         pending: s.queue.length,
+        tasks: [
+          ...new Set(
+            s.queue.filter((j) => /^\/tasks\/[^/]+$/.test(j.path)).map((j) => j.path.split('/')[2]),
+          ),
+        ].map((id) => ({
+          id,
+          confirmedStatus: s.data?.tasks?.find((t) => t.id === id)?.status || 'pending',
+        })),
         error: s.error || '',
         quarantined: (s.parked?.[s.suspendedUser] || []).length,
       })),

@@ -1,3 +1,6 @@
+import { HomeTaskAction } from './HomeTaskAction';
+import { taskHaptic } from './haptics';
+import type { OfflineConfirmation, PendingTask } from './offline';
 import { SnapshotRefresh, covers } from './snapshot-refresh';
 import { snapshotRevision } from './api';
 import { PagedActivity } from './PagedActivity';
@@ -180,7 +183,13 @@ function App() {
     [celebrations, setCelebrations] = useState<number[]>([]),
     [satisfaction, setSatisfaction] = useState(false),
     [pendingTasks, setPendingTasks] = useState(new Set<string>()),
-    [undo, setUndo] = useState<{ task: Task; expected: string; last: boolean } | null>(null),
+    [queuedTasks, setQueuedTasks] = useState<PendingTask[]>([]),
+    [undo, setUndo] = useState<{
+      task: Task;
+      expected: string;
+      last: boolean;
+      kind: 'start' | 'done';
+    } | null>(null),
     [outbox, setOutbox] = useState<any[]>([]);
   const [reauthNotice, setReauthNotice] = useState('');
   const tutorial = useTutorial(me);
@@ -190,6 +199,11 @@ function App() {
     loadSequence = useRef(0),
     operations = useRef(0),
     taskLocks = useRef(new Set<string>());
+  const homeOperations = useRef(0);
+  const queuedTasksRef = useRef<PendingTask[]>([]);
+  const deferredActions = useRef(new Map<string, { task: Task; owner: string; home: boolean }>());
+  const meRef = useRef(me);
+  meRef.current = me;
   const detailScroll = useRef({ x: 0, y: 0 });
   const navigationScroll = useRef(new Map<string, { x: number; y: number }>());
   const lastAnnounced = useRef(false);
@@ -317,6 +331,8 @@ function App() {
       setMe(null);
       setData(initial);
       setCelebrations([]);
+      setQueuedTasks([]);
+      deferredActions.current.clear();
     };
     window.addEventListener('bandarlog:session-ended', reset);
     return () => window.removeEventListener('bandarlog:session-ended', reset);
@@ -476,7 +492,7 @@ function App() {
       return () => document.removeEventListener('keydown', handler);
     }
   }, [modal, selected]);
-  async function run(fn: () => Promise<void>, message = 'Cambios guardados') {
+  async function run(fn: () => Promise<void>, message = 'Cambios guardados', quietQueued = false) {
     setError('');
     operations.current++;
     setBusy(true);
@@ -484,9 +500,13 @@ function App() {
       await fn();
       await load();
       notifyDataChanged(snapshotRevision(dataRef.current));
+      const queueState = await offline.status();
+      queuedTasksRef.current = queueState.tasks || [];
       setToast(
-        (await offline.status()).pending
-          ? 'Guardado en este dispositivo. Pendiente de sincronizar.'
+        queueState.pending
+          ? quietQueued
+            ? ''
+            : 'Guardado en este dispositivo. Pendiente de sincronizar.'
           : message,
       );
       return true;
@@ -596,21 +616,89 @@ function App() {
     route.searchParams.set('task', t.id);
     history.pushState({ bandarlogTask: true }, '', route);
   };
-  const taskStatus = async (task: Task, status: string, blockedReason?: string) => {
-    const t = dataRef.current.tasks.find((item) => item.id === task.id) || task;
-    if (taskLocks.current.has(t.id) || (t.status === status && status === 'done')) return;
-    taskLocks.current.add(t.id);
-    setPendingTasks(new Set(taskLocks.current));
+  const confirmTaskTransition = (task: Task, saved: Task, home: boolean) => {
+    const owner = meRef.current;
+    const current = dataRef.current.tasks.find((t) => t.id === saved.id);
+    if (
+      !owner ||
+      !current ||
+      current.updatedAt !== saved.updatedAt ||
+      current.status !== saved.status
+    )
+      return;
     const assigned = new Set(
-      dataRef.current.assignments.filter((a) => a.userId === me?.id).map((a) => a.taskId),
+      dataRef.current.assignments.filter((a) => a.userId === owner.id).map((a) => a.taskId),
     );
-    const personalWasOpen = dataRef.current.tasks.some(
-      (item) => assigned.has(item.id) && item.status !== 'done',
-    );
-    if (personalWasOpen) lastAnnounced.current = false;
-    const scroll = { x: window.scrollX, y: window.scrollY };
-    let saved: Task | undefined;
+    if (saved.status === 'done') {
+      const last =
+        assigned.has(task.id) &&
+        !dataRef.current.tasks.some(
+          (t) =>
+            t.id !== task.id &&
+            assigned.has(t.id) &&
+            (t.status !== 'done' || queuedTasksRef.current.some((q) => q.id === t.id)),
+        ) &&
+        !lastAnnounced.current;
+      if (last) {
+        lastAnnounced.current = true;
+        setSatisfaction(true);
+        if (satisfactionTimer.current) clearTimeout(satisfactionTimer.current);
+        satisfactionTimer.current = setTimeout(() => setSatisfaction(false), 2600);
+      }
+      setUndo({ task, expected: saved.updatedAt, last, kind: 'done' });
+      celebrateWithVine();
+    } else if (home && saved.status === 'in_progress') {
+      setUndo({ task, expected: saved.updatedAt, last: false, kind: 'start' });
+    }
+    if (home) {
+      let enabled = true;
+      try {
+        enabled = JSON.parse(owner.preferences || '{}').forestEffects !== false;
+      } catch {}
+      taskHaptic(saved.status === 'done' ? 'done' : 'start', enabled);
+    }
+  };
+  const syncHome = async (confirmed?: OfflineConfirmation[]) => {
+    await load();
+    queuedTasksRef.current = (await offline.status()).tasks || [];
+    for (const receipt of confirmed || []) {
+      const pending = deferredActions.current.get(receipt.mutationId);
+      if (!pending || pending.owner !== meRef.current?.id || receipt.userId !== pending.owner)
+        continue;
+      deferredActions.current.delete(receipt.mutationId);
+      const current = dataRef.current.tasks.find((t) => t.id === receipt.taskId);
+      if (current && current.updatedAt === receipt.updatedAt && current.status === receipt.status)
+        confirmTaskTransition(pending.task, current, pending.home);
+    }
+  };
+  const taskStatus = async (task: Task, status: string, blockedReason?: string, home = false) => {
+    const t = dataRef.current.tasks.find((item) => item.id === task.id) || task;
+    const owner = meRef.current?.id;
+    if (!owner) return;
+    if (home && t.updatedAt !== task.updatedAt) {
+      setError('La tarea ha cambiado. Revisa su estado antes de continuar.');
+      return;
+    }
+    if (taskLocks.current.has(t.id) || (t.status === status && status === 'done')) return;
+    if (home && (status === 'in_progress' ? t.status !== 'pending' : t.status !== 'in_progress'))
+      return;
+    taskLocks.current.add(t.id);
+    if (home) homeOperations.current++;
+    setPendingTasks(new Set(taskLocks.current));
+    const scroll = { x: scrollX, y: scrollY };
     try {
+      if (home) {
+        const queue = await offline.status();
+        if (queue.tasks?.some((q) => q.id === t.id) || (queue.pending && !queue.tasks)) return;
+      }
+      if (
+        dataRef.current.assignments.some(
+          (a) => a.userId === meRef.current?.id && a.taskId === t.id,
+        ) &&
+        t.status !== 'done'
+      )
+        lastAnnounced.current = false;
+      let saved: Task | undefined;
       const ok = await run(
         async () => {
           const result = await api(`/tasks/${t.id}`, 'PATCH', {
@@ -618,46 +706,57 @@ function App() {
             blockedReason,
             expectedUpdatedAt: t.updatedAt,
           });
-          saved = result.queued ? undefined : result.task;
+          if (result.queued) {
+            deferredActions.current.set(result.id, { task: t, owner, home });
+          } else saved = result.task;
         },
-        status === 'done' ? '' : 'Estado actualizado',
+        home || status === 'done' ? '' : 'Estado actualizado',
+        home,
       );
-      if (!ok) return;
+      if (!ok) {
+        if (home) taskHaptic('error', forestEffects);
+        await load().catch(() => {});
+        return;
+      }
       setPendingAction('');
       if (status !== 'done') setUndo((current) => (current?.task.id === t.id ? null : current));
-      if (status === 'done' && saved) {
-        const personalOpen = dataRef.current.tasks.some(
-          (item) => assigned.has(item.id) && item.status !== 'done',
-        );
-        const last =
-          assigned.has(t.id) && personalWasOpen && !personalOpen && !lastAnnounced.current;
-        if (last) {
-          lastAnnounced.current = true;
-          setSatisfaction(true);
-          if (satisfactionTimer.current) clearTimeout(satisfactionTimer.current);
-          satisfactionTimer.current = setTimeout(() => setSatisfaction(false), 2600);
-        }
-        setUndo({ task: t, expected: saved.updatedAt, last });
-        celebrateWithVine();
-      }
+      if (saved && meRef.current?.id === owner) confirmTaskTransition(t, saved, home);
       requestAnimationFrame(() => window.scrollTo(scroll.x, scroll.y));
     } finally {
       taskLocks.current.delete(t.id);
+      if (home) homeOperations.current--;
       setPendingTasks(new Set(taskLocks.current));
     }
   };
+  const homeQueue = new Set(queuedTasks.map((t) => t.id));
+  const homeData = queuedTasks.length
+    ? {
+        ...data,
+        tasks: data.tasks.map((t) =>
+          t.status === 'done' && homeQueue.has(t.id)
+            ? {
+                ...t,
+                status: queuedTasks.find((q) => q.id === t.id)?.confirmedStatus || 'in_progress',
+              }
+            : t,
+        ),
+      }
+    : data;
   const undoCompletion = async () => {
     if (!undo || busy) return;
+    let restored = false;
     if (
       await run(async () => {
-        await api(`/tasks/${undo.task.id}`, 'PATCH', {
+        const result = await api(`/tasks/${undo.task.id}`, 'PATCH', {
           status: undo.task.status,
           blockedReason: undo.task.blockedReason || undefined,
           expectedUpdatedAt: undo.expected,
         });
+        restored = !result.queued;
       }, 'Tarea restaurada')
     ) {
       setUndo(null);
+      if (!restored) return;
       setSatisfaction(false);
       lastAnnounced.current = false;
       if (satisfactionTimer.current) clearTimeout(satisfactionTimer.current);
@@ -1020,7 +1119,13 @@ function App() {
           projectSummaries: projectSummariesOf(data).filter((c) => c.id === project),
         }
       : data;
-    const focus = smartFocus(focusData, me!);
+    const focus = smartFocus(
+      {
+        ...focusData,
+        tasks: homeData.tasks.filter((t) => focusData.tasks.some((f) => f.id === t.id)),
+      },
+      me!,
+    );
     const personal = focus.level === 'personal';
     const canCreate = commissions.some((c) => canManage(c.id) && pOf(c)?.archived !== 'true');
     const ownCommissions = commissions.filter((c) => focus.ownCommissions.has(c.id));
@@ -1117,6 +1222,11 @@ function App() {
                             <Badge task={t} />
                             {overdue(t) && <span className="badge overdue">Vencida</span>}
                           </div>
+                          {t.status === 'blocked' && (
+                            <p className="home-task-blocked">
+                              {t.blockedReason || 'Abre la tarea para consultar el bloqueo.'}
+                            </p>
+                          )}
                         </div>
                         <div className="desktop-task-actions">
                           <div className="avatars">
@@ -1127,20 +1237,15 @@ function App() {
                               ))}
                           </div>
                           {mayComplete && pOf(c)?.archived !== 'true' ? (
-                            <button
-                              className="desktop-complete"
-                              disabled={pendingTasks.has(t.id)}
-                              onClick={() => void taskStatus(t, 'done')}
-                            >
-                              {pendingTasks.has(t.id) ? (
-                                <BananaLoader compact label="Guardando…" />
-                              ) : (
-                                <>
-                                  <Check size={17} />
-                                  Completar
-                                </>
-                              )}
-                            </button>
+                            <HomeTaskAction
+                              title={t.title}
+                              status={t.status}
+                              version={t.updatedAt}
+                              disabled={pendingTasks.has(t.id) || homeQueue.has(t.id)}
+                              queued={homeQueue.has(t.id)}
+                              onStart={() => void taskStatus(t, 'in_progress', undefined, true)}
+                              onFinish={() => void taskStatus(t, 'done', undefined, true)}
+                            />
                           ) : (
                             <button className="text-link" onClick={() => openTask(t)}>
                               Ver tarea
@@ -1378,7 +1483,22 @@ function App() {
       }}
     >
       <div className="app-shell">
-        <SyncStatus onSynced={load} />
+        <SyncStatus
+          onSynced={syncHome}
+          onPendingTasks={(tasks, count) => {
+            const next =
+              count && !tasks.length
+                ? dataRef.current.tasks.map((t) => ({
+                    id: t.id,
+                    confirmedStatus: t.status === 'done' ? 'in_progress' : t.status,
+                  }))
+                : tasks;
+            queuedTasksRef.current = next;
+            setQueuedTasks((current) =>
+              JSON.stringify(current) === JSON.stringify(next) ? current : next,
+            );
+          }}
+        />
         <aside className={`sidebar ${sidebar ? 'open' : ''}`}>
           <button className="brand sidebar-brand" onClick={() => navigate('home')}>
             <img src="/brand-mark.webp" alt="" />
@@ -1590,6 +1710,7 @@ function App() {
             {view === 'tutorial' &&
               (tutorial.progress ? (
                 <TutorialMission
+                  hapticsEnabled={forestEffects}
                   tutorial={tutorial}
                   restart={restartTutorial}
                   onBack={() => navigate('home')}
@@ -1610,12 +1731,14 @@ function App() {
                 <div className="desktop-home">{desktopHome()}</div>
                 <div className="mobile-only">
                   <MobileHome
-                    data={data}
+                    data={homeData}
                     me={me}
                     holding={satisfaction}
                     pending={pendingTasks}
                     onOpen={openTask}
-                    onComplete={(t) => void taskStatus(t, 'done')}
+                    onComplete={(t) => void taskStatus(t, 'done', undefined, true)}
+                    onStart={(t) => void taskStatus(t, 'in_progress', undefined, true)}
+                    queued={homeQueue}
                     canManage={canManage}
                     navigate={navigate}
                   />
@@ -2235,7 +2358,6 @@ function App() {
             ['tasks', 'Mis tareas', ClipboardCheck],
             ['projects', 'Proyectos', Flag],
             ['commissions', 'Comisiones', Users],
-            ['profile', 'Perfil', UserRound],
           ].map(([v, label, Icon]: any) => (
             <button
               key={v}
@@ -2266,14 +2388,20 @@ function App() {
             </div>
           </div>
         )}
-        {busy && (
+        {busy && operations.current > homeOperations.current && (
           <div className="operation-loading">
             <BananaLoader compact label="Guardando…" />
           </div>
         )}
         {undo && (
           <div className="undo-toast" role="status">
-            <span>{undo.last ? '¡Tus tareas están al día!' : 'Tarea completada'}</span>
+            <span>
+              {undo.kind === 'start'
+                ? 'Tarea en curso'
+                : undo.last
+                  ? '¡Tus tareas están al día!'
+                  : 'Tarea completada'}
+            </span>
             <button disabled={busy} onClick={() => void undoCompletion()}>
               Deshacer
             </button>

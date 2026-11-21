@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
+import { HomeTaskAction } from './HomeTaskAction';
 import { taskPeople } from './task-people';
-import { CalendarDays, Tent, Check, LockKeyhole, ChevronRight, Leaf } from 'lucide-react';
+import { CalendarDays, Tent, Check, LockKeyhole, ChevronRight, Leaf, Clock3 } from 'lucide-react';
 import { AnimatedCounter } from './AnimatedCounter';
 import { BananaLoader } from './BananaLoader';
 import { projectType } from '../shared/project-types';
@@ -53,6 +54,8 @@ export function MobileTasks({
   onComplete,
   pending,
   canManage,
+  homeActions,
+  queued,
 }: {
   tasks: Task[];
   data: Data;
@@ -61,6 +64,8 @@ export function MobileTasks({
   onComplete: (task: Task) => void;
   pending: Set<string>;
   canManage: (id: string) => boolean;
+  homeActions?: { start: (task: Task) => void; finish: (task: Task) => void };
+  queued?: Set<string>;
 }) {
   const people = useMemo(
     () => taskPeople(data),
@@ -77,11 +82,11 @@ export function MobileTasks({
           const writable = project?.archived !== 'true' && (own || canManage(task.commissionId));
           return (
             <div
-              className={`mobile-task-row ${task.status === 'done' ? 'done' : ''}`}
+              className={`mobile-task-row ${homeActions ? 'home-quick-row' : ''} ${task.status === 'done' ? 'done' : ''}`}
               key={task.id}
               data-task-id={task.id}
             >
-              {writable && task.status !== 'done' ? (
+              {!homeActions && writable && task.status !== 'done' ? (
                 <button
                   className="quick-complete"
                   role="checkbox"
@@ -96,10 +101,24 @@ export function MobileTasks({
                     <span />
                   )}
                 </button>
+              ) : homeActions && writable && ['pending', 'in_progress'].includes(task.status) ? (
+                <span className="home-task-marker" aria-hidden="true">
+                  {task.status === 'in_progress' ? (
+                    <Clock3 size={18} />
+                  ) : (
+                    <span className="home-pending-dot" />
+                  )}
+                </span>
               ) : (
                 <span
                   className="task-read-marker"
-                  aria-label={task.status === 'done' ? 'Terminada' : 'Solo consulta'}
+                  aria-label={
+                    task.status === 'done'
+                      ? 'Terminada'
+                      : homeActions && task.status === 'blocked'
+                        ? 'Bloqueada'
+                        : 'Solo consulta'
+                  }
                 >
                   {task.status === 'done' ? <Check size={20} /> : <LockKeyhole size={16} />}
                 </span>
@@ -118,11 +137,33 @@ export function MobileTasks({
                 )}
                 <span className="mobile-task-meta">
                   <span className={overdue(task) ? 'late-text' : ''}>{date(task.due)}</span>
-                  <span className={`badge ${overdue(task) ? 'overdue' : task.status}`}>
-                    {overdue(task) ? 'Vencida' : labels[task.status]}
+                  <span
+                    className={`badge ${overdue(task) && (!homeActions || task.status === 'pending') ? 'overdue' : task.status}`}
+                  >
+                    {overdue(task) && (!homeActions || task.status === 'pending')
+                      ? 'Vencida'
+                      : labels[task.status]}
                   </span>
                 </span>
               </button>
+              {homeActions && writable && ['pending', 'in_progress'].includes(task.status) && (
+                <div className="home-task-actions">
+                  <HomeTaskAction
+                    title={task.title}
+                    status={task.status}
+                    version={task.updatedAt}
+                    disabled={pending.has(task.id) || !!queued?.has(task.id)}
+                    queued={queued?.has(task.id)}
+                    onStart={() => homeActions.start(task)}
+                    onFinish={() => homeActions.finish(task)}
+                  />
+                </div>
+              )}
+              {homeActions && task.status === 'blocked' && (
+                <p className="home-task-blocked">
+                  {task.blockedReason || 'Abre la tarea para consultar el bloqueo.'}
+                </p>
+              )}
             </div>
           );
         })
@@ -249,6 +290,8 @@ export function MobileHome(props: {
   pending: Set<string>;
   onOpen: (task: Task) => void;
   onComplete: (task: Task) => void;
+  onStart: (task: Task) => void;
+  queued: Set<string>;
   canManage: (id: string) => boolean;
   navigate: (view: string, project?: string) => void;
 }) {
@@ -310,7 +353,11 @@ export function MobileHome(props: {
                 Tus tareas están al día. Estas tareas pertenecen a tu equipo.
               </p>
             )}
-            <MobileTasks {...props} tasks={focus.featured} />
+            <MobileTasks
+              {...props}
+              tasks={focus.featured}
+              homeActions={{ start: props.onStart, finish: props.onComplete }}
+            />
           </section>
         )}
         {focus.level === 'projects' && (

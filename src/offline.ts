@@ -1,15 +1,28 @@
 import { groupChannel } from './group-location';
+export type OfflineConfirmation = {
+  mutationId: string;
+  taskId: string;
+  status: string;
+  updatedAt: string;
+  userId: string;
+};
+export type PendingTask = { id: string; confirmedStatus: string };
 type Store = {
   remember(path: string, value: any): Promise<any>;
   cached(path: string): Promise<any>;
   enqueue(path: string, method: string, body: any, id: string): Promise<any>;
   allowed(path: string, method: string): boolean;
-  flush(): Promise<void>;
+  flush(): Promise<OfflineConfirmation[] | undefined>;
   clear(): Promise<void>;
   suspend(): Promise<void>;
   discard(): Promise<void>;
-  retry(): Promise<void>;
-  status(): Promise<{ pending: number; error: string; quarantined?: number }>;
+  retry(): Promise<OfflineConfirmation[] | undefined>;
+  status(): Promise<{
+    pending: number;
+    error: string;
+    quarantined?: number;
+    tasks?: PendingTask[];
+  }>;
 };
 const backend = (globalThis as typeof globalThis & { BandarlogOffline: Store }).BandarlogOffline;
 // Storage restrictions must not prevent normal online use. Queued writes still

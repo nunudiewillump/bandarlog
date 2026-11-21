@@ -29,6 +29,17 @@ export function smartFocus(data: Data, user: User, now = Date.now()) {
         ? 'projects'
         : 'clear';
   const rank = (task: Task) => [
+    ...(level === 'personal'
+      ? [
+          task.status === 'in_progress'
+            ? 0
+            : task.status === 'pending' && new Date(task.due).getTime() < now
+              ? 1
+              : task.status === 'blocked'
+                ? 2
+                : 3,
+        ]
+      : []),
     Number(new Date(task.due).getTime() >= now),
     Number(task.status !== 'blocked'),
     new Date(task.due).getTime(),
@@ -38,7 +49,10 @@ export function smartFocus(data: Data, user: User, now = Date.now()) {
   ].sort((a, b) => {
     const x = rank(a),
       y = rank(b);
-    return x[0] - y[0] || x[1] - y[1] || x[2] - y[2] || a.id.localeCompare(b.id);
+    return (
+      x.reduce((difference, value, index) => difference || value - y[index], 0) ||
+      a.id.localeCompare(b.id)
+    );
   });
   return {
     level,

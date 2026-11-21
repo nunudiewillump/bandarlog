@@ -1,0 +1,20 @@
+
+4 files scanned with regex matching only (.css, .tsx).
+Rules that need a parsed page (tiny-text, low-contrast and other element rules) did not run on them; findings are an undercount, not a clean bill of health.
+For the full check, scan the running dev server (npx impeccable detect http://localhost:PORT) or a static site's built .html.
+
+0 anti-patterns found.
+
+── Advisory (not counted as failures) ──
+
+src/home-quick-actions.css
+  line 25: [design-system-color] Undocumented color #cedbcf is outside DESIGN.md colors
+    → A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.
+  line 38: [design-system-font-size] font-size: 13px is off the DESIGN.md type ramp
+    → A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.
+  line 45: [design-system-color] Undocumented color #d5e4d3 is outside DESIGN.md colors
+    → A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an intentional design-system addition rather than drift.
+  line 119: [design-system-font-size] font-size: 13px is off the DESIGN.md type ramp
+    → A literal font-size is off the type ramp documented in DESIGN.md typography. Use a documented size step or update the design system if the new step is intentional.
+
+4 advisory notes. Suppress with --no-advisory.
