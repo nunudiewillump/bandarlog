@@ -112,7 +112,7 @@ test('a fast anonymous response cannot hide a slower health failure', async ({ p
   await expect(page.getByRole('button', { name: 'Reintentar', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Recibir código', exact: true })).toHaveCount(0);
 });
-test('phone landscape retains the canopy and five destinations while scrolling commission rows', async ({
+test('phone landscape retains the canopy and four destinations while scrolling commission rows', async ({
   page,
 }) => {
   await forest(page);
@@ -122,6 +122,7 @@ test('phone landscape retains the canopy and five destinations while scrolling c
   await expect(page.locator('.forest-canopy:visible')).toHaveCount(1);
   const nav = page.getByRole('navigation', { name: 'Navegación principal' });
   await expect(nav).toBeVisible();
+  await expect(nav.getByRole('button')).toHaveCount(4);
   await nav.getByRole('button', { name: 'Comisiones', exact: true }).click();
   await expect(page.locator('.mobile-commission-groups .commission-row')).toHaveCount(10);
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));

@@ -60,3 +60,26 @@ test('team pending color has exact 30 and 60 percent boundaries and handles an e
   ] as const)
     assert.equal(teamPendingTone(pending, total), tone);
 });
+
+test('Home ranks in-progress before overdue pending work, keeps blocked work visible and caps the initial list', () => {
+  const { data, user } = mobileFixture(1);
+  const now = Date.now();
+  data.tasks.forEach((t) => (t.status = 'done'));
+  const [late, ongoing, blocked, next] = data.tasks;
+  late.status = 'pending';
+  late.due = new Date(now - 1000).toISOString();
+  ongoing.status = 'in_progress';
+  ongoing.due = new Date(now + 100000).toISOString();
+  blocked.status = 'blocked';
+  next.status = 'pending';
+  next.due = new Date(now + 200000).toISOString();
+  assert.deepEqual(
+    smartFocus(data, user, now).featured.map((t) => t.id),
+    [ongoing.id, late.id, blocked.id],
+  );
+  blocked.status = 'done';
+  assert.deepEqual(
+    smartFocus(data, user, now).featured.map((t) => t.id),
+    [ongoing.id, late.id, next.id],
+  );
+});

@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
-import { offline, notifyDataChanged } from './offline';
-export function SyncStatus({ onSynced }: { onSynced: () => Promise<unknown> }) {
+import { offline, notifyDataChanged, type OfflineConfirmation, type PendingTask } from './offline';
+import { groupBasePath } from './group-location';
+export function SyncStatus({
+  onSynced,
+  onPendingTasks,
+}: {
+  onSynced: (confirmed?: OfflineConfirmation[]) => Promise<unknown>;
+  onPendingTasks?: (tasks: PendingTask[], pending: number) => void;
+}) {
   const [state, setState] = useState({ pending: 0, error: '' }),
     [online, setOnline] = useState(navigator.onLine);
   useEffect(() => {
@@ -9,7 +16,10 @@ export function SyncStatus({ onSynced }: { onSynced: () => Promise<unknown> }) {
     const status = () => {
       if (active)
         void offline.status().then((s) => {
-          if (active) setState(s);
+          if (active) {
+            setState(s);
+            onPendingTasks?.(s.tasks || [], s.pending);
+          }
         });
     };
     const refresh = async () => {
@@ -19,10 +29,10 @@ export function SyncStatus({ onSynced }: { onSynced: () => Promise<unknown> }) {
       flushing = true;
       try {
         const before = await offline.status();
-        await offline.flush();
+        const confirmed = await offline.flush();
         status();
         if (before.pending) {
-          await onSynced();
+          await onSynced(confirmed);
           notifyDataChanged();
         }
       } catch {
@@ -33,7 +43,7 @@ export function SyncStatus({ onSynced }: { onSynced: () => Promise<unknown> }) {
     const message = (e: MessageEvent) => {
       if (e.data?.type === 'bandarlog:synced') {
         status();
-        void onSynced();
+        void onSynced(e.data.groupBase === groupBasePath() ? e.data.confirmed : undefined);
         notifyDataChanged();
       }
     };
@@ -71,7 +81,10 @@ export function SyncStatus({ onSynced }: { onSynced: () => Promise<unknown> }) {
               .retry()
               .then(onSynced)
               .then(() => offline.status())
-              .then(setState)
+              .then((s) => {
+                setState(s);
+                onPendingTasks?.(s.tasks || [], s.pending);
+              })
           }
         >
           Reintentar
@@ -88,9 +101,12 @@ export function SyncStatus({ onSynced }: { onSynced: () => Promise<unknown> }) {
             onClick={() =>
               void offline
                 .discard()
-                .then(onSynced)
+                .then(() => onSynced())
                 .then(() => offline.status())
-                .then(setState)
+                .then((s) => {
+                  setState(s);
+                  onPendingTasks?.(s.tasks || [], s.pending);
+                })
             }
           >
             Descartar cambios de este dispositivo

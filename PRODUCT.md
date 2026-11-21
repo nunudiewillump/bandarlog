@@ -19,9 +19,9 @@ La invitación al grupo no da acceso automático a sus comisiones; la invitació
 
 Inicio aplica Smart Focus: trabajo personal pendiente, trabajo de las comisiones propias, resumen autorizado del campamento y estado al día. Muestra hasta tres tareas destacadas y ofrece acceso al listado. Las tareas conservan proyecto, comisión, persona asignada, fecha, estado y observaciones. Los estados son pendiente, en curso, bloqueada y terminada; los bloqueos requieren motivo y la finalización conserva autor y fecha.
 
-Completar requiere confirmación del guardado; se mantienen control de concurrencia, recuperación de errores y Deshacer. Borrar retira la tarea de listados y avisos, conservando su historial. Las acciones de gestión se muestran según permiso y se autorizan de nuevo en servidor.
+Completar requiere confirmación del guardado; se mantienen control de concurrencia, recuperación de errores y Deshacer. En Inicio, las tareas pendientes se empiezan deslizando en móvil o con Empezar tarea mediante teclado y en ordenador; las tareas en curso se terminan pulsando Finalizar tarea. Deshacer se ofrece tras confirmar el inicio o la finalización en servidor, y la liana celebra la finalización confirmada; los cambios sin cobertura se indican como pendientes de sincronizar. El tutorial permite practicar estas acciones sin modificar tareas reales y explica los cuatro destinos y el acceso al perfil. Borrar retira la tarea de listados y avisos, conservando su historial. Las acciones de gestión se muestran según permiso y se autorizan de nuevo en servidor.
 
-Los cinco destinos móviles son Inicio, Mis tareas, Proyectos, Comisiones y Perfil. Desktop comparte Forest Experience con navegación lateral clara, tareas prioritarias por rol, comisiones agrupadas y resumen compacto de Responsable. Tablet y móvil conservan su navegación operativa. Acceso y primer acceso comparten las superficies también en ancho amplio.
+Los cuatro destinos móviles son Inicio, Mis tareas, Proyectos y Comisiones; Perfil se abre desde el avatar de la cabecera. Desktop comparte Forest Experience con navegación lateral clara, tareas prioritarias por rol, comisiones agrupadas y resumen compacto de Responsable. Tablet y móvil conservan su navegación operativa. Acceso y primer acceso comparten las superficies también en ancho amplio.
 
 ## Entrada e identidad
 
