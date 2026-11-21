@@ -167,10 +167,11 @@ test('mobile crown has attached full-size leaves and preserves content spacing',
     await page.screenshot({ path: `artifacts/mobile-canopy/cohesive-${width}.png` });
     expect(rects.overflow).toBe(false);
     for (const destination of ['Proyectos', 'Comisiones', 'Perfil']) {
-      await page
-        .locator('.bottom-nav')
-        .getByRole('button', { name: destination, exact: true })
-        .click();
+      const control =
+        destination === 'Perfil'
+          ? page.getByRole('button', { name: 'Mi perfil', exact: true })
+          : page.locator('.bottom-nav').getByRole('button', { name: destination, exact: true });
+      await control.click();
       expect(
         await page
           .locator('.main')

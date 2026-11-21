@@ -6,7 +6,7 @@ Verificado sobre `feat/home-quick-actions`, base `0f857f4` (PR 51), con datos fi
 
 - `npm run build`: TypeScript y ambos builds Vite correctos.
 - `node --import tsx --test tests/focus.test.ts tests/haptics.test.ts tests/offline-scripts.test.ts tests/tutorial.test.ts`: **13 aprobadas**, sin omisiones.
-- Playwright: **101 casos distintos aprobados**, distribuidos en las ejecuciones relevantes de esta tarea:
+- Playwright: **108 casos distintos aprobados**, distribuidos en las ejecuciones relevantes de esta tarea:
 
 | Archivo | Casos aprobados |
 | --- | ---: |
@@ -18,9 +18,9 @@ Verificado sobre `feat/home-quick-actions`, base `0f857f4` (PR 51), con datos fi
 | `forest.spec.ts` | 5 |
 | `tutorial.spec.ts` | 10 |
 | `security-storage.spec.ts` | 7 |
-| `mobile-canopy.spec.ts` (`--grep breeze`) | 3 |
+| `mobile-canopy.spec.ts` | 10 |
 
-Comandos de navegador utilizados: `npx playwright test` seguido de los archivos anteriores bajo `tests/browser/`, en tandas. La última tanda focalizada ejecutó `home-quick-actions.spec.ts` completo y el caso `quick consecutive` de `mobile-v2.spec.ts`: **20/20**, tras el ajuste visual final y la corrección de expectativas antiguas. Después se ejecutaron las tres comprobaciones de brisa/copa que incluyen el acceso a Perfil desde el avatar; **3/3**. Finalmente se ejecutó de forma aislada el nuevo caso de dos sesiones independientes: **1/1**, y `tsc --noEmit` volvió a pasar. No es una ejecución de la suite completa.
+Comandos de navegador utilizados: `npx playwright test` seguido de los archivos anteriores bajo `tests/browser/`, en tandas. La última tanda focalizada ejecutó `home-quick-actions.spec.ts` completo y el caso `quick consecutive` de `mobile-v2.spec.ts`: **20/20**, tras el ajuste visual final y la corrección de expectativas antiguas. Después se ejecutaron las tres comprobaciones de brisa/copa que incluyen el acceso a Perfil desde el avatar; **3/3**. Finalmente se ejecutó de forma aislada el nuevo caso de dos sesiones independientes: **1/1**, y `tsc --noEmit` volvió a pasar. CI detectó otro selector de Perfil dentro de un recorrido de la copa. Tras adaptarlo al avatar, se ejecutó `mobile-canopy.spec.ts` completo: **10/10**, ampliación motivada por ese fallo concreto. No es una ejecución de la suite completa de la aplicación.
 
 La cobertura se amplió a navegación, roles, tutorial y almacenamiento porque Inicio comparte `MobileTasks`, `taskStatus`, confirmaciones y la cola offline con esos recorridos. Las comprobaciones de CI existentes no se modifican ni se omiten.
 
