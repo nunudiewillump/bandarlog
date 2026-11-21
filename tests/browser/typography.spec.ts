@@ -70,7 +70,13 @@ for (const width of [320, 1024, 1440]) {
           return { left: label.left, right: label.right };
         }),
       );
-      expect(labels).toHaveLength(5);
+      expect(labels).toHaveLength(4);
+      await expect(page.locator('.bottom-nav button span')).toHaveText([
+        'Inicio',
+        'Mis tareas',
+        'Proyectos',
+        'Comisiones',
+      ]);
       labels.forEach((label, index) => {
         expect(label.left).toBeGreaterThanOrEqual(index ? labels[index - 1].right + 1 : 0);
         expect(label.right).toBeLessThanOrEqual(width);
