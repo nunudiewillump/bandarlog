@@ -1257,15 +1257,14 @@ function App() {
                     );
                   })}
                 </div>
-                <button
-                  className="text-link desktop-full-list"
-                  onClick={() => (personal ? navigate('tasks') : navigate('commissions'))}
-                >
-                  {personal
-                    ? `Ver mis ${focus.personalOpen.length} tareas abiertas`
-                    : 'Ver mis comisiones'}
-                  <ChevronRight size={17} />
-                </button>
+                {!personal && (
+                  <button
+                    className="text-link desktop-full-list"
+                    onClick={() => navigate('commissions')}
+                  >
+                    Ver mis comisiones <ChevronRight size={17} />
+                  </button>
+                )}
               </>
             ) : focus.level === 'projects' ? (
               <div className="desktop-authorized-projects">
@@ -2358,23 +2357,24 @@ function App() {
             ['tasks', 'Mis tareas', ClipboardCheck],
             ['projects', 'Proyectos', Flag],
             ['commissions', 'Comisiones', Users],
-          ].map(([v, label, Icon]: any) => (
-            <button
-              key={v}
-              className={
-                view === v ||
-                (v === 'home' && view === 'tutorial') ||
-                (v === 'projects' && view === 'project') ||
-                (v === 'commissions' && ['commission', 'people'].includes(view))
-                  ? 'active'
-                  : ''
-              }
-              onClick={() => navigate(v)}
-            >
-              <Icon size={21} />
-              <span>{label}</span>
-            </button>
-          ))}
+          ].map(([v, label, Icon]: any) => {
+            const active =
+              view === v ||
+              (v === 'home' && view === 'tutorial') ||
+              (v === 'projects' && view === 'project') ||
+              (v === 'commissions' && ['commission', 'people'].includes(view));
+            return (
+              <button
+                key={v}
+                className={active ? 'active' : ''}
+                aria-current={active ? 'page' : undefined}
+                onClick={() => navigate(v)}
+              >
+                <Icon size={21} aria-hidden="true" />
+                <span>{label}</span>
+              </button>
+            );
+          })}
         </nav>
         {celebrationId !== undefined && (
           <div

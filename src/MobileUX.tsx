@@ -428,9 +428,6 @@ export function MobileHome(props: {
           </>
         )}
       </>
-      <button className="secondary focus-full-list" onClick={() => navigate('tasks')}>
-        {focus.level === 'clear' ? 'Ver mi historial de tareas' : 'Ver todas mis tareas'}
-      </button>
     </section>
   );
 }

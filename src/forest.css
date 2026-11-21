@@ -385,9 +385,10 @@
   }
   .bottom-nav {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    inset: auto 0 0;
+    margin: 0;
+    /* Keep the fixed footer on its own compositing layer during touch scroll. */
+    transform: translateZ(0);
     z-index: 35;
     height: auto;
     min-height: 72px;
@@ -402,7 +403,9 @@
   }
   .bottom-nav button {
     position: relative;
-    min-width: 44px;
+    isolation: isolate;
+    width: 100%;
+    min-width: 0;
     min-height: 52px;
     display: flex;
     align-items: center;
@@ -416,6 +419,7 @@
   }
   .bottom-nav button span {
     font-size: 12px;
+    white-space: nowrap;
   }
   .bottom-nav button.active {
     background: none;
@@ -425,11 +429,14 @@
   .bottom-nav button.active::before {
     content: '';
     position: absolute;
-    width: 22px;
-    height: 3px;
-    border-radius: 2px;
-    top: 0;
-    background: #124d38;
+    width: 48px;
+    height: 30px;
+    border-radius: 999px;
+    top: 1px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: -1;
+    background: #e9eddf;
   }
   .bottom-nav svg {
     width: 23px;
@@ -561,10 +568,6 @@
   }
   .focus-counts .mobile-progress {
     display: none;
-  }
-  .mobile-focus .focus-full-list {
-    margin-top: 28px;
-    width: 100%;
   }
   .personal-clear {
     padding: 12px 0;
@@ -915,6 +918,12 @@
     flex-direction: row;
     min-height: 52px;
     gap: 8px;
+  }
+  .bottom-nav button.active::before {
+    width: calc(100% - 16px);
+    max-width: 160px;
+    height: 40px;
+    top: 6px;
   }
   .forest-canopy-inner {
     min-height: 52px;

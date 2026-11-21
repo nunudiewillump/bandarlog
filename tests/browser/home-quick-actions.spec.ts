@@ -337,6 +337,49 @@ test.describe('touch Home', () => {
     await expect(page.locator('.mobile-focus [data-task-id]').first()).toBeVisible();
     await expect(page.locator('.mobile-focus .home-task-actions')).toHaveCount(0);
   });
+  test('four Forest destinations stay evenly spaced and anchored while scrolling, navigating and resizing', async ({
+    page,
+  }) => {
+    await setup(page);
+    const nav = page.getByRole('navigation', { name: 'Navegación principal', exact: true });
+    await expect(
+      page.getByRole('button', { name: 'Ver todas mis tareas', exact: true }),
+    ).toHaveCount(0);
+    for (const width of [320, 375, 390, 430]) {
+      await page.setViewportSize({ width, height: 700 });
+      const boxes = await nav.getByRole('button').evaluateAll((nodes) =>
+        nodes.map((node) => {
+          const b = node.getBoundingClientRect();
+          return { width: b.width, center: b.x + b.width / 2 };
+        }),
+      );
+      expect(boxes).toHaveLength(4);
+      for (let i = 1; i < boxes.length; i++) {
+        expect(Math.abs(boxes[i].width - boxes[0].width)).toBeLessThan(1);
+        expect(Math.abs(boxes[i].center - boxes[i - 1].center - boxes[0].width)).toBeLessThan(1);
+      }
+    }
+    await nav.getByRole('button', { name: 'Mis tareas', exact: true }).click();
+    await expect(nav.getByRole('button', { name: 'Mis tareas', exact: true })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    const before = (await nav.boundingBox())!;
+    await page.mouse.wheel(0, 600);
+    await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0);
+    const after = (await nav.boundingBox())!;
+    expect(Math.abs(after.y - before.y)).toBeLessThan(1);
+    expect(Math.abs(after.y + after.height - 700)).toBeLessThan(1);
+    await page.setViewportSize({ width: 844, height: 390 });
+    await expect(nav).toBeVisible();
+    const landscape = (await nav.boundingBox())!;
+    expect(Math.abs(landscape.y + landscape.height - 390)).toBeLessThan(1);
+    await nav.getByRole('button', { name: 'Inicio', exact: true }).click();
+    await expect(nav.getByRole('button', { name: 'Inicio', exact: true })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
   test('archived project has no write actions', async ({ page }) => {
     await setup(page, 390, { archived: true });
     await expect(page.locator('.mobile-focus .home-task-actions')).toHaveCount(0);

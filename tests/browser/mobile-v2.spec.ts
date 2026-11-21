@@ -332,7 +332,10 @@ test('simultaneous quick actions animate once and ignore duplicate submissions',
   expect(fixture.calls).toHaveLength(2);
   expect(new Set(fixture.calls).size).toBe(2);
   await expect(metric(page, 'Por completar')).toHaveAttribute('data-animating', 'false');
-  await page.locator('.focus-full-list').click();
+  await page
+    .locator('.bottom-nav')
+    .getByRole('button', { name: 'Mis tareas', exact: true })
+    .click();
   await expect(page.locator('.mobile-list .mobile-task-row')).toHaveCount(15);
   await expect(page.locator('.animated-counter[data-animating="true"]:visible')).toHaveCount(0);
 });
