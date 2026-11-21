@@ -6,11 +6,11 @@ Verificado sobre `feat/home-quick-actions`, base `0f857f4` (PR 51), con datos fi
 
 - `npm run build`: TypeScript y ambos builds Vite correctos.
 - `node --import tsx --test tests/focus.test.ts tests/haptics.test.ts tests/offline-scripts.test.ts tests/tutorial.test.ts`: **13 aprobadas**, sin omisiones.
-- Playwright: **100 casos distintos aprobados**, distribuidos en las ejecuciones relevantes de esta tarea:
+- Playwright: **101 casos distintos aprobados**, distribuidos en las ejecuciones relevantes de esta tarea:
 
 | Archivo | Casos aprobados |
 | --- | ---: |
-| `home-quick-actions.spec.ts` | 19 |
+| `home-quick-actions.spec.ts` | 20 |
 | `mobile-v2.spec.ts` | 27 |
 | `workflow-fixes.spec.ts` | 9 |
 | `role-actions.spec.ts` | 4 |
@@ -20,7 +20,7 @@ Verificado sobre `feat/home-quick-actions`, base `0f857f4` (PR 51), con datos fi
 | `security-storage.spec.ts` | 7 |
 | `mobile-canopy.spec.ts` (`--grep breeze`) | 3 |
 
-Comandos de navegador utilizados: `npx playwright test` seguido de los archivos anteriores bajo `tests/browser/`, en tandas. La última tanda focalizada ejecutó `home-quick-actions.spec.ts` completo y el caso `quick consecutive` de `mobile-v2.spec.ts`: **20/20**, tras el ajuste visual final y la corrección de expectativas antiguas. Después se ejecutaron las tres comprobaciones de brisa/copa que incluyen el acceso a Perfil desde el avatar; **3/3**. No es una ejecución de la suite completa.
+Comandos de navegador utilizados: `npx playwright test` seguido de los archivos anteriores bajo `tests/browser/`, en tandas. La última tanda focalizada ejecutó `home-quick-actions.spec.ts` completo y el caso `quick consecutive` de `mobile-v2.spec.ts`: **20/20**, tras el ajuste visual final y la corrección de expectativas antiguas. Después se ejecutaron las tres comprobaciones de brisa/copa que incluyen el acceso a Perfil desde el avatar; **3/3**. Finalmente se ejecutó de forma aislada el nuevo caso de dos sesiones independientes: **1/1**, y `tsc --noEmit` volvió a pasar. No es una ejecución de la suite completa.
 
 La cobertura se amplió a navegación, roles, tutorial y almacenamiento porque Inicio comparte `MobileTasks`, `taskStatus`, confirmaciones y la cola offline con esos recorridos. Las comprobaciones de CI existentes no se modifican ni se omiten.
 
@@ -28,7 +28,7 @@ Durante el desarrollo se detectó y corrigió una cancelación del arrastre: el 
 
 ## Cobertura y límites
 
-Se comprueban umbral antes/después de soltar, toque, arrastre parcial, cancelación, pérdida de captura, cambio de orientación, scroll vertical táctil real mediante CDP, duplicados, guardado lento, 401/403/409, bloqueo/archivo/permisos, cambios encolados, reconexión, reapertura, Deshacer con versión confirmada, celebraciones, métricas y Smart Focus. Un 409 simula una escritura concurrente de otra sesión; no se declara una prueba nueva de dos dispositivos físicos.
+Se comprueban umbral antes/después de soltar, toque, arrastre parcial, cancelación, pérdida de captura, cambio de orientación, scroll vertical táctil real mediante CDP, duplicados, guardado lento, 401/403/409, bloqueo/archivo/permisos, cambios encolados, reconexión, reapertura, Deshacer con versión confirmada, celebraciones, métricas y Smart Focus. Además de errores 409 inyectados, dos contextos de navegador independientes comparten un backend simulado con comprobación de versiones: la segunda sesión rechaza tanto el inicio como la finalización obsoletos, recarga el estado y no celebra. No se declara una prueba nueva de dos dispositivos físicos.
 
 Anchos 320, 375, 390, 430, 768 y 1440; alternativa de teclado, nombres accesibles, texto ampliado en los controles nuevos, movimiento reducido y ausencia de vibración. Las comprobaciones de safe areas son de CSS/emulación: el resultado físico en cada iPhone/Android y la lectura completa con VoiceOver/TalkBack siguen pendientes. No se ha probado vibración física. Véase [HAPTICS.md](HAPTICS.md).
 

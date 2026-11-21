@@ -11,9 +11,10 @@ async function setup(
     archived?: boolean;
     team?: boolean;
     blockedOverdue?: boolean;
+    sharedFixture?: ReturnType<typeof mobileFixture>;
   } = {},
 ) {
-  const fixture = mobileFixture(1);
+  const fixture = options.sharedFixture || mobileFixture(1);
   fixture.user.onboardingCompletedAt = '2026-11-01T00:00:00Z';
   fixture.allTasks[2].blockedReason = 'Esperando material';
   if (options.blockedOverdue) fixture.allTasks[2].due = '2020-01-01';
@@ -232,6 +233,51 @@ test.describe('touch Home', () => {
         ).toBeVisible();
       expect(calls).toHaveLength(1);
     });
+  test('two independent sessions reject stale quick actions and reload the confirmed state', async ({
+    page,
+    browser,
+  }) => {
+    const first = await setup(page);
+    const context = await browser.newContext({
+      hasTouch: true,
+      isMobile: true,
+      viewport: { width: 390, height: 900 },
+    });
+    try {
+      const secondPage = await context.newPage();
+      const second = await setup(secondPage, 390, { sharedFixture: first.fixture });
+      const row = (p: Page) => p.locator('.mobile-focus [data-task-id="v2-task-0"]');
+      await row(page)
+        .getByRole('button', { name: 'Empezar tarea: Mi tarea 1', exact: true })
+        .press('Enter');
+      await expect(
+        row(page).getByRole('button', { name: 'Finalizar tarea: Mi tarea 1', exact: true }),
+      ).toBeEnabled();
+      await row(secondPage)
+        .getByRole('button', { name: 'Empezar tarea: Mi tarea 1', exact: true })
+        .press('Enter');
+      await expect(secondPage.getByRole('alert')).toContainText('Otra sesión cambió esta tarea');
+      await expect(
+        row(secondPage).getByRole('button', { name: 'Finalizar tarea: Mi tarea 1', exact: true }),
+      ).toBeEnabled();
+      expect(second.calls[0].body.expectedUpdatedAt).toBe(first.calls[0].body.expectedUpdatedAt);
+      await row(page)
+        .getByRole('button', { name: 'Finalizar tarea: Mi tarea 1', exact: true })
+        .click();
+      await expect(page.locator('.undo-toast')).toContainText('Tarea completada');
+      await row(secondPage)
+        .getByRole('button', { name: 'Finalizar tarea: Mi tarea 1', exact: true })
+        .click();
+      await expect(secondPage.getByRole('alert')).toContainText('Otra sesión cambió esta tarea');
+      await expect(row(secondPage)).toHaveCount(0);
+      await expect(secondPage.locator('.task-celebration')).toHaveCount(0);
+      expect(first.fixture.allTasks[0].status).toBe('done');
+      expect(first.calls).toHaveLength(2);
+      expect(second.calls).toHaveLength(2);
+    } finally {
+      await context.close();
+    }
+  });
   test('queued start cannot finish early, confirmed sync unlocks completion and survives reopening', async ({
     page,
   }) => {
