@@ -165,3 +165,54 @@ test('switching identity in another tab invalidates the previous visible session
     await page.evaluate(async () => await (window as any).BandarlogOffline.status()),
   ).toMatchObject({ pending: 1 });
 });
+
+test('sync acknowledgements carry no task content and stay within the group and original owner', async ({
+  page,
+}) => {
+  await prepare(page);
+  await seed(page);
+  await page.route('**/api/me', (r) =>
+    r.fulfill({ json: { user: { id: 'A' }, csrf: 'memory-only' } }),
+  );
+  await page.route('**/api/tasks/**', (r) =>
+    r.fulfill({
+      json: {
+        ok: true,
+        task: {
+          id: 'synthetic-task',
+          status: 'done',
+          updatedAt: '2026-11-21T00:00:00Z',
+          description: 'PRIVATE BODY MUST NOT LEAVE SNAPSHOT',
+        },
+      },
+    }),
+  );
+  await page.route('**/api/data', (r) =>
+    r.fulfill({ json: { ...data, tasks: [{ ...data.tasks[0], status: 'done' }] } }),
+  );
+  const result = await page.evaluate(async () => {
+    const messages: any[] = [];
+    (window as any).clients = {
+      matchAll: async () =>
+        ['/', '/acceso', '/plataforma', '/g/' + 'b'.repeat(32) + '/'].map((path) => ({
+          url: location.origin + path,
+          postMessage: (message: any) => messages.push({ path, message }),
+        })),
+    };
+    const confirmations = await (window as any).BandarlogOffline.flush();
+    delete (window as any).clients;
+    return { messages, confirmations };
+  });
+  expect(result.confirmations).toEqual([
+    {
+      mutationId: 'synthetic-operation',
+      taskId: 'synthetic-task',
+      status: 'done',
+      updatedAt: '2026-11-21T00:00:00Z',
+      userId: 'A',
+    },
+  ]);
+  expect(JSON.stringify(result)).not.toContain('PRIVATE');
+  for (const row of result.messages)
+    expect(row.message.confirmed).toHaveLength(['/', '/acceso'].includes(row.path) ? 1 : 0);
+});

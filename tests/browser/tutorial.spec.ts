@@ -61,14 +61,31 @@ async function fixture(page: Page, { role = 'member', onboarded = true } = {}) {
     },
   };
 }
+const practicePrimary = (page: Page) =>
+  page.getByRole('button', { name: /^(Empezar tarea:|Finalizar tarea:)/ });
+async function completePractice(page: Page) {
+  const unblock = page.getByRole('button', { name: 'Volver a pendiente', exact: true });
+  if (await unblock.count()) await unblock.click();
+  const start = page.getByRole('button', {
+    name: 'Empezar tarea: Preparar la mochila de la patrulla',
+    exact: true,
+  });
+  if (await start.count()) {
+    await expect(start).toBeEnabled();
+    await start.press('Enter');
+  }
+  const finish = page.getByRole('button', {
+    name: 'Finalizar tarea: Preparar la mochila de la patrulla',
+    exact: true,
+  });
+  await expect(finish).toBeEnabled();
+  await finish.click();
+}
 async function replay(page: Page) {
-  await page
-    .locator('.bottom-nav:visible')
-    .getByRole('button', { name: 'Perfil', exact: true })
-    .click();
+  await page.getByRole('button', { name: 'Mi perfil', exact: true }).click();
   await page.locator('.profile-help > summary').click();
   await page.getByRole('button', { name: 'Repetir tutorial', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Completar', exact: true })).toBeEnabled();
+  await expect(practicePrimary(page)).toBeEnabled();
 }
 
 test('existing user discovers the real persisted tutorial at 320px, with no real task mutations or stored update text', async ({
@@ -94,25 +111,27 @@ test('existing user discovers the real persisted tutorial at 320px, with no real
   await expect(
     page.getByRole('heading', { name: 'Preparar la mochila de la patrulla', exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Completar', exact: true })).toBeEnabled();
+  await expect(practicePrimary(page)).toBeEnabled();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: 'artifacts/tutorial/mission-top-320.png' });
   await page
     .getByRole('checkbox', { name: 'Completar paso: Comprobar la cantimplora', exact: true })
     .check();
-  await expect(page.getByRole('button', { name: 'Completar', exact: true })).toBeEnabled();
+  await expect(practicePrimary(page)).toBeEnabled();
   await page.reload();
   await expect(
     page.getByRole('checkbox', { name: 'Completar paso: Comprobar la cantimplora', exact: true }),
   ).toBeChecked();
-  await expect(page.getByRole('button', { name: 'Completar', exact: true })).toBeEnabled();
+  await expect(practicePrimary(page)).toBeEnabled();
   const privateText = 'PRIVATE-PRACTICE-DO-NOT-STORE';
   await page.getByLabel('Publicar una actualización', { exact: true }).fill(privateText);
   await mission.getByRole('button', { name: 'Publicar actualización', exact: true }).click();
   await expect(mission.locator('.activity-list')).toContainText(privateText);
-  await page.getByRole('button', { name: 'Marcar en curso', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Empezar tarea: Preparar la mochila de la patrulla', exact: true })
+    .press('Enter');
   await expect(mission.locator('.badge')).toHaveText('En curso');
-  await page.getByRole('button', { name: 'Completar', exact: true }).click();
+  await completePractice(page);
   await expect(page.locator('.tutorial-celebration')).toContainText('¡Ya estás listo!');
   await expect(page.locator('.task-celebration')).toHaveCount(0);
   const celebration = await page.locator('.tutorial-celebration').boundingBox(),
@@ -121,13 +140,13 @@ test('existing user discovers the real persisted tutorial at 320px, with no real
   await page.getByRole('button', { name: 'Cerrar celebración', exact: true }).click();
   await page.getByRole('button', { name: 'Deshacer', exact: true }).click();
   await expect(mission.locator('.badge')).toHaveText('En curso');
-  await page.getByRole('button', { name: 'Completar', exact: true }).click();
+  await completePractice(page);
   await expect(mission.locator('.badge')).toHaveText('Terminada');
   await expect(page.locator('.tutorial-celebration')).toHaveCount(0);
   await page.getByRole('button', { name: 'Volver a Inicio', exact: true }).click();
   await expect(page.locator('.tutorial-invite')).toHaveCount(0);
   await replay(page);
-  await page.getByRole('button', { name: 'Completar', exact: true }).click();
+  await completePractice(page);
   await expect(mission.locator('.badge')).toHaveText('Terminada');
   await expect(page.locator('.tutorial-celebration')).toHaveCount(0);
   expect(mutations.every((r) => r.path === '/api/tutorial')).toBe(true);
@@ -151,7 +170,7 @@ test('practice checkbox responds immediately, rolls back failed saves and confir
     .locator('.tutorial-invite')
     .getByRole('button', { name: 'Empezar', exact: true })
     .click();
-  await expect(page.getByRole('button', { name: 'Completar', exact: true })).toBeEnabled();
+  await expect(practicePrimary(page)).toBeEnabled();
   const step = page.getByRole('checkbox', {
     name: 'Completar paso: Comprobar la cantimplora',
     exact: true,
@@ -262,8 +281,8 @@ for (const reduced of [false, true])
     await page.setViewportSize({ width: reduced ? 390 : 1440, height: 950 });
     await page.emulateMedia({ reducedMotion: reduced ? 'reduce' : 'no-preference' });
     await page.goto('/?view=tutorial');
-    await expect(page.getByRole('button', { name: 'Completar', exact: true })).toBeEnabled();
-    await page.getByRole('button', { name: 'Completar', exact: true }).click();
+    await expect(practicePrimary(page)).toBeEnabled();
+    await completePractice(page);
     const celebration = page.locator('.tutorial-celebration');
     await expect(celebration).toBeVisible();
     await expect(celebration).toContainText('Tu primera misión está completada');
@@ -316,9 +335,9 @@ test('a tutorial deep link cannot open or act on a real task supplied in URL par
   const mock = await fixture(page);
   const real = mock.state.data.tasks[0];
   await page.goto(`/?view=tutorial&task=${real.id}&action=done`);
-  await expect(page.getByRole('button', { name: 'Completar', exact: true })).toBeEnabled();
+  await expect(practicePrimary(page)).toBeEnabled();
   await expect(page.getByRole('dialog', { name: 'Detalle de tarea', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Completar', exact: true }).click();
+  await completePractice(page);
   await expect(page.locator('.tutorial-celebration')).toBeVisible();
   expect(mock.calls.every((call) => call.path === '/api/tutorial')).toBe(true);
   expect(real.status).not.toBe('done');

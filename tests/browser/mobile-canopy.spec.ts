@@ -167,10 +167,11 @@ test('mobile crown has attached full-size leaves and preserves content spacing',
     await page.screenshot({ path: `artifacts/mobile-canopy/cohesive-${width}.png` });
     expect(rects.overflow).toBe(false);
     for (const destination of ['Proyectos', 'Comisiones', 'Perfil']) {
-      await page
-        .locator('.bottom-nav')
-        .getByRole('button', { name: destination, exact: true })
-        .click();
+      const control =
+        destination === 'Perfil'
+          ? page.getByRole('button', { name: 'Mi perfil', exact: true })
+          : page.locator('.bottom-nav').getByRole('button', { name: destination, exact: true });
+      await control.click();
       expect(
         await page
           .locator('.main')
@@ -397,7 +398,7 @@ test.describe('touch and installed mobile layout', () => {
       await page.clock.runFor(30_000);
       await expect(header).not.toHaveClass(/has-canopy-breeze/);
       await page.emulateMedia({ reducedMotion: 'no-preference' });
-      await page.getByRole('button', { name: 'Perfil', exact: true }).click();
+      await page.getByRole('button', { name: 'Mi perfil', exact: true }).click();
       await page.locator('.profile-preferences > summary').click();
       await page.getByLabel('Mostrar copa y hojas', { exact: true }).click();
       await expect(page.locator('.botanical-decoration, .botanical-brand-fill')).toHaveCount(0);
