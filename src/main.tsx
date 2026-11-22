@@ -2081,6 +2081,7 @@ function App() {
                       data={data}
                       commissionIcon={(c) => <CIcon c={c} />}
                       openTask={openTask}
+                      refresh={load}
                     />
                   </Suspense>
                 )}

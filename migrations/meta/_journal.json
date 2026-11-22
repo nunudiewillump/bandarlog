@@ -295,6 +295,13 @@
       "when": 1794846700000,
       "tag": "0041_project_planning",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1794846800000,
+      "tag": "0042_project_meetings",
+      "breakpoints": true
     }
   ]
 }

@@ -65,6 +65,11 @@ export async function exerciseMaintenance(owner: pg.Pool, url: string) {
       id = await readFile(join(destination, 'key-id.txt'), 'utf8');
     await assert.rejects(run('scripts/security/generate-dispatch-keys.ts')); // Exclusive creation; no overwrite.
     const keyEnv = { DISPATCH_PUBLIC_KEY: publicKey, DISPATCH_KEY_ID: id };
+    const restoreContract = (
+      await owner.query(
+        "select pg_get_functiondef('bandarlog_api.runtime_contract_version()'::regprocedure) as definition",
+      )
+    ).rows[0].definition;
     try {
       await owner.query(
         "create or replace function bandarlog_api.runtime_contract_version() returns integer language sql immutable set search_path=pg_catalog as 'select 39'",
@@ -105,9 +110,7 @@ export async function exerciseMaintenance(owner: pg.Pool, url: string) {
         (error: any) => error.stderr?.includes('El contrato SQL requiere completar'),
       );
     } finally {
-      await owner.query(
-        "create or replace function bandarlog_api.runtime_contract_version() returns integer language sql immutable set search_path=pg_catalog as 'select 40'",
-      );
+      await owner.query(restoreContract);
     }
 
     await assert.rejects(run('scripts/security/seal-existing-mail.ts', [], keyEnv));
