@@ -147,16 +147,7 @@ export function HomeTaskAction({
           onPointerCancel={cancel}
           onLostPointerCapture={cancel}
         >
-          <svg className="home-slide-leaf" viewBox="0 0 56 56" aria-hidden="true">
-            <path d="M10 40C-1 20 20 5 49 6c-1 27-14 49-39 34Z" fill="currentColor" />
-            <path
-              d="M12 43 37 18M23 32l-1-12m1 12 13 1"
-              fill="none"
-              stroke="#fffefa"
-              strokeWidth="2.1"
-              strokeLinecap="round"
-            />
-          </svg>
+          <ArrowRight size={24} aria-hidden="true" />
         </button>
       </div>
       <button

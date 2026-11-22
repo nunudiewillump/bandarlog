@@ -58,8 +58,8 @@
   min-width: 44px;
   padding: 0;
   border-radius: 50%;
-  background: transparent;
-  color: #124d38;
+  background: #124d38;
+  color: #faf8f2;
   transform: translateX(var(--slide-x));
   display: grid;
   place-items: center;
@@ -68,9 +68,7 @@
   transition: transform 160ms ease-out;
   cursor: grab;
 }
-.home-slide-leaf {
-  width: 44px;
-  height: 44px;
+.home-slide-handle > svg {
   pointer-events: none;
 }
 .home-slide.dragging .home-slide-handle,
@@ -85,7 +83,6 @@
 }
 .home-slide-handle:active:not(:disabled) {
   cursor: grabbing;
-  color: #103b2d;
 }
 .home-slide.disabled {
   opacity: 0.7;
