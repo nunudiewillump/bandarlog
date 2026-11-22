@@ -116,6 +116,19 @@ const initial: Data = {
   activity: [],
   invitations: [],
 };
+const ProjectMap = lazy(() => import('./ProjectMap'));
+const desktopMapQuery = '(min-width: 1024px)';
+function useDesktopProjectMap() {
+  const [desktop, setDesktop] = useState(() => matchMedia(desktopMapQuery).matches);
+  useEffect(() => {
+    const media = matchMedia(desktopMapQuery);
+    const update = () => setDesktop(media.matches);
+    media.addEventListener('change', update);
+    update();
+    return () => media.removeEventListener('change', update);
+  }, []);
+  return desktop;
+}
 const icons: Record<string, typeof Tent> = {
   chef: ChefHat,
   tent: Tent,
@@ -589,6 +602,7 @@ function App() {
         Number(a.status === 'done') - Number(b.status === 'done') ||
         new Date(a.due).getTime() - new Date(b.due).getTime(),
     );
+  const desktopProjectMap = useDesktopProjectMap();
   const activeProject = data.projects.find((p) => p.id === project),
     activeCommission = data.commissions.find((c) => c.id === commission),
     detail = data.tasks.find((t) => t.id === selected);
@@ -2053,7 +2067,24 @@ function App() {
                     </button>
                   ))}
                 </div>
-                {tab === 'tasks' && (
+                {tab === 'tasks' && desktopProjectMap && (
+                  <Suspense
+                    fallback={
+                      <section className="panel" role="status">
+                        Cargando mapa…
+                      </section>
+                    }
+                  >
+                    <ProjectMap
+                      key={activeProject.id}
+                      project={activeProject}
+                      data={data}
+                      commissionIcon={(c) => <CIcon c={c} />}
+                      openTask={openTask}
+                    />
+                  </Suspense>
+                )}
+                {tab === 'tasks' && !desktopProjectMap && (
                   <>
                     {projectSummariesOf(data).find((camp) => camp.id === project) && (
                       <section className="mobile-only project-overview-panel">
