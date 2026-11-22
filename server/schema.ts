@@ -4,6 +4,7 @@ import type { ChecklistItem } from './task-checklist.js';
 import {
   pgTable,
   bigint,
+  date,
   boolean,
   text,
   timestamp,
@@ -416,3 +417,36 @@ export const passkeyRecovery = pgTable('passkey_recovery', {
   id: text().primaryKey(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
 });
+
+export const projectPhases = pgTable('project_phases', {
+  id: text().primaryKey(),
+  groupId: groupColumn(),
+  projectId: text('project_id').notNull(),
+  name: text().notNull(),
+  starts: date('starts').notNull(),
+  ends: date('ends').notNull(),
+  position: integer().notNull(),
+  description: text().notNull().default(''),
+  revision: integer().notNull().default(1),
+});
+export const projectMilestones = pgTable('project_milestones', {
+  id: text().primaryKey(),
+  groupId: groupColumn(),
+  projectId: text('project_id').notNull(),
+  commissionId: text('commission_id'),
+  name: text().notNull(),
+  planned: date().notNull(),
+  achieved: date(),
+  description: text().notNull().default(''),
+  revision: integer().notNull().default(1),
+});
+export const projectDependencies = pgTable(
+  'project_dependencies',
+  {
+    groupId: groupColumn(),
+    projectId: text('project_id').notNull(),
+    sourceId: text('source_id').notNull(),
+    targetId: text('target_id').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.groupId, t.projectId, t.sourceId, t.targetId] })],
+);

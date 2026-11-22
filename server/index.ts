@@ -2286,6 +2286,209 @@ app.get('/api/data', async (_q, r) => {
   });
   r.json(response);
 });
+const planningScope = async (
+  tx: Database,
+  user: { id: string; role: string },
+  pid: string,
+  write = false,
+) => {
+  if (write && !globalManage(user))
+    fail(403, 'Solo coordinación puede gestionar la planificación.');
+  const query = tx.select().from(s.projects).where(eq(s.projects.id, pid));
+  const [project] = write ? await query.for('update') : await query;
+  if (!project) fail(404, 'Proyecto no encontrado.');
+  if (write && project.archived === 'true') fail(409, 'El proyecto está archivado.');
+  const cs = await tx
+    .select({ id: s.commissions.id })
+    .from(s.commissions)
+    .where(
+      and(
+        eq(s.commissions.projectId, pid),
+        sql`${s.commissions.deletedAt} is null`,
+        globalManage(user)
+          ? undefined
+          : inArray(
+              s.commissions.id,
+              tx
+                .select({ id: s.members.commissionId })
+                .from(s.members)
+                .where(eq(s.members.userId, user.id)),
+            ),
+      ),
+    );
+  if (!globalManage(user) && !cs.length) {
+    const [member] = await tx
+      .select({ id: s.projectMembers.id })
+      .from(s.projectMembers)
+      .where(and(eq(s.projectMembers.userId, user.id), eq(s.projectMembers.projectId, pid)));
+    if (!member) fail(404, 'Proyecto no encontrado.');
+  }
+  return cs.map((c) => c.id);
+};
+const planDescription = z.string().trim().max(3000).default('');
+const planningInput = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('phase'),
+    name: text,
+    description: planDescription,
+    starts: z.iso.date(),
+    ends: z.iso.date(),
+    position: z.number().int().min(0).max(10000),
+  }),
+  z.object({
+    kind: z.literal('milestone'),
+    name: text,
+    description: planDescription,
+    planned: z.iso.date(),
+    achieved: z.iso.date().nullable(),
+    commissionId: text.nullable(),
+  }),
+  z.object({
+    kind: z.literal('dependency'),
+    sourceId: text,
+    targetId: text,
+    remove: z.boolean().default(false),
+  }),
+]);
+app.get('/api/projects/:id/planning', async (q, r) => {
+  const pid = String(q.params.id);
+  const result = await db.transaction(async (raw) => {
+    const tx = raw as unknown as Database;
+    const cids = await planningScope(tx, r.locals.user, pid);
+    const [phases, milestones, dependencies] = await Promise.all([
+      tx
+        .select()
+        .from(s.projectPhases)
+        .where(eq(s.projectPhases.projectId, pid))
+        .orderBy(s.projectPhases.position, s.projectPhases.id),
+      tx
+        .select()
+        .from(s.projectMilestones)
+        .where(
+          and(
+            eq(s.projectMilestones.projectId, pid),
+            cids.length
+              ? sql`(${s.projectMilestones.commissionId} is null OR ${inArray(s.projectMilestones.commissionId, cids)})`
+              : sql`${s.projectMilestones.commissionId} is null`,
+          ),
+        )
+        .orderBy(s.projectMilestones.planned, s.projectMilestones.id),
+      tx.select().from(s.projectDependencies).where(eq(s.projectDependencies.projectId, pid)),
+    ]);
+    const visible = new Set(
+      cids.length
+        ? (
+            await tx
+              .select({ id: s.tasks.id })
+              .from(s.tasks)
+              .where(and(inArray(s.tasks.commissionId, cids), sql`${s.tasks.deletedAt} is null`))
+          ).map((t) => t.id)
+        : [],
+    );
+    return {
+      phases,
+      milestones,
+      dependencies: dependencies.filter((d) => visible.has(d.sourceId) && visible.has(d.targetId)),
+      canManage: globalManage(r.locals.user),
+    };
+  });
+  r.json(result);
+});
+app.post('/api/projects/:id/planning', async (q, r) => {
+  const pid = String(q.params.id);
+  const input = parse(planningInput, q.body);
+  const edit =
+    q.body.id === undefined
+      ? undefined
+      : parse(z.object({ id: text, revision: z.number().int().positive() }), q.body);
+  const result = await withReceipt(q, r, async (raw) => {
+    const tx = raw as unknown as Database;
+    const cids = await planningScope(tx, r.locals.user, pid, true);
+    if (input.kind === 'dependency') {
+      const { sourceId, targetId, remove } = input;
+      if (sourceId === targetId || !cids.length)
+        fail(400, 'Selecciona dos tareas distintas de este proyecto.');
+      const endpoints = await tx
+        .select({ id: s.tasks.id })
+        .from(s.tasks)
+        .where(
+          and(
+            inArray(s.tasks.id, [sourceId, targetId]),
+            inArray(s.tasks.commissionId, cids),
+            sql`${s.tasks.deletedAt} is null`,
+          ),
+        )
+        .for('update');
+      if (endpoints.length !== 2) fail(400, 'Selecciona dos tareas distintas de este proyecto.');
+      if (remove) {
+        await tx
+          .delete(s.projectDependencies)
+          .where(
+            and(
+              eq(s.projectDependencies.projectId, pid),
+              eq(s.projectDependencies.sourceId, sourceId),
+              eq(s.projectDependencies.targetId, targetId),
+            ),
+          );
+      } else {
+        const reachable = await tx.execute(sql`
+          with recursive path(id) as (
+            select ${targetId}::text union
+            select d.target_id from public.project_dependencies d join path on d.source_id=path.id
+            where d.group_id=(select bandarlog_api.current_group()) and d.project_id=${pid}
+          ) select id from path where id=${sourceId}
+        `);
+        if (reachable.rows.length) fail(409, 'Esta dependencia formaría un ciclo.');
+        await tx
+          .insert(s.projectDependencies)
+          .values({ projectId: pid, sourceId, targetId })
+          .onConflictDoNothing();
+      }
+      return { ok: true };
+    }
+    if (input.kind === 'phase') {
+      const { kind: _, ...values } = input;
+      if (values.ends < values.starts) fail(400, 'El fin debe ser igual o posterior al inicio.');
+      if (!edit) await tx.insert(s.projectPhases).values({ ...values, id: id(), projectId: pid });
+      else {
+        const rows = await tx
+          .update(s.projectPhases)
+          .set({ ...values, revision: edit.revision + 1 })
+          .where(
+            and(
+              eq(s.projectPhases.projectId, pid),
+              eq(s.projectPhases.id, edit.id),
+              eq(s.projectPhases.revision, edit.revision),
+            ),
+          )
+          .returning();
+        if (!rows.length) fail(409, 'La fase ha cambiado. Actualiza la planificación.');
+      }
+    } else {
+      const { kind: _, ...values } = input;
+      if (values.commissionId && !cids.includes(values.commissionId))
+        fail(400, 'Selecciona una comisión de este proyecto.');
+      if (!edit)
+        await tx.insert(s.projectMilestones).values({ ...values, id: id(), projectId: pid });
+      else {
+        const rows = await tx
+          .update(s.projectMilestones)
+          .set({ ...values, revision: edit.revision + 1 })
+          .where(
+            and(
+              eq(s.projectMilestones.projectId, pid),
+              eq(s.projectMilestones.id, edit.id),
+              eq(s.projectMilestones.revision, edit.revision),
+            ),
+          )
+          .returning();
+        if (!rows.length) fail(409, 'El hito ha cambiado. Actualiza la planificación.');
+      }
+    }
+    return { ok: true };
+  });
+  r.json(result);
+});
 app.post('/api/projects', async (q, r) => {
   if (!globalManage(r.locals.user)) fail(403, 'Solo coordinación puede crear proyectos.');
   const input = parse(
