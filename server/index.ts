@@ -2286,6 +2286,209 @@ app.get('/api/data', async (_q, r) => {
   });
   r.json(response);
 });
+const planningScope = async (
+  tx: Database,
+  user: { id: string; role: string },
+  pid: string,
+  write = false,
+) => {
+  if (write && !globalManage(user))
+    fail(403, 'Solo coordinación puede gestionar la planificación.');
+  const query = tx.select().from(s.projects).where(eq(s.projects.id, pid));
+  const [project] = write ? await query.for('update') : await query;
+  if (!project) fail(404, 'Proyecto no encontrado.');
+  if (write && project.archived === 'true') fail(409, 'El proyecto está archivado.');
+  const cs = await tx
+    .select({ id: s.commissions.id })
+    .from(s.commissions)
+    .where(
+      and(
+        eq(s.commissions.projectId, pid),
+        sql`${s.commissions.deletedAt} is null`,
+        globalManage(user)
+          ? undefined
+          : inArray(
+              s.commissions.id,
+              tx
+                .select({ id: s.members.commissionId })
+                .from(s.members)
+                .where(eq(s.members.userId, user.id)),
+            ),
+      ),
+    );
+  if (!globalManage(user) && !cs.length) {
+    const [member] = await tx
+      .select({ id: s.projectMembers.id })
+      .from(s.projectMembers)
+      .where(and(eq(s.projectMembers.userId, user.id), eq(s.projectMembers.projectId, pid)));
+    if (!member) fail(404, 'Proyecto no encontrado.');
+  }
+  return cs.map((c) => c.id);
+};
+const planDescription = z.string().trim().max(3000).default('');
+const planningInput = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('phase'),
+    name: text,
+    description: planDescription,
+    starts: z.iso.date(),
+    ends: z.iso.date(),
+    position: z.number().int().min(0).max(10000),
+  }),
+  z.object({
+    kind: z.literal('milestone'),
+    name: text,
+    description: planDescription,
+    planned: z.iso.date(),
+    achieved: z.iso.date().nullable(),
+    commissionId: text.nullable(),
+  }),
+  z.object({
+    kind: z.literal('dependency'),
+    sourceId: text,
+    targetId: text,
+    remove: z.boolean().default(false),
+  }),
+]);
+app.get('/api/projects/:id/planning', async (q, r) => {
+  const pid = String(q.params.id);
+  const result = await db.transaction(async (raw) => {
+    const tx = raw as unknown as Database;
+    const cids = await planningScope(tx, r.locals.user, pid);
+    const [phases, milestones, dependencies] = await Promise.all([
+      tx
+        .select()
+        .from(s.projectPhases)
+        .where(eq(s.projectPhases.projectId, pid))
+        .orderBy(s.projectPhases.position, s.projectPhases.id),
+      tx
+        .select()
+        .from(s.projectMilestones)
+        .where(
+          and(
+            eq(s.projectMilestones.projectId, pid),
+            cids.length
+              ? sql`(${s.projectMilestones.commissionId} is null OR ${inArray(s.projectMilestones.commissionId, cids)})`
+              : sql`${s.projectMilestones.commissionId} is null`,
+          ),
+        )
+        .orderBy(s.projectMilestones.planned, s.projectMilestones.id),
+      tx.select().from(s.projectDependencies).where(eq(s.projectDependencies.projectId, pid)),
+    ]);
+    const visible = new Set(
+      cids.length
+        ? (
+            await tx
+              .select({ id: s.tasks.id })
+              .from(s.tasks)
+              .where(and(inArray(s.tasks.commissionId, cids), sql`${s.tasks.deletedAt} is null`))
+          ).map((t) => t.id)
+        : [],
+    );
+    return {
+      phases,
+      milestones,
+      dependencies: dependencies.filter((d) => visible.has(d.sourceId) && visible.has(d.targetId)),
+      canManage: globalManage(r.locals.user),
+    };
+  });
+  r.json(result);
+});
+app.post('/api/projects/:id/planning', async (q, r) => {
+  const pid = String(q.params.id);
+  const input = parse(planningInput, q.body);
+  const edit =
+    q.body.id === undefined
+      ? undefined
+      : parse(z.object({ id: text, revision: z.number().int().positive() }), q.body);
+  const result = await withReceipt(q, r, async (raw) => {
+    const tx = raw as unknown as Database;
+    const cids = await planningScope(tx, r.locals.user, pid, true);
+    if (input.kind === 'dependency') {
+      const { sourceId, targetId, remove } = input;
+      if (sourceId === targetId || !cids.length)
+        fail(400, 'Selecciona dos tareas distintas de este proyecto.');
+      const endpoints = await tx
+        .select({ id: s.tasks.id })
+        .from(s.tasks)
+        .where(
+          and(
+            inArray(s.tasks.id, [sourceId, targetId]),
+            inArray(s.tasks.commissionId, cids),
+            sql`${s.tasks.deletedAt} is null`,
+          ),
+        )
+        .for('update');
+      if (endpoints.length !== 2) fail(400, 'Selecciona dos tareas distintas de este proyecto.');
+      if (remove) {
+        await tx
+          .delete(s.projectDependencies)
+          .where(
+            and(
+              eq(s.projectDependencies.projectId, pid),
+              eq(s.projectDependencies.sourceId, sourceId),
+              eq(s.projectDependencies.targetId, targetId),
+            ),
+          );
+      } else {
+        const reachable = await tx.execute(sql`
+          with recursive path(id) as (
+            select ${targetId}::text union
+            select d.target_id from public.project_dependencies d join path on d.source_id=path.id
+            where d.group_id=(select bandarlog_api.current_group()) and d.project_id=${pid}
+          ) select id from path where id=${sourceId}
+        `);
+        if (reachable.rows.length) fail(409, 'Esta dependencia formaría un ciclo.');
+        await tx
+          .insert(s.projectDependencies)
+          .values({ projectId: pid, sourceId, targetId })
+          .onConflictDoNothing();
+      }
+      return { ok: true };
+    }
+    if (input.kind === 'phase') {
+      const { kind: _, ...values } = input;
+      if (values.ends < values.starts) fail(400, 'El fin debe ser igual o posterior al inicio.');
+      if (!edit) await tx.insert(s.projectPhases).values({ ...values, id: id(), projectId: pid });
+      else {
+        const rows = await tx
+          .update(s.projectPhases)
+          .set({ ...values, revision: edit.revision + 1 })
+          .where(
+            and(
+              eq(s.projectPhases.projectId, pid),
+              eq(s.projectPhases.id, edit.id),
+              eq(s.projectPhases.revision, edit.revision),
+            ),
+          )
+          .returning();
+        if (!rows.length) fail(409, 'La fase ha cambiado. Actualiza la planificación.');
+      }
+    } else {
+      const { kind: _, ...values } = input;
+      if (values.commissionId && !cids.includes(values.commissionId))
+        fail(400, 'Selecciona una comisión de este proyecto.');
+      if (!edit)
+        await tx.insert(s.projectMilestones).values({ ...values, id: id(), projectId: pid });
+      else {
+        const rows = await tx
+          .update(s.projectMilestones)
+          .set({ ...values, revision: edit.revision + 1 })
+          .where(
+            and(
+              eq(s.projectMilestones.projectId, pid),
+              eq(s.projectMilestones.id, edit.id),
+              eq(s.projectMilestones.revision, edit.revision),
+            ),
+          )
+          .returning();
+        if (!rows.length) fail(409, 'El hito ha cambiado. Actualiza la planificación.');
+      }
+    }
+    return { ok: true };
+  });
+  r.json(result);
+});
 app.post('/api/projects', async (q, r) => {
   if (!globalManage(r.locals.user)) fail(403, 'Solo coordinación puede crear proyectos.');
   const input = parse(
@@ -2519,34 +2722,273 @@ const taskInput = z.object({
   due: z.iso.datetime({ offset: true }),
   responsibleIds: z.array(text).min(1).max(100),
 });
+async function createTask(
+  tx: Database,
+  user: { id: string; role: string },
+  input: z.infer<typeof taskInput>,
+  tid: string,
+) {
+  await tx.execute(sql`select id from commissions where id=${input.commissionId} for update`);
+  await authorize(user, input.commissionId, true, tx);
+  const [p] = await tx
+    .select({ archived: s.projects.archived })
+    .from(s.projects)
+    .innerJoin(s.commissions, eq(s.commissions.projectId, s.projects.id))
+    .where(eq(s.commissions.id, input.commissionId));
+  if (p?.archived === 'true') fail(409, 'El proyecto está archivado.');
+  for (const uid of input.responsibleIds)
+    if (!(await membership(uid, input.commissionId, tx)))
+      fail(400, 'Todos los responsables deben pertenecer a la comisión.');
+  const { responsibleIds, ...data } = input;
+  const [t] = await tx
+    .insert(s.tasks)
+    .values({ ...data, id: tid, status: 'pending', updatedAt: now() })
+    .returning();
+  for (const userId of new Set(responsibleIds))
+    await tx.insert(s.assignments).values({ id: id(), taskId: tid, userId });
+  await event(tx, tid, user.id, 'created', 'Ha creado la tarea.');
+  await taskMail(tx, t, 'Nueva asignación', `assigned-${tid}`, { event: 'creation' });
+  return { id: tid, task: t };
+}
 app.post('/api/tasks', async (q, r) => {
   const input = parse(taskInput, q.body);
   const tid = q.body.clientId ? parse(z.uuid(), q.body.clientId) : id();
   const result = await withReceipt(q, r, async (tx) => {
-    await tx.execute(sql`select id from commissions where id=${input.commissionId} for update`);
-    await authorize(r.locals.user, input.commissionId, true, tx);
-    const [p] = await tx
-      .select({ archived: s.projects.archived })
-      .from(s.projects)
-      .innerJoin(s.commissions, eq(s.commissions.projectId, s.projects.id))
-      .where(eq(s.commissions.id, input.commissionId));
-    if (p?.archived === 'true') fail(409, 'El proyecto está archivado.');
-    for (const uid of input.responsibleIds)
-      if (!(await membership(uid, input.commissionId, tx)))
-        fail(400, 'Todos los responsables deben pertenecer a la comisión.');
-    const { responsibleIds, ...data } = input;
-    const [t] = await tx
-      .insert(s.tasks)
-      .values({ ...data, id: tid, status: 'pending', updatedAt: now() })
-      .returning();
-    for (const userId of new Set(responsibleIds))
-      await tx.insert(s.assignments).values({ id: id(), taskId: tid, userId });
-    await event(tx, tid, r.locals.user.id, 'created', 'Ha creado la tarea.');
-    await taskMail(tx, t, 'Nueva asignación', `assigned-${tid}`, { event: 'creation' });
-    return { id: tid, task: t };
+    return createTask(tx as unknown as Database, r.locals.user, input, tid);
   });
   void deliver();
   r.status(201).json(result);
+});
+const meetingReferences = z
+  .array(text)
+  .max(200)
+  .transform((values) => [...new Set(values)]);
+const meetingInput = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('decision'),
+    title: text,
+    description: planDescription,
+    target: z.iso.date().nullable(),
+    commissionId: text.nullable(),
+    ownerId: text.nullable(),
+    resolution: z.string().trim().min(1).max(3000).nullable(),
+  }),
+  z.object({
+    kind: z.literal('minutes'),
+    title: text,
+    heldOn: z.iso.date(),
+    agenda: z.string().max(12000),
+    notes: z.string().max(20000),
+    decisionIds: meetingReferences,
+    taskIds: meetingReferences,
+    close: z.boolean(),
+  }),
+  z.object({ kind: z.literal('followup'), decisionId: text, task: taskInput }),
+]);
+app.get('/api/projects/:id/meetings', async (q, r) => {
+  const pid = String(q.params.id);
+  const user = r.locals.user;
+  const result = await db.transaction(async (raw) => {
+    const tx = raw as unknown as Database;
+    const cids = await planningScope(tx, user, pid);
+    const [decisions, minutes, followups] = await Promise.all([
+      tx
+        .select()
+        .from(s.projectDecisions)
+        .where(
+          and(
+            eq(s.projectDecisions.projectId, pid),
+            cids.length
+              ? sql`(${s.projectDecisions.commissionId} is null OR ${inArray(s.projectDecisions.commissionId, cids)})`
+              : sql`${s.projectDecisions.commissionId} is null`,
+          ),
+        )
+        .orderBy(sql`${s.projectDecisions.createdAt} desc`),
+      globalManage(user)
+        ? tx
+            .select()
+            .from(s.projectMinutes)
+            .where(eq(s.projectMinutes.projectId, pid))
+            .orderBy(sql`${s.projectMinutes.heldOn} desc`, s.projectMinutes.id)
+        : [],
+      tx
+        .select({ decisionId: s.projectFollowups.decisionId, taskId: s.projectFollowups.taskId })
+        .from(s.projectFollowups)
+        .innerJoin(s.tasks, eq(s.tasks.id, s.projectFollowups.taskId))
+        .where(
+          and(
+            eq(s.projectFollowups.projectId, pid),
+            cids.length ? inArray(s.tasks.commissionId, cids) : sql`false`,
+            sql`${s.tasks.deletedAt} is null`,
+          ),
+        ),
+    ]);
+    const decisionIds = new Set(decisions.map((d) => d.id));
+    return {
+      decisions,
+      minutes,
+      followups: followups.filter((f) => decisionIds.has(f.decisionId)),
+      canManage: globalManage(user),
+    };
+  });
+  r.json(result);
+});
+app.post('/api/projects/:id/meetings', async (q, r) => {
+  const pid = String(q.params.id);
+  const user = r.locals.user;
+  const input = parse(meetingInput, q.body);
+  const edit =
+    q.body.id === undefined
+      ? undefined
+      : parse(z.object({ id: text, revision: z.number().int().positive() }), q.body);
+  const result = await withReceipt(q, r, async (raw) => {
+    const tx = raw as unknown as Database;
+    const cids = await planningScope(tx, user, pid, true);
+    if (input.kind === 'decision') {
+      const { kind: _, ...values } = input;
+      if (values.commissionId && !cids.includes(values.commissionId))
+        fail(400, 'Selecciona una comisión de este proyecto.');
+      if (values.ownerId) {
+        await activeAccount(tx, values.ownerId);
+        if (
+          values.commissionId
+            ? !(await membership(values.ownerId, values.commissionId, tx))
+            : !(
+                (
+                  await tx
+                    .select({ id: s.projectMembers.id })
+                    .from(s.projectMembers)
+                    .where(
+                      and(
+                        eq(s.projectMembers.projectId, pid),
+                        eq(s.projectMembers.userId, values.ownerId),
+                      ),
+                    )
+                ).length ||
+                (cids.length &&
+                  (
+                    await tx
+                      .select({ id: s.members.id })
+                      .from(s.members)
+                      .where(
+                        and(
+                          inArray(s.members.commissionId, cids),
+                          eq(s.members.userId, values.ownerId),
+                        ),
+                      )
+                  ).length)
+              )
+        )
+          fail(400, 'Selecciona un responsable que participe en este ámbito.');
+      }
+      if (!edit) {
+        await tx.insert(s.projectDecisions).values({
+          ...values,
+          id: id(),
+          projectId: pid,
+          authorId: user.id,
+          resolvedAt: values.resolution ? now() : null,
+        });
+      } else {
+        const [previous] = await tx
+          .select()
+          .from(s.projectDecisions)
+          .where(and(eq(s.projectDecisions.projectId, pid), eq(s.projectDecisions.id, edit.id)));
+        if (!previous || previous.revision !== edit.revision) fail(409, 'La decisión ha cambiado.');
+        if (previous.resolvedAt && previous.resolution !== values.resolution)
+          fail(409, 'La resolución registrada se conserva.');
+        await tx
+          .update(s.projectDecisions)
+          .set({
+            ...values,
+            revision: edit.revision + 1,
+            resolvedAt: previous.resolvedAt ?? (values.resolution ? now() : null),
+          })
+          .where(
+            and(
+              eq(s.projectDecisions.id, edit.id),
+              eq(s.projectDecisions.projectId, pid),
+              eq(s.projectDecisions.revision, edit.revision),
+            ),
+          );
+      }
+      return { ok: true };
+    }
+    if (input.kind === 'followup') {
+      const [decision] = await tx
+        .select()
+        .from(s.projectDecisions)
+        .where(
+          and(eq(s.projectDecisions.projectId, pid), eq(s.projectDecisions.id, input.decisionId)),
+        );
+      if (
+        !decision ||
+        !cids.includes(input.task.commissionId) ||
+        (decision.commissionId && input.task.commissionId !== decision.commissionId)
+      )
+        fail(400, 'Selecciona una comisión autorizada para la decisión.');
+      const result = await createTask(tx, user, input.task, id());
+      await tx
+        .insert(s.projectFollowups)
+        .values({ projectId: pid, decisionId: decision.id, taskId: result.id });
+      return result;
+    }
+    const { kind: _, close, ...values } = input;
+    const decisions = values.decisionIds.length
+      ? await tx
+          .select({ title: s.projectDecisions.title, resolution: s.projectDecisions.resolution })
+          .from(s.projectDecisions)
+          .where(
+            and(
+              eq(s.projectDecisions.projectId, pid),
+              inArray(s.projectDecisions.id, values.decisionIds),
+            ),
+          )
+      : [];
+    const tasks =
+      values.taskIds.length && cids.length
+        ? await tx
+            .select({ title: s.tasks.title })
+            .from(s.tasks)
+            .where(
+              and(
+                inArray(s.tasks.commissionId, cids),
+                inArray(s.tasks.id, values.taskIds),
+                sql`${s.tasks.deletedAt} is null`,
+              ),
+            )
+        : [];
+    if (decisions.length !== values.decisionIds.length || tasks.length !== values.taskIds.length)
+      fail(400, 'Selecciona decisiones y tareas del proyecto.');
+    const payload = {
+      ...values,
+      updatedAt: now(),
+      closedAt: close ? now() : null,
+      closedReferences: close ? { decisions, tasks } : null,
+    };
+    if (!edit)
+      await tx
+        .insert(s.projectMinutes)
+        .values({ ...payload, id: id(), projectId: pid, authorId: user.id });
+    else {
+      const rows = await tx
+        .update(s.projectMinutes)
+        .set({ ...payload, revision: edit.revision + 1 })
+        .where(
+          and(
+            eq(s.projectMinutes.projectId, pid),
+            eq(s.projectMinutes.id, edit.id),
+            eq(s.projectMinutes.revision, edit.revision),
+            sql`${s.projectMinutes.closedAt} is null`,
+          ),
+        )
+        .returning();
+      if (!rows.length) fail(409, 'El acta se ha cerrado o modificado. Actualiza la reunión.');
+    }
+    return { ok: true };
+  });
+  if (input.kind === 'followup') void deliver();
+  r.json(result);
 });
 app.patch('/api/tasks/:id', async (q, r) => {
   const tid = String(q.params.id);

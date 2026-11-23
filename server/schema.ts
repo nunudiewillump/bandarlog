@@ -4,6 +4,7 @@ import type { ChecklistItem } from './task-checklist.js';
 import {
   pgTable,
   bigint,
+  date,
   boolean,
   text,
   timestamp,
@@ -415,4 +416,78 @@ export const passkeyRecovery = pgTable('passkey_recovery', {
   userId: text('user_id').notNull(),
   id: text().primaryKey(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
+});
+
+export const projectPhases = pgTable('project_phases', {
+  id: text().primaryKey(),
+  groupId: groupColumn(),
+  projectId: text('project_id').notNull(),
+  name: text().notNull(),
+  starts: date('starts').notNull(),
+  ends: date('ends').notNull(),
+  position: integer().notNull(),
+  description: text().notNull().default(''),
+  revision: integer().notNull().default(1),
+});
+export const projectMilestones = pgTable('project_milestones', {
+  id: text().primaryKey(),
+  groupId: groupColumn(),
+  projectId: text('project_id').notNull(),
+  commissionId: text('commission_id'),
+  name: text().notNull(),
+  planned: date().notNull(),
+  achieved: date(),
+  description: text().notNull().default(''),
+  revision: integer().notNull().default(1),
+});
+export const projectDependencies = pgTable(
+  'project_dependencies',
+  {
+    groupId: groupColumn(),
+    projectId: text('project_id').notNull(),
+    sourceId: text('source_id').notNull(),
+    targetId: text('target_id').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.groupId, t.projectId, t.sourceId, t.targetId] })],
+);
+
+export const projectDecisions = pgTable('project_decisions', {
+  id: text().primaryKey(),
+  groupId: groupColumn(),
+  projectId: text('project_id').notNull(),
+  commissionId: text('commission_id'),
+  ownerId: text('owner_id'),
+  authorId: text('author_id').notNull(),
+  title: text().notNull(),
+  description: text().notNull().default(''),
+  target: date(),
+  resolution: text(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  resolvedAt: timestamp('resolved_at', { withTimezone: true, mode: 'string' }),
+  revision: integer().notNull().default(1),
+});
+export const projectMinutes = pgTable('project_minutes', {
+  id: text().primaryKey(),
+  groupId: groupColumn(),
+  projectId: text('project_id').notNull(),
+  authorId: text('author_id').notNull(),
+  heldOn: date('held_on').notNull(),
+  title: text().notNull(),
+  agenda: text().notNull(),
+  notes: text().notNull(),
+  decisionIds: jsonb('decision_ids').$type<string[]>().notNull().default([]),
+  taskIds: jsonb('task_ids').$type<string[]>().notNull().default([]),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  closedAt: timestamp('closed_at', { withTimezone: true, mode: 'string' }),
+  closedReferences: jsonb('closed_references').$type<{
+    decisions: { title: string; resolution: string | null }[];
+    tasks: { title: string }[];
+  }>(),
+  revision: integer().notNull().default(1),
+});
+export const projectFollowups = pgTable('project_followups', {
+  groupId: groupColumn(),
+  projectId: text('project_id').notNull(),
+  decisionId: text('decision_id').notNull(),
+  taskId: text('task_id').primaryKey(),
 });
