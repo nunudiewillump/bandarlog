@@ -2768,6 +2768,30 @@ app.post('/api/tasks', async (q, r) => {
   void deliver();
   r.status(201).json(result);
 });
+if (groupEvaluationsEnabled) app.post('/api/group-evaluations/manage/:id/actions', async (q, r) => {
+  if (!globalManage(r.locals.user)) fail(403, 'Solo Coordinación y Administración pueden crear acciones.');
+  const evaluationId = z.uuid().parse(q.params.id);
+  const { conclusionRevision, task } = z.strictObject({
+    conclusionRevision: z.int().positive(),
+    task: taskInput,
+  }).parse(q.body);
+  const result = await withReceipt(q, r, async (tx) => {
+    const [conclusion] = await tx.select({ revision: s.groupEvaluationConclusions.revision })
+      .from(s.groupEvaluationConclusions)
+      .where(eq(s.groupEvaluationConclusions.evaluationId, evaluationId))
+      .for('update');
+    if (!conclusion) fail(404, 'No hay conclusiones guardadas para esta evaluación.');
+    if (conclusion.revision !== conclusionRevision)
+      fail(409, 'Las conclusiones han cambiado. Vuelve a abrir la evaluación.');
+    const created = await createTask(tx as unknown as Database, r.locals.user, task, id());
+    await tx.insert(s.groupEvaluationActions).values({
+      taskId: created.id, evaluationId, conclusionRevision,
+    });
+    return created;
+  });
+  void deliver();
+  r.status(201).json(result);
+});
 const meetingReferences = z
   .array(text)
   .max(200)

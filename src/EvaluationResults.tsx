@@ -14,6 +14,7 @@ type Distribution = { value: string | number | boolean; count: number };
 type Result = Omit<Evaluation, 'id'> & {
   structure: EvaluationStructure;
   body: string | null;
+  actions?: { id: string; title: string }[];
   conclusionRevision: number | null;
   summary: {
     assigned: number;
@@ -30,7 +31,15 @@ const date = new Intl.DateTimeFormat('es-ES', {
 });
 const number = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2 });
 
-export default function EvaluationResults({ onBack }: { onBack: () => void }) {
+export default function EvaluationResults({
+  onBack,
+  onCreateAction,
+  onOpenTask,
+}: {
+  onBack: () => void;
+  onCreateAction: (action: { id: string; revision: number; title: string }) => void;
+  onOpenTask: (id: string) => void;
+}) {
   const [items, setItems] = useState<Evaluation[]>([]);
   const [next, setNext] = useState<string | null>(null);
   const [selected, setSelected] = useState<{ id: string; result: Result } | null>(null);
@@ -167,6 +176,43 @@ export default function EvaluationResults({ onBack }: { onBack: () => void }) {
           </button>
         )}
       </div>
+      {result.conclusionRevision && (
+        <Select
+          aria-label="Acciones de mejora"
+          value=""
+          disabled={busy}
+          onChange={(event) => {
+            if (event.target.value === 'create') {
+              onCreateAction({
+                id: selected.id,
+                revision: result.conclusionRevision!,
+                title: result.title,
+              });
+            } else if (event.target.value === 'reload') {
+              void run(async () => {
+                const updated: Result = await api(endpoint + '/' + selected.id);
+                setSelected({ ...selected, result: updated });
+                setBody(updated.body ?? '');
+              });
+            } else onOpenTask(event.target.value);
+          }}
+        >
+          <option value="" disabled>
+            Acciones de mejora
+          </option>
+          <option value="create" disabled={body !== result.body}>
+            Crear tarea
+          </option>
+          <option value="reload" disabled={body !== result.body}>
+            Actualizar lista de tareas
+          </option>
+          {result.actions?.map((task) => (
+            <option key={task.id} value={task.id}>
+              {task.title}
+            </option>
+          ))}
+        </Select>
+      )}
       {!summary ? (
         <p>Los resultados estarán disponibles cuando termine el plazo.</p>
       ) : (

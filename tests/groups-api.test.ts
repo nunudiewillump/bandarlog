@@ -943,6 +943,16 @@ test('assigned evaluations use a published snapshot and accept only one final re
   const pending = await call(managed, 'GET', undefined, a);
   assert.equal(pending.status, 200);
   assert.equal(pending.body.summary, null);
+  const action = {
+    conclusionRevision: 1,
+    task: {
+      title: 'Tarea sin conclusión', commissionId: 'no-commission', description: '',
+      due: new Date(Date.now() + 86_400_000).toISOString(), responsibleIds: [a.userId],
+    },
+  };
+  assert.equal((await call(managed + '/actions', 'POST', action, a)).status, 404);
+  assert.equal((await call(managed + '/actions', 'POST', action, b)).status, 404);
+
   assert.equal((await call(managed + '/conclusion', 'PUT', { body: 'Lección', revision: 0 }, a)).status, 409);
   assert.deepEqual((await call(root, 'GET', undefined, b)).body.items, []);
   assert.equal((await call(path, 'GET', undefined, b)).status, 404);

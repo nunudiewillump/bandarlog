@@ -536,3 +536,10 @@ export const groupEvaluationConclusions = pgTable('group_evaluation_conclusions'
   revision: integer().notNull().default(1),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
 }, (t) => [primaryKey({ columns: [t.groupId, t.evaluationId] })]);
+
+export const groupEvaluationActions = pgTable('group_evaluation_actions', {
+  groupId: text('group_id').notNull().default(sql`nullif(current_setting('bandarlog.group_id', true), '')`),
+  evaluationId: text('evaluation_id').notNull(),
+  taskId: text('task_id').notNull(),
+  conclusionRevision: integer('conclusion_revision').notNull(),
+}, (t) => [primaryKey({ columns: [t.groupId, t.taskId] })]);

@@ -82,10 +82,14 @@ export default function EvaluationTemplates({
   onBack,
   canPublish,
   people,
+  onCreateAction,
+  onOpenTask,
 }: {
   onBack: () => void;
   canPublish: boolean;
   people: User[];
+  onCreateAction: (action: { id: string; revision: number; title: string }) => void;
+  onOpenTask: (id: string) => void;
 }) {
   const [showResults, setShowResults] = useState(false);
   const [publication, setPublication] = useState<Entry | null>(null);
@@ -214,7 +218,11 @@ export default function EvaluationTemplates({
   if (showResults)
     return (
       <section className="panel evaluation-templates">
-        <EvaluationResults onBack={() => setShowResults(false)} />
+        <EvaluationResults
+          onBack={() => setShowResults(false)}
+          onCreateAction={onCreateAction}
+          onOpenTask={onOpenTask}
+        />
       </section>
     );
 

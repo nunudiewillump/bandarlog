@@ -1149,5 +1149,20 @@ test('PostgreSQL scopes assigned evaluations and protects draft and submission s
   await as(actors[1], conclusion);
   assert.equal((await as(actors[0], 'select body from group_evaluation_conclusions')).rowCount, 0);
   assert.equal((await as(actors[1], 'select body from group_evaluation_conclusions')).rows[0].body, 'Lección');
+  await ownerPool.query(`
+    insert into projects(group_id,id,name) values ('p2-qa','p2-action-project','Proyecto');
+    insert into commissions(group_id,id,project_id,name,description,icon)
+      values ('p2-qa','p2-action-commission','p2-action-project','Comisión','','tent');
+    insert into tasks(group_id,id,commission_id,title,description,due,status,updated_at)
+      values ('p2-qa','p2-action-task','p2-action-commission','Acción','',now(),'pending',now());
+  `);
+  const link = "insert into group_evaluation_actions(evaluation_id,task_id,conclusion_revision) values ('p2-expired','p2-action-task',1)";
+  await assert.rejects(as(actors[0], link), /row-level security/);
+  await assert.rejects(as(actors[1], link.replace(',1)', ',2)')), /row-level security/);
+  await as(actors[1], link);
+  for (const actor of [actors[0], actors[3]])
+    assert.equal((await as(actor, 'select task_id from group_evaluation_actions')).rowCount, 0);
+  assert.equal((await as(actors[1], 'select task_id from group_evaluation_actions')).rows[0].task_id, 'p2-action-task');
+
 
 });

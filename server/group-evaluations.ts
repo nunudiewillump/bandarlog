@@ -9,6 +9,8 @@ import {
   groupEvaluations as evaluations,
   groupEvaluationConclusions as conclusions,
   groupEvaluationAssignments as assignments,
+  groupEvaluationActions as evaluationActions,
+  tasks,
   evaluationTemplates as templates,
   evaluationTemplateVersions as versions,
   users,
@@ -192,7 +194,17 @@ export function groupEvaluationRoutes(db: Database) {
       )
       .where(eq(evaluations.id, id));
     if (!evaluation) return r.status(404).json({ error: 'Evaluación no encontrada.' });
-    r.json(evaluation);
+    const actions = await db
+      .select({ id: tasks.id, title: tasks.title })
+      .from(evaluationActions)
+      .innerJoin(
+        tasks,
+        and(eq(tasks.groupId, evaluationActions.groupId), eq(tasks.id, evaluationActions.taskId)),
+      )
+      .where(and(eq(evaluationActions.evaluationId, id), isNull(tasks.deletedAt)))
+      .orderBy(tasks.updatedAt)
+      .limit(100);
+    r.json({ ...evaluation, actions });
   });
 
   router.put('/manage/:id/conclusion', async (q, r) => {

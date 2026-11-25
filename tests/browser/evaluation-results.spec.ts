@@ -13,6 +13,7 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
     open: false,
   };
   let conclusion: unknown;
+  let action: unknown;
   await page.route('**/api/**', (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path === '/api/me')
@@ -34,6 +35,10 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
       return route.fulfill({
         json: { body: 'Confirmar el material antes de salir.', revision: 1 },
       });
+    }
+    if (path.endsWith('/manage/example/actions')) {
+      action = route.request().postDataJSON();
+      return route.fulfill({ status: 201, json: { id: 'linked-task' } });
     }
     if (path.endsWith('/manage/example'))
       return route.fulfill({
@@ -84,4 +89,29 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
   await panel.getByRole('button', { name: 'Guardar conclusiones' }).click();
   await expect(panel.getByRole('status')).toHaveText('Conclusiones guardadas.');
   expect(conclusion).toEqual({ body: 'Confirmar el material antes de salir.', revision: 0 });
+  await panel.getByRole('combobox', { name: 'Acciones de mejora' }).click();
+  await page.getByRole('option', { name: 'Crear tarea' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Crear tarea desde conclusiones' });
+  await dialog.getByLabel('Título').fill('Preparar la lista de material');
+  const commission = fixture.data.commissions[0];
+  const project = fixture.data.projects.find((item) => item.id === commission.projectId)!;
+  await dialog.getByRole('combobox', { name: 'Proyecto' }).click();
+  await page.getByRole('option', { name: project.name, exact: true }).click();
+  await dialog.getByRole('combobox', { name: 'Comisión' }).click();
+  await page.getByRole('option', { name: commission.name, exact: true }).click();
+  await dialog.getByLabel('Fecha límite').fill('2027-07-15');
+  await dialog.getByRole('checkbox', { name: new RegExp(fixture.user.name) }).check();
+  await dialog.getByRole('button', { name: 'Crear tarea' }).click();
+  await expect
+    .poll(() => action)
+    .toEqual({
+      conclusionRevision: 1,
+      task: {
+        title: 'Preparar la lista de material',
+        commissionId: commission.id,
+        description: '',
+        due: '2027-07-15T21:59:59.999Z',
+        responsibleIds: [fixture.user.id],
+      },
+    });
 });
