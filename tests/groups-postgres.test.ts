@@ -1079,14 +1079,17 @@ test('PostgreSQL scopes assigned evaluations and protects draft and submission s
       ('p2-qa','p2-member','Member','member@example.test','member'),
       ('p2-qa','p2-unassigned','Unassigned','unassigned@example.test','member'),
       ('p2-foreign','p2-foreign-admin','Foreign','foreign@example.test','admin');
-    insert into evaluation_templates(group_id,id,structure) values ('p2-qa','p2-template','{}');
+    insert into evaluation_templates(group_id,id,structure) values ('p2-qa','p2-template',
+      '{"sections":[{"questions":[{"id":"yes","type":"yesNo"},{"id":"note","type":"longText"}]}]}');
     insert into evaluation_template_versions(group_id,template_id,revision,structure,published_by)
-      values ('p2-qa','p2-template',1,'{}','p2-manager');
+      select group_id,id,1,structure,'p2-manager' from evaluation_templates where id='p2-template';
     insert into group_evaluations(group_id,id,template_id,template_revision,title,due_at) values
       ('p2-qa','p2-open','p2-template',1,'Open',now()+interval '1 day'),
       ('p2-qa','p2-expired','p2-template',1,'Expired',now()-interval '1 day');
     insert into group_evaluation_assignments(group_id,evaluation_id,user_id) values
       ('p2-qa','p2-open','p2-member'),('p2-qa','p2-expired','p2-member');
+    insert into group_evaluation_assignments(group_id,evaluation_id,user_id,answers,submitted_at)
+      values ('p2-qa','p2-expired','p2-manager','{"yes":false,"note":"Texto privado"}',now()-interval '2 days');
   `);
   const actors = [
     ['p2-qa', 'p2-member'],
@@ -1130,4 +1133,21 @@ test('PostgreSQL scopes assigned evaluations and protects draft and submission s
   await assert.rejects(as(actors[0], "update group_evaluation_assignments set revision=1 where evaluation_id='p2-expired'"), /Evaluation is closed/);
   assert.equal((await as(actors[0], "update group_evaluation_assignments set revision=1, submitted_at='2000-01-01' where evaluation_id='p2-open' returning submitted_at > '2020-01-01' as server_time")).rows[0].server_time, true);
   assert.equal((await as(actors[0], "update group_evaluation_assignments set revision=2, submitted_at=null where evaluation_id='p2-open'")).rowCount, 0);
+  const results = "select bandarlog_api.group_evaluation_results('p2-expired') summary";
+  for (const actor of [actors[0], ...actors.slice(2)])
+    assert.equal((await as(actor, results)).rows[0].summary, null);
+  assert.equal((await as(actors[1], "select bandarlog_api.group_evaluation_results('p2-open') summary")).rows[0].summary, null);
+  assert.deepEqual((await as(actors[1], results)).rows[0].summary, {
+    assigned: 2, submitted: 1, questions: {
+      yes: { answered: 1, distribution: [{ value: false, count: 1 }] },
+      note: { answered: 1, distribution: [] },
+    },
+  });
+  const conclusion = "insert into group_evaluation_conclusions(evaluation_id,body,author_id) values('p2-expired','Lección','p2-manager')";
+  await assert.rejects(as(actors[0], conclusion), /row-level security/);
+  await assert.rejects(as(actors[1], conclusion.replace('p2-expired', 'p2-open')), /row-level security/);
+  await as(actors[1], conclusion);
+  assert.equal((await as(actors[0], 'select body from group_evaluation_conclusions')).rowCount, 0);
+  assert.equal((await as(actors[1], 'select body from group_evaluation_conclusions')).rows[0].body, 'Lección');
+
 });

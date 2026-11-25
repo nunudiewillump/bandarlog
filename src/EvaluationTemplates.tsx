@@ -3,6 +3,7 @@ import { ArrowLeft, Plus } from 'lucide-react';
 import { api } from './api';
 import { Select } from './Select';
 import PublishEvaluation from './PublishEvaluation';
+import EvaluationResults from './EvaluationResults';
 import type { User } from './types';
 import {
   evaluationStructure,
@@ -86,6 +87,7 @@ export default function EvaluationTemplates({
   canPublish: boolean;
   people: User[];
 }) {
+  const [showResults, setShowResults] = useState(false);
   const [publication, setPublication] = useState<Entry | null>(null);
   const [items, setItems] = useState<Entry[]>([]);
   const [next, setNext] = useState<string | null>(null);
@@ -209,6 +211,13 @@ export default function EvaluationTemplates({
     }
   }
 
+  if (showResults)
+    return (
+      <section className="panel evaluation-templates">
+        <EvaluationResults onBack={() => setShowResults(false)} />
+      </section>
+    );
+
   return (
     <section className="panel evaluation-templates" aria-busy={busy}>
       {!draft && !publication && <h1>Plantillas de evaluación</h1>}
@@ -253,11 +262,13 @@ export default function EvaluationTemplates({
               label="Opciones de plantillas"
               disabled={busy}
               onAction={(action) => {
+                if (action === 'results') setShowResults(true);
                 if (action === 'import') fileInput.current?.click();
                 if (action === 'more' && next) void run(() => list(next));
                 if (action === 'reload') void run(() => list());
               }}
             >
+              {canPublish && <option value="results">Histórico y resultados</option>}
               <option value="import">Importar estructura JSON</option>
               {next && <option value="more">Más plantillas</option>}
               {error && <option value="reload">Volver a cargar</option>}
