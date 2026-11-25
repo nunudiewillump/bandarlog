@@ -116,6 +116,7 @@ const initial: Data = {
   activity: [],
   invitations: [],
 };
+const GroupEvaluations = lazy(() => import('./GroupEvaluations'));
 const EvaluationTemplates = lazy(() => import('./EvaluationTemplates'));
 const ProjectMap = lazy(() => import('./ProjectMap'));
 const desktopMapQuery = '(min-width: 1024px)';
@@ -191,6 +192,8 @@ function App() {
     [error, setError] = useState(''),
     [toast, setToast] = useState(''),
     [busy, setBusy] = useState(false),
+    [groupEvaluationsOpen, setGroupEvaluationsOpen] = useState(false),
+    [groupEvaluationsEnabled, setGroupEvaluationsEnabled] = useState(false),
     [evaluationTemplatesOpen, setEvaluationTemplatesOpen] = useState(false),
     [evaluationTemplatesEnabled, setEvaluationTemplatesEnabled] = useState(false),
     [development, setDevelopment] = useState(false),
@@ -271,6 +274,7 @@ function App() {
   );
   const invitationAccess = loginToken.startsWith('invite.');
   const manage = me?.role === 'admin' || me?.role === 'coordination';
+  const showGroupEvaluations = view === 'home' && groupEvaluationsEnabled && groupEvaluationsOpen;
   const showEvaluationTemplates =
     view === 'projects' && manage && evaluationTemplatesEnabled && evaluationTemplatesOpen;
   const foundingAdmin = isFoundingAdministrator(me);
@@ -465,6 +469,7 @@ function App() {
       const visible = dataResult.value.users.find((user) => user.id === session.user.id);
       setMe({ ...session.user, ...visible });
       setDevelopment(session.development);
+      setGroupEvaluationsEnabled(session.groupEvaluationsEnabled === true);
       setEvaluationTemplatesEnabled(session.evaluationTemplatesEnabled === true);
       const route = readNavigation(location.search);
       setView(route.view);
@@ -539,6 +544,7 @@ function App() {
   }
   const navigate = (v: string, p = '', c = '') => {
     v = projectView(v);
+    setGroupEvaluationsOpen(false);
     setEvaluationTemplatesOpen(false);
     if (v === 'tutorial') {
       setSelected('');
@@ -1652,7 +1658,7 @@ function App() {
           <main className="main">
             {!['profile', 'settings', 'tutorial'].includes(view) &&
               !showAdminGuide &&
-              !showAdminPreview && !showEvaluationTemplates && <DeviceNotifications userId={me.id} firstVisit />}
+              !showAdminPreview && !showEvaluationTemplates && !showGroupEvaluations && <DeviceNotifications userId={me.id} firstVisit />}
             <div className="mobile-page-title">
               {
                 (
@@ -1718,7 +1724,7 @@ function App() {
                 }}
               />
             )}
-            {view === 'home' && !showAdminGuide && !showAdminPreview && (
+            {view === 'home' && !showAdminGuide && !showAdminPreview && !showGroupEvaluations && (
               <TutorialInvitation
                 tutorial={tutorial}
                 onStart={() => {
@@ -1746,8 +1752,13 @@ function App() {
                   )}
                 </section>
               ))}
-            {view === 'home' && !showAdminGuide && !showAdminPreview && (
+            {view === 'home' && !showAdminGuide && !showAdminPreview && !showGroupEvaluations && (
               <>
+                {groupEvaluationsEnabled && (
+                  <button type="button" className="secondary" onClick={() => setGroupEvaluationsOpen(true)}>
+                    Mis evaluaciones
+                  </button>
+                )}
                 <div className="desktop-home">{desktopHome()}</div>
                 <div className="mobile-only">
                   <MobileHome
@@ -1764,6 +1775,11 @@ function App() {
                   />
                 </div>
               </>
+            )}
+            {showGroupEvaluations && (
+              <Suspense fallback={<p role="status">Cargando evaluaciones…</p>}>
+                <GroupEvaluations key={me.id} onBack={() => setGroupEvaluationsOpen(false)} />
+              </Suspense>
             )}
             {['tasks', 'alerts'].includes(view) && (
               <>
