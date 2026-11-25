@@ -194,6 +194,7 @@ function App() {
     [busy, setBusy] = useState(false),
     [groupEvaluationsOpen, setGroupEvaluationsOpen] = useState(false),
     [groupEvaluationsEnabled, setGroupEvaluationsEnabled] = useState(false),
+    [evaluationAction, setEvaluationAction] = useState<{ id: string; revision: number; title: string } | null>(null),
     [evaluationTemplatesOpen, setEvaluationTemplatesOpen] = useState(false),
     [evaluationTemplatesEnabled, setEvaluationTemplatesEnabled] = useState(false),
     [development, setDevelopment] = useState(false),
@@ -1825,6 +1826,8 @@ function App() {
                   key={me.id}
                   canPublish={groupEvaluationsEnabled}
                   people={data.users}
+                  onOpenTask={setSelected}
+                  onCreateAction={(action) => { setEvaluationAction(action); setModal('evaluation-action'); }}
                   onBack={() => setEvaluationTemplatesOpen(false)}
                 />
               </Suspense>
@@ -2792,6 +2795,7 @@ function App() {
               (
                 {
                   task: 'Nueva tarea',
+                  'evaluation-action': 'Crear tarea desde conclusiones',
                   commission: 'Nueva comisión',
                   members: 'Añadir personas',
                   invite: 'Invitar personas',
@@ -2812,6 +2816,7 @@ function App() {
               </div>
             )}
             {modal === 'task' && <TaskForm />}
+            {modal === 'evaluation-action' && evaluationAction && <TaskForm evaluation={evaluationAction} />}
             {modal === 'commission' && <CommissionForm />}
             {modal === 'members' && <MemberForm />}
             {modal === 'invite' && <InvitationForm />}
@@ -3130,7 +3135,7 @@ function People() {
     </section>
   );
 }
-function TaskForm() {
+function TaskForm({ evaluation }: { evaluation?: { id: string; revision: number; title: string } }) {
   const {
     data,
     me,
@@ -3167,19 +3172,26 @@ function TaskForm() {
         const f = new FormData(e.currentTarget);
         if (
           await run(async () => {
-            const result = await api('/tasks', 'POST', {
+            const input = {
               title: f.get('title'),
               commissionId: cid,
               description: f.get('description'),
               due: deadlineISO(String(f.get('due'))),
               responsibleIds: f.getAll('responsibleIds'),
-            });
+            };
+            const result = evaluation
+              ? await api('/group-evaluations/manage/' + evaluation.id + '/actions', 'POST', {
+                  conclusionRevision: evaluation.revision,
+                  task: input,
+                })
+              : await api('/tasks', 'POST', input);
             setSelected(result.id);
           }, 'Tarea creada')
         )
           setModal('');
       }}
     >
+      {evaluation && <p>Acción de mejora de «{evaluation.title}»</p>}
       <label>
         Título
         <input name="title" required maxLength={200} placeholder="¿Qué hay que hacer?" />

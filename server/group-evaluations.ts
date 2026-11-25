@@ -7,7 +7,10 @@ import { evaluationAnswers } from '../shared/evaluation-answers.js';
 import type { Database } from './db.js';
 import {
   groupEvaluations as evaluations,
+  groupEvaluationConclusions as conclusions,
   groupEvaluationAssignments as assignments,
+  groupEvaluationActions as evaluationActions,
+  tasks,
   evaluationTemplates as templates,
   evaluationTemplateVersions as versions,
   users,
@@ -134,6 +137,109 @@ export function groupEvaluationRoutes(db: Database) {
         ),
       )
       .where(and(eq(evaluations.id, id), eq(assignments.userId, userId)));
+
+  router.use('/manage', (_q, r, next) => {
+    if (!['admin', 'coordination'].includes(r.locals.user.role))
+      return r
+        .status(403)
+        .json({ error: 'Solo Coordinación y Administración pueden consultar resultados.' });
+    next();
+  });
+
+  router.get('/manage', async (q, r) => {
+    const after = z.uuid().optional().parse(q.query.after);
+    const rows = await db
+      .select({
+        id: evaluations.id,
+        title: evaluations.title,
+        dueAt: evaluations.dueAt,
+        open: active,
+        templateRevision: evaluations.templateRevision,
+      })
+      .from(evaluations)
+      .where(after ? gt(evaluations.id, after) : undefined)
+      .orderBy(evaluations.id)
+      .limit(31);
+    r.json({ items: rows.slice(0, 30), next: rows.length > 30 ? rows[29].id : null });
+  });
+
+  router.get('/manage/:id', async (q, r) => {
+    const id = z.uuid().parse(q.params.id);
+    const [evaluation] = await db
+      .select({
+        title: evaluations.title,
+        dueAt: evaluations.dueAt,
+        templateRevision: evaluations.templateRevision,
+        open: active,
+        structure: versions.structure,
+        body: conclusions.body,
+        conclusionRevision: conclusions.revision,
+        summary: sql`bandarlog_api.group_evaluation_results(${evaluations.id})`,
+      })
+      .from(evaluations)
+      .innerJoin(
+        versions,
+        and(
+          eq(versions.groupId, evaluations.groupId),
+          eq(versions.templateId, evaluations.templateId),
+          eq(versions.revision, evaluations.templateRevision),
+        ),
+      )
+      .leftJoin(
+        conclusions,
+        and(
+          eq(conclusions.groupId, evaluations.groupId),
+          eq(conclusions.evaluationId, evaluations.id),
+        ),
+      )
+      .where(eq(evaluations.id, id));
+    if (!evaluation) return r.status(404).json({ error: 'Evaluación no encontrada.' });
+    const actions = await db
+      .select({ id: tasks.id, title: tasks.title })
+      .from(evaluationActions)
+      .innerJoin(
+        tasks,
+        and(eq(tasks.groupId, evaluationActions.groupId), eq(tasks.id, evaluationActions.taskId)),
+      )
+      .where(and(eq(evaluationActions.evaluationId, id), isNull(tasks.deletedAt)))
+      .orderBy(tasks.updatedAt)
+      .limit(100);
+    r.json({ ...evaluation, actions });
+  });
+
+  router.put('/manage/:id/conclusion', async (q, r) => {
+    const id = z.uuid().parse(q.params.id);
+    const { body, revision } = z
+      .strictObject({
+        body: z.string().trim().min(1).max(8000),
+        revision: z.int().nonnegative(),
+      })
+      .parse(q.body);
+    const [evaluation] = await db
+      .select({ open: active })
+      .from(evaluations)
+      .where(eq(evaluations.id, id));
+    if (!evaluation) return r.status(404).json({ error: 'Evaluación no encontrada.' });
+    if (evaluation.open) return r.status(409).json({ error: 'La evaluación sigue abierta.' });
+    const authorId: string = r.locals.user.id;
+    const rows =
+      revision === 0
+        ? await db
+            .insert(conclusions)
+            .values({ evaluationId: id, body, authorId })
+            .onConflictDoNothing()
+            .returning()
+        : await db
+            .update(conclusions)
+            .set({ body, authorId, revision: revision + 1, updatedAt: sql`statement_timestamp()` })
+            .where(and(eq(conclusions.evaluationId, id), eq(conclusions.revision, revision)))
+            .returning();
+    if (!rows.length)
+      return r
+        .status(409)
+        .json({ error: 'Las conclusiones han cambiado. Vuelve a abrir la evaluación.' });
+    r.json({ body: rows[0].body, revision: rows[0].revision });
+  });
 
   router.get('/:id', async (q, r) => {
     const [item] = await details(z.uuid().parse(q.params.id), r.locals.user.id);
