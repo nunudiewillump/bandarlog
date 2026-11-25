@@ -909,11 +909,16 @@ test('evaluation templates keep published snapshots and isolate three groups', a
   );
 });
 
-test('assigned evaluations use a published snapshot and accept only one final response', async () => {
-  const [a, b] = await Promise.all([
+let evaluationGroups: Promise<Session[]> | undefined;
+function evaluationGroupFixtures() {
+  return evaluationGroups ??= Promise.all([
     createGroup('Grupo evaluación Uno', 'responses-a@example.test'),
     createGroup('Grupo evaluación Dos', 'responses-b@example.test'),
   ]);
+}
+
+test('assigned evaluations use a published snapshot and accept only one final response', async () => {
+  const [a, b] = await evaluationGroupFixtures();
   const templates = '/api/evaluation-templates';
   const root = '/api/group-evaluations';
   const questionId = randomUUID();
@@ -981,10 +986,7 @@ test('assigned evaluations use a published snapshot and accept only one final re
 });
 
 test('project lifecycle records a close, blocks legacy bypass and permits reopening', async () => {
-  const [a, b] = await Promise.all([
-    createGroup('Ciclo de proyecto A', 'lifecycle-a@example.test'),
-    createGroup('Ciclo de proyecto B', 'lifecycle-b@example.test'),
-  ]);
+  const [a, b] = await evaluationGroupFixtures();
   const created = await call('/api/projects', 'POST', {
     name: 'Proyecto de prueba', starts: '2026-11-01', ends: '2026-11-23',
   }, a);
