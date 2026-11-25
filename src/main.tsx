@@ -116,6 +116,7 @@ const initial: Data = {
   activity: [],
   invitations: [],
 };
+const EvaluationTemplates = lazy(() => import('./EvaluationTemplates'));
 const ProjectMap = lazy(() => import('./ProjectMap'));
 const desktopMapQuery = '(min-width: 1024px)';
 function useDesktopProjectMap() {
@@ -190,6 +191,8 @@ function App() {
     [error, setError] = useState(''),
     [toast, setToast] = useState(''),
     [busy, setBusy] = useState(false),
+    [evaluationTemplatesOpen, setEvaluationTemplatesOpen] = useState(false),
+    [evaluationTemplatesEnabled, setEvaluationTemplatesEnabled] = useState(false),
     [development, setDevelopment] = useState(false),
     [sidebar, setSidebar] = useState(false),
     [pendingAction, setPendingAction] = useState(''),
@@ -460,6 +463,7 @@ function App() {
       const visible = dataResult.value.users.find((user) => user.id === session.user.id);
       setMe({ ...session.user, ...visible });
       setDevelopment(session.development);
+      setEvaluationTemplatesEnabled(session.evaluationTemplatesEnabled === true);
       const route = readNavigation(location.search);
       setView(route.view);
       setProject(route.project);
@@ -1809,6 +1813,22 @@ function App() {
                     </button>
                   )}
                 </div>
+                {manage && evaluationTemplatesEnabled && (
+                  <section className="panel" style={{ padding: 16, marginBottom: 16 }}>
+                    <button
+                      className="secondary"
+                      aria-expanded={evaluationTemplatesOpen}
+                      onClick={() => setEvaluationTemplatesOpen(!evaluationTemplatesOpen)}
+                    >
+                      Plantillas de evaluación
+                    </button>
+                    {evaluationTemplatesOpen && (
+                      <Suspense fallback={<p role="status">Cargando plantillas…</p>}>
+                        <EvaluationTemplates key={me.id} />
+                      </Suspense>
+                    )}
+                  </section>
+                )}
                 <label className="project-kind-filter">
                   Tipo de proyecto
                   <Select

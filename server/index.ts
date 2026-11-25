@@ -1,3 +1,4 @@
+import { evaluationTemplateRoutes } from './evaluation-templates.js';
 import { platformAdminRoutes } from './platform-admin.js';
 import { dailyPresenceBudget, authenticationDenials } from './usage-presence.js';
 import { googleResumeCookieName } from './session-cookie.js';
@@ -1482,6 +1483,9 @@ async function withReceipt(q: express.Request, r: express.Response, fn: (tx: any
     return result;
   });
 }
+const evaluationTemplatesEnabled = process.env.EVALUATION_TEMPLATES_ENABLED === 'true';
+if (evaluationTemplatesEnabled)
+  app.use('/api/evaluation-templates', evaluationTemplateRoutes(db));
 app.get('/api/tutorial', async (_q, r) => r.json(await readTutorial(db, r.locals.user.id)));
 app.get('/api/tutorial/stats', async (_q, r) => {
   if (r.locals.user.role !== 'admin')
@@ -1871,6 +1875,7 @@ app.get('/api/me', (_q, r) => {
       +new Date(r.locals.session.absoluteExpiresAt),
     ),
     development: !prod,
+    evaluationTemplatesEnabled: evaluationTemplatesEnabled && globalManage(r.locals.user),
     googleEnabled: Boolean(process.env.GOOGLE_LOGIN_CLIENT_ID),
   });
 });

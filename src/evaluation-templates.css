@@ -1,0 +1,81 @@
+.evaluation-templates {
+  max-width: 70ch;
+  margin-top: 12px;
+  overflow-wrap: anywhere;
+}
+
+.evaluation-templates p[role='status']:empty {
+  display: none;
+}
+
+.evaluation-templates form,
+.evaluation-templates fieldset,
+.evaluation-templates label {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.evaluation-templates label {
+  margin: 0;
+}
+
+.evaluation-templates fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.evaluation-templates .evaluation-section {
+  border-top: 1px solid #dfe5da;
+  margin-block: 8px;
+  padding-block: 12px;
+}
+
+.evaluation-templates .evaluation-question {
+  border-top: 1px solid #dfe5da;
+  padding-block: 8px;
+}
+
+.evaluation-templates legend {
+  font-weight: 700;
+  padding-inline-end: 8px;
+}
+
+.evaluation-templates input:not([type='checkbox']),
+.evaluation-templates select,
+.evaluation-templates textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 48px;
+  max-width: 100%;
+}
+
+.evaluation-templates textarea {
+  resize: vertical;
+}
+
+.evaluation-templates .evaluation-controls,
+.evaluation-templates .evaluation-checkbox {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.evaluation-templates .evaluation-checkbox input {
+  min-height: 18px;
+}
+
+.evaluation-templates .evaluation-checkbox,
+.evaluation-templates button {
+  min-height: 44px;
+}
+
+.evaluation-template-list {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  padding: 0;
+}
