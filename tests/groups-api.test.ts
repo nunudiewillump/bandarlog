@@ -1009,3 +1009,46 @@ test('project lifecycle records a close, blocks legacy bypass and permits reopen
   assert.equal((await call(lifecycle, 'POST', { action: 'close' }, a)).status, 200);
   assert.equal((await call(lifecycle, 'GET', undefined, a)).body.last.canReopen, true);
 });
+
+test('close and evaluate assigns atomically and pauses the same draft on reopening', async () => {
+  const [a, b] = await evaluationGroupFixtures();
+  const project = await call('/api/projects', 'POST', {
+    name: 'Cerrar y evaluar', starts: '2026-11-01', ends: '2026-11-23',
+  }, a);
+  assert.equal(project.status, 201);
+  const route = '/api/projects/' + project.body.id + '/lifecycle';
+  const questionId = randomUUID();
+  const template = await call('/api/evaluation-templates', 'POST', {
+    title: 'Revisión de proyecto', description: '', sections: [{
+      id: randomUUID(), title: 'Sección', description: '', questions: [{
+        id: questionId, type: 'yesNo', label: '¿Repetimos?', required: true, description: '',
+      }],
+    }],
+  }, a);
+  assert.equal(template.status, 201);
+  assert.equal((await call('/api/evaluation-templates/' + template.body.id, 'PATCH', {
+    action: 'publish', revision: 1,
+  }, a)).status, 200);
+  const evaluation = {
+    title: 'Cierre con evaluación', templateId: template.body.id, templateRevision: 1,
+    userIds: [a.userId], dueAt: new Date(Date.now() + 86_400_000).toISOString(),
+  };
+  const invalid = await call(route, 'POST', { action: 'close-and-evaluate', evaluation: { ...evaluation, userIds: [b.userId] } }, a);
+  assert.equal(invalid.status, 400);
+  assert.deepEqual((await call(route, 'GET', undefined, a)).body, { archived: false, last: null });
+  const result = await call(route, 'POST', { action: 'close-and-evaluate', evaluation }, a);
+  assert.equal(result.status, 200, JSON.stringify(result.body));
+  const path = '/api/group-evaluations/' + result.body.evaluationId;
+  const draft = { action: 'draft', revision: 0, answers: { [questionId]: false } };
+  assert.equal((await call(path + '/response', 'PUT', draft, a)).status, 200);
+  assert.equal((await call(route, 'POST', { action: 'reopen' }, a)).status, 200);
+  const paused = (await call(path, 'GET', undefined, a)).body;
+  assert.equal(paused.paused, true);
+  assert.equal(paused.open, false);
+  assert.deepEqual(paused.answers, draft.answers);
+  assert.equal((await call(path + '/response', 'PUT', { ...draft, revision: 1 }, a)).status, 409);
+  assert.equal((await call(route, 'POST', { action: 'close' }, a)).status, 200);
+  const resumed = (await call(path, 'GET', undefined, a)).body;
+  assert.equal(resumed.open, true);
+  assert.equal(resumed.revision, 1);
+});

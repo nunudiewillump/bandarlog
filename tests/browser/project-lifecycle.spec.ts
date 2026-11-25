@@ -8,21 +8,37 @@ test('coordination closes and reopens a project from its settings', async ({ pag
   const project = fixture.data.projects.find((p) => p.id === 'camp-v2')!;
   let last: { kind: string; canReopen: boolean; reopenUntil: string } | null = null;
   const commands: string[] = [];
+  let publication: unknown;
   await page.route('**/api/**', (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path === '/api/me')
       return route.fulfill({
-        json: { user: fixture.user, csrf: 'fixture', groupEvaluationsEnabled: true },
+        json: {
+          user: fixture.user,
+          csrf: 'fixture',
+          groupEvaluationsEnabled: true,
+          evaluationTemplatesEnabled: true,
+        },
       });
     if (path === '/api/health') return route.fulfill({ json: { ok: true } });
     if (path === '/api/data') return route.fulfill({ json: fixture.summary() });
     if (path === '/api/tutorial')
       return route.fulfill({ json: { events: { tutorial_skipped: '2026-01-01T00:00:00Z' } } });
+    if (path === '/api/evaluation-templates')
+      return route.fulfill({
+        json: {
+          items: [{ id: 'template', title: 'Balance', archived: false, revision: 1 }],
+          next: null,
+        },
+      });
+    if (path === '/api/evaluation-templates/template/versions')
+      return route.fulfill({ json: { items: [{ revision: 1 }], next: null } });
     if (path === '/api/projects/camp-v2/lifecycle') {
       if (route.request().method() === 'POST') {
-        const { action } = route.request().postDataJSON();
+        const { action, evaluation } = route.request().postDataJSON();
+        if (evaluation) publication = evaluation;
         commands.push(action);
-        project.archived = String(action === 'close');
+        project.archived = String(action !== 'reopen');
         last = {
           kind: action === 'close' ? 'closed' : 'reopened',
           canReopen: action === 'close',
@@ -43,4 +59,13 @@ test('coordination closes and reopens a project from its settings', async ({ pag
   await page.getByRole('button', { name: 'Reabrir proyecto' }).click();
   await expect(page.getByRole('button', { name: 'Cerrar sin evaluar' })).toBeVisible();
   expect(commands).toEqual(['close', 'reopen']);
+  await page.getByRole('button', { name: 'Cerrar y evaluar', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Acciones de Balance' }).click();
+  await page.getByRole('option', { name: 'Usar para cerrar y evaluar' }).click();
+  await page.getByLabel('Último día para responder').fill('2099-07-15');
+  await page.getByRole('checkbox', { name: new RegExp(fixture.user.name) }).check();
+  await page.getByRole('button', { name: 'Cerrar y evaluar', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Proyecto cerrado.' })).toBeVisible();
+  expect(commands).toEqual(['close', 'reopen', 'close-and-evaluate']);
+  expect(publication).toMatchObject({ templateId: 'template', userIds: [fixture.user.id] });
 });

@@ -16,7 +16,7 @@ import {
   users,
 } from './schema.js';
 
-const publication = z.strictObject({
+export const evaluationPublication = z.strictObject({
   title: z.string().trim().min(1).max(160),
   templateId: z.uuid(),
   templateRevision: z.int().positive(),
@@ -33,11 +33,54 @@ const response = z.strictObject({
   answers: z.unknown(),
 });
 
-const active = sql<boolean>`${evaluations.dueAt} > statement_timestamp()`;
+const beforeDeadline = sql<boolean>`${evaluations.dueAt} > statement_timestamp()`;
+const projectClosed = sql<boolean>`(${evaluations.projectId} is null or bandarlog_api.group_evaluation_project_closed(${evaluations.id}))`;
+const active = sql<boolean>`${beforeDeadline} and ${projectClosed}`;
+const paused = sql<boolean>`${beforeDeadline} and not ${projectClosed}`;
 const matchEvaluation = and(
   eq(evaluations.id, assignments.evaluationId),
   eq(evaluations.groupId, assignments.groupId),
 );
+
+export async function createGroupEvaluation(
+  tx: Database,
+  input: z.infer<typeof evaluationPublication>,
+  projectId?: string,
+) {
+  const id = randomUUID();
+  const [version] = await tx
+    .select({ revision: versions.revision })
+    .from(versions)
+    .innerJoin(
+      templates,
+      and(eq(templates.groupId, versions.groupId), eq(templates.id, versions.templateId)),
+    )
+    .where(
+      and(
+        eq(versions.templateId, input.templateId),
+        eq(versions.revision, input.templateRevision),
+        eq(templates.archived, false),
+      ),
+    );
+  if (!version) return null;
+  const recipients = await tx
+    .select({ id: users.id })
+    .from(users)
+    .where(and(inArray(users.id, input.userIds), isNull(users.disabledAt)));
+  if (recipients.length !== input.userIds.length) return null;
+  await tx.insert(evaluations).values({
+    id,
+    title: input.title,
+    templateId: input.templateId,
+    templateRevision: input.templateRevision,
+    dueAt: input.dueAt,
+    projectId,
+  });
+  await tx
+    .insert(assignments)
+    .values(recipients.map(({ id: userId }) => ({ evaluationId: id, userId })));
+  return id;
+}
 
 export function groupEvaluationRoutes(db: Database) {
   const router = Router();
@@ -51,6 +94,7 @@ export function groupEvaluationRoutes(db: Database) {
         title: evaluations.title,
         dueAt: evaluations.dueAt,
         open: active,
+        paused,
         submittedAt: assignments.submittedAt,
       })
       .from(assignments)
@@ -71,44 +115,13 @@ export function groupEvaluationRoutes(db: Database) {
       return r
         .status(403)
         .json({ error: 'Solo Coordinación y Administración pueden publicar evaluaciones.' });
-    const input = publication.parse(q.body);
+    const input = evaluationPublication.parse(q.body);
     if (+new Date(input.dueAt) <= Date.now())
       return r.status(400).json({ error: 'Selecciona una fecha límite futura.' });
-    const id = randomUUID();
-    const created = await db.transaction(async (tx) => {
-      const [version] = await tx
-        .select({ revision: versions.revision })
-        .from(versions)
-        .innerJoin(
-          templates,
-          and(eq(templates.groupId, versions.groupId), eq(templates.id, versions.templateId)),
-        )
-        .where(
-          and(
-            eq(versions.templateId, input.templateId),
-            eq(versions.revision, input.templateRevision),
-            eq(templates.archived, false),
-          ),
-        );
-      if (!version) return false;
-      const recipients = await tx
-        .select({ id: users.id })
-        .from(users)
-        .where(and(inArray(users.id, input.userIds), isNull(users.disabledAt)));
-      if (recipients.length !== input.userIds.length) return false;
-      await tx.insert(evaluations).values({
-        id,
-        title: input.title,
-        templateId: input.templateId,
-        templateRevision: input.templateRevision,
-        dueAt: input.dueAt,
-      });
-      await tx
-        .insert(assignments)
-        .values(recipients.map(({ id: userId }) => ({ evaluationId: id, userId })));
-      return true;
-    });
-    if (!created)
+    const id = await db.transaction((tx) =>
+      createGroupEvaluation(tx as unknown as Database, input),
+    );
+    if (!id)
       return r
         .status(400)
         .json({ error: 'Selecciona una versión publicada y participantes activos del grupo.' });
@@ -121,6 +134,7 @@ export function groupEvaluationRoutes(db: Database) {
         title: evaluations.title,
         dueAt: evaluations.dueAt,
         open: active,
+        paused,
         structure: versions.structure,
         answers: assignments.answers,
         revision: assignments.revision,
@@ -154,6 +168,7 @@ export function groupEvaluationRoutes(db: Database) {
         title: evaluations.title,
         dueAt: evaluations.dueAt,
         open: active,
+        paused,
         templateRevision: evaluations.templateRevision,
       })
       .from(evaluations)
@@ -192,6 +207,7 @@ export function groupEvaluationRoutes(db: Database) {
         dueAt: evaluations.dueAt,
         templateRevision: evaluations.templateRevision,
         open: active,
+        paused,
         structure: versions.structure,
         body: conclusions.body,
         conclusionRevision: conclusions.revision,
@@ -237,7 +253,7 @@ export function groupEvaluationRoutes(db: Database) {
       })
       .parse(q.body);
     const [evaluation] = await db
-      .select({ open: active })
+      .select({ open: beforeDeadline })
       .from(evaluations)
       .where(eq(evaluations.id, id));
     if (!evaluation) return r.status(404).json({ error: 'Evaluación no encontrada.' });

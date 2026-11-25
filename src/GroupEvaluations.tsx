@@ -12,6 +12,7 @@ type Entry = {
   title: string;
   dueAt: string;
   open: boolean;
+  paused?: boolean;
   submittedAt: string | null;
 };
 type Detail = Omit<Entry, 'id'> & {
@@ -26,7 +27,7 @@ const deadline = new Intl.DateTimeFormat('es-ES', {
   timeZone: 'Europe/Madrid',
 });
 const statusOf = (item: Omit<Entry, 'id'>) =>
-  item.submittedAt ? 'Enviada' : item.open ? 'Pendiente' : 'Cerrada';
+  item.submittedAt ? 'Enviada' : item.paused ? 'Pausada' : item.open ? 'Pendiente' : 'Cerrada';
 
 function AnswerField({
   question,

@@ -197,6 +197,7 @@ function App() {
     [groupEvaluationsOpen, setGroupEvaluationsOpen] = useState(false),
     [groupEvaluationsEnabled, setGroupEvaluationsEnabled] = useState(false),
     [evaluationAction, setEvaluationAction] = useState<{ id: string; revision: number; title: string } | null>(null),
+    [evaluationClosingProject, setEvaluationClosingProject] = useState<string | null>(null),
     [evaluationOrigin, setEvaluationOrigin] = useState<string | null>(null),
     [evaluationTemplatesOpen, setEvaluationTemplatesOpen] = useState(false),
     [evaluationTemplatesEnabled, setEvaluationTemplatesEnabled] = useState(false),
@@ -551,6 +552,7 @@ function App() {
     setGroupEvaluationsOpen(false);
     setEvaluationTemplatesOpen(false);
     setEvaluationOrigin(null);
+    setEvaluationClosingProject(null);
     if (v === 'tutorial') {
       setSelected('');
       setPendingAction('');
@@ -1829,11 +1831,19 @@ function App() {
                 <EvaluationTemplates
                   key={me.id + ':' + (evaluationOrigin ?? '')}
                   initialResultId={evaluationOrigin}
+                  closingProjectId={evaluationClosingProject}
                   canPublish={groupEvaluationsEnabled}
                   people={data.users}
                   onOpenTask={setSelected}
                   onCreateAction={(action) => { setEvaluationAction(action); setModal('evaluation-action'); }}
-                  onBack={() => { setEvaluationTemplatesOpen(false); setEvaluationOrigin(null); }}
+                  onClosed={() => { void load().catch(() => {}); }}
+                  onBack={() => {
+                    if (evaluationClosingProject) navigate('project', evaluationClosingProject);
+                    else {
+                      setEvaluationTemplatesOpen(false);
+                      setEvaluationOrigin(null);
+                    }
+                  }}
                 />
               </Suspense>
             )}
@@ -2084,7 +2094,12 @@ function App() {
                         </>
                       )}
                       {groupEvaluationsEnabled ? (
-                        <ProjectLifecycle projectId={activeProject.id} refresh={run} />
+                        <ProjectLifecycle projectId={activeProject.id} refresh={run}
+                          onEvaluate={evaluationTemplatesEnabled ? () => {
+                            navigate('projects');
+                            setEvaluationClosingProject(activeProject.id);
+                            setEvaluationTemplatesOpen(true);
+                          } : undefined} />
                       ) : (
                         <button
                           className="text-link archive"
