@@ -1,3 +1,4 @@
+import { TaskEvaluationOrigin } from './TaskEvaluationOrigin';
 import { HomeTaskAction } from './HomeTaskAction';
 import { taskHaptic } from './haptics';
 import type { OfflineConfirmation, PendingTask } from './offline';
@@ -195,6 +196,7 @@ function App() {
     [groupEvaluationsOpen, setGroupEvaluationsOpen] = useState(false),
     [groupEvaluationsEnabled, setGroupEvaluationsEnabled] = useState(false),
     [evaluationAction, setEvaluationAction] = useState<{ id: string; revision: number; title: string } | null>(null),
+    [evaluationOrigin, setEvaluationOrigin] = useState<string | null>(null),
     [evaluationTemplatesOpen, setEvaluationTemplatesOpen] = useState(false),
     [evaluationTemplatesEnabled, setEvaluationTemplatesEnabled] = useState(false),
     [development, setDevelopment] = useState(false),
@@ -547,6 +549,7 @@ function App() {
     v = projectView(v);
     setGroupEvaluationsOpen(false);
     setEvaluationTemplatesOpen(false);
+    setEvaluationOrigin(null);
     if (v === 'tutorial') {
       setSelected('');
       setPendingAction('');
@@ -1823,12 +1826,13 @@ function App() {
             {showEvaluationTemplates && (
               <Suspense fallback={<p role="status">Cargando plantillas…</p>}>
                 <EvaluationTemplates
-                  key={me.id}
+                  key={me.id + ':' + (evaluationOrigin ?? '')}
+                  initialResultId={evaluationOrigin}
                   canPublish={groupEvaluationsEnabled}
                   people={data.users}
                   onOpenTask={setSelected}
                   onCreateAction={(action) => { setEvaluationAction(action); setModal('evaluation-action'); }}
-                  onBack={() => setEvaluationTemplatesOpen(false)}
+                  onBack={() => { setEvaluationTemplatesOpen(false); setEvaluationOrigin(null); }}
                 />
               </Suspense>
             )}
@@ -2605,6 +2609,13 @@ function App() {
                 </dl>
                 <h3>Descripción</h3>
                 <p className="description">{detail.description || 'Sin descripción.'}</p>
+                {manage && groupEvaluationsEnabled && evaluationTemplatesEnabled && (
+                  <TaskEvaluationOrigin key={detail.id} taskId={detail.id} onOpen={(evaluationId) => {
+                    navigate('projects');
+                    setEvaluationOrigin(evaluationId);
+                    setEvaluationTemplatesOpen(true);
+                  }} />
+                )}
                 {detail.blockedReason && (
                   <div className="blocked-note">
                     <LockKeyhole size={17} />

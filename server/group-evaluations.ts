@@ -163,6 +163,27 @@ export function groupEvaluationRoutes(db: Database) {
     r.json({ items: rows.slice(0, 30), next: rows.length > 30 ? rows[29].id : null });
   });
 
+  router.get('/manage/task/:taskId', async (q, r) => {
+    const taskId = z.string().min(1).max(200).parse(q.params.taskId);
+    const [origin] = await db
+      .select({ id: evaluations.id, title: evaluations.title })
+      .from(evaluationActions)
+      .innerJoin(
+        evaluations,
+        and(
+          eq(evaluations.groupId, evaluationActions.groupId),
+          eq(evaluations.id, evaluationActions.evaluationId),
+        ),
+      )
+      .innerJoin(
+        tasks,
+        and(eq(tasks.groupId, evaluationActions.groupId), eq(tasks.id, evaluationActions.taskId)),
+      )
+      .where(and(eq(evaluationActions.taskId, taskId), isNull(tasks.deletedAt)))
+      .limit(1);
+    r.json({ origin: origin ?? null });
+  });
+
   router.get('/manage/:id', async (q, r) => {
     const id = z.uuid().parse(q.params.id);
     const [evaluation] = await db

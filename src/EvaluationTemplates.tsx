@@ -80,18 +80,20 @@ function Actions({
 
 export default function EvaluationTemplates({
   onBack,
+  initialResultId,
   canPublish,
   people,
   onCreateAction,
   onOpenTask,
 }: {
   onBack: () => void;
+  initialResultId: string | null;
   canPublish: boolean;
   people: User[];
   onCreateAction: (action: { id: string; revision: number; title: string }) => void;
   onOpenTask: (id: string) => void;
 }) {
-  const [showResults, setShowResults] = useState(false);
+  const [showResults, setShowResults] = useState(Boolean(initialResultId));
   const [publication, setPublication] = useState<Entry | null>(null);
   const [items, setItems] = useState<Entry[]>([]);
   const [next, setNext] = useState<string | null>(null);
@@ -219,6 +221,7 @@ export default function EvaluationTemplates({
     return (
       <section className="panel evaluation-templates">
         <EvaluationResults
+          initialResultId={initialResultId}
           onBack={() => setShowResults(false)}
           onCreateAction={onCreateAction}
           onOpenTask={onOpenTask}
