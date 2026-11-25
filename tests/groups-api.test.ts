@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { publicInfo } from '../shared/public-info';
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -122,6 +123,7 @@ before(async () => {
       NODE_ENV: 'test',
       DATABASE_URL: '',
       MAIL_TRANSPORT: 'preview',
+      EVALUATION_TEMPLATES_ENABLED: 'true',
       SMTP_HOST: '',
       GOOGLE_LOGIN_CLIENT_ID: '',
       GOOGLE_LOGIN_CLIENT_SECRET: '',
@@ -832,4 +834,76 @@ test('root resumes valid legacy and private-group sessions without granting acce
   const exit = await call('/api/logout', 'POST', {}, { ...signed, csrf: canonicalMe.csrf });
   assert.equal(exit.status, 200);
   assert.equal((await call('/api/me', 'GET', undefined, { ...signed, base: '' })).status, 401);
+});
+
+test('evaluation templates keep published snapshots and isolate three groups', async () => {
+  const [a, b, c] = await Promise.all(
+    ['Pinos Evaluación', 'Hayas Evaluación', 'Robles Evaluación'].map((name, index) =>
+      createGroup(name, 'evaluation-' + index + '@example.test'),
+    ),
+  );
+  const root = '/api/evaluation-templates';
+  const structure = {
+    title: 'Revisión de campamento',
+    description: '',
+    sections: [
+      {
+        id: randomUUID(),
+        title: 'Aprendizajes',
+        description: '',
+        questions: [
+          {
+            id: randomUUID(),
+            type: 'numberScale',
+            min: 1,
+            max: 5,
+            label: '¿Cómo nos coordinamos?',
+            description: '',
+            required: true,
+          },
+        ],
+      },
+    ],
+  };
+  assert.equal((await call('/api/me', 'GET', undefined, a)).body.evaluationTemplatesEnabled, true);
+  assert.equal((await call(root, 'POST', { ...structure, groupId: b.userId }, a)).status, 400);
+  assert.equal((await call(root, 'POST', structure, { ...a, csrf: 'bad' })).status, 403);
+  const created = await call(root, 'POST', structure, a);
+  assert.equal(created.status, 201, JSON.stringify(created.body));
+  const path = root + '/' + created.body.id;
+  for (const session of [b, c]) {
+    assert.deepEqual((await call(root, 'GET', undefined, session)).body.items, []);
+    assert.equal((await call(path, 'GET', undefined, session)).status, 404);
+    assert.equal(
+      (await call(path, 'PATCH', { action: 'publish', revision: 1 }, session)).status,
+      404,
+    );
+  }
+  const published = await Promise.all(
+    Array.from({ length: 2 }, () => call(path, 'PATCH', { action: 'publish', revision: 1 }, a)),
+  );
+  assert.deepEqual(
+    published.map((result) => result.status),
+    [200, 200],
+  );
+  assert.equal((await call(path + '/versions', 'GET', undefined, a)).body.items.length, 1);
+  const edits = await Promise.all(
+    ['Aprendizajes', 'Mejoras'].map((title) =>
+      call(path, 'PATCH', { action: 'save', revision: 1, structure: { ...structure, title } }, a),
+    ),
+  );
+  assert.deepEqual(edits.map((result) => result.status).sort(), [200, 409]);
+  assert.deepEqual(
+    (await call(path + '/versions/1', 'GET', undefined, a)).body.structure,
+    structure,
+  );
+  assert.equal(
+    (await call(path, 'PATCH', { action: 'archive', revision: 2, archived: true }, a)).status,
+    200,
+  );
+  assert.equal((await call(path, 'PATCH', { action: 'publish', revision: 3 }, a)).status, 409);
+  assert.deepEqual(
+    (await call(path + '/versions/1', 'GET', undefined, a)).body.structure,
+    structure,
+  );
 });

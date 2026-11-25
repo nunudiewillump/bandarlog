@@ -1,3 +1,4 @@
+import type { EvaluationStructure } from '../shared/evaluations.js';
 import type { TutorialProgress, PracticeStatus } from '../shared/tutorial.js';
 import { sql } from 'drizzle-orm';
 import type { ChecklistItem } from './task-checklist.js';
@@ -491,3 +492,20 @@ export const projectFollowups = pgTable('project_followups', {
   decisionId: text('decision_id').notNull(),
   taskId: text('task_id').primaryKey(),
 });
+
+export const evaluationTemplates = pgTable('evaluation_templates', {
+  groupId: groupColumn(),
+  id: text().notNull(),
+  structure: jsonb().$type<EvaluationStructure>().notNull(),
+  revision: integer().notNull().default(1),
+  archived: boolean().notNull().default(false),
+}, (t) => [primaryKey({ columns: [t.groupId, t.id] })]);
+
+export const evaluationTemplateVersions = pgTable('evaluation_template_versions', {
+  groupId: text('group_id').notNull().default(sql`nullif(current_setting('bandarlog.group_id', true), '')`),
+  templateId: text('template_id').notNull(),
+  revision: integer().notNull(),
+  structure: jsonb().$type<EvaluationStructure>().notNull(),
+  publishedAt: timestamp('published_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  publishedBy: text('published_by').notNull(),
+}, (t) => [primaryKey({ columns: [t.groupId, t.templateId, t.revision] })]);

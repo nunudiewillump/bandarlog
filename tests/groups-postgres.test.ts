@@ -1,3 +1,4 @@
+import { exerciseEvaluationTemplateBoundary } from './fixtures/evaluation-templates';
 import { exerciseDeliveryProcess } from './fixtures/delivery-process-postgres';
 import { exerciseMaintenance } from './fixtures/maintenance-postgres';
 import { exerciseRestore } from './fixtures/restore-postgres';
@@ -1047,4 +1048,25 @@ test('platform administration remains independent after deleting its source grou
   const { exercisePlatformAdministration } =
     await import('./fixtures/platform-administration-postgres');
   await exercisePlatformAdministration(testUrl!, ownerPool);
+});
+
+
+test('PostgreSQL isolates evaluation templates and makes published versions immutable', async () => {
+  await exerciseEvaluationTemplateBoundary({
+    query: (query, params) => ownerPool.query(query, params),
+    async transaction(fn) {
+      const connection = await ownerPool.connect();
+      try {
+        await connection.query('begin');
+        const result = await fn(connection);
+        await connection.query('commit');
+        return result;
+      } catch (error) {
+        await connection.query('rollback');
+        throw error;
+      } finally {
+        connection.release();
+      }
+    },
+  });
 });

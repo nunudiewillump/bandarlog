@@ -116,6 +116,7 @@ const initial: Data = {
   activity: [],
   invitations: [],
 };
+const EvaluationTemplates = lazy(() => import('./EvaluationTemplates'));
 const ProjectMap = lazy(() => import('./ProjectMap'));
 const desktopMapQuery = '(min-width: 1024px)';
 function useDesktopProjectMap() {
@@ -190,6 +191,8 @@ function App() {
     [error, setError] = useState(''),
     [toast, setToast] = useState(''),
     [busy, setBusy] = useState(false),
+    [evaluationTemplatesOpen, setEvaluationTemplatesOpen] = useState(false),
+    [evaluationTemplatesEnabled, setEvaluationTemplatesEnabled] = useState(false),
     [development, setDevelopment] = useState(false),
     [sidebar, setSidebar] = useState(false),
     [pendingAction, setPendingAction] = useState(''),
@@ -268,6 +271,8 @@ function App() {
   );
   const invitationAccess = loginToken.startsWith('invite.');
   const manage = me?.role === 'admin' || me?.role === 'coordination';
+  const showEvaluationTemplates =
+    view === 'projects' && manage && evaluationTemplatesEnabled && evaluationTemplatesOpen;
   const foundingAdmin = isFoundingAdministrator(me);
   const showAdminGuide = foundingAdmin && !hasFinishedAdminGuide(me);
   const previewAvailable = canPreviewAdminGuide(me);
@@ -460,6 +465,7 @@ function App() {
       const visible = dataResult.value.users.find((user) => user.id === session.user.id);
       setMe({ ...session.user, ...visible });
       setDevelopment(session.development);
+      setEvaluationTemplatesEnabled(session.evaluationTemplatesEnabled === true);
       const route = readNavigation(location.search);
       setView(route.view);
       setProject(route.project);
@@ -533,6 +539,7 @@ function App() {
   }
   const navigate = (v: string, p = '', c = '') => {
     v = projectView(v);
+    setEvaluationTemplatesOpen(false);
     if (v === 'tutorial') {
       setSelected('');
       setPendingAction('');
@@ -1645,7 +1652,7 @@ function App() {
           <main className="main">
             {!['profile', 'settings', 'tutorial'].includes(view) &&
               !showAdminGuide &&
-              !showAdminPreview && <DeviceNotifications userId={me.id} firstVisit />}
+              !showAdminPreview && !showEvaluationTemplates && <DeviceNotifications userId={me.id} firstVisit />}
             <div className="mobile-page-title">
               {
                 (
@@ -1796,7 +1803,12 @@ function App() {
                 </section>
               </>
             )}
-            {view === 'projects' && (
+            {showEvaluationTemplates && (
+              <Suspense fallback={<p role="status">Cargando plantillas…</p>}>
+                <EvaluationTemplates key={me.id} onBack={() => setEvaluationTemplatesOpen(false)} />
+              </Suspense>
+            )}
+            {view === 'projects' && !showEvaluationTemplates && (
               <>
                 <div className="page-heading">
                   <div>
@@ -1809,6 +1821,11 @@ function App() {
                     </button>
                   )}
                 </div>
+                {manage && evaluationTemplatesEnabled && (
+                  <button className="secondary" onClick={() => setEvaluationTemplatesOpen(true)}>
+                    Plantillas de evaluación
+                  </button>
+                )}
                 <label className="project-kind-filter">
                   Tipo de proyecto
                   <Select
