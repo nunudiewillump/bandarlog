@@ -1,0 +1,66 @@
+.group-evaluations {
+  --evaluation-context: #52675a;
+}
+
+.group-evaluations .evaluation-context,
+.group-evaluations .evaluation-progress {
+  margin-block: 12px 16px;
+  color: var(--evaluation-context);
+}
+
+.group-evaluations .evaluation-context p {
+  margin-block: 4px;
+}
+
+.group-evaluations .evaluation-context strong {
+  color: var(--green);
+  margin-inline-end: 8px;
+}
+
+.group-evaluations .evaluation-progress p {
+  margin: 0 0 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.group-evaluations progress {
+  display: block;
+  width: 100%;
+  height: 8px;
+  accent-color: var(--green);
+}
+
+.group-evaluations .evaluation-question {
+  display: grid;
+  gap: 8px;
+  padding-block: 14px;
+  scroll-margin-block: 100px;
+}
+
+.group-evaluations .evaluation-section > .evaluation-question:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.group-evaluations .evaluation-question [aria-invalid='true'] {
+  border-color: var(--red);
+}
+
+.group-evaluations .evaluation-hint,
+.group-evaluations .evaluation-list-context small {
+  color: var(--evaluation-context);
+}
+
+.group-evaluations .evaluation-hint {
+  margin: 0;
+}
+
+.group-evaluations .evaluation-list-context {
+  display: grid;
+  gap: 4px;
+}
+
+@media (max-width: 480px) {
+  .group-evaluations .response-controls > .select-control {
+    width: 100%;
+  }
+}
