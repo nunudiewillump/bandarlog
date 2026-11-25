@@ -124,6 +124,7 @@ before(async () => {
       DATABASE_URL: '',
       MAIL_TRANSPORT: 'preview',
       EVALUATION_TEMPLATES_ENABLED: 'true',
+      GROUP_EVALUATIONS_ENABLED: 'true',
       SMTP_HOST: '',
       GOOGLE_LOGIN_CLIENT_ID: '',
       GOOGLE_LOGIN_CLIENT_SECRET: '',
@@ -906,4 +907,52 @@ test('evaluation templates keep published snapshots and isolate three groups', a
     (await call(path + '/versions/1', 'GET', undefined, a)).body.structure,
     structure,
   );
+});
+
+test('assigned evaluations use a published snapshot and accept only one final response', async () => {
+  const [a, b] = await Promise.all([
+    createGroup('Grupo evaluación Uno', 'responses-a@example.test'),
+    createGroup('Grupo evaluación Dos', 'responses-b@example.test'),
+  ]);
+  const templates = '/api/evaluation-templates';
+  const root = '/api/group-evaluations';
+  const questionId = randomUUID();
+  const structure = {
+    title: 'Balance', description: '', sections: [{
+      id: randomUUID(), title: 'Campamento', description: '', questions: [{
+        id: questionId, label: '¿Repetimos?', type: 'yesNo', required: true, description: '',
+      }],
+    }],
+  };
+  const { body: template } = await call(templates, 'POST', structure, a);
+  const templatePath = templates + '/' + template.id;
+  assert.equal((await call(templatePath, 'PATCH', { action: 'publish', revision: 1 }, a)).status, 200);
+  const publication = {
+    title: 'Evaluación de campamento', templateId: template.id, templateRevision: 1,
+    userIds: [a.userId], dueAt: new Date(Date.now() + 86_400_000).toISOString(),
+  };
+  assert.equal((await call(root, 'POST', { ...publication, userIds: [b.userId] }, a)).status, 400);
+  assert.equal((await call(root, 'POST', { ...publication, userIds: [b.userId] }, b)).status, 400);
+  const created = await call(root, 'POST', publication, a);
+  assert.equal(created.status, 201, JSON.stringify(created.body));
+  const path = root + '/' + created.body.id;
+  assert.deepEqual((await call(root, 'GET', undefined, b)).body.items, []);
+  assert.equal((await call(path, 'GET', undefined, b)).status, 404);
+  assert.equal((await call(root, 'GET', undefined, a)).body.items[0].id, created.body.id);
+  assert.equal((await call(templatePath, 'PATCH', {
+    action: 'save', revision: 1, structure: { ...structure, title: 'Otra versión' },
+  }, a)).status, 200);
+  assert.deepEqual((await call(path, 'GET', undefined, a)).body.structure, structure);
+  const write = (action: string, revision: number, answers: Record<string, unknown>, session = a) =>
+    call(path + '/response', 'PUT', { action, revision, answers }, session);
+  assert.equal((await write('submission', 0, {})).status, 400);
+  assert.equal((await write('draft', 0, { [questionId]: false }, b)).status, 404);
+  assert.equal((await write('draft', 0, { [questionId]: false })).status, 200);
+  assert.deepEqual((await call(path, 'GET', undefined, a)).body.answers, { [questionId]: false });
+  const attempts = await Promise.all([
+    write('submission', 1, { [questionId]: false }),
+    write('submission', 1, { [questionId]: true }),
+  ]);
+  assert.deepEqual(attempts.map(({ status }) => status).sort(), [200, 409]);
+  assert.equal((await write('draft', 2, {})).status, 409);
 });

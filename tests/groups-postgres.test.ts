@@ -1070,3 +1070,64 @@ test('PostgreSQL isolates evaluation templates and makes published versions immu
     },
   });
 });
+
+test('PostgreSQL scopes assigned evaluations and protects draft and submission state', async () => {
+  await ownerPool.query(`
+    insert into scout_groups(id,name) values ('p2-qa','P2 QA'),('p2-foreign','P2 Foreign');
+    insert into users(group_id,id,name,email,role) values
+      ('p2-qa','p2-manager','Manager','manager@example.test','coordination'),
+      ('p2-qa','p2-member','Member','member@example.test','member'),
+      ('p2-qa','p2-unassigned','Unassigned','unassigned@example.test','member'),
+      ('p2-foreign','p2-foreign-admin','Foreign','foreign@example.test','admin');
+    insert into evaluation_templates(group_id,id,structure) values ('p2-qa','p2-template','{}');
+    insert into evaluation_template_versions(group_id,template_id,revision,structure,published_by)
+      values ('p2-qa','p2-template',1,'{}','p2-manager');
+    insert into group_evaluations(group_id,id,template_id,template_revision,title,due_at) values
+      ('p2-qa','p2-open','p2-template',1,'Open',now()+interval '1 day'),
+      ('p2-qa','p2-expired','p2-template',1,'Expired',now()-interval '1 day');
+    insert into group_evaluation_assignments(group_id,evaluation_id,user_id) values
+      ('p2-qa','p2-open','p2-member'),('p2-qa','p2-expired','p2-member');
+  `);
+  const actors = [
+    ['p2-qa', 'p2-member'],
+    ['p2-qa', 'p2-manager'],
+    ['p2-qa', 'p2-unassigned'],
+    ['p2-foreign', 'p2-foreign-admin'],
+  ].map(([group, user]) => ({ group, user, token: randomBytes(32).toString('hex') }));
+  for (const { group, user, token } of actors)
+    await ownerPool.query(
+      "insert into sessions(group_id,id,user_id,csrf,expires,assurance,primary_verified_at) values ($1,$2,$3,'synthetic',now()+interval '1 day','primary',now())",
+      [group, hashForTest('sha256').update(token).digest('hex'), user],
+    );
+  async function as(actor: typeof actors[number], statement: string) {
+    const client = await ownerPool.connect();
+    try {
+      await client.query('begin');
+      await client.query("select set_config('bandarlog.group_id',$1,true),set_config('bandarlog.session_token',$2,true)", [actor.group, actor.token]);
+      await client.query('set local session authorization bandarlog_http');
+      await client.query('set local role bandarlog_user_app');
+      const result = await client.query(statement);
+      await client.query('commit');
+      return result;
+    } catch (error) {
+      await client.query('rollback');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+  const evaluations = 'select id from group_evaluations where id like \'p2-%\' order by id';
+  const versions = "select revision from evaluation_template_versions where template_id='p2-template'";
+  const drafts = "select answers from group_evaluation_assignments where evaluation_id='p2-open'";
+  assert.equal((await as(actors[0], evaluations)).rowCount, 2);
+  assert.equal((await as(actors[0], versions)).rowCount, 1);
+  for (const actor of actors.slice(2)) {
+    assert.equal((await as(actor, evaluations)).rowCount, 0);
+    assert.equal((await as(actor, versions)).rowCount, 0);
+  }
+  assert.equal((await as(actors[1], drafts)).rowCount, 0);
+  assert.equal((await as(actors[1], "update group_evaluation_assignments set revision=1 where evaluation_id='p2-open'")).rowCount, 0);
+  await assert.rejects(as(actors[0], "update group_evaluation_assignments set revision=1 where evaluation_id='p2-expired'"), /Evaluation is closed/);
+  assert.equal((await as(actors[0], "update group_evaluation_assignments set revision=1, submitted_at='2000-01-01' where evaluation_id='p2-open' returning submitted_at > '2020-01-01' as server_time")).rows[0].server_time, true);
+  assert.equal((await as(actors[0], "update group_evaluation_assignments set revision=2, submitted_at=null where evaluation_id='p2-open'")).rowCount, 0);
+});

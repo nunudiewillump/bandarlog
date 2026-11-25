@@ -509,3 +509,21 @@ export const evaluationTemplateVersions = pgTable('evaluation_template_versions'
   publishedAt: timestamp('published_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
   publishedBy: text('published_by').notNull(),
 }, (t) => [primaryKey({ columns: [t.groupId, t.templateId, t.revision] })]);
+
+export const groupEvaluations = pgTable('group_evaluations', {
+  groupId: text('group_id').notNull().default(sql`nullif(current_setting('bandarlog.group_id', true), '')`),
+  id: text().notNull(),
+  templateId: text('template_id').notNull(),
+  templateRevision: integer('template_revision').notNull(),
+  title: text().notNull(),
+  dueAt: timestamp('due_at', { withTimezone: true, mode: 'string' }).notNull(),
+}, (t) => [primaryKey({ columns: [t.groupId, t.id] })]);
+
+export const groupEvaluationAssignments = pgTable('group_evaluation_assignments', {
+  groupId: text('group_id').notNull().default(sql`nullif(current_setting('bandarlog.group_id', true), '')`),
+  evaluationId: text('evaluation_id').notNull(),
+  userId: text('user_id').notNull(),
+  answers: jsonb().notNull().default({}),
+  revision: integer().notNull().default(0),
+  submittedAt: timestamp('submitted_at', { withTimezone: true, mode: 'string' }),
+}, (t) => [primaryKey({ columns: [t.groupId, t.evaluationId, t.userId] })]);
