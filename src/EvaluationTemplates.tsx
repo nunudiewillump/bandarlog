@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { api } from './api';
 import { Select } from './Select';
+import PublishEvaluation from './PublishEvaluation';
+import type { User } from './types';
 import {
   evaluationStructure,
   questionTypes,
@@ -75,7 +77,16 @@ function Actions({
   );
 }
 
-export default function EvaluationTemplates({ onBack }: { onBack: () => void }) {
+export default function EvaluationTemplates({
+  onBack,
+  canPublish,
+  people,
+}: {
+  onBack: () => void;
+  canPublish: boolean;
+  people: User[];
+}) {
+  const [publication, setPublication] = useState<Entry | null>(null);
   const [items, setItems] = useState<Entry[]>([]);
   const [next, setNext] = useState<string | null>(null);
   const [selected, setSelected] = useState<Template | null>(null);
@@ -173,6 +184,11 @@ export default function EvaluationTemplates({ onBack }: { onBack: () => void }) 
 
   async function rowAction(item: Entry, action: string) {
     if (action === 'open') return open(item.id);
+    if (action === 'publishEvaluation') {
+      await loadVersions(item.id);
+      setPublication(item);
+      return;
+    }
     if (action === 'archive') {
       await api(root + '/' + item.id, 'PATCH', {
         action: 'archive',
@@ -195,10 +211,25 @@ export default function EvaluationTemplates({ onBack }: { onBack: () => void }) 
 
   return (
     <section className="panel evaluation-templates" aria-busy={busy}>
-      {!draft && <h1>Plantillas de evaluación</h1>}
+      {!draft && !publication && <h1>Plantillas de evaluación</h1>}
       {error && <p role="alert">{error}</p>}
       <p role="status">{busy ? 'Cargando…' : status}</p>
-      {!draft ? (
+      {publication ? (
+        <PublishEvaluation
+          template={publication}
+          versions={versions}
+          busy={busy}
+          more={older !== null}
+          people={people}
+          loadMore={() => {
+            if (older !== null) void run(() => loadVersions(publication.id, older));
+          }}
+          onBack={() => {
+            setPublication(null);
+            setError('');
+          }}
+        />
+      ) : !draft ? (
         <>
           <div className="evaluation-controls">
             <button
@@ -265,6 +296,9 @@ export default function EvaluationTemplates({ onBack }: { onBack: () => void }) 
                   onAction={(action) => void run(() => rowAction(item, action))}
                 >
                   <option value="open">{item.archived ? 'Consultar' : 'Editar'}</option>
+                  {canPublish && !item.archived && (
+                    <option value="publishEvaluation">Asignar evaluación</option>
+                  )}
                   <option value="duplicate">Duplicar</option>
                   <option value="archive">{item.archived ? 'Restaurar' : 'Archivar'}</option>
                   <option value="export">Exportar estructura</option>

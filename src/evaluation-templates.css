@@ -96,3 +96,18 @@
   padding-block: 8px;
   border-top: 1px solid #dfe5da;
 }
+
+.evaluation-recipients {
+  max-height: 18rem;
+  overflow: auto;
+  border-top: 1px solid #dfe5da;
+}
+
+.evaluation-recipients > label {
+  border-bottom: 1px solid #dfe5da;
+  padding-block: 4px;
+}
+
+.evaluation-recipients small {
+  display: block;
+}
