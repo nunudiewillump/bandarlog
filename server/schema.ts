@@ -543,3 +543,12 @@ export const groupEvaluationActions = pgTable('group_evaluation_actions', {
   taskId: text('task_id').notNull(),
   conclusionRevision: integer('conclusion_revision').notNull(),
 }, (t) => [primaryKey({ columns: [t.groupId, t.taskId] })]);
+
+export const projectLifecycleEvents = pgTable('project_lifecycle_events', {
+  eventNo: bigint('event_no', { mode: 'number' }).generatedAlwaysAsIdentity(),
+  groupId: text('group_id').notNull().default(sql`nullif(current_setting('bandarlog.group_id', true), '')`),
+  projectId: text('project_id').notNull(),
+  actorId: text('actor_id').notNull(),
+  kind: text().$type<'closed' | 'reopened'>().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.groupId, t.projectId, t.eventNo] })]);

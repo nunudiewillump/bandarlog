@@ -1163,6 +1163,15 @@ test('PostgreSQL scopes assigned evaluations and protects draft and submission s
   for (const actor of [actors[0], actors[3]])
     assert.equal((await as(actor, 'select task_id from group_evaluation_actions')).rowCount, 0);
   assert.equal((await as(actors[1], 'select task_id from group_evaluation_actions')).rows[0].task_id, 'p2-action-task');
+  const lifecycle = "insert into project_lifecycle_events(project_id,actor_id,kind) values('p2-action-project','p2-manager','closed')";
+  await assert.rejects(as(actors[0], lifecycle), /Project unavailable|row-level security/);
+  await as(actors[1], lifecycle);
+  assert.equal((await as(actors[1], "select archived from projects where id='p2-action-project'")).rows[0].archived, 'true');
+  await assert.rejects(as(actors[1], "update projects set archived='false' where id='p2-action-project'"), /Use the project lifecycle operation/);
+  await ownerPool.query("update project_lifecycle_events set created_at=now()-interval '16 days' where project_id='p2-action-project'");
+  await assert.rejects(as(actors[1], lifecycle.replace("'closed'", "'reopened'")), /transition unavailable/);
+  assert.equal((await as(actors[1], "select title from tasks where id='p2-action-task'")).rows[0].title, 'Acción');
+
 
 
 });

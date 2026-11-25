@@ -330,6 +330,13 @@
       "when": 1794847200000,
       "tag": "0046_evaluation_actions",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1794847300000,
+      "tag": "0047_project_lifecycle",
+      "breakpoints": true
     }
   ]
 }
