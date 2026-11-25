@@ -4,4 +4,10 @@ Con `GROUP_EVALUATIONS_ENABLED=true`, Inicio ofrece **Mis evaluaciones** a la se
 
 El editor abre la versión publicada y recupera el borrador del participante. Identifica el carácter de la respuesta, muestra el plazo en hora de Madrid y permite navegar por las secciones. Se pueden guardar respuestas parciales desde **Opciones**. **Enviar** valida toda la evaluación, lleva a la sección con el primer error y pide confirmación antes del envío definitivo. Tras el envío o el vencimiento, la evaluación queda accesible para lectura.
 
-La interfaz usa el contrato de la migración 0044. La creación y asignación siguen disponibles por API. Las modalidades anónima y colectiva, el cierre desde Proyectos y la consulta de resultados por Coordinación quedan pendientes.
+## Publicar desde Proyectos
+
+Con ambos flags de P2 activos, Coordinación y Administración pueden abrir **Proyectos → Plantillas de evaluación → Acciones → Asignar evaluación** para una plantilla activa.
+
+El formulario ofrece **Volver** y **Publicar**. Permite elegir una versión publicada, indicar un título y seleccionar hasta 100 personas activas. El plazo termina el último día elegido a las 23:59 en Madrid. Las evaluaciones publicadas aparecen en **Mis evaluaciones** de las personas asignadas.
+
+Ambas interfaces usan el contrato de la migración 0044. Las modalidades anónima y colectiva, el cierre desde Proyectos y la consulta de resultados por Coordinación quedan pendientes.

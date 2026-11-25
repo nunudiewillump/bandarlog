@@ -1821,7 +1821,12 @@ function App() {
             )}
             {showEvaluationTemplates && (
               <Suspense fallback={<p role="status">Cargando plantillas…</p>}>
-                <EvaluationTemplates key={me.id} onBack={() => setEvaluationTemplatesOpen(false)} />
+                <EvaluationTemplates
+                  key={me.id}
+                  canPublish={groupEvaluationsEnabled}
+                  people={data.users}
+                  onBack={() => setEvaluationTemplatesOpen(false)}
+                />
               </Suspense>
             )}
             {view === 'projects' && !showEvaluationTemplates && (
