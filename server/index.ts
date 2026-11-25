@@ -1878,6 +1878,7 @@ app.get('/api/me', (_q, r) => {
       +new Date(r.locals.session.absoluteExpiresAt),
     ),
     development: !prod,
+    groupEvaluationsEnabled,
     evaluationTemplatesEnabled: evaluationTemplatesEnabled && globalManage(r.locals.user),
     googleEnabled: Boolean(process.env.GOOGLE_LOGIN_CLIENT_ID),
   });
