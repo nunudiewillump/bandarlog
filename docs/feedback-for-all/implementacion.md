@@ -6,7 +6,9 @@ La auditoría y las decisiones de integración están en [auditoria.md](auditori
 
 Con `EVALUATION_TEMPLATES_ENABLED=true`, Coordinación y Administración de grupo abren **Proyectos → Plantillas de evaluación**. Pueden crear, guardar, duplicar, archivar, restaurar, importar y exportar estructuras JSON. El editor admite secciones, descripciones, preguntas obligatorias y opcionales, orden de preguntas dentro de cada sección y los diez tipos solicitados. El listado y el historial cargan hasta 30 filas por página. La importación y las descargas usan exclusivamente el esquema de estructura, sin datos de cuenta, grupo ni participación.
 
-**Publicar versión** conserva una copia exacta del borrador guardado. Editar o archivar después mantiene la copia consultable y exportable. La revisión se incrementa al guardar cambios o modificar el estado de archivo. Por eso es posible que la secuencia de versiones publicadas tenga saltos. El guardado con una revisión obsoleta se rechaza. Un bloqueo de fila serializa publicación, edición y archivo, y la restricción de unicidad deduplica la publicación concurrente de una revisión.
+El listado ofrece **Volver** y **Nueva plantilla**. El desplegable a la derecha de cada fila permite abrir, duplicar, archivar, restaurar y exportar. Las opciones del listado incluyen la importación y la paginación.
+
+El editor ofrece **Volver** y **Publicar**. Los desplegables conservan el guardado de borrador, la edición de preguntas y secciones y la exportación de versiones anteriores. Publicar guarda primero los cambios y conserva una copia exacta de esa revisión. Si falla la publicación tras el guardado, el borrador persiste y se puede volver a publicar. Editar o archivar después mantiene la copia consultable y exportable. La revisión se incrementa al guardar cambios o modificar el estado de archivo. Por eso es posible que la secuencia de versiones publicadas tenga saltos. El guardado con una revisión obsoleta se rechaza. Un bloqueo de fila serializa publicación, edición y archivo, y la restricción de unicidad deduplica la publicación concurrente de una revisión.
 
 ## Datos y permisos
 
@@ -28,10 +30,10 @@ La API usa la sesión y CSRF existentes, los permisos de roles de grupo, validac
 
 | Build local | Base | Incremento |
 | --- | ---: | ---: |
-| JS inicial minificado | 509,24 kB | 509,87 kB |
-| JS inicial gzip | 159,27 kB | 159,46 kB |
-| JS del editor gzip | — | 27,99 kB bajo demanda |
-| CSS del editor gzip | — | 0,43 kB bajo demanda |
+| JS inicial minificado | 509,24 kB | 509,82 kB |
+| JS inicial gzip | 159,27 kB | 159,48 kB |
+| JS del editor gzip | — | 28,25 kB bajo demanda |
+| CSS del editor gzip | — | 0,49 kB bajo demanda |
 | JS de administración global gzip | 6,90 kB | 6,90 kB |
 
 Cada página de listado agrega una consulta acotada al contenido, además de la sesión existente. Los borradores y versiones se recuperan al solicitarlos. Una edición o publicación ejecuta un bloqueo del borrador y una escritura dentro de la misma transacción. Los dos índices de claves primarias sirven a los accesos por grupo y a la paginación. Neon añade almacenamiento proporcional a las estructuras guardadas y sus versiones. Railway ejecuta el mismo proceso HTTP sin servicios, tareas programadas ni temporizadores nuevos. En PostgreSQL 17 local, con 30 grupos y 400 plantillas ficticias por grupo, el listado de 31 filas usó la clave primaria con condición por grupo y ejecutó en 1,38 ms (caché caliente). Quedan pendientes medidas antes y después de latencia HTTP, CPU, memoria, transferencia y consumo en Neon y Railway.
@@ -49,5 +51,6 @@ Cada página de listado agrega una consulta acotada al contenido, además de la 
 - Nueve pruebas dirigidas en `evaluation-templates.test.ts`, `groups-api.test.ts` y `project-migration.test.ts`. Se incluyó la migración de proyectos por el cambio de contrato SQL y para comprobar el historial existente.
 - Tres pruebas en PostgreSQL 17 local. Se verificaron plantillas, identidad SQL por actor y reutilización de conexiones entre grupos.
 - Cuatro recorridos dirigidos en Chromium para el editor y la regresión de creación y navegación de proyectos. La primera ejecución falló por una discrepancia de rol en el fixture del editor y un timeout en creación móvil. Se corrigió el fixture y ambos recorridos pasaron con servidores aislados. El editor volvió a pasar tras el ajuste de espaciado.
+- Tras reorganizar las acciones, se volvieron a comprobar los menús por teclado, el límite de dos botones, el archivado, la restauración y la duplicación. También se comprobó la navegación de Proyectos por el cambio de pantalla.
 - Pasaron TypeScript, ambos builds de Vite y `git diff --check`. Vite conserva dos avisos de la base sobre el script offline y el tamaño del chunk inicial.
-- Capturas con datos ficticios en [móvil](../../artifacts/feedback-for-all/plantillas-movil.png) y [escritorio](../../artifacts/feedback-for-all/plantillas-escritorio.png).
+- Capturas con datos ficticios en [móvil](../../artifacts/feedback-for-all/plantillas-movil.png), [escritorio](../../artifacts/feedback-for-all/plantillas-escritorio.png) y [menú de plantilla](../../artifacts/feedback-for-all/menu-plantillas.png).

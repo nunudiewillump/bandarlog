@@ -271,6 +271,8 @@ function App() {
   );
   const invitationAccess = loginToken.startsWith('invite.');
   const manage = me?.role === 'admin' || me?.role === 'coordination';
+  const showEvaluationTemplates =
+    view === 'projects' && manage && evaluationTemplatesEnabled && evaluationTemplatesOpen;
   const foundingAdmin = isFoundingAdministrator(me);
   const showAdminGuide = foundingAdmin && !hasFinishedAdminGuide(me);
   const previewAvailable = canPreviewAdminGuide(me);
@@ -537,6 +539,7 @@ function App() {
   }
   const navigate = (v: string, p = '', c = '') => {
     v = projectView(v);
+    setEvaluationTemplatesOpen(false);
     if (v === 'tutorial') {
       setSelected('');
       setPendingAction('');
@@ -1649,7 +1652,7 @@ function App() {
           <main className="main">
             {!['profile', 'settings', 'tutorial'].includes(view) &&
               !showAdminGuide &&
-              !showAdminPreview && <DeviceNotifications userId={me.id} firstVisit />}
+              !showAdminPreview && !showEvaluationTemplates && <DeviceNotifications userId={me.id} firstVisit />}
             <div className="mobile-page-title">
               {
                 (
@@ -1800,7 +1803,12 @@ function App() {
                 </section>
               </>
             )}
-            {view === 'projects' && (
+            {showEvaluationTemplates && (
+              <Suspense fallback={<p role="status">Cargando plantillas…</p>}>
+                <EvaluationTemplates key={me.id} onBack={() => setEvaluationTemplatesOpen(false)} />
+              </Suspense>
+            )}
+            {view === 'projects' && !showEvaluationTemplates && (
               <>
                 <div className="page-heading">
                   <div>
@@ -1814,20 +1822,9 @@ function App() {
                   )}
                 </div>
                 {manage && evaluationTemplatesEnabled && (
-                  <section className="panel" style={{ padding: 16, marginBottom: 16 }}>
-                    <button
-                      className="secondary"
-                      aria-expanded={evaluationTemplatesOpen}
-                      onClick={() => setEvaluationTemplatesOpen(!evaluationTemplatesOpen)}
-                    >
-                      Plantillas de evaluación
-                    </button>
-                    {evaluationTemplatesOpen && (
-                      <Suspense fallback={<p role="status">Cargando plantillas…</p>}>
-                        <EvaluationTemplates key={me.id} />
-                      </Suspense>
-                    )}
-                  </section>
+                  <button className="secondary" onClick={() => setEvaluationTemplatesOpen(true)}>
+                    Plantillas de evaluación
+                  </button>
                 )}
                 <label className="project-kind-filter">
                   Tipo de proyecto

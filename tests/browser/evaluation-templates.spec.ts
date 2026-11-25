@@ -12,6 +12,8 @@ test('coordination opens the lazy editor, saves and publishes a template on mobi
   const id = 'd06008a7-fe94-4198-bd85-88769963f342';
   let structure: any;
   let published = false;
+  let archived = false;
+  let revision = 1;
   let requests = 0;
   await page.route('**/api/**', (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -32,14 +34,19 @@ test('coordination opens the lazy editor, saves and publishes a template on mobi
     if (path === root)
       return route.fulfill({
         json: {
-          items: structure ? [{ id, title: structure.title, revision: 1, archived: false }] : [],
+          items: structure ? [{ id, title: structure.title, revision, archived }] : [],
           next: null,
         },
       });
     if (method === 'PATCH') {
-      expect(route.request().postDataJSON()).toEqual({ action: 'publish', revision: 1 });
-      published = true;
-      return route.fulfill({ json: { revision: 1 } });
+      const command = route.request().postDataJSON();
+      expect(command.revision).toBe(revision);
+      if (command.action === 'publish') published = true;
+      if (command.action === 'archive') {
+        archived = command.archived;
+        revision++;
+      }
+      return route.fulfill({ json: { revision } });
     }
     if (path.endsWith('/versions'))
       return route.fulfill({
@@ -48,7 +55,7 @@ test('coordination opens the lazy editor, saves and publishes a template on mobi
           next: null,
         },
       });
-    return route.fulfill({ json: { id, structure, revision: 1, archived: false } });
+    return route.fulfill({ json: { id, structure, revision, archived } });
   });
   const modules: string[] = [];
   page.on('request', (request) => {
@@ -68,20 +75,44 @@ test('coordination opens the lazy editor, saves and publishes a template on mobi
   await page.getByLabel('Enunciado').fill('¿Qué debemos mantener?');
   await page.getByLabel('Tipo de pregunta').selectOption('longText');
   await page.getByLabel('Obligatoria').check();
-  await page.getByRole('button', { name: 'Guardar borrador' }).click();
+  const panel = page.locator('.evaluation-templates');
+  await expect(page.getByRole('main').getByRole('button')).toHaveCount(2);
+  await panel.getByRole('combobox', { name: 'Opciones del editor' }).click();
+  await page.getByRole('option', { name: 'Guardar borrador' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Plantilla guardada.' })).toBeVisible();
   expect(structure.sections[0].questions[0]).toMatchObject({ type: 'longText', required: true });
-  const panel = page.locator('.evaluation-templates');
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   const output = process.env.EVALUATION_SCREENSHOT_DIR;
   if (output) {
     await mkdir(output, { recursive: true });
-    await opener.scrollIntoViewIfNeeded();
+    await panel.getByRole('heading').scrollIntoViewIfNeeded();
     await page.screenshot({ path: output + '/plantillas-movil.png' });
   }
   await page.setViewportSize({ width: 1440, height: 1050 });
-  await page.getByRole('button', { name: 'Publicar versión' }).click();
-  await expect(page.getByRole('button', { name: 'Exportar versión 1' })).toBeVisible();
+  await page.getByRole('button', { name: 'Publicar', exact: true }).click();
+  await expect(panel.getByRole('status')).toHaveText('Versión publicada.');
+  await panel.getByRole('combobox', { name: 'Opciones del editor' }).click();
+  await expect(page.getByRole('option', { name: 'Exportar versión 1' })).toBeVisible();
+  await page.keyboard.press('Escape');
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(1440);
   if (output) await panel.screenshot({ path: output + '/plantillas-escritorio.png' });
+
+  await panel.getByRole('button', { name: 'Volver a plantillas' }).click();
+  await expect(panel.getByRole('button')).toHaveCount(2);
+  const actions = panel.getByRole('combobox', { name: 'Acciones de Evaluación del campamento' });
+  await actions.focus();
+  await page.keyboard.press('ArrowDown');
+  await page.getByRole('option', { name: 'Archivar', exact: true }).click();
+  await expect(panel.getByRole('status')).toHaveText('Plantilla archivada.');
+  await expect(panel.getByText('Evaluación del campamento · Archivada')).toBeVisible();
+  await actions.click();
+  await page.getByRole('option', { name: 'Restaurar', exact: true }).click();
+  await expect(panel.getByRole('status')).toHaveText('Plantilla restaurada.');
+  await actions.click();
+  if (output) await page.screenshot({ path: output + '/menu-plantillas.png' });
+  await page.getByRole('option', { name: 'Duplicar', exact: true }).click();
+  await expect(panel.getByLabel('Nombre de la plantilla')).toHaveValue(
+    'Copia de Evaluación del campamento',
+  );
+  await expect(panel.getByRole('button')).toHaveCount(2);
 });

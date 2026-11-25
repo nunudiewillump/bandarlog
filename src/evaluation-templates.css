@@ -79,3 +79,20 @@
   gap: 8px;
   padding: 0;
 }
+
+.evaluation-templates {
+  padding: 16px;
+}
+
+.evaluation-templates .evaluation-controls > .select-control {
+  width: auto;
+}
+
+.evaluation-template-list > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 10rem);
+  align-items: center;
+  gap: 12px;
+  padding-block: 8px;
+  border-top: 1px solid #dfe5da;
+}
