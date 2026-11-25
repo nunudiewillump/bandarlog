@@ -68,9 +68,9 @@ export async function connect() {
         const version = (
           await connection.execute(sql`select bandarlog_api.runtime_contract_version() as version`)
         ).rows[0]?.version;
-        if (typeof version !== 'number' || version < 43)
+        if (typeof version !== 'number' || version < (process.env.GROUP_EVALUATIONS_ENABLED === 'true' ? 44 : 43))
           throw Error(
-            'El contrato SQL requiere completar las migraciones de mantenimiento hasta 0043 antes del arranque.',
+            'El contrato SQL no incluye las migraciones requeridas para las funciones activas.',
           );
       }
       const db = remoteDrizzle(scopedPool(pool) as pg.Pool, { schema, logger: queryLogger });

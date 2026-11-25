@@ -1,3 +1,4 @@
+import { groupEvaluationRoutes } from './group-evaluations.js';
 import { evaluationTemplateRoutes } from './evaluation-templates.js';
 import { platformAdminRoutes } from './platform-admin.js';
 import { dailyPresenceBudget, authenticationDenials } from './usage-presence.js';
@@ -1486,6 +1487,8 @@ async function withReceipt(q: express.Request, r: express.Response, fn: (tx: any
 const evaluationTemplatesEnabled = process.env.EVALUATION_TEMPLATES_ENABLED === 'true';
 if (evaluationTemplatesEnabled)
   app.use('/api/evaluation-templates', evaluationTemplateRoutes(db));
+const groupEvaluationsEnabled = process.env.GROUP_EVALUATIONS_ENABLED === 'true';
+if (groupEvaluationsEnabled) app.use('/api/group-evaluations', groupEvaluationRoutes(db));
 app.get('/api/tutorial', async (_q, r) => r.json(await readTutorial(db, r.locals.user.id)));
 app.get('/api/tutorial/stats', async (_q, r) => {
   if (r.locals.user.role !== 'admin')
