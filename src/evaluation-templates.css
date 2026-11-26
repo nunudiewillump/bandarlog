@@ -84,6 +84,9 @@
   padding: 16px;
 }
 
+.evaluation-template-list-actions {
+  padding-block: 20px;
+}
 .evaluation-templates .evaluation-controls > .select-control {
   width: auto;
 }

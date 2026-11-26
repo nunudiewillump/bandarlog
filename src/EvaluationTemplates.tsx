@@ -288,7 +288,7 @@ export default function EvaluationTemplates({
         />
       ) : !draft ? (
         <>
-          <div className="evaluation-controls">
+          <div className="evaluation-controls evaluation-template-list-actions">
             <button
               type="button"
               className="secondary"

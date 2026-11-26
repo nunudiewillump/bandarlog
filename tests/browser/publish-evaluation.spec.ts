@@ -51,9 +51,30 @@ test('coordination assigns a published version from the template menu', async ({
     }
     return route.fulfill({ json: [] });
   });
-  await page.setViewportSize({ width: 390, height: 850 });
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/?view=projects');
-  await page.getByRole('button', { name: 'Plantillas de evaluación' }).click();
+  const templates = page.getByRole('button', { name: 'Plantillas de evaluación' });
+  const newProject = page.getByRole('button', { name: 'Nuevo proyecto' });
+  await expect(templates).toBeVisible();
+  await expect(newProject).toBeVisible();
+  const left = (await templates.boundingBox())!;
+  const right = (await newProject.boundingBox())!;
+  expect(left.x + left.width).toBeLessThan(right.x);
+  expect(left.y + left.height / 2).toBeCloseTo(right.y + right.height / 2);
+  for (const style of ['background-color', 'color'])
+    await expect(templates).toHaveCSS(
+      style,
+      await newProject.evaluate(
+        (button, property) => getComputedStyle(button).getPropertyValue(property),
+        style,
+      ),
+    );
+  await page.setViewportSize({ width: 390, height: 850 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  await templates.click();
+  const actions = page.locator('.evaluation-template-list-actions');
+  await expect(actions).toHaveCSS('padding-top', '20px');
+  await expect(actions).toHaveCSS('padding-bottom', '20px');
   await page.getByRole('combobox', { name: 'Acciones de Balance del campamento' }).click();
   await page.getByRole('option', { name: 'Asignar evaluación' }).click();
   const panel = page.locator('.evaluation-templates');

@@ -1867,16 +1867,18 @@ function App() {
                     <p></p>
                   </div>
                   {manage && (
-                    <button className="primary" onClick={() => setModal('project')}>
-                      <Plus size={18} /> Nuevo proyecto
-                    </button>
+                    <div className="projects-heading-actions">
+                      {evaluationTemplatesEnabled && (
+                        <button className="primary" onClick={() => setEvaluationTemplatesOpen(true)}>
+                          Plantillas de evaluación
+                        </button>
+                      )}
+                      <button className="primary" onClick={() => setModal('project')}>
+                        <Plus size={18} /> Nuevo proyecto
+                      </button>
+                    </div>
                   )}
                 </div>
-                {manage && evaluationTemplatesEnabled && (
-                  <button className="secondary" onClick={() => setEvaluationTemplatesOpen(true)}>
-                    Plantillas de evaluación
-                  </button>
-                )}
                 <label className="project-kind-filter">
                   Tipo de proyecto
                   <Select
