@@ -1,7 +1,13 @@
-import { ProjectMeetings, useProjectMeetings, type Decision } from './ProjectMeetings';
-import { PlanningEditor, useProjectPlanning } from './ProjectPlanning';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Minus, Plus } from 'lucide-react';
+import {
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Minus,
+  Plus,
+} from 'lucide-react';
 import { calendarDay, formatDay, formatTick, timelineTicks } from './project-timeline';
 import { labels, progress, type Commission, type Data, type Project, type Task } from './types';
 import './project-map.css';
@@ -11,7 +17,6 @@ type Props = {
   data: Data;
   commissionIcon: (commission: Commission) => ReactNode;
   openTask: (task: Task) => void;
-  refresh: () => Promise<unknown>;
 };
 const states = ['pending', 'in_progress', 'blocked', 'done'] as const;
 const stateNames = {
@@ -22,26 +27,16 @@ const stateNames = {
 };
 const laneLabelWidth = 204;
 
-export default function ProjectMap({ project, data, commissionIcon, openTask, refresh }: Props) {
-  const planning = useProjectPlanning(project.id, data);
-  const plan = planning.data;
-  const meetings = useProjectMeetings(project.id, data, refresh);
-  const [presentation, setPresentation] = useState(false);
-  const [presentationError, setPresentationError] = useState('');
-  const [activeCommission, setActiveCommission] = useState<string>();
-  const [selectedDecision, setSelectedDecision] = useState<string>();
-  const mapRef = useRef<HTMLElement>(null);
-  const meetingButton = useRef<HTMLButtonElement>(null);
-  const focusedRow = useRef<string | undefined>(undefined);
-  useEffect(() => {
-    const onFullscreen = () => {
-      const active = document.fullscreenElement === mapRef.current;
-      setPresentation(active);
-      if (!active) meetingButton.current?.focus({ preventScroll: true });
-    };
-    document.addEventListener('fullscreenchange', onFullscreen);
-    return () => document.removeEventListener('fullscreenchange', onFullscreen);
-  }, []);
+function TaskSymbol({ status }: { status: string }) {
+  return (
+    <span className="pm-symbol" data-status={status} aria-hidden="true">
+      {status === 'done' && <Check size={11} strokeWidth={3} />}
+      {status === 'blocked' && <Minus size={10} strokeWidth={3} />}
+    </span>
+  );
+}
+
+export default function ProjectMap({ project, data, commissionIcon, openTask }: Props) {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [selected, setSelected] = useState<string>();
   const [filter, setFilter] = useState<string>();
@@ -102,16 +97,8 @@ export default function ProjectMap({ project, data, commissionIcon, openTask, re
       last: Math.max(...known, today),
     };
   }, [data, project, today]);
-  const planDays = [
-    ...(plan?.phases.flatMap((p) => [calendarDay(p.starts), calendarDay(p.ends)]) ?? []),
-    ...(plan?.milestones.flatMap((m) => [calendarDay(m.planned), calendarDay(m.achieved)]) ?? []),
-  ].filter((day): day is number => day !== null);
-  for (const decision of meetings.data?.decisions ?? []) {
-    const target = calendarDay(decision.target);
-    if (target !== null) planDays.push(target);
-  }
-  const start = Math.min(first, ...planDays) - 1;
-  const end = Math.max(last, ...planDays) + 2;
+  const start = first - 1;
+  const end = last + 2;
   const viewport = Math.max(1, width - laneLabelWidth);
   const track = Math.max(360, viewport) * zoom;
   const position = (day: number) => ((day - start) / (end - start)) * track;
@@ -121,111 +108,6 @@ export default function ProjectMap({ project, data, commissionIcon, openTask, re
   const total = tasks.size;
   const task = selected ? tasks.get(selected) : undefined;
   const taskLane = task && lanes.find(({ commission }) => commission.id === task.commissionId);
-
-  const decision = meetings.data?.decisions.find((d) => d.id === selectedDecision);
-  const laneIndex = lanes.findIndex((lane) => lane.commission.id === activeCommission);
-  function focusRow(key: string) {
-    const node = scroller.current;
-    if (!node) return;
-    const row = [...node.querySelectorAll<HTMLElement>('[data-pm-row]')].find(
-      (element) => element.dataset.pmRow === key,
-    );
-    if (row) node.scrollTop = Math.max(0, row.offsetTop - 58);
-    else focusedRow.current = key;
-  }
-  useLayoutEffect(() => {
-    if (focusedRow.current) {
-      const key = focusedRow.current;
-      focusedRow.current = undefined;
-      focusRow(key);
-    }
-  });
-
-  function tour(id?: string) {
-    setActiveCommission(id);
-    setFilter(undefined);
-    if (id) {
-      setExpanded(new Set([id]));
-      focusRow(id);
-    } else {
-      setExpanded(new Set());
-      scroller.current?.scrollTo(0, 0);
-    }
-  }
-  function pickTask(task: Task) {
-    setSelectedDecision(undefined);
-    setFilter(undefined);
-    setExpanded((current) => new Set([...current, task.commissionId]));
-    setSelected(task.id);
-    focusRow(task.id);
-    const day = calendarDay(task.due) ?? calendarDay(task.completedAt);
-    if (day !== null) scroller.current!.scrollLeft = position(day) - viewport / 2;
-  }
-  function pickDecision(decision: Decision) {
-    setSelected(undefined);
-    setSelectedDecision(decision.id);
-    const day = calendarDay(decision.target);
-    if (day !== null) {
-      focusRow(decision.id);
-      scroller.current!.scrollLeft = position(day) - viewport / 2;
-    }
-  }
-  function decisionRows(commissionId: string | null) {
-    return (meetings.data?.decisions ?? [])
-      .filter((d) => d.commissionId === commissionId && d.target && !d.resolvedAt)
-      .flatMap((d) => [
-        <div className="pm-label pm-plan-label" key={'label-' + d.id} data-pm-row={d.id}>
-          <button aria-pressed={selectedDecision === d.id} onClick={() => pickDecision(d)}>
-            <span>
-              <strong>{d.title}</strong>
-              <small>Decisión pendiente</small>
-            </span>
-          </button>
-        </div>,
-        <div className="pm-track pm-plan-track" key={d.id}>
-          <button
-            className="pm-decision-point"
-            style={{ left: position(calendarDay(d.target)!) }}
-            title={formatDay(calendarDay(d.target))}
-            aria-label={d.title + ', decisión pendiente'}
-            onClick={() => pickDecision(d)}
-          >
-            ?
-          </button>
-        </div>,
-      ]);
-  }
-  const related =
-    plan?.dependencies.filter((edge) => edge.sourceId === task?.id || edge.targetId === task?.id) ??
-    [];
-  const milestoneRows = (commissionId: string | null) =>
-    (plan?.milestones ?? [])
-      .filter((milestone) => milestone.commissionId === commissionId)
-      .flatMap((milestone) => [
-        <div
-          className="pm-label pm-plan-label"
-          key={'label-' + milestone.id}
-          data-pm-row={milestone.id}
-          title={milestone.description}
-        >
-          <strong>{milestone.name}</strong>
-          <small>Hito · {milestone.achieved ? 'Cumplido' : 'Pendiente'}</small>
-        </div>,
-        <div className="pm-track pm-plan-track" key={milestone.id}>
-          <span
-            className="pm-diamond"
-            title={'Previsto · ' + formatDay(calendarDay(milestone.planned))}
-            style={{ left: position(calendarDay(milestone.planned)!) }}
-          />
-          {milestone.achieved && (
-            <span
-              className="pm-diamond achieved"
-              title={'Cumplido · ' + formatDay(calendarDay(milestone.achieved))}
-              style={{ left: position(calendarDay(milestone.achieved)!) }}
-            />
-          )}
-        </div>,
-      ]);
 
   useLayoutEffect(() => {
     const node = scroller.current!;
@@ -256,56 +138,43 @@ export default function ProjectMap({ project, data, commissionIcon, openTask, re
   }
   function marks(t: Task) {
     const { due, done } = timestamps.get(t.id)!;
+    const separate = due !== null && done !== null && due !== done;
     const dates =
       due === done && done !== null
-        ? [{ day: done, label: 'Vencimiento y finalización', solid: true }]
+        ? [{ day: done, label: 'Vencimiento y finalización', completed: true }]
         : [
-            { day: due, label: 'Vencimiento', solid: false },
-            { day: done, label: 'Finalización', solid: true },
+            { day: due, label: 'Vencimiento', completed: false },
+            { day: done, label: 'Finalización', completed: true },
           ];
     return dates.map(
-      ({ day, label, solid }) =>
+      ({ day, label, completed }) =>
         day !== null && (
           <button
             key={label}
-            className={`pm-mark ${t.status} ${solid ? 'solid' : ''}`}
+            className={`pm-mark ${completed ? 'pm-completion' : ''}`}
+            data-position={separate ? (completed ? 'lower' : 'upper') : undefined}
             style={{ left: position(day) }}
             title={`${t.title} · ${label} · ${formatDay(day)}`}
             aria-label={`${t.title}, ${labels[t.status]}, ${label}, ${formatDay(day)}`}
             aria-pressed={selected === t.id}
-            onClick={() => {
-              setSelectedDecision(undefined);
-              setSelected(t.id);
-            }}
-          />
+            onClick={() => setSelected(t.id)}
+          >
+            <TaskSymbol status={t.status} />
+          </button>
         ),
     );
   }
 
   return (
-    <section className="project-map" ref={mapRef} aria-label="Mapa temporal del proyecto">
+    <section className="project-map" aria-label="Mapa temporal del proyecto">
       <header className="pm-header">
         <div>
-          <h2>{presentation ? project.name : 'Mapa del proyecto'}</h2>
+          <h2>Mapa del proyecto</h2>
           <p>
             {formatDay(calendarDay(project.starts))} – {formatDay(calendarDay(project.ends))}
           </p>
         </div>
         <div className="pm-controls" role="group" aria-label="Navegación temporal">
-          <button
-            ref={meetingButton}
-            onClick={async () => {
-              try {
-                if (presentation) await document.exitFullscreen();
-                else await mapRef.current!.requestFullscreen();
-                setPresentationError('');
-              } catch {
-                setPresentationError('El navegador no ha podido cambiar a pantalla completa.');
-              }
-            }}
-          >
-            {presentation ? 'Salir del modo reunión' : 'Modo reunión'}
-          </button>
           <button
             onClick={() => {
               setZoom(1);
@@ -345,44 +214,6 @@ export default function ProjectMap({ project, data, commissionIcon, openTask, re
           </button>
         </div>
       </header>
-      {presentationError && (
-        <p className="pm-empty" role="alert">
-          {presentationError}
-        </p>
-      )}
-      {presentation && (
-        <div className="pm-tour pm-controls" role="group" aria-label="Recorrido por comisiones">
-          <button onClick={() => tour()} disabled={!activeCommission}>
-            Todas las comisiones
-          </button>
-          <button
-            onClick={() => tour(lanes[laneIndex - 1]?.commission.id)}
-            disabled={laneIndex < 1}
-          >
-            Anterior
-          </button>
-          <label>
-            Comisión{' '}
-            <select
-              value={activeCommission ?? ''}
-              onChange={(event) => tour(event.target.value || undefined)}
-            >
-              <option value="">Proyecto completo</option>
-              {lanes.map(({ commission }) => (
-                <option key={commission.id} value={commission.id}>
-                  {commission.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            onClick={() => tour(lanes[laneIndex + 1]?.commission.id)}
-            disabled={laneIndex + 1 >= lanes.length}
-          >
-            Siguiente
-          </button>
-        </div>
-      )}
       <div className="pm-metrics" role="group" aria-label="Progreso y estados">
         <strong>
           {counts.done}/{total} terminadas · {total ? Math.round((counts.done / total) * 100) : 0} %
@@ -404,37 +235,9 @@ export default function ProjectMap({ project, data, commissionIcon, openTask, re
                 );
             }}
           >
-            <i className={`pm-dot ${state}`} /> {counts[state]} {stateNames[state]}
+            <TaskSymbol status={state} /> {counts[state]} {stateNames[state]}
           </button>
         ))}
-        {plan && (
-          <button
-            onClick={() => {
-              const next = plan.milestones.find(
-                (m) => !m.achieved && calendarDay(m.planned)! >= today,
-              );
-              if (next) {
-                focusRow(next.id);
-                scroller.current!.scrollLeft = position(calendarDay(next.planned)!) - viewport / 2;
-              }
-            }}
-            disabled={!plan.milestones.some((m) => !m.achieved && calendarDay(m.planned)! >= today)}
-          >
-            {plan.milestones.filter((m) => !m.achieved && calendarDay(m.planned)! >= today).length}{' '}
-            próximos hitos
-          </button>
-        )}
-        {meetings.data && (
-          <button
-            onClick={() => {
-              const next = meetings.data?.decisions.find((d) => !d.resolvedAt);
-              if (next) pickDecision(next);
-            }}
-            disabled={!meetings.data.decisions.some((d) => !d.resolvedAt)}
-          >
-            {meetings.data.decisions.filter((d) => !d.resolvedAt).length} decisiones pendientes
-          </button>
-        )}
       </div>
       <div
         className="pm-scroll"
@@ -501,33 +304,6 @@ export default function ProjectMap({ project, data, commissionIcon, openTask, re
             )}
             <i className="pm-today-line" style={{ left: position(today) }} />
           </div>
-          {(plan?.phases ?? []).flatMap((phase) => [
-            <div
-              className="pm-label pm-plan-label"
-              key={'label-' + phase.id}
-              title={phase.description}
-            >
-              <strong>{phase.name}</strong>
-              <small>Fase</small>
-            </div>,
-            <div className="pm-track pm-plan-track" key={phase.id}>
-              <div
-                className="pm-phase"
-                style={{
-                  left: position(calendarDay(phase.starts)!),
-                  width: Math.max(
-                    3,
-                    position(calendarDay(phase.ends)! + 1) - position(calendarDay(phase.starts)!),
-                  ),
-                }}
-                title={
-                  formatDay(calendarDay(phase.starts)) + ' – ' + formatDay(calendarDay(phase.ends))
-                }
-              />
-            </div>,
-          ])}
-          {milestoneRows(null)}
-          {decisionRows(null)}
           {lanes.flatMap(({ commission, tasks: list }) => {
             const open = expanded.has(commission.id);
             const visible = filter ? list.filter((t) => t.status === filter) : list;
@@ -537,19 +313,14 @@ export default function ProjectMap({ project, data, commissionIcon, openTask, re
               const { due, done } = timestamps.get(t.id)!;
               for (const day of [due, done]) {
                 if (day === null) continue;
-                const bucket = Math.round(position(day) / 10);
+                const bucket = Math.round(position(day) / 16);
                 const previous = marksByPixel.get(bucket);
                 if (!previous || priority.indexOf(t.status) > priority.indexOf(previous.status))
                   marksByPixel.set(bucket, { day, status: t.status });
               }
             }
             return [
-              <div
-                className="pm-label pm-commission"
-                data-pm-row={commission.id}
-                data-active={activeCommission === commission.id}
-                key={`label-${commission.id}`}
-              >
+              <div className="pm-label pm-commission" key={`label-${commission.id}`}>
                 <button onClick={() => toggle(commission.id)} aria-expanded={open}>
                   {commissionIcon(commission)}
                   <span>
@@ -561,65 +332,34 @@ export default function ProjectMap({ project, data, commissionIcon, openTask, re
                   {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </button>
               </div>,
-              <div
-                className="pm-track pm-lane"
-                data-active={activeCommission === commission.id}
-                key={`lane-${commission.id}`}
-              >
+              <div className="pm-track pm-lane" key={`lane-${commission.id}`}>
                 <i className="pm-baseline" />
                 {[...marksByPixel].map(([bucket, { day, status }]) => (
                   <i
                     key={bucket}
                     aria-hidden="true"
-                    className={`pm-dot pm-summary-dot ${status}`}
+                    className="pm-summary-dot"
                     style={{ left: position(day) }}
-                  />
+                  >
+                    <TaskSymbol status={status} />
+                  </i>
                 ))}
               </div>,
-              ...milestoneRows(commission.id),
-              ...decisionRows(commission.id),
               ...(open
                 ? visible.flatMap((t) => [
-                    <div className="pm-label pm-task" data-pm-row={t.id} key={`task-${t.id}`}>
-                      <button
-                        aria-pressed={selected === t.id}
-                        onClick={() => {
-                          setSelectedDecision(undefined);
-                          setSelected(t.id);
-                        }}
-                      >
-                        <i className={`pm-dot ${t.status}`} />
+                    <div className="pm-label pm-task" key={`task-${t.id}`}>
+                      <button aria-pressed={selected === t.id} onClick={() => setSelected(t.id)}>
+                        <TaskSymbol status={t.status} />
                         <span>
                           <strong>{t.title}</strong>
-                          <small>{owners.get(t.id)?.join(', ') || 'Sin responsable visible'}</small>
+                          <small>
+                            {labels[t.status]} ·{' '}
+                            {owners.get(t.id)?.join(', ') || 'Sin responsable visible'}
+                          </small>
                         </span>
                       </button>
                     </div>,
                     <div className="pm-track pm-task-track" key={`track-${t.id}`}>
-                      {selected === t.id &&
-                        related.map(({ sourceId, targetId }) => {
-                          const source = tasks.get(sourceId);
-                          const target = tasks.get(targetId);
-                          const from = calendarDay(source?.due) ?? calendarDay(source?.completedAt);
-                          const to = calendarDay(target?.due) ?? calendarDay(target?.completedAt);
-                          if (from === null || to === null || from === to) return null;
-                          const x = position(from),
-                            y = position(to);
-                          const sign = Math.sign(y - x);
-                          return (
-                            <svg
-                              key={sourceId + ':' + targetId}
-                              className={source?.status === 'done' ? 'pm-edge met' : 'pm-edge'}
-                              width={track}
-                              height={36}
-                              aria-hidden="true"
-                            >
-                              <path
-                                d={`M ${x} 18 V 8 H ${y} V 18 M ${y - sign * 4} 4 L ${y} 8 L ${y - sign * 4} 12`}
-                              />
-                            </svg>
-                          );
-                        })}
                       {marks(t)}
                     </div>,
                   ])
@@ -632,24 +372,14 @@ export default function ProjectMap({ project, data, commissionIcon, openTask, re
         )}
       </div>
       <footer className="pm-legend">
+        <span>Marcador de tarea · Vencimiento</span>
         <span>
-          <i className="pm-dot pending" /> Vencimiento
-        </span>
-        <span>
-          <i className="pm-dot done" /> Finalización registrada
+          <i className="pm-completion-key" aria-hidden="true">
+            <TaskSymbol status="done" />
+          </i>{' '}
+          Finalización registrada
         </span>
         <span>Hoy · {formatDay(today)}</span>
-        {!!plan?.milestones.length && (
-          <span>
-            <i className="pm-key-diamond" /> Hito previsto ·{' '}
-            <i className="pm-key-diamond achieved" /> Hito cumplido
-          </span>
-        )}
-        {!!meetings.data?.decisions.some((d) => !d.resolvedAt && d.target) && (
-          <span>
-            <strong className="pm-key-question">?</strong> Decisión pendiente
-          </span>
-        )}
       </footer>
       {task && (
         <aside className="pm-detail" aria-label="Detalle contextual de tarea">
@@ -680,130 +410,12 @@ export default function ProjectMap({ project, data, commissionIcon, openTask, re
                 </div>
               )}
             </dl>
-            {related.length > 0 && (
-              <ul className="pm-relations" aria-label="Dependencias">
-                {related.map((edge) => {
-                  const source = tasks.get(edge.sourceId);
-                  const incoming = edge.targetId === task.id;
-                  const other = tasks.get(incoming ? edge.sourceId : edge.targetId);
-                  if (!other) return null;
-                  return (
-                    <li key={other.id + String(incoming)}>
-                      {incoming ? 'Requiere' : 'Condiciona'} ·{' '}
-                      <button
-                        onClick={() => {
-                          pickTask(other);
-                        }}
-                      >
-                        {other.title}
-                      </button>{' '}
-                      · {source?.status === 'done' ? 'Cumplida' : 'Por cumplir'}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
           </div>
           <div className="pm-controls">
-            <button
-              onClick={async () => {
-                if (presentation) await document.exitFullscreen();
-                openTask(task);
-              }}
-            >
-              Abrir ficha
-            </button>
+            <button onClick={() => openTask(task)}>Abrir ficha</button>
             <button onClick={() => setSelected(undefined)}>Cerrar detalle</button>
           </div>
         </aside>
-      )}
-      {planning.error && (
-        <p className="pm-empty" role="status">
-          Planificación no disponible. {planning.error}
-        </p>
-      )}
-      {!presentation && plan?.canManage && project.archived !== 'true' && (
-        <PlanningEditor
-          plan={plan}
-          commissions={lanes.map((lane) => lane.commission)}
-          tasks={[...tasks.values()]}
-          save={planning.save}
-        />
-      )}
-      {decision && (
-        <aside className="pm-detail" aria-label="Detalle de decisión">
-          <div>
-            <p>
-              {decision.resolvedAt ? 'Decisión resuelta' : 'Decisión pendiente'} ·{' '}
-              {decision.commissionId
-                ? lanes.find((lane) => lane.commission.id === decision.commissionId)?.commission
-                    .name
-                : 'Proyecto'}
-            </p>
-            <h3>{decision.title}</h3>
-            {decision.description && <p>{decision.description}</p>}
-            <p>Fecha objetivo · {formatDay(calendarDay(decision.target))}</p>
-            <p>
-              Autor ·{' '}
-              {data.users.find((u) => u.id === decision.authorId)?.name ?? 'Autor registrado'} ·{' '}
-              {formatDay(calendarDay(decision.createdAt))}
-            </p>
-            {decision.ownerId && (
-              <p>
-                Responsable ·{' '}
-                {data.users.find((u) => u.id === decision.ownerId)?.name ??
-                  'Responsable registrado'}
-              </p>
-            )}
-            {decision.resolution && (
-              <p>
-                Resolución · {decision.resolution} · {formatDay(calendarDay(decision.resolvedAt))}
-              </p>
-            )}
-            {meetings.data?.followups
-              .filter((f) => f.decisionId === decision.id)
-              .map((f) => {
-                const followup = tasks.get(f.taskId);
-                return (
-                  followup && (
-                    <p key={f.taskId}>
-                      Seguimiento ·{' '}
-                      <button onClick={() => pickTask(followup)}>{followup.title}</button>
-                    </p>
-                  )
-                );
-              })}
-          </div>
-          <div className="pm-controls">
-            <button onClick={() => setSelectedDecision(undefined)}>Cerrar decisión</button>
-          </div>
-        </aside>
-      )}
-      {meetings.error && (
-        <p className="pm-empty" role="status">
-          Agenda no disponible. {meetings.error}
-        </p>
-      )}
-      {meetings.data && (
-        <ProjectMeetings
-          model={meetings.data}
-          data={data}
-          projectId={project.id}
-          activeCommission={activeCommission}
-          archived={project.archived === 'true'}
-          fullscreen={presentation}
-          commissions={lanes.map((lane) => lane.commission)}
-          tasks={[...tasks.values()]}
-          today={today}
-          milestones={plan?.milestones ?? []}
-          save={meetings.save}
-          pickTask={pickTask}
-          pickDecision={pickDecision}
-          pickMilestone={(id, date) => {
-            focusRow(id);
-            scroller.current!.scrollLeft = position(calendarDay(date)!) - viewport / 2;
-          }}
-        />
       )}
     </section>
   );

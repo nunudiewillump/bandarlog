@@ -379,6 +379,13 @@
       "when": 1794847900000,
       "tag": "0053_evaluation_publication_date",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1794848000000,
+      "tag": "0054_remove_project_meetings",
+      "breakpoints": true
     }
   ]
 }

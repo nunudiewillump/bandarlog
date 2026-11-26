@@ -71,10 +71,18 @@ test('unifying projects preserves legacy IDs, links, assignments, roles, task st
   }
 });
 
-test('the actor SQL role sees only its project and commission records and keeps closed minutes immutable', async () => {
+test('the actor SQL role sees only its project and commission records after applying the meeting cleanup', async () => {
   const client = new PGlite();
+  const folder = await mkdtemp(join(tmpdir(), 'bandarlog-before-meeting-cleanup-'));
   try {
-    await migrate(drizzle(client), { migrationsFolder: 'migrations' });
+    await mkdir(join(folder, 'meta'));
+    const journal = JSON.parse(await readFile('migrations/meta/_journal.json', 'utf8'));
+    journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx < 54);
+    await writeFile(join(folder, 'meta/_journal.json'), JSON.stringify(journal));
+    for (const entry of journal.entries)
+      await copyFile(`migrations/${entry.tag}.sql`, join(folder, entry.tag + '.sql'));
+    const db = drizzle(client);
+    await migrate(db, { migrationsFolder: folder });
     const token = 'a'.repeat(64);
     await client.exec(`
       INSERT INTO scout_groups(id,name) VALUES('map-a','Grupo A'),('map-b','Grupo B');
@@ -96,23 +104,35 @@ test('the actor SQL role sees only its project and commission records and keeps 
       INSERT INTO project_milestones(group_id,id,project_id,commission_id,name,planned) VALUES
         ('map-a','map-milestone','map-project','map-own','Visible','2027-01-01'),
         ('map-a','map-milestone-hidden','map-project','map-hidden','Oculto','2027-01-01');
-      INSERT INTO project_decisions(group_id,id,project_id,commission_id,author_id,title) VALUES
-        ('map-a','map-decision','map-project','map-own','map-admin','Visible'),
-        ('map-a','map-decision-hidden','map-project','map-hidden','map-admin','Oculta');
       INSERT INTO project_dependencies(group_id,project_id,source_id,target_id) VALUES
         ('map-a','map-project','map-task-own','map-task-hidden');
+      INSERT INTO project_decisions(group_id,id,project_id,author_id,title)
+        VALUES('map-a','map-decision','map-project','map-admin','Decisión histórica');
       INSERT INTO project_minutes(group_id,id,project_id,author_id,held_on,title,agenda,notes,closed_at)
-        VALUES('map-a','map-minutes','map-project','map-admin','2027-01-01','Acta','Orden','Contenido',now());
+        VALUES('map-a','map-minutes','map-project','map-admin','2027-01-01','Acta histórica','Orden','Contenido',now());
+      INSERT INTO project_followups(group_id,project_id,decision_id,task_id)
+        VALUES('map-a','map-project','map-decision','map-task-own');
     `);
+    await migrate(db, { migrationsFolder: 'migrations' });
+    assert.deepEqual((await client.query("select id from tasks where id='map-task-own'")).rows, [
+      { id: 'map-task-own' },
+    ]);
     await assert.rejects(
       client.query(
         "insert into project_dependencies (group_id,project_id,source_id,target_id) values('map-a','map-project','map-task-own','map-task-separate')",
       ),
       /must belong to the project/,
     );
-    await assert.rejects(
-      client.query("update project_minutes set notes='Editado' where id='map-minutes'"),
-      /Minutes already closed/,
+    assert.deepEqual(
+      (
+        await client.query(`
+      select to_regclass('public.project_minutes') as minutes,
+             to_regclass('public.project_decisions') as decisions,
+             to_regclass('public.project_followups') as followups,
+             bandarlog_api.runtime_contract_version() as contract
+    `)
+      ).rows,
+      [{ minutes: null, decisions: null, followups: null, contract: 54 }],
     );
     await client.transaction(async (tx) => {
       await tx.query(
@@ -127,11 +147,7 @@ test('the actor SQL role sees only its project and commission records and keeps 
       assert.deepEqual((await tx.query('select id from project_milestones')).rows, [
         { id: 'map-milestone' },
       ]);
-      assert.deepEqual((await tx.query('select id from project_decisions')).rows, [
-        { id: 'map-decision' },
-      ]);
       assert.deepEqual((await tx.query('select * from project_dependencies')).rows, []);
-      assert.deepEqual((await tx.query('select id from project_minutes')).rows, []);
     });
     await assert.rejects(
       client.transaction(async (tx) => {
@@ -149,5 +165,6 @@ test('the actor SQL role sees only its project and commission records and keeps 
     );
   } finally {
     await client.close();
+    await rm(folder, { recursive: true, force: true });
   }
 });
