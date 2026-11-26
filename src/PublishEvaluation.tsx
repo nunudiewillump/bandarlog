@@ -5,6 +5,8 @@ import { deadlineDay, deadlineISO } from './deadline';
 import type { User } from './types';
 
 export default function PublishEvaluation({
+  projectId,
+  onClosed,
   template,
   versions,
   more,
@@ -13,6 +15,8 @@ export default function PublishEvaluation({
   people,
   onBack,
 }: {
+  projectId?: string | null;
+  onClosed?: () => void;
   template: { id: string; title: string };
   versions: { revision: number }[];
   more: boolean;
@@ -23,7 +27,11 @@ export default function PublishEvaluation({
 }) {
   const [title, setTitle] = useState(template.title);
   const [revision, setRevision] = useState(versions[0]?.revision ?? 0);
-  const [day, setDay] = useState('');
+  const [day, setDay] = useState(() => {
+    if (!projectId) return '';
+    const today = deadlineDay(new Date().toISOString());
+    return new Date(Date.parse(today + 'T00:00:00Z') + 7 * 86_400_000).toISOString().slice(0, 10);
+  });
   const [query, setQuery] = useState('');
   const [recipients, setRecipients] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -43,13 +51,20 @@ export default function PublishEvaluation({
         setSaving(true);
         setError('');
         try {
-          await api('/group-evaluations', 'POST', {
+          const evaluation = {
             title: title.trim(),
             templateId: template.id,
             templateRevision: revision,
             userIds: recipients,
             dueAt: deadlineISO(day),
-          });
+          };
+          if (projectId) {
+            await api('/projects/' + encodeURIComponent(projectId) + '/lifecycle', 'POST', {
+              action: 'close-and-evaluate',
+              evaluation,
+            });
+            onClosed?.();
+          } else await api('/group-evaluations', 'POST', evaluation);
           setPublished(true);
         } catch (cause) {
           setError(cause instanceof Error ? cause.message : 'Inténtalo de nuevo.');
@@ -58,10 +73,13 @@ export default function PublishEvaluation({
         }
       }}
     >
-      <h1>Publicar evaluación</h1>
+      <h1>{projectId ? 'Cerrar y evaluar' : 'Publicar evaluación'}</h1>
       {error && <p role="alert">{error}</p>}
       {published && (
-        <p role="status">Evaluación publicada. Las personas asignadas pueden abrirla en Inicio.</p>
+        <p role="status">
+          {projectId ? 'Proyecto cerrado. ' : ''}Evaluación publicada. Las personas asignadas pueden
+          abrirla en Inicio.
+        </p>
       )}
       <div className="evaluation-controls">
         <button type="button" className="secondary" disabled={saving || busy} onClick={onBack}>
@@ -73,7 +91,7 @@ export default function PublishEvaluation({
             className="primary"
             disabled={saving || busy || !title.trim() || !revision || !recipients.length || !day}
           >
-            {saving ? 'Publicando…' : 'Publicar'}
+            {saving ? 'Publicando…' : projectId ? 'Cerrar y evaluar' : 'Publicar'}
           </button>
         )}
       </div>

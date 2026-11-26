@@ -513,6 +513,7 @@ export const evaluationTemplateVersions = pgTable('evaluation_template_versions'
 export const groupEvaluations = pgTable('group_evaluations', {
   groupId: text('group_id').notNull().default(sql`nullif(current_setting('bandarlog.group_id', true), '')`),
   id: text().notNull(),
+  projectId: text('project_id'),
   templateId: text('template_id').notNull(),
   templateRevision: integer('template_revision').notNull(),
   title: text().notNull(),

@@ -81,6 +81,8 @@ function Actions({
 export default function EvaluationTemplates({
   onBack,
   initialResultId,
+  closingProjectId,
+  onClosed,
   canPublish,
   people,
   onCreateAction,
@@ -88,6 +90,8 @@ export default function EvaluationTemplates({
 }: {
   onBack: () => void;
   initialResultId: string | null;
+  closingProjectId: string | null;
+  onClosed: () => void;
   canPublish: boolean;
   people: User[];
   onCreateAction: (action: { id: string; revision: number; title: string }) => void;
@@ -231,11 +235,15 @@ export default function EvaluationTemplates({
 
   return (
     <section className="panel evaluation-templates" aria-busy={busy}>
-      {!draft && !publication && <h1>Plantillas de evaluación</h1>}
+      {!draft && !publication && (
+        <h1>{closingProjectId ? 'Elegir plantilla para el cierre' : 'Plantillas de evaluación'}</h1>
+      )}
       {error && <p role="alert">{error}</p>}
       <p role="status">{busy ? 'Cargando…' : status}</p>
       {publication ? (
         <PublishEvaluation
+          projectId={closingProjectId}
+          onClosed={onClosed}
           template={publication}
           versions={versions}
           busy={busy}
@@ -319,7 +327,9 @@ export default function EvaluationTemplates({
                 >
                   <option value="open">{item.archived ? 'Consultar' : 'Editar'}</option>
                   {canPublish && !item.archived && (
-                    <option value="publishEvaluation">Asignar evaluación</option>
+                    <option value="publishEvaluation">
+                      {closingProjectId ? 'Usar para cerrar y evaluar' : 'Asignar evaluación'}
+                    </option>
                   )}
                   <option value="duplicate">Duplicar</option>
                   <option value="archive">{item.archived ? 'Restaurar' : 'Archivar'}</option>

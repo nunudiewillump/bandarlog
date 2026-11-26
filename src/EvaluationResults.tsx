@@ -8,6 +8,7 @@ type Evaluation = {
   title: string;
   dueAt: string;
   open: boolean;
+  paused?: boolean;
   templateRevision: number;
 };
 type Distribution = { value: string | number | boolean; count: number };
@@ -108,7 +109,8 @@ export default function EvaluationResults({
               <span>
                 <strong>{item.title}</strong>
                 <br />
-                {item.open ? 'Abierta' : 'Cerrada'} · {date.format(new Date(item.dueAt))}
+                {item.paused ? 'Pausada' : item.open ? 'Abierta' : 'Cerrada'} ·{' '}
+                {date.format(new Date(item.dueAt))}
               </span>
               <Select
                 aria-label={'Opciones de ' + item.title}

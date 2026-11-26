@@ -1171,6 +1171,21 @@ test('PostgreSQL scopes assigned evaluations and protects draft and submission s
   await ownerPool.query("update project_lifecycle_events set created_at=now()-interval '16 days' where project_id='p2-action-project'");
   await assert.rejects(as(actors[1], lifecycle.replace("'closed'", "'reopened'")), /transition unavailable/);
   assert.equal((await as(actors[1], "select title from tasks where id='p2-action-task'")).rows[0].title, 'Acción');
+  await ownerPool.query(`
+    update project_lifecycle_events set created_at=now() where project_id='p2-action-project';
+    insert into group_evaluations(group_id,id,template_id,template_revision,title,due_at,project_id)
+      values ('p2-qa','p2-linked','p2-template',1,'Vinculada',now()+interval '1 day','p2-action-project');
+    insert into group_evaluation_assignments(group_id,evaluation_id,user_id) values ('p2-qa','p2-linked','p2-member');
+  `);
+  const availability = "select bandarlog_api.group_evaluation_project_closed('p2-linked') open";
+  assert.equal((await as(actors[0], availability)).rows[0].open, true);
+  assert.equal((await as(actors[2], availability)).rows[0].open, false);
+  await as(actors[1], lifecycle.replace("'closed'", "'reopened'"));
+  assert.equal((await as(actors[0], availability)).rows[0].open, false);
+  await assert.rejects(as(actors[0], "update group_evaluation_assignments set revision=1 where evaluation_id='p2-linked'"), /Evaluation is closed/);
+  await as(actors[1], lifecycle);
+  assert.equal((await as(actors[0], "update group_evaluation_assignments set revision=1 where evaluation_id='p2-linked'")).rowCount, 1);
+
 
 
 

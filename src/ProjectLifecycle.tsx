@@ -15,8 +15,10 @@ const formatDate = new Intl.DateTimeFormat('es-ES', {
 export function ProjectLifecycle({
   projectId,
   refresh,
+  onEvaluate,
 }: {
   projectId: string;
+  onEvaluate?: () => void;
   refresh: (work: () => Promise<void>, message: string) => Promise<boolean>;
 }) {
   const [state, setState] = useState<State | null>(null);
@@ -57,6 +59,11 @@ export function ProjectLifecycle({
   const legacy = state.archived && !state.last;
   return (
     <>
+      {!state.archived && onEvaluate && (
+        <button type="button" className="primary" onClick={onEvaluate}>
+          Cerrar y evaluar
+        </button>
+      )}
       {reopen && (
         <p>Se puede reabrir hasta el {formatDate.format(new Date(state.last!.reopenUntil))}.</p>
       )}

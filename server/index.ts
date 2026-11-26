@@ -1,4 +1,4 @@
-import { groupEvaluationRoutes } from './group-evaluations.js';
+import { createGroupEvaluation, evaluationPublication, groupEvaluationRoutes } from './group-evaluations.js';
 import { evaluationTemplateRoutes } from './evaluation-templates.js';
 import { platformAdminRoutes } from './platform-admin.js';
 import { dailyPresenceBudget, authenticationDenials } from './usage-presence.js';
@@ -2543,7 +2543,13 @@ if (groupEvaluationsEnabled) {
   app.post('/api/projects/:id/lifecycle', async (q, r) => {
     if (!globalManage(r.locals.user)) fail(403, 'Solo coordinación puede gestionar el cierre.');
     const projectId = parse(text, q.params.id);
-    const { action } = parse(z.strictObject({ action: z.enum(['close', 'reopen']) }), q.body);
+    const command = parse(z.discriminatedUnion('action', [
+      z.strictObject({ action: z.enum(['close', 'reopen']) }),
+      z.strictObject({ action: z.literal('close-and-evaluate'), evaluation: evaluationPublication }),
+    ]), q.body);
+    const { action } = command;
+    if (command.action === 'close-and-evaluate' && +new Date(command.evaluation.dueAt) <= Date.now())
+      fail(400, 'Selecciona una fecha límite futura.');
     const result = await withReceipt(q, r, async (tx) => {
       const [current] = await tx.select({ archived: s.projects.archived }).from(s.projects)
         .where(eq(s.projects.id, projectId)).for('update');
@@ -2553,13 +2559,18 @@ if (groupEvaluationsEnabled) {
         canReopen: sql<boolean>`clock_timestamp() < ${s.projectLifecycleEvents.createdAt} + interval '360 hours'`,
       }).from(s.projectLifecycleEvents).where(eq(s.projectLifecycleEvents.projectId, projectId))
         .orderBy(sql`${s.projectLifecycleEvents.eventNo} desc`).limit(1);
-      if (action === 'close' && current.archived === 'true')
+      if (action !== 'reopen' && current.archived === 'true')
         fail(409, 'El proyecto ya está cerrado o archivado.');
       if (action === 'reopen' && (current.archived !== 'true' || last?.kind !== 'closed' || !last.canReopen))
         fail(409, 'El proyecto ya no está dentro del plazo de reapertura.');
       await tx.execute(sql`insert into project_lifecycle_events (project_id,actor_id,kind)
-        values (${projectId}, ${r.locals.user.id}, ${action === 'close' ? 'closed' : 'reopened'})`);
-      return { archived: action === 'close' };
+        values (${projectId}, ${r.locals.user.id}, ${action === 'reopen' ? 'reopened' : 'closed'})`);
+      const evaluationId = command.action === 'close-and-evaluate'
+        ? await createGroupEvaluation(tx as unknown as Database, command.evaluation, projectId)
+        : undefined;
+      if (command.action === 'close-and-evaluate' && !evaluationId)
+        fail(400, 'Selecciona una versión publicada y participantes activos del grupo.');
+      return { archived: action !== 'reopen', evaluationId };
     });
     r.json(result);
   });
