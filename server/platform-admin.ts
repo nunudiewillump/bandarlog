@@ -306,7 +306,7 @@ export function platformAdminRoutes(
   });
   router.get('/api/platform/me', async (q, r) => {
     const actor = await ops.adminMe(token(q));
-    r.json({ ...actor, productFeedbackEnabled: process.env.PRODUCT_FEEDBACK_ENABLED === 'true' });
+    r.json({ ...actor, productFeedbackEnabled: process.env.PRODUCT_FEEDBACK_ENABLED === 'true' || process.env.PRODUCT_CAMPAIGNS_ENABLED === 'true' });
   });
   router.post('/api/platform/logout', async (q, r) => {
     await ops.adminClose(token(q), csrf(q));
@@ -333,17 +333,26 @@ export function platformAdminRoutes(
       );
       r.json(view === 'mail' ? { ...result, preview: platformPreview(origin) } : result);
     });
-  if (process.env.PRODUCT_FEEDBACK_ENABLED === 'true') {
+  const campaignsEnabled = process.env.PRODUCT_CAMPAIGNS_ENABLED === 'true';
+  if (campaignsEnabled) router.post('/api/platform/campaigns/:campaign', async (q,r) => {
+    const campaign = z.enum(['F01','F02','F03']).parse(q.params.campaign);
+    const { paused } = z.strictObject({ paused: z.boolean() }).parse(q.body);
+    await ops.setProductCampaignPaused(token(q), csrf(q), campaign, paused);
+    r.json({ ok: true });
+  });
+  if (process.env.PRODUCT_FEEDBACK_ENABLED === 'true' || campaignsEnabled) {
     const statuses = z.enum(['new','reviewing','in_progress','resolved','archived']);
     router.get('/api/platform/feedback', async (q,r) => {
       const p = query.parse(q.query);
       const after = p.cursor ? z.uuid().parse(p.cursor) : null;
       const status = p.filter ? statuses.parse(p.filter) : '';
-      const [rows, insights] = await Promise.all([
+      const [rows, insights, surveys, campaigns] = await Promise.all([
         ops.productFeedbackList(token(q), after, p.limit + 1, status),
         ops.productFeedbackInsights(token(q), Number(p.period)),
+        campaignsEnabled ? ops.productSurveyInsights(token(q), Number(p.period)) : null,
+        campaignsEnabled ? ops.productCampaignStatus(token(q)) : null,
       ]);
-      r.json({ insights, items: rows.slice(0,p.limit), nextCursor: rows.length > p.limit ? rows[p.limit-1].id : '' });
+      r.json({ insights, surveys, campaigns, items: rows.slice(0,p.limit), nextCursor: rows.length > p.limit ? rows[p.limit-1].id : '' });
     });
     router.post('/api/platform/feedback/:id', async (q,r) => {
       const id = z.uuid().parse(q.params.id);

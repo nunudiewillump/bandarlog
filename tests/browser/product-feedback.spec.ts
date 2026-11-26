@@ -28,7 +28,14 @@ test('voluntary feedback from Perfil reaches the authorized platform inbox', asy
     if (path === '/api/platform/feedback')
       return route.fulfill({
         json: {
-          insights: [{ day: '2026-11-26', category: 'idea', total: 1, pending: status === 'resolved' ? 0 : 1 }],
+          insights: [
+            {
+              day: '2026-11-26',
+              category: 'idea',
+              total: 1,
+              pending: status === 'resolved' ? 0 : 1,
+            },
+          ],
           items: [
             {
               id: feedbackId,
@@ -63,4 +70,48 @@ test('voluntary feedback from Perfil reaches the authorized platform inbox', asy
   await page.getByLabel('Cambiar estado de aportación').selectOption('resolved');
   await expect.poll(() => status).toBe('resolved');
   await expect(page.getByLabel('Cambiar estado de aportación')).toHaveValue('resolved');
+});
+
+test('an optional follow-up survey opens from Inicio and sends explicit ratings', async ({
+  page,
+}) => {
+  const fixture = mobileFixture(1);
+  fixture.user.onboardingCompletedAt = '2026-01-01T00:00:00Z';
+  let submitted: unknown;
+  await page.route('**/api/**', (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path === '/api/me')
+      return route.fulfill({
+        json: { user: fixture.user, csrf: 'fixture', productCampaignsEnabled: true },
+      });
+    if (path === '/api/data') return route.fulfill({ json: fixture.summary() });
+    if (path === '/api/tutorial')
+      return route.fulfill({ json: { events: { tutorial_skipped: '2026-01-01T00:00:00Z' } } });
+    if (path === '/api/product-survey') {
+      const command = request.postDataJSON();
+      if (command.action === 'offer')
+        return route.fulfill({
+          json: { id: '5917fb55-ee3f-48e9-979c-5207dbf50868', campaign: 'F03', version: 1 },
+        });
+      submitted = command;
+      return route.fulfill({ json: { ok: true } });
+    }
+    return route.fulfill({ json: {} });
+  });
+  await page.setViewportSize({ width: 390, height: 850 });
+  await page.goto('/acceso');
+  await page.getByRole('button', { name: 'Dar mi opinión' }).click();
+  const survey = page.getByRole('region', { name: '¿Cómo te está funcionando Bandarlog?' });
+  const scales = survey.getByRole('combobox');
+  await expect(scales).toHaveCount(7);
+  await expect(scales.first()).toHaveValue('');
+  for (const rating of await scales.all()) await rating.selectOption('3');
+  await scales.last().selectOption('9');
+  await survey.getByRole('button', { name: 'Enviar opinión' }).click();
+  await expect(page.getByText('Gracias por compartir tu opinión.')).toBeVisible();
+  expect(submitted).toMatchObject({
+    action: 'submit',
+    answers: { scores: [3, 3, 3, 3, 3, 3], nps: 9 },
+  });
 });

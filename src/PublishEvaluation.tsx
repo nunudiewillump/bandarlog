@@ -40,7 +40,14 @@ export default function PublishEvaluation({
     return new Date(Date.parse(today + 'T00:00:00Z') + 7 * 86_400_000).toISOString().slice(0, 10);
   });
   const [query, setQuery] = useState('');
-  const [recipients, setRecipients] = useState<string[]>([]);
+  const [selections, setSelections] = useState<Record<string, string[]>>({});
+  const recipients = selections[commissionId] ?? [];
+  const scopeIds = Object.keys(selections).filter((scope) => selections[scope].length > 0);
+  const setRecipients = (update: (previous: string[]) => string[]) =>
+    setSelections((previous) => ({
+      ...previous,
+      [commissionId]: update(previous[commissionId] ?? []),
+    }));
   const [saving, setSaving] = useState(false);
   const [published, setPublished] = useState(false);
   const [error, setError] = useState('');
@@ -61,7 +68,7 @@ export default function PublishEvaluation({
     <form
       onSubmit={async (event) => {
         event.preventDefault();
-        if (saving || published || !revision || !recipients.length) return;
+        if (saving || published || !revision || !scopeIds.length) return;
         setSaving(true);
         setError('');
         try {
@@ -75,10 +82,26 @@ export default function PublishEvaluation({
             ...(commissionId ? { commissionId } : {}),
           };
           if (projectId) {
-            await api('/projects/' + encodeURIComponent(projectId) + '/lifecycle', 'POST', {
-              action: 'close-and-evaluate',
-              evaluation,
-            });
+            const evaluations = scopeIds.map((scope) => ({
+              ...evaluation,
+              commissionId: scope || undefined,
+              userIds: selections[scope],
+              title:
+                scopeIds.length > 1
+                  ? (
+                      title.trim().slice(0, 110) +
+                      ' · ' +
+                      (commissions.find(({ id }) => id === scope)?.name ?? 'Proyecto completo')
+                    ).slice(0, 160)
+                  : title.trim(),
+            }));
+            await api(
+              '/projects/' + encodeURIComponent(projectId) + '/lifecycle',
+              'POST',
+              evaluations.length === 1
+                ? { action: 'close-and-evaluate', evaluation: evaluations[0] }
+                : { action: 'close-and-evaluate-many', evaluations },
+            );
             onClosed?.();
           } else await api('/group-evaluations', 'POST', evaluation);
           setPublished(true);
@@ -105,7 +128,7 @@ export default function PublishEvaluation({
           <button
             type="submit"
             className="primary"
-            disabled={saving || busy || !title.trim() || !revision || !recipients.length || !day}
+            disabled={saving || busy || !title.trim() || !revision || !scopeIds.length || !day}
           >
             {saving ? 'Publicando…' : projectId ? 'Cerrar y evaluar' : 'Publicar'}
           </button>
@@ -160,7 +183,7 @@ export default function PublishEvaluation({
                   value={responseMode}
                   onChange={(event) => {
                     setResponseMode(event.target.value);
-                    setRecipients([]);
+                    setSelections({});
                   }}
                 >
                   <option value="identified">Individual identificada</option>
@@ -173,21 +196,24 @@ export default function PublishEvaluation({
                   Ámbito de evaluación
                   <select
                     value={commissionId}
-                    onChange={(event) => {
-                      setCommissionId(event.target.value);
-                      setRecipients([]);
-                    }}
+                    onChange={(event) => setCommissionId(event.target.value)}
                   >
-                    <option value="">Proyecto completo</option>
+                    <option value="">Proyecto completo ({selections['']?.length ?? 0})</option>
                     {commissions
                       .filter((commission) => commission.projectId === projectId)
                       .map((commission) => (
                         <option key={commission.id} value={commission.id}>
-                          {commission.name}
+                          {commission.name} ({selections[commission.id]?.length ?? 0})
                         </option>
                       ))}
                   </select>
                 </label>
+              )}
+              {projectId && (
+                <p>
+                  Selecciona participantes en cada ámbito que quieras incluir. Se conservan al
+                  cambiar de ámbito.
+                </p>
               )}
               <fieldset className="evaluation-section">
                 <legend>

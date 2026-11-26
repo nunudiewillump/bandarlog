@@ -96,6 +96,7 @@ export async function exerciseDeliveryProcess(
           DELIVERY_URL: undefined,
           IDENTITY_URL: undefined,
           DELIVERY_PAUSED: '0',
+          PRODUCT_CAMPAIGNS_ENABLED: 'true',
           MAIL_TRANSPORT: 'resend',
           MAIL_FROM: 'Bandarlog <synthetic@example.test>',
           RESEND_API_KEY: 're_synthetic_not_real',
@@ -268,6 +269,15 @@ export async function exerciseDeliveryProcess(
           }),
         ],
       );
+    const surveyId = randomUUID();
+    const dismissedId = randomUUID();
+    await owner.query(
+      `insert into bandarlog_api.product_survey_delivery(id,group_id,user_id,campaign,round,offered_at,expires_at,dismissed_at)
+       values ($1,$2,$3,'F03',1,now()-interval '4 days',now()+interval '3 days',null),
+              ($4,$2,$3,'F01',1,now()-interval '4 days',now()+interval '3 days',now())`,
+      [surveyId, a.id, a.uid, dismissedId],
+    );
+    const surveyMessage = 'product-survey-' + surveyId;
     await start(false);
     assert.equal((await wake(a.privateId, 'wrong-token')).status, 403);
     await Promise.all([wake(a.privateId), wake(b.privateId), wake()]);
@@ -275,6 +285,7 @@ export async function exerciseDeliveryProcess(
       const rows = (await owner.query('select id,status,attempts from notifications')).rows;
       return (
         rows.find((r) => r.id === ids.a)?.status === 'sent' &&
+        rows.find((r) => r.id === surveyMessage)?.status === 'sent' &&
         rows.find((r) => r.id === ids.expired)?.status === 'sent' &&
         rows.find((r) => r.id === ids.b)?.status === 'pending' &&
         rows.find((r) => r.id === ids.b)?.attempts === '1' &&
@@ -337,9 +348,13 @@ export async function exerciseDeliveryProcess(
         (await owner.query('select count(*) as n from push_outbox where sent_at is not null'))
           .rows[0].n,
       );
-      return mails === 4 && globals === 2 && pushes === 2;
+      return mails === 5 && globals === 2 && pushes === 2;
     }, 'Deferred work did not complete after restart and its explicit deadline');
     assert.equal(mail(ids.b).length, failed + 1);
+    assert.equal(mail(surveyMessage).length, 1);
+    assert.deepEqual(mail(surveyMessage)[0].to, ['a@example.test']);
+    assert.ok(mail(surveyMessage)[0].text?.includes('/g/' + a.privateId + '/'));
+    assert.equal(mail('product-survey-' + dismissedId).length, 0);
     assert.equal(mail(ids.a).length, 1);
     assert.equal(mail(ids.expired).length, 1);
     assert.equal(mail(ids.active).length, 1);

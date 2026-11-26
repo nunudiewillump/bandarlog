@@ -1037,6 +1037,46 @@ function renderView(main: HTMLElement) {
       }, ['7', '30'].map((days) => el('option', {
         value: days, selected: period === days,
       }, 'Últimos ' + days + ' días')))),
+      ...(Array.isArray(data.campaigns) ? [
+        table('Campañas programadas', ['Campaña', 'Estado'],
+          data.campaigns.map((row: { campaign: string; paused: boolean }) => [
+            ({ F01: 'F01 · Primera semana', F02: 'F02 · Primer mes', F03: 'F03 · Seguimiento' } as Record<string, string>)[row.campaign],
+            el('select', {
+              'aria-label': 'Estado de ' + row.campaign,
+              onchange: async (event: Event) => {
+                const input = event.currentTarget as HTMLSelectElement;
+                input.disabled = true;
+                try {
+                  await api('campaigns/' + row.campaign, 'POST', { paused: input.value === 'paused' });
+                  await loadView();
+                } catch (error) {
+                  input.value = row.paused ? 'paused' : 'active';
+                  failure(error);
+                } finally { input.disabled = false; }
+              },
+            }, [
+              el('option', { value: 'active', selected: !row.paused }, 'Activa'),
+              el('option', { value: 'paused', selected: row.paused }, 'Pausada'),
+            ]),
+          ])),
+      ] : []),
+      ...(Array.isArray(data.surveys) ? [
+        table('Encuestas de producto', ['Campaña', 'Versión', 'Invitaciones', 'Grupos invitados',
+          'Completadas', 'Grupos participantes', 'Descartadas', 'Participación', 'Muestra', 'SUS (0–100)',
+          'NPS (−100 a +100)', 'Satisfacción (1–5)'],
+        data.surveys.map((row: {
+          campaign: string; version: number; invited: number; invitedGroups: number;
+          completed: number; participatingGroups: number; dismissed: number; sample: number;
+          sus: number | null; nps: number | null; satisfaction: number | null;
+        }) => [
+          row.campaign, String(row.version), String(row.invited), String(row.invitedGroups),
+          String(row.completed), String(row.participatingGroups), String(row.dismissed),
+          row.invited ? new Intl.NumberFormat('es', { style: 'percent', maximumFractionDigits: 1 })
+            .format(row.completed / row.invited) : '—',
+          String(row.sample), String(row.sus ?? '—'), String(row.nps ?? '—'), String(row.satisfaction ?? '—'),
+        ])),
+        el('p', null, 'La participación corresponde a las invitaciones del periodo. La muestra de puntuaciones corresponde a las respuestas recibidas en el periodo y se publica desde cinco respuestas.'),
+      ] : []),
       table('Aportaciones voluntarias por día (UTC)', ['Fecha', 'Categoría', 'Recibidas', 'Pendientes'],
         data.insights.map((row: { day: string; category: string; total: number; pending: number }) =>
           [row.day, categories[row.category], String(row.total), String(row.pending)])),
