@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { api } from './api';
+import { deadlineDay, deadlineISO } from './deadline';
 import { Select } from './Select';
 import {
   EvaluationDocument,
   EvaluationMemoDocument,
   type EvaluationReport,
   EvaluationStatistics,
+  evaluationMean,
   type EvaluationSummary,
   type EvaluationAnnex,
 } from './EvaluationDocument';
@@ -28,6 +30,13 @@ type Result = Omit<Evaluation, 'id'> & {
   conclusionRevision: number | null;
   summary: EvaluationSummary | null;
 };
+
+type ComparableReport = EvaluationReport & {
+  id: string;
+  templateId?: string;
+  summary: EvaluationSummary;
+};
+type DeadlineRevision = { changedAt: string; dueAt: string; reason: string };
 
 const endpoint = '/group-evaluations/manage';
 const date = new Intl.DateTimeFormat('es-ES', {
@@ -56,6 +65,15 @@ export default function EvaluationResults({
   const [memo, setMemo] = useState<
     (EvaluationReport & { id: string; summary: EvaluationSummary })[]
   >([]);
+  const [comparison, setComparison] = useState<ComparableReport[]>([]);
+  const [revisions, setRevisions] = useState<{ revision: number; created_at: string }[] | null>(
+    null,
+  );
+  const [deadline, setDeadline] = useState<{
+    day: string;
+    reason: string;
+    history: DeadlineRevision[];
+  } | null>(null);
   const [memoSelection, setMemoSelection] = useState<string[]>([]);
   const [annex, setAnnex] = useState<EvaluationAnnex>();
   const [preview, setPreview] = useState(false);
@@ -102,6 +120,7 @@ export default function EvaluationResults({
   async function openResult(id: string) {
     const result: Result = await api(endpoint + '/' + id);
     setSelected({ id, result });
+    setDeadline(null);
     setBody(result.body ?? '');
   }
 
@@ -111,6 +130,92 @@ export default function EvaluationResults({
 
   const result = selected?.result;
   const summary = result?.summary;
+  if (comparison.length) {
+    const comparable = comparison.every(
+      (report) =>
+        report.templateId &&
+        report.templateId === comparison[0].templateId &&
+        report.templateRevision === comparison[0].templateRevision,
+    );
+    return (
+      <section>
+        <h1>Comparar evaluaciones</h1>
+        <button type="button" className="secondary" onClick={() => setComparison([])}>
+          Volver
+        </button>
+        <dl>
+          {comparison.map(({ id, title, summary }) => (
+            <div key={id}>
+              <dt>{title}</dt>
+              <dd>
+                {summary.submitted} de {summary.assigned} respuestas
+              </dd>
+            </div>
+          ))}
+        </dl>
+        {comparable ? (
+          <div
+            className="evaluation-comparison"
+            role="region"
+            aria-label="Comparación por pregunta"
+            tabIndex={0}
+          >
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Pregunta</th>
+                  {comparison.map(({ id, title }) => (
+                    <th key={id} scope="col">
+                      {title}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {comparison[0].structure.sections.flatMap((section) =>
+                  section.questions.map((question) => (
+                    <tr key={question.id}>
+                      <th scope="row">{question.label}</th>
+                      {comparison.map(({ id, summary }) => {
+                        const stats = summary.questions[question.id];
+                        if (!stats) return <td key={id}>—</td>;
+                        const mean = evaluationMean(question.type, stats);
+                        return (
+                          <td key={id}>
+                            {stats.answered} respuestas
+                            {mean === null
+                              ? ''
+                              : ' · Media ' +
+                                mean.toLocaleString('es-ES', { maximumFractionDigits: 2 })}
+                            {!!stats.distribution.length && (
+                              <ul>
+                                {stats.distribution.map((entry) => (
+                                  <li key={String(entry.value)}>
+                                    {typeof entry.value === 'boolean'
+                                      ? entry.value
+                                        ? 'Sí'
+                                        : 'No'
+                                      : entry.value}{' '}
+                                    · {entry.count}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  )),
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p>Para comparar preguntas, selecciona evaluaciones de la misma plantilla y versión.</p>
+        )}
+      </section>
+    );
+  }
   if (memo.length)
     return <EvaluationMemoDocument reports={memo} group={group} onBack={() => setMemo([])} />;
   if (preview && result && summary)
@@ -142,12 +247,25 @@ export default function EvaluationResults({
               value=""
               disabled={busy}
               onChange={(event) => {
-                if (event.target.value === 'memo') {
+                const action = event.target.value;
+                if (action === 'save' || action === 'versions') {
+                  void run(async () => {
+                    const value = await api(endpoint + '/consolidation', 'POST', {
+                      ids: memoSelection,
+                      action: action === 'save' ? 'save' : 'list',
+                    });
+                    if (action === 'save') {
+                      setStatus('Consolidación guardada · versión ' + value.revision);
+                      setRevisions(null);
+                    } else setRevisions(value);
+                  });
+                } else if (action === 'memo' || action === 'compare') {
                   void run(async () => {
                     const { reports } = await api(endpoint + '/memo', 'POST', {
                       ids: memoSelection,
                     });
-                    setMemo(reports);
+                    if (action === 'compare') setComparison(reports);
+                    else setMemo(reports);
                   });
                 } else void run(() => list(error ? undefined : (next ?? undefined)));
               }}
@@ -156,10 +274,49 @@ export default function EvaluationResults({
                 Opciones del histórico
               </option>
               {(next || error) && <option value="load">{error ? 'Recargar' : 'Ver más'}</option>}
-              {memoSelection.length >= 2 && <option value="memo">Preparar memoria conjunta</option>}
+              {memoSelection.length >= 2 && (
+                <>
+                  <option value="memo">Preparar memoria conjunta</option>
+                  <option value="compare">Comparar resultados</option>
+                  <option value="save">Guardar versión consolidada</option>
+                  <option value="versions">Ver versiones consolidadas</option>
+                </>
+              )}
             </Select>
           )}
         </div>
+        {status && <p role="status">{status}</p>}
+        {revisions && (
+          <label>
+            Versiones consolidadas
+            <Select
+              value=""
+              onChange={(event) => {
+                const revision = Number(event.target.value);
+                void run(async () =>
+                  setMemo(
+                    await api(endpoint + '/consolidation', 'POST', {
+                      ids: memoSelection,
+                      action: 'open',
+                      revision,
+                    }),
+                  ),
+                );
+              }}
+            >
+              <option value="" disabled>
+                {revisions.length
+                  ? 'Elige una versión'
+                  : 'Aún no hay versiones para esta selección'}
+              </option>
+              {revisions.map((item) => (
+                <option key={item.revision} value={item.revision}>
+                  Versión {item.revision} · {date.format(new Date(item.created_at))}
+                </option>
+              ))}
+            </Select>
+          </label>
+        )}
         <div className="evaluation-controls">
           <label>
             <span id="history-project-label">Proyecto</span>
@@ -213,6 +370,7 @@ export default function EvaluationResults({
                       }
                       onChange={(event) => {
                         const checked = event.currentTarget.checked;
+                        setRevisions(null);
                         setMemoSelection((previous) =>
                           checked
                             ? [...previous, item.id]
@@ -295,12 +453,22 @@ export default function EvaluationResults({
           </button>
         )}
       </div>
-      {result.open && (
+      {(result.open || result.paused) && (
         <Select
           aria-label="Opciones de seguimiento"
           value=""
           disabled={busy}
-          onChange={() => {
+          onChange={(event) => {
+            if (event.target.value === 'deadline') {
+              void run(async () =>
+                setDeadline({
+                  day: deadlineDay(result.dueAt),
+                  reason: '',
+                  history: await api(endpoint + '/' + selected.id + '/deadline'),
+                }),
+              );
+              return;
+            }
             if (
               !window.confirm(
                 '¿Enviar un recordatorio a quienes aún no han respondido y tienen los avisos activados?',
@@ -320,8 +488,58 @@ export default function EvaluationResults({
           <option value="" disabled>
             Opciones de seguimiento
           </option>
-          <option value="reminder">Recordar por correo</option>
+          {result.open && <option value="reminder">Recordar por correo</option>}
+          <option value="deadline">Ajustar plazo</option>
         </Select>
+      )}
+      {deadline && (
+        <fieldset>
+          <legend>Ajustar plazo</legend>
+          <label>
+            Último día para responder (hora de Madrid)
+            <input
+              type="date"
+              value={deadline.day}
+              min={deadlineDay(new Date().toISOString())}
+              onChange={(event) => setDeadline({ ...deadline, day: event.target.value })}
+            />
+          </label>
+          <label>
+            Motivo
+            <input
+              maxLength={400}
+              value={deadline.reason}
+              onChange={(event) => setDeadline({ ...deadline, reason: event.target.value })}
+            />
+          </label>
+          <button
+            type="button"
+            className="primary"
+            disabled={busy || !deadline.day || !deadline.reason.trim()}
+            onClick={() =>
+              void run(async () => {
+                await api(endpoint + '/' + selected.id + '/deadline', 'PUT', {
+                  previous: new Date(result.dueAt).toISOString(),
+                  dueAt: deadlineISO(deadline.day),
+                  reason: deadline.reason,
+                });
+                await openResult(selected.id);
+                setStatus('Plazo actualizado.');
+              })
+            }
+          >
+            Guardar plazo
+          </button>
+          {!!deadline.history.length && (
+            <ul>
+              {deadline.history.map((entry) => (
+                <li key={entry.changedAt}>
+                  {date.format(new Date(entry.dueAt))} · {entry.reason}
+                </li>
+              ))}
+            </ul>
+          )}
+        </fieldset>
       )}
       {summary && (
         <Select

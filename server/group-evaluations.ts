@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { and, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
 import { Router } from 'express';
 import { rateLimit } from 'express-rate-limit';
@@ -52,6 +52,7 @@ export async function createGroupEvaluation(
   tx: Database,
   input: z.infer<typeof evaluationPublication>,
   projectId?: string,
+  closureEventNo?: number,
 ) {
   const id = randomUUID();
   const [version] = await tx
@@ -100,6 +101,7 @@ export async function createGroupEvaluation(
     templateRevision: input.templateRevision,
     dueAt: input.dueAt,
     projectId,
+    closureEventNo,
     responseMode: input.responseMode,
     commissionId: input.commissionId,
   });
@@ -254,6 +256,7 @@ export function groupEvaluationRoutes(db: Database) {
         title: evaluations.title,
         dueAt: evaluations.dueAt,
         templateRevision: evaluations.templateRevision,
+        templateId: evaluations.templateId,
         open: active,
         paused,
         structure: versions.structure,
@@ -299,6 +302,23 @@ export function groupEvaluationRoutes(db: Database) {
     r.json({ reports: ids.map((id) => byId.get(id)) });
   });
 
+  router.post('/manage/consolidation', async (q, r) => {
+    const { ids, action, revision } = z.strictObject({
+      ids: z.array(z.uuid()).min(2).max(8).refine((values) => new Set(values).size === values.length),
+      action: z.enum(['save', 'list', 'open']),
+      revision: z.int().positive().optional(),
+    }).parse(q.body);
+    if (action === 'open' && !revision) return r.status(400).json({ error: 'Elige una versión.' });
+    const scope = createHash('sha256').update(JSON.stringify([...ids].sort())).digest('hex');
+    const result = await db.execute(sql`select bandarlog_api.evaluation_consolidations(
+      ${scope},${action === 'save' ? sql`ARRAY[${sql.join(ids.map((id) => sql`${id}`), sql`,`)}]` : sql`NULL`}::text[],
+      ${action === 'open' ? revision : null}
+    ) as value`);
+    const value = result.rows[0]?.value;
+    if (value == null) return r.status(404).json({ error: 'Necesitas evaluaciones cerradas con resultados disponibles.' });
+    r.json(value);
+  });
+
   router.get('/manage/:id', async (q, r) => {
     const id = z.uuid().parse(q.params.id);
     const [evaluation] = await reportRows([id]);
@@ -314,6 +334,24 @@ export function groupEvaluationRoutes(db: Database) {
       .orderBy(tasks.updatedAt)
       .limit(100);
     r.json({ ...evaluation, actions });
+  });
+
+  router.get('/manage/:id/deadline', async (q, r) => {
+    const id = z.uuid().parse(q.params.id);
+    const result = await db.execute(sql`select bandarlog_api.evaluation_deadline_history(${id}) as history`);
+    r.json(result.rows[0]?.history ?? []);
+  });
+  router.put('/manage/:id/deadline', async (q, r) => {
+    const id = z.uuid().parse(q.params.id);
+    const { previous, dueAt, reason } = z.strictObject({
+      previous: z.iso.datetime({ offset: true }), dueAt: z.iso.datetime({ offset: true }),
+      reason: z.string().trim().min(1).max(400),
+    }).parse(q.body);
+    const result = await db.execute(sql`select bandarlog_api.evaluation_deadline(
+      ${id},${previous}::timestamptz,${dueAt}::timestamptz,${reason},${r.locals.user.id}
+    ) as ok`);
+    if (!result.rows[0]?.ok) return r.status(409).json({ error: 'El plazo cambió, ya venció o la fecha elegida no es válida.' });
+    r.json({ ok: true });
   });
 
   router.post('/manage/:id/annex', async (q, r) => {

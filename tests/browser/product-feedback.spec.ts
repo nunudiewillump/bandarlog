@@ -115,3 +115,79 @@ test('an optional follow-up survey opens from Inicio and sends explicit ratings'
     answers: { scores: [3, 3, 3, 3, 3, 3], nps: 9 },
   });
 });
+
+test('platform administration previews and versions a campaign and reads privacy-filtered trends', async ({
+  page,
+}) => {
+  const csrf = 'b'.repeat(64);
+  const campaign = 'C-' + 'a'.repeat(32);
+  let published: any;
+  await page.route('**/api/platform/**', (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path.endsWith('/me'))
+      return route.fulfill({
+        json: { name: 'Administración', csrf, productFeedbackEnabled: true },
+      });
+    if (path.endsWith('/feedback'))
+      return route.fulfill({ json: { campaigns: [], insights: [], items: [] } });
+    if (path.endsWith('/campaign-library')) {
+      if (request.method() === 'POST') {
+        expect(request.headers()['x-csrf-token']).toBe(csrf);
+        published = request.postDataJSON();
+        return route.fulfill({ json: { campaign, version: 1 } });
+      }
+      return route.fulfill({
+        json: published
+          ? [
+              {
+                campaign,
+                version: 1,
+                versions: [1],
+                paused: false,
+                configuration: {
+                  ...published.configuration,
+                  questions: [{ id: 'q1', label: published.configuration.questions[0] }],
+                },
+              },
+            ]
+          : [],
+      });
+    }
+    if (path.endsWith('/insights/segments'))
+      return route.fulfill({
+        json: [
+          {
+            campaign: 'F03',
+            version: 1,
+            segment: '2026-11-16',
+            invited: 24,
+            completed: 12,
+            dismissed: 0,
+            nps: 0,
+          },
+        ],
+      });
+    return route.fulfill({ json: {} });
+  });
+  await page.setViewportSize({ width: 390, height: 850 });
+  await page.goto('/plataforma#feedback');
+  await page.getByText('Gestionar campañas').click();
+  await page.getByLabel('Título', { exact: true }).fill('Experiencia de noviembre');
+  await page.getByLabel('Primer día (hora de Madrid)').fill('2030-11-20');
+  await page.getByLabel('Último día (hora de Madrid)').fill('2030-11-25');
+  await page.getByLabel('Destinatarios').selectOption('management');
+  await page.getByLabel('Preguntas (una por línea)').fill('¿Cómo valoras el flujo?');
+  await page.getByLabel('Opciones de campaña').selectOption('preview');
+  await expect(page.getByRole('heading', { name: 'Experiencia de noviembre' })).toBeVisible();
+  await page.getByRole('button', { name: 'Crear campaña' }).click();
+  await expect(page.getByText('Versión 1 publicada.')).toBeVisible();
+  expect(published.configuration).toMatchObject({
+    audience: 'management',
+    questions: ['¿Cómo valoras el flujo?'],
+  });
+  await page.setViewportSize({ width: 1440, height: 940 });
+  await page.getByText('Evolución y segmentos').click();
+  await page.getByLabel('Dimensión').selectOption('week');
+  await expect(page.getByRole('row').filter({ hasText: '2026-11-16' })).toContainText('50 %');
+});

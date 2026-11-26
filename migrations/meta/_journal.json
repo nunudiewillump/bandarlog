@@ -365,6 +365,13 @@
       "when": 1794847700000,
       "tag": "0051_product_campaigns",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1794847800000,
+      "tag": "0052_p2_history_insights",
+      "breakpoints": true
     }
   ]
 }

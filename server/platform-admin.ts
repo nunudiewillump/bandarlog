@@ -335,11 +335,41 @@ export function platformAdminRoutes(
     });
   const campaignsEnabled = process.env.PRODUCT_CAMPAIGNS_ENABLED === 'true';
   if (campaignsEnabled) router.post('/api/platform/campaigns/:campaign', async (q,r) => {
-    const campaign = z.enum(['F01','F02','F03']).parse(q.params.campaign);
+    const campaign = z.string().regex(/^(?:F0[1-3]|C-[a-f0-9]{32})$/).parse(q.params.campaign);
     const { paused } = z.strictObject({ paused: z.boolean() }).parse(q.body);
     await ops.setProductCampaignPaused(token(q), csrf(q), campaign, paused);
     r.json({ ok: true });
   });
+  if (campaignsEnabled) {
+    const customId = z.string().regex(/^C-[a-f0-9]{32}$/);
+    const version = z.coerce.number().int().positive();
+    const configuration = z.strictObject({
+      title: z.string().trim().min(2).max(120),
+      start: z.iso.datetime({ offset: true }),
+      end: z.iso.datetime({ offset: true }),
+      audience: z.enum(['all', 'management', 'member']),
+      questions: z.array(z.string().trim().min(3).max(220)).min(1).max(12),
+    }).refine(({ start, end }) => Date.parse(end) > Date.parse(start), 'El fin debe ser posterior al inicio.');
+    router.get('/api/platform/campaign-library', async (q,r) =>
+      r.json(await ops.productCampaignLibrary(token(q))));
+    router.post('/api/platform/campaign-library', async (q,r) => {
+      const input = z.strictObject({ campaign: customId.optional(), version: z.int().nonnegative(), configuration }).parse(q.body);
+      const campaign = input.campaign ?? ('C-' + randomBytes(16).toString('hex'));
+      const config = { ...input.configuration, questions: input.configuration.questions.map((label, i) => ({ id: 'q' + (i+1), label })) };
+      const saved = await ops.saveProductCampaign(token(q), csrf(q), campaign, input.version, config);
+      if (saved === null) return r.status(409).json({ error: 'La campaña cambió. Vuelve a abrirla.' });
+      r.json({ campaign, version: saved });
+    });
+    router.get('/api/platform/campaign-library/:campaign/:version', async (q,r) => {
+      const result = await ops.productCampaignVersion(token(q), customId.parse(q.params.campaign), version.parse(q.params.version));
+      if (result === null) return r.status(404).json({ error: 'Versión no encontrada.' });
+      r.json(result);
+    });
+    router.get('/api/platform/campaign-library/:campaign/:version/results', async (q,r) =>
+      r.json(await ops.productCampaignResults(token(q), customId.parse(q.params.campaign), version.parse(q.params.version))));
+    router.get('/api/platform/insights/segments', async (q,r) =>
+      r.json(await ops.productInsightsSegments(token(q), z.enum(['week', 'role', 'cohort', 'adoption']).parse(q.query.dimension))));
+  }
   if (process.env.PRODUCT_FEEDBACK_ENABLED === 'true' || campaignsEnabled) {
     const statuses = z.enum(['new','reviewing','in_progress','resolved','archived']);
     router.get('/api/platform/feedback', async (q,r) => {

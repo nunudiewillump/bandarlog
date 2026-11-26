@@ -18,6 +18,7 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
     id: 'example',
     title: 'Balance del campamento',
     templateRevision: 2,
+    templateId: 'template',
     dueAt: '2026-11-20T18:00:00Z',
     open: false,
   };
@@ -106,6 +107,13 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
   await page.getByRole('combobox', { name: 'Opciones del histórico' }).click();
   await page.getByRole('option', { name: 'Preparar memoria conjunta' }).click();
   await expect(page.getByRole('heading', { name: 'Memoria de evaluaciones' })).toBeVisible();
+  await page.getByRole('button', { name: 'Volver', exact: true }).click();
+
+  await page.getByRole('combobox', { name: 'Opciones del histórico' }).click();
+  await page.getByRole('option', { name: 'Comparar resultados' }).click();
+  await expect(page.getByRole('region', { name: 'Comparación por pregunta' })).toContainText(
+    'Media 4',
+  );
   await page.getByRole('button', { name: 'Volver', exact: true }).click();
 
   await page.getByRole('combobox', { name: 'Opciones de Balance del campamento' }).click();

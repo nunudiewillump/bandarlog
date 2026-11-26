@@ -795,3 +795,20 @@ input[type='checkbox'] {
   overflow-wrap: anywhere;
   max-width: 48ch;
 }
+
+.campaign-editor {
+  max-width: 42rem;
+  margin-block: 1rem;
+}
+.campaign-editor form {
+  display: grid;
+  gap: 0.75rem;
+  margin-block-start: 0.75rem;
+}
+.campaign-editor label {
+  display: grid;
+  gap: 0.25rem;
+}
+.campaign-editor button {
+  justify-self: start;
+}

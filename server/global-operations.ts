@@ -145,6 +145,16 @@ export function globalOperations(connection: any, scoped: any) {
       one(sql`select bandarlog_api.product_feedback_list(${token},${after}::uuid,${limit},${status}) as value`),
     queueProductSurveyFollowups: () =>
       one(sql`select bandarlog_api.queue_product_survey_followups() as value`),
+    productCampaignLibrary: (token: string) =>
+      one(sql`select bandarlog_api.product_campaign_library(${token}) as value`),
+    productCampaignVersion: (token: string, campaign: string, version: number) =>
+      one(sql`select bandarlog_api.product_campaign_version(${token},${campaign},${version}) as value`),
+    saveProductCampaign: (token: string, csrf: string, campaign: string, version: number, config: unknown) =>
+      one(sql`select bandarlog_api.product_campaign_save(${token},${csrf},${campaign},${version},${JSON.stringify(config)}::jsonb) as value`),
+    productInsightsSegments: (token: string, dimension: string) =>
+      one(sql`select bandarlog_api.product_insights_segments(${token},${dimension}) as value`),
+    productCampaignResults: (token: string, campaign: string, version: number) =>
+      one(sql`select bandarlog_api.product_campaign_results(${token},${campaign},${version}) as value`),
     productCampaignStatus: (token: string) =>
       one(sql`select bandarlog_api.product_campaign_status(${token}) as value`),
     setProductCampaignPaused: (token: string, csrf: string, campaign: string, paused: boolean) =>

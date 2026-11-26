@@ -46,3 +46,7 @@ El envío anónimo separa el cuestionario final del registro de participación. 
 Desde el histórico se pueden seleccionar entre dos y ocho evaluaciones vencidas para preparar una memoria conjunta. Administración del grupo puede solicitar por separado el anexo de respuestas finales identificadas, con registro de acceso. Los anexos quedan excluidos de las evaluaciones anónimas y de las memorias conjuntas.
 
 Durante el plazo, Coordinación y Administración pueden pedir un recordatorio desde las opciones de la evaluación. Se encola como máximo uno por participante pendiente, con preferencias de notificación activas en el momento de encolarlo. Tras aplicar la 0050, el contrato SQL requerido es 50 cuando se activa cualquiera de los flags de evaluaciones o feedback de producto.
+
+### Comparaciones y consolidaciones versionadas
+
+Selecciona de dos a ocho evaluaciones cerradas en el histórico. El menú permite comparar participación, revisar estadísticas de preguntas si la plantilla y su versión coinciden, y guardar o recuperar una versión consolidada. Una consolidación guarda los agregados y las conclusiones del momento. Las correcciones posteriores generan otra versión y los anexos individuales quedan fuera.

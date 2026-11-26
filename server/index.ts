@@ -1523,6 +1523,8 @@ if (productCampaignsEnabled) app.post('/api/product-survey',
         z.strictObject({ easy: z.boolean(), questions: z.boolean(), help: z.boolean(), blocked: z.boolean(), detail: note }),
         z.strictObject({ sus: scale(10), useful: note, difficult: note, missing: note }),
         z.strictObject({ scores: scale(6), nps: z.int().min(0).max(10), change: note }),
+        z.strictObject({ ratings: z.record(z.string().regex(/^q(?:[1-9]|1[0-2])$/), z.int().min(1).max(5))
+          .refine((ratings) => Object.keys(ratings).length <= 12) }),
       ]), replyEmail: z.email().max(254).optional() }),
     ]).parse(q.body);
     const run = async (tx: Pick<Database, 'execute'>) => {
@@ -2603,6 +2605,17 @@ app.post('/api/projects', async (q, r) => {
   r.status(201).json(p);
 });
 if (groupEvaluationsEnabled) {
+  const projectClosureHistory = (projectId: string) => db.select({
+    id: sql<string>`${s.projectLifecycleEvents.eventNo}::text`,
+    kind: s.projectLifecycleEvents.kind,
+    createdAt: s.projectLifecycleEvents.createdAt,
+    evaluations: sql<string[]>`ARRAY(SELECT e.title FROM group_evaluations e
+      WHERE (e.group_id,e.project_id,e.closure_event_no)=
+        (project_lifecycle_events.group_id,project_lifecycle_events.project_id,project_lifecycle_events.event_no)
+      ORDER BY e.title LIMIT 20)`,
+  }).from(s.projectLifecycleEvents).where(eq(s.projectLifecycleEvents.projectId, projectId))
+    .orderBy(sql`${s.projectLifecycleEvents.eventNo} desc`).limit(30);
+
   app.get('/api/projects/:id/lifecycle', async (q, r) => {
     if (!globalManage(r.locals.user)) fail(403, 'Solo coordinación puede gestionar el cierre.');
     const projectId = parse(text, q.params.id);
@@ -2616,7 +2629,8 @@ if (groupEvaluationsEnabled) {
       canReopen: sql<boolean>`clock_timestamp() < ${s.projectLifecycleEvents.createdAt} + interval '360 hours'`,
     }).from(s.projectLifecycleEvents).where(eq(s.projectLifecycleEvents.projectId, projectId))
       .orderBy(sql`${s.projectLifecycleEvents.eventNo} desc`).limit(1);
-    r.json({ archived: current.archived === 'true', last: last ?? null });
+    const lifecycle = await projectClosureHistory(projectId);
+    r.json({ archived: current.archived === 'true', last: last ?? null, ...(lifecycle.length ? { lifecycle } : {}) });
   });
 
   app.post('/api/projects/:id/lifecycle', async (q, r) => {
@@ -2649,11 +2663,12 @@ if (groupEvaluationsEnabled) {
         fail(409, 'El proyecto ya está cerrado o archivado.');
       if (action === 'reopen' && (current.archived !== 'true' || last?.kind !== 'closed' || !last.canReopen))
         fail(409, 'El proyecto ya no está dentro del plazo de reapertura.');
-      await tx.execute(sql`insert into project_lifecycle_events (project_id,actor_id,kind)
-        values (${projectId}, ${r.locals.user.id}, ${action === 'reopen' ? 'reopened' : 'closed'})`);
+      const events = await tx.execute(sql`insert into project_lifecycle_events (project_id,actor_id,kind)
+        values (${projectId}, ${r.locals.user.id}, ${action === 'reopen' ? 'reopened' : 'closed'})
+        returning event_no`);
       const evaluationIds: string[] = [];
       for (const publication of publications) {
-        const id = await createGroupEvaluation(tx as unknown as Database, publication, projectId);
+        const id = await createGroupEvaluation(tx as unknown as Database, publication, projectId, Number(events.rows[0].event_no));
         if (!id) return fail(400, 'Comprueba la plantilla publicada y los participantes de cada ámbito.');
         evaluationIds.push(id);
       }

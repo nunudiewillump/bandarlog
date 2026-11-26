@@ -2,7 +2,12 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { api } from './api';
 import './evaluation-templates.css';
 
-type Offer = { id: string; campaign: 'F01' | 'F02' | 'F03'; version: number };
+type Offer = {
+  id: string;
+  campaign: 'F01' | 'F02' | 'F03';
+  version: number;
+  configuration?: { title: string; questions: { id: string; label: string }[] };
+};
 const titles = {
   F01: '¿Cómo va el comienzo?',
   F02: 'Tu primer mes con Bandarlog',
@@ -76,7 +81,7 @@ export default function ProductSurvey() {
     let current = true;
     void api('/product-survey', 'POST', { action: 'offer' })
       .then((value) => {
-        if (current && value?.version === 1) setOffer(value);
+        if (current && (value?.version === 1 || value?.configuration)) setOffer(value);
       })
       .catch(() => {});
     return () => {
@@ -84,7 +89,7 @@ export default function ProductSurvey() {
     };
   }, []);
   if (!offer) return message ? <p role="status">{message}</p> : null;
-  const { id, campaign } = offer;
+  const { id, campaign, configuration } = offer;
   async function send(body: Record<string, unknown>, confirmation: string) {
     if (busy) return;
     setBusy(true);
@@ -105,8 +110,13 @@ export default function ProductSurvey() {
     const notes = (...keys: string[]) =>
       Object.fromEntries(keys.map((key) => [key, fields.get(key) ?? '']));
     const ratings = (items: string[]) => items.map((_, i) => Number(fields.get('rating-' + i)));
-    const answers =
-      campaign === 'F01'
+    const answers = configuration
+      ? {
+          ratings: Object.fromEntries(
+            configuration.questions.map(({ id }) => [id, Number(fields.get(id))]),
+          ),
+        }
+      : campaign === 'F01'
         ? {
             ...Object.fromEntries(firstWeek.map(([key]) => [key, fields.get(key) === 'yes'])),
             ...notes('detail'),
@@ -122,10 +132,10 @@ export default function ProductSurvey() {
   }
   return (
     <section className="panel evaluation-templates" aria-labelledby="product-survey-title">
-      <h2 id="product-survey-title">{titles[campaign]}</h2>
+      <h2 id="product-survey-title">{configuration?.title ?? titles[campaign]}</h2>
       {!expanded ? (
         <>
-          <p>Dar tu opinión es voluntario. {durations[campaign]}.</p>
+          <p>Dar tu opinión es voluntario. {!configuration && durations[campaign] + '.'}</p>
           <div className="evaluation-controls">
             <button type="button" className="primary" onClick={() => setExpanded(true)}>
               Dar mi opinión
@@ -157,7 +167,15 @@ export default function ProductSurvey() {
       ) : (
         <form onSubmit={submit}>
           <fieldset disabled={busy}>
-            {campaign === 'F01' && (
+            {configuration && (
+              <>
+                <p>Valora cada aspecto de 1 (muy bajo) a 5 (muy alto).</p>
+                {configuration.questions.map(({ id, label }) => (
+                  <Scale key={id} name={id} label={label} />
+                ))}
+              </>
+            )}
+            {!configuration && campaign === 'F01' && (
               <>
                 {firstWeek.map(([key, label]) => (
                   <label key={key}>
@@ -190,7 +208,7 @@ export default function ProductSurvey() {
                 )}
               </>
             )}
-            {campaign === 'F02' && (
+            {!configuration && campaign === 'F02' && (
               <>
                 <p>1 significa totalmente en desacuerdo, 3 neutral y 5 totalmente de acuerdo.</p>
                 {sus.map((label, i) => (
@@ -210,7 +228,7 @@ export default function ProductSurvey() {
                 </label>
               </>
             )}
-            {campaign === 'F03' && (
+            {!configuration && campaign === 'F03' && (
               <>
                 <p>Valora cada aspecto de 1 (muy bajo) a 5 (muy alto).</p>
                 {experience.map((label, i) => (
