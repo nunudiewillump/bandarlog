@@ -514,6 +514,7 @@ export const groupEvaluations = pgTable('group_evaluations', {
   groupId: text('group_id').notNull().default(sql`nullif(current_setting('bandarlog.group_id', true), '')`),
   id: text().notNull(),
   projectId: text('project_id'),
+  closureEventNo: bigint('closure_event_no', { mode: 'number' }),
   templateId: text('template_id').notNull(),
   templateRevision: integer('template_revision').notNull(),
   responseMode: text('response_mode').$type<'identified' | 'anonymous' | 'collective'>().notNull().default('identified'),

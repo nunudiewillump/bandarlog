@@ -15,3 +15,7 @@ La migración 0048 agrega un vínculo opcional al proyecto. Al reabrir, las eval
 Con este cambio el flag requiere contrato 48. Quedan pendientes el cierre por comisión o mixto, la actualización de asignaciones y plazos al cerrar de nuevo y las revisiones consolidadas.
 
 El selector de ámbito conserva una lista propia de participantes para el proyecto completo y para cada comisión. Si se seleccionan varios ámbitos, se publica una evaluación por ámbito en la misma transacción que el cierre. El formulario usa la misma plantilla, modalidad y plazo para toda la operación. El servidor vuelve a validar cada lista y revierte la operación completa si alguna falla. La API anterior de un solo ámbito sigue disponible.
+
+### Revisiones y plazos
+
+Los ajustes del proyecto muestran los últimos cierres y reaperturas, con las evaluaciones de cada cierre registrado a partir de la 0052. Las evaluaciones anteriores conservan su vínculo con el proyecto; no se atribuyen retroactivamente a un cierre concreto. Coordinación puede cambiar un plazo vigente desde el histórico, incluso mientras el proyecto esté reabierto. Debe indicar el motivo. Un cambio desactualizado se rechaza y los plazos vencidos se conservan.

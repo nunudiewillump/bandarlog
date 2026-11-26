@@ -1051,6 +1051,17 @@ test('close and evaluate assigns atomically and pauses the same draft on reopeni
   assert.equal(result.status, 200, JSON.stringify(result.body));
   assert.equal(new Set(result.body.evaluationIds).size, 2);
   const [evaluationId, generalId] = result.body.evaluationIds;
+  const history = (await call(route, 'GET', undefined, a)).body.lifecycle;
+  assert.equal(history[0].kind, 'closed');
+  assert.deepEqual(history[0].evaluations, ['Balance general', 'Cierre con evaluación']);
+  const deadline = '/api/group-evaluations/manage/' + evaluationId + '/deadline';
+  const dueAt = new Date(Date.now() + 172_800_000).toISOString();
+  const adjustment = { previous: evaluation.dueAt, dueAt, reason: 'Reunión aplazada' };
+  assert.equal((await call(deadline, 'PUT', adjustment, b)).status, 409);
+  assert.equal((await call(deadline, 'PUT', adjustment, a)).status, 200);
+  assert.equal((await call(deadline, 'PUT', adjustment, a)).status, 409);
+  const changes = (await call(deadline, 'GET', undefined, a)).body;
+  assert.equal(changes[0].reason, 'Reunión aplazada');
   assert.equal((await call('/api/group-evaluations/' + generalId, 'GET', undefined, a)).status, 200);
   const reminder = '/api/group-evaluations/manage/' + evaluationId + '/reminder';
   assert.equal((await call(reminder, 'POST', {}, b)).status, 409);

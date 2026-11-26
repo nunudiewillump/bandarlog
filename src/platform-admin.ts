@@ -1,4 +1,5 @@
 import './platform-admin.css';
+import { deadlineDay, deadlineISO } from './deadline';
 // This entry has no ordinary app imports, Service Worker, IndexedDB or web storage.
 type Child = Node | string | number | null | undefined | false;
 function el(
@@ -198,6 +199,160 @@ function field(label: string, input: HTMLElement) {
     input,
   );
 }
+type CampaignConfig = {
+  title: string;
+  start: string;
+  end: string;
+  audience: 'all' | 'management' | 'member';
+  questions: { id: string; label: string }[];
+};
+type Campaign = { campaign: string; version: number; configuration: CampaignConfig; versions: number[]; paused: boolean };
+
+function downloadSurveyCsv(filename: string, rows: (string | number | null)[][]) {
+  const csv = (value: string | number | null) => {
+    const text = String(value ?? '');
+    const formula = typeof value === 'string' && /^[\s]*[=+@-]/.test(text);
+    return '"' + (formula ? "'" : '') + text.replaceAll('"', '""') + '"';
+  };
+  const contents = rows.map((line) => line.map(csv).join(',')).join('\r\n');
+  const url = URL.createObjectURL(new Blob(['\uFEFF', contents], { type: 'text/csv;charset=utf-8' }));
+  const link = el('a', { href: url, download: filename }) as HTMLAnchorElement;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function campaignEditor(rows: Campaign[]) {
+  const host = el('section', { class: 'campaign-editor', 'aria-label': 'Editor de campañas' });
+  const select = el('select', { 'aria-label': 'Campaña para editar' }, [
+    el('option', { value: '' }, 'Crear campaña'),
+    ...rows.map((row) => el('option', { value: row.campaign }, row.configuration.title)),
+  ]) as HTMLSelectElement;
+  const body = el('div');
+  const wrap = el('details', null, el('summary', null, 'Gestionar campañas'), host) as HTMLDetailsElement;
+  host.append(el('label', null, 'Campaña', select), body);
+  const render = (row?: Campaign) => {
+    const initial = row?.configuration;
+    const title = el('input', { required: true, maxlength: 120, value: initial?.title ?? '' }) as HTMLInputElement;
+    const start = el('input', { type: 'date', required: true, value: initial ? deadlineDay(initial.start) : '' }) as HTMLInputElement;
+    const end = el('input', { type: 'date', required: true, value: initial ? deadlineDay(initial.end) : '' }) as HTMLInputElement;
+    const audience = el('select', null, [
+      el('option', { value: 'all', selected: initial?.audience === 'all' }, 'Todas las cuentas activas'),
+      el('option', { value: 'management', selected: initial?.audience === 'management' }, 'Coordinación y Administración'),
+      el('option', { value: 'member', selected: initial?.audience === 'member' }, 'Scouters'),
+    ]) as HTMLSelectElement;
+    const questions = el('textarea', {
+      required: true, rows: 6, value: initial?.questions.map(({ label }) => label).join('\n') ?? '',
+    }) as HTMLTextAreaElement;
+    const feedback = el('p', { role: 'status' });
+    const previewOutput = el('div', { 'aria-live': 'polite' });
+    const controls = el('select', { 'aria-label': 'Opciones de campaña', onchange: async () => {
+      const action = controls.value;
+      controls.value = '';
+      previewOutput.replaceChildren();
+      try {
+        if (action === 'preview') {
+          previewOutput.append(el('h3', null, title.value), el('p', null, 'Escala de 1 a 5'),
+            el('ol', null, questionLabels().map((label) => el('li', null, label))));
+        } else if (row && action === 'pause') {
+          await api('campaigns/' + row.campaign, 'POST', { paused: !row.paused });
+          row.paused = !row.paused;
+          render(row);
+          const status = body.querySelector('[role="status"]');
+          if (status) status.textContent = row.paused ? 'Campaña pausada.' : 'Campaña reanudada.';
+        } else if (row) {
+          const [kind, rev] = action.split(':');
+          const prefix = 'campaign-library/' + row.campaign + '/' + rev;
+          const config: CampaignConfig = await api(prefix);
+          if (kind === 'open') {
+            previewOutput.append(el('h3', null, config.title + ' · versión ' + rev),
+              el('p', null, date(config.start) + ' – ' + date(config.end)),
+              el('ol', null, config.questions.map(({ label }) => el('li', null, label))));
+          } else {
+            const results: { key: string; average: number; sample: number }[] = await api(prefix + '/results');
+            if (!results.length) {
+              previewOutput.append(el('p', null, 'Aún no hay resultados que superen los umbrales de privacidad.'));
+              return;
+            }
+            downloadSurveyCsv('campaña-' + row.campaign + '-v' + rev + '.csv',
+              [['Pregunta', 'Media', 'Respuestas'], ...results.map((result) => [
+                config.questions.find(({ id }) => id === result.key)?.label ?? result.key,
+                result.average, result.sample,
+              ])]);
+          }
+        }
+      } catch (error) { failure(error); }
+    } }, [
+      el('option', { value: '', disabled: true, selected: true }, 'Opciones de campaña'),
+      el('option', { value: 'preview' }, 'Previsualizar borrador'),
+      ...(row ? [el('option', { value: 'pause' }, row.paused ? 'Reanudar campaña' : 'Pausar campaña')] : []),
+      ...(row?.versions.flatMap((version) => [
+        el('option', { value: 'open:' + version }, 'Consultar versión ' + version),
+        el('option', { value: 'export:' + version }, 'Exportar resultados de versión ' + version),
+      ]) ?? []),
+    ]) as HTMLSelectElement;
+    const questionLabels = () => questions.value.split('\n').map((item) => item.trim()).filter(Boolean);
+    const save = el('button', { type: 'submit' }, row ? 'Publicar nueva versión' : 'Crear campaña') as HTMLButtonElement;
+    body.replaceChildren(el('form', { onsubmit: async (event: Event) => {
+      event.preventDefault();
+      save.disabled = true;
+      try {
+        if (end.value < start.value) {
+          feedback.textContent = 'El final debe ser el mismo día o posterior al comienzo.';
+          return;
+        }
+        const previous = new Date(Date.parse(start.value + 'T00:00:00Z') - 86400000).toISOString().slice(0,10);
+        const result = await api('campaign-library', 'POST', {
+          campaign: row?.campaign, version: row?.version ?? 0,
+          configuration: { title: title.value, audience: audience.value,
+            start: new Date(Date.parse(deadlineISO(previous)) + 1).toISOString(),
+            end: deadlineISO(end.value), questions: questionLabels() },
+        });
+        rows = await api('campaign-library');
+        select.replaceChildren(el('option', { value: '' }, 'Crear campaña'),
+          ...rows.map((item) => el('option', { value: item.campaign }, item.configuration.title)));
+        select.value = result.campaign;
+        render(rows.find((item) => item.campaign === result.campaign));
+        previewOutput.replaceChildren();
+        const status = body.querySelector('[role="status"]');
+        if (status) status.textContent = 'Versión ' + result.version + ' publicada.';
+      } catch (error) { failure(error); }
+      finally { save.disabled = false; }
+    } }, el('label', null, 'Título', title), el('label', null, 'Primer día (hora de Madrid)', start),
+    el('label', null, 'Último día (hora de Madrid)', end), el('label', null, 'Destinatarios', audience),
+    el('label', null, 'Preguntas (una por línea)', questions), controls, save, feedback, previewOutput));
+  };
+  select.addEventListener('change', () => render(rows.find(({ campaign }) => campaign === select.value)));
+  render();
+  return wrap;
+}
+
+function insightSegments() {
+  const output = el('div', { 'aria-live': 'polite' });
+  return el('details', null, el('summary', null, 'Evolución y segmentos'),
+    el('p', null, 'Últimas 12 semanas completas. Las filas requieren al menos tres grupos y cinco respuestas en cada conjunto publicado.'),
+    el('label', null, 'Dimensión', el('select', { onchange: async (event: Event) => {
+      const control = event.currentTarget as HTMLSelectElement;
+      if (!control.value) return;
+      control.disabled = true;
+      output.textContent = 'Cargando segmentos…';
+      try {
+        const rows: { campaign: string; version: number; segment: string; invited: number; completed: number; dismissed: number; sus: number | null; nps: number | null; satisfaction: number | null }[] =
+          await api('insights/segments?dimension=' + control.value);
+        const names: Record<string,string> = { management: 'Coordinación y Administración', member: 'Scouters',
+          completed: 'Perfil configurado', pending: 'Perfil pendiente' };
+        output.replaceChildren(table('Participación por segmento', ['Campaña', 'Versión', 'Segmento', 'Invitaciones', 'Completadas', 'Descartadas', 'Participación', 'SUS', 'NPS', 'Satisfacción'],
+          rows.map((row) => [row.campaign, row.version, names[row.segment] ?? row.segment, row.invited, row.completed, row.dismissed, percent(row.completed,row.invited), value(row.sus), value(row.nps), value(row.satisfaction)])));
+      } catch (error) { output.replaceChildren(); failure(error); }
+      finally { control.disabled = false; }
+    } }, [
+      el('option', { value: '', disabled: true, selected: true }, 'Elige una dimensión'),
+      el('option', { value: 'week' }, 'Evolución semanal'),
+      el('option', { value: 'role' }, 'Rol'),
+      el('option', { value: 'cohort' }, 'Trimestre de activación'),
+      el('option', { value: 'adoption' }, 'Adopción · configuración del perfil'),
+    ])), output);
+}
+
 function failure(error: any) {
   if (error.name === 'AbortError') return;
   if (error instanceof ApiError && [401, 403, 428].includes(error.status)) {
@@ -1029,6 +1184,19 @@ function renderView(main: HTMLElement) {
     );
     main.append(
       heading('Product Insights'),
+      ...(Array.isArray(data.campaigns) ? [
+        el('details', { ontoggle: async (event: Event) => {
+          const node = event.currentTarget as HTMLDetailsElement;
+          if (node.open && node.childElementCount === 1) {
+            try {
+              const editor = campaignEditor(await api('campaign-library'));
+              editor.open = true;
+              if (node.isConnected) node.replaceWith(editor);
+            } catch (error) { node.open = false; failure(error); }
+          }
+        } }, el('summary', null, 'Gestionar campañas')),
+        insightSegments(),
+      ] : []),
       el('label', null, 'Periodo', el('select', {
         onchange: (event: Event) => {
           period = (event.currentTarget as HTMLSelectElement).value;
@@ -1039,8 +1207,8 @@ function renderView(main: HTMLElement) {
       }, 'Últimos ' + days + ' días')))),
       ...(Array.isArray(data.campaigns) ? [
         table('Campañas programadas', ['Campaña', 'Estado'],
-          data.campaigns.map((row: { campaign: string; paused: boolean }) => [
-            ({ F01: 'F01 · Primera semana', F02: 'F02 · Primer mes', F03: 'F03 · Seguimiento' } as Record<string, string>)[row.campaign],
+          data.campaigns.filter((row: { campaign: string }) => /^F0[1-3]$/.test(row.campaign)).map((row: { campaign: string; paused: boolean }) => [
+            ({ F01: 'F01 · Primera semana', F02: 'F02 · Primer mes', F03: 'F03 · Seguimiento' } as Record<string, string>)[row.campaign] ?? row.campaign,
             el('select', {
               'aria-label': 'Estado de ' + row.campaign,
               onchange: async (event: Event) => {
@@ -1075,6 +1243,14 @@ function renderView(main: HTMLElement) {
             .format(row.completed / row.invited) : '—',
           String(row.sample), String(row.sus ?? '—'), String(row.nps ?? '—'), String(row.satisfaction ?? '—'),
         ])),
+        ...(data.surveys.length ? [el('button', { type: 'button', onclick: () =>
+          downloadSurveyCsv('encuestas-' + period + '-días.csv', [
+            ['Campaña', 'Versión', 'Invitaciones', 'Completadas', 'Descartadas', 'SUS', 'NPS', 'Satisfacción'],
+            ...data.surveys.map((row: { campaign: string; version: number; invited: number; completed: number;
+              dismissed: number; sus: number | null; nps: number | null; satisfaction: number | null }) =>
+              [row.campaign, row.version, row.invited, row.completed, row.dismissed, row.sus, row.nps, row.satisfaction]),
+          ]),
+        }, 'Exportar resumen de encuestas')] : []),
         el('p', null, 'La participación corresponde a las invitaciones del periodo. La muestra de puntuaciones corresponde a las respuestas recibidas en el periodo y se publica desde cinco respuestas.'),
       ] : []),
       table('Aportaciones voluntarias por día (UTC)', ['Fecha', 'Categoría', 'Recibidas', 'Pendientes'],

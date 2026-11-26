@@ -1260,6 +1260,24 @@ test('PostgreSQL scopes assigned evaluations and protects draft and submission s
   assert.notEqual((await as(actors[0], offer)).rows[0].survey.id, general.id);
   await ownerPool.query("insert into bandarlog_api.product_survey_response(campaign,version,nps,satisfaction,answers) select 'F03',1,nps,4,'{}'::jsonb from unnest(array[10,8,6,0]) as nps");
 
+  await ownerPool.query(`
+    insert into group_evaluations(group_id,id,template_id,template_revision,title,due_at)
+      values ('p2-qa','p2-expired-2','p2-template',1,'Segundo cierre',now()-interval '1 day');
+  `);
+  const scope = 'a'.repeat(64);
+  const snapshot = (ids: string) =>
+    `select bandarlog_api.evaluation_consolidations('${scope}',${ids},null) as value`;
+  const ids = "ARRAY['p2-expired','p2-expired-2']";
+  assert.equal((await as(actors[0], snapshot(ids))).rows[0].value, null);
+  assert.equal((await as(actors[3], snapshot(ids))).rows[0].value, null);
+  const firstSnapshot = (await as(actors[1], snapshot(ids))).rows[0].value;
+  assert.equal(firstSnapshot.revision, 1);
+  await ownerPool.query("update group_evaluation_conclusions set body='Revisión posterior' where evaluation_id='p2-expired'");
+  assert.equal((await as(actors[1], snapshot(ids))).rows[0].value.revision, 2);
+  const originalSnapshot = (await as(actors[1],
+    `select bandarlog_api.evaluation_consolidations('${scope}',null,1) as value`)).rows[0].value;
+  assert.equal(originalSnapshot[0].body, firstSnapshot.reports[0].body);
+
   const payload = "select bandarlog_api.product_feedback_submit('help','Texto ficticio',null) as id";
   const feedbackId = (await as(actors[0], payload)).rows[0].id;
   await assert.rejects(as(actors[0], 'select * from bandarlog_api.product_feedback'), /permission denied/);
@@ -1298,13 +1316,42 @@ test('PostgreSQL scopes assigned evaluations and protects draft and submission s
       'select bandarlog_api.product_survey_insights($1,7) as metrics', [token],
     );
     await assert.rejects(surveyInsights(actors[0].token), /platform session expired/);
+    const campaign = 'C-' + 'a'.repeat(32);
+    const config = {
+      title: 'Versión inicial', start: new Date(Date.now()-86400000).toISOString(),
+      end: new Date(Date.now()+86400000).toISOString(), audience: 'management',
+      questions: [{ id: 'q1', label: '¿Cómo valoras el flujo?' }],
+    };
+    const save = (expected: number, configuration = config) => platformClient.query(
+      'select bandarlog_api.product_campaign_save($1,$2,$3,$4,$5) as version',
+      [feedbackToken,csrf,campaign,expected,configuration],
+    );
+    assert.equal((await save(0)).rows[0].version, 1);
+    assert.equal((await as(actors[3], offer)).rows[0].survey.campaign, campaign);
+    assert.equal((await as(actors[2], offer)).rows[0].survey?.campaign === campaign, false);
+    assert.equal((await save(1, { ...config, title: 'Revisión publicada' })).rows[0].version, 2);
+    assert.equal((await save(1)).rows[0].version, null);
+    const original = (await as(actors[3], offer)).rows[0].survey;
+    assert.equal(original.version, 1);
+    assert.equal(original.configuration.title, 'Versión inicial');
+    assert.deepEqual((await as(actors[3], command(original.id, 'submit', {
+      ratings: { q1: 4 },
+    }))).rows[0].survey, { ok: true });
+    assert.deepEqual((await platformClient.query(
+      'select bandarlog_api.product_campaign_results($1,$2,1) as results',[feedbackToken,campaign],
+    )).rows[0].results, []);
+    const segments = (await platformClient.query(
+      "select bandarlog_api.product_insights_segments($1,'role') as segments",[feedbackToken],
+    )).rows[0].segments;
+    assert.deepEqual(segments, []);
+
     const surveyRows = (await surveyInsights(feedbackToken)).rows[0].metrics;
     assert.equal(surveyRows.find((row: any) => row.campaign === 'F02').sus, null);
     const generalMetrics = surveyRows.find((row: any) => row.campaign === 'F03');
     assert.equal(generalMetrics.nps, 0);
     assert.equal(generalMetrics.sample, 5);
     assert.equal(generalMetrics.completed, 1);
-    assert.equal(generalMetrics.invited, 2);
+    assert.equal(generalMetrics.invited, 3);
     await platformClient.query('select bandarlog_api.product_campaign_set_paused($1,$2,\'F03\',true)', [feedbackToken, csrf]);
     assert.equal((await as(actors[0], offer)).rows[0].survey, null);
 

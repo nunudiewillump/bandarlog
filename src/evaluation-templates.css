@@ -111,3 +111,21 @@
 .evaluation-recipients small {
   display: block;
 }
+
+.evaluation-comparison {
+  overflow-x: auto;
+  margin-block: 1rem;
+}
+.evaluation-comparison table {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+}
+.evaluation-comparison th,
+.evaluation-comparison td {
+  max-width: 13rem;
+  padding: 0.6rem;
+  border-bottom: 1px solid currentColor;
+  text-align: left;
+  vertical-align: top;
+}

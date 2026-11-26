@@ -4,6 +4,12 @@ import { api } from './api';
 
 type State = {
   archived: boolean;
+  lifecycle?: {
+    id: string;
+    kind: 'closed' | 'reopened';
+    createdAt: string;
+    evaluations?: string[];
+  }[];
   last: { kind: 'closed' | 'reopened'; reopenUntil: string; canReopen: boolean } | null;
 };
 const formatDate = new Intl.DateTimeFormat('es-ES', {
@@ -55,7 +61,7 @@ export function ProjectLifecycle({
 
   const closed = state.last?.kind === 'closed';
   const reopen = closed && state.last?.canReopen;
-  if (closed && !reopen) return <p>Proyecto archivado. El plazo de reapertura terminó.</p>;
+
   const legacy = state.archived && !state.last;
   return (
     <>
@@ -67,35 +73,59 @@ export function ProjectLifecycle({
       {reopen && (
         <p>Se puede reabrir hasta el {formatDate.format(new Date(state.last!.reopenUntil))}.</p>
       )}
-      <button
-        type="button"
-        className="text-link archive"
-        disabled={busy}
-        onClick={async () => {
-          if (
-            !state.archived &&
-            !window.confirm(
-              '¿Cerrar el proyecto sin evaluación? Las tareas y su historial se conservan.',
+      {closed && !reopen ? (
+        <p>Proyecto archivado. El plazo de reapertura terminó.</p>
+      ) : (
+        <button
+          type="button"
+          className="text-link archive"
+          disabled={busy}
+          onClick={async () => {
+            if (
+              !state.archived &&
+              !window.confirm(
+                '¿Cerrar el proyecto sin evaluación? Las tareas y su historial se conservan.',
+              )
             )
-          )
-            return;
-          setBusy(true);
-          await refresh(
-            async () => {
-              if (legacy) await api(projectPath, 'PATCH', { archived: false });
-              else
-                await api(projectPath + '/lifecycle', 'POST', {
-                  action: reopen ? 'reopen' : 'close',
-                });
-            },
-            state.archived ? 'Proyecto reabierto' : 'Proyecto cerrado',
-          );
-          await load();
-        }}
-      >
-        <Archive size={16} />
-        {legacy ? 'Restaurar proyecto' : reopen ? 'Reabrir proyecto' : 'Cerrar sin evaluar'}
-      </button>
+              return;
+            setBusy(true);
+            await refresh(
+              async () => {
+                if (legacy) await api(projectPath, 'PATCH', { archived: false });
+                else
+                  await api(projectPath + '/lifecycle', 'POST', {
+                    action: reopen ? 'reopen' : 'close',
+                  });
+              },
+              state.archived ? 'Proyecto reabierto' : 'Proyecto cerrado',
+            );
+            await load();
+          }}
+        >
+          <Archive size={16} />
+          {legacy ? 'Restaurar proyecto' : reopen ? 'Reabrir proyecto' : 'Cerrar sin evaluar'}
+        </button>
+      )}
+      {!!state.lifecycle?.length && (
+        <details>
+          <summary>Revisiones de cierre</summary>
+          <ul>
+            {state.lifecycle.map((event) => (
+              <li key={event.id}>
+                {event.kind === 'closed' ? 'Cierre' : 'Reapertura'} ·{' '}
+                {formatDate.format(new Date(event.createdAt))}
+                {!!event.evaluations?.length && (
+                  <ul>
+                    {event.evaluations.map((title, i) => (
+                      <li key={i}>{title}</li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </>
   );
 }

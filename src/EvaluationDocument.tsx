@@ -19,6 +19,15 @@ const date = new Intl.DateTimeFormat('es-ES', {
 });
 const number = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2 });
 
+export function evaluationMean(kind: string, stats: EvaluationSummary['questions'][string]) {
+  if (!['numberScale', 'nps'].includes(kind) || !stats.distribution.length || !stats.answered)
+    return null;
+  return (
+    stats.distribution.reduce((sum, entry) => sum + Number(entry.value) * entry.count, 0) /
+    stats.answered
+  );
+}
+
 export function EvaluationStatistics({
   structure,
   summary,
@@ -32,19 +41,13 @@ export function EvaluationStatistics({
       {section.questions.map((question) => {
         const stats = summary.questions[question.id];
         if (!stats) return null;
-        const numeric = question.type === 'numberScale' || question.type === 'nps';
-        const sum = numeric
-          ? stats.distribution.reduce(
-              (total, entry) => total + Number(entry.value) * entry.count,
-              0,
-            )
-          : 0;
+        const mean = evaluationMean(question.type, stats);
         return (
           <div key={question.id} className="evaluation-question">
             <h3>{question.label}</h3>
             <p>
               {stats.answered} respuestas · {summary.submitted - stats.answered} omitidas
-              {numeric && stats.answered > 0 && ' · Media ' + number.format(sum / stats.answered)}
+              {mean !== null && ' · Media ' + number.format(mean)}
             </p>
             {stats.distribution.length > 0 && (
               <ul>
