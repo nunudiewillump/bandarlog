@@ -1189,4 +1189,43 @@ test('PostgreSQL scopes assigned evaluations and protects draft and submission s
 
 
 
+  const payload = "select bandarlog_api.product_feedback_submit('help','Texto ficticio',null) as id";
+  const feedbackId = (await as(actors[0], payload)).rows[0].id;
+  await assert.rejects(as(actors[0], 'select * from bandarlog_api.product_feedback'), /permission denied/);
+  await assert.rejects(as(actors[0], "select bandarlog_api.product_feedback_list('',null,1,'')"), /permission denied/);
+
+  const feedbackToken = randomBytes(32).toString('hex');
+  const csrf = randomBytes(32).toString('hex');
+  await ownerPool.query("insert into bandarlog_api.platform_admins(id,email,name) values('feedback-admin','feedback-admin@example.test','Feedback QA')");
+  await ownerPool.query(
+    "insert into bandarlog_api.platform_sessions(id,admin_id,csrf) values($1,'feedback-admin',$2)",
+    [hashForTest('sha256').update(feedbackToken).digest('hex'), csrf],
+  );
+  const identity = new URL(testUrl!);
+  identity.username = 'bandarlog_identity';
+  identity.password = '';
+  const platformClient = new pg.Client({ connectionString: identity.toString() });
+  await platformClient.connect();
+  try {
+    const list = (token: string, status = '') => platformClient.query(
+      'select bandarlog_api.product_feedback_list($1,null,10,$2) as items', [token,status],
+    );
+    await assert.rejects(list(actors[0].token), /platform session expired/);
+    const item = (await list(feedbackToken)).rows[0].items.find((entry: { id: string }) => entry.id === feedbackId);
+    assert.equal(item.body, 'Texto ficticio');
+    assert.equal(item.reply_email, null);
+    assert.equal(item.group_id, undefined);
+    const review = (key: string, revision: number) => platformClient.query(
+      "select bandarlog_api.product_feedback_review($1,$2,$3,'resolved',$4) as changed",
+      [feedbackToken,key,feedbackId,revision],
+    );
+    await assert.rejects(review(actors[0].token,1), /invalid csrf/);
+    assert.equal((await review(csrf,1)).rows[0].changed,true);
+    assert.equal((await review(csrf,1)).rows[0].changed,false);
+    assert.equal((await list(feedbackToken,'resolved')).rows[0].items[0].id, feedbackId);
+    await assert.rejects(platformClient.query('select * from bandarlog_api.product_feedback'), /permission denied/);
+  } finally {
+    await platformClient.end();
+  }
+
 });

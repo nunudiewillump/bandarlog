@@ -125,6 +125,7 @@ before(async () => {
       MAIL_TRANSPORT: 'preview',
       EVALUATION_TEMPLATES_ENABLED: 'true',
       GROUP_EVALUATIONS_ENABLED: 'true',
+      PRODUCT_FEEDBACK_ENABLED: 'true',
       SMTP_HOST: '',
       GOOGLE_LOGIN_CLIENT_ID: '',
       GOOGLE_LOGIN_CLIENT_SECRET: '',
@@ -1055,4 +1056,16 @@ test('close and evaluate assigns atomically and pauses the same draft on reopeni
   const resumed = (await call(path, 'GET', undefined, a)).body;
   assert.equal(resumed.open, true);
   assert.equal(resumed.revision, 1);
+});
+
+
+test('product feedback requires a session and accepts only explicit contact and content', async () => {
+  const [a] = await evaluationGroupFixtures();
+  const root = '/api/product-feedback';
+  assert.equal((await call(root, 'POST', { category: 'idea', body: 'Una sugerencia' })).status, 401);
+  assert.equal((await call(root, 'POST', { category: 'idea', body: 'Una sugerencia', groupId: a.userId }, a)).status, 400);
+  assert.equal((await call(root, 'POST', { category: 'idea', body: 'Una sugerencia', replyEmail: 'inválido' }, a)).status, 400);
+  const created = await call(root, 'POST', { category: 'idea', body: 'Una sugerencia' }, a);
+  assert.equal(created.status, 201, JSON.stringify(created.body));
+  assert.match(created.body.id, /^[a-f0-9-]{36}$/);
 });

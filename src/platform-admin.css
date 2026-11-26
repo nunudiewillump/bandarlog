@@ -789,3 +789,9 @@ input[type='checkbox'] {
   color: var(--muted);
   margin-bottom: 18px;
 }
+
+.feedback-message {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-width: 48ch;
+}

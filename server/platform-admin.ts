@@ -304,7 +304,10 @@ export function platformAdminRoutes(
       r.redirect(303, '/plataforma?auth_error=google');
     }
   });
-  router.get('/api/platform/me', async (q, r) => r.json(await ops.adminMe(token(q))));
+  router.get('/api/platform/me', async (q, r) => {
+    const actor = await ops.adminMe(token(q));
+    r.json({ ...actor, productFeedbackEnabled: process.env.PRODUCT_FEEDBACK_ENABLED === 'true' });
+  });
   router.post('/api/platform/logout', async (q, r) => {
     await ops.adminClose(token(q), csrf(q));
     r.clearCookie(cookieName, { path: '/', secure: production }).json({ ok: true });
@@ -330,6 +333,23 @@ export function platformAdminRoutes(
       );
       r.json(view === 'mail' ? { ...result, preview: platformPreview(origin) } : result);
     });
+  if (process.env.PRODUCT_FEEDBACK_ENABLED === 'true') {
+    const statuses = z.enum(['new','reviewing','in_progress','resolved','archived']);
+    router.get('/api/platform/feedback', async (q,r) => {
+      const p = query.parse(q.query);
+      const after = p.cursor ? z.uuid().parse(p.cursor) : null;
+      const status = p.filter ? statuses.parse(p.filter) : '';
+      const rows = await ops.productFeedbackList(token(q), after, p.limit + 1, status);
+      r.json({ items: rows.slice(0,p.limit), nextCursor: rows.length > p.limit ? rows[p.limit-1].id : '' });
+    });
+    router.post('/api/platform/feedback/:id', async (q,r) => {
+      const id = z.uuid().parse(q.params.id);
+      const input = z.strictObject({ status: statuses, revision: z.int().positive() }).parse(q.body);
+      const updated = await ops.productFeedbackReview(token(q), csrf(q), id, input.status, input.revision);
+      if (!updated) return r.status(409).json({ error: 'La aportación ha cambiado. Vuelve a cargar la bandeja.' });
+      r.json({ ok: true });
+    });
+  }
   router.get('/api/platform/groups/:id', async (q, r) => {
     const result = await ops.adminRead(
       token(q),

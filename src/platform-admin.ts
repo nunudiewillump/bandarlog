@@ -36,6 +36,7 @@ const views = [
   ['metrics', 'Métricas'],
   ['groups', 'Grupos'],
   ['requests', 'Solicitudes'],
+  ['feedback', 'Feedback'],
   ['access', 'Accesos'],
   ['mail', 'Comunicaciones'],
   ['audit', 'Auditoría'],
@@ -386,6 +387,7 @@ function selectView(key: string) {
 }
 async function loadView() {
   if (!user) return;
+  if (view === 'feedback' && !user.productFeedbackEnabled) view = 'overview';
   controller?.abort();
   controller = new AbortController();
   detail = null;
@@ -449,6 +451,7 @@ const navPaths: Record<string, string> = {
   metrics: 'M4 20V10m8 10V4m8 16v-7',
   groups: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0',
   requests: 'M9 3h6v4H9zM8 5H5v16h14V5h-3M8 12h8m-8 4h5',
+  feedback: 'M4 5h16v11H9l-5 4V5zm4 4h8m-8 3h5',
   access: 'M12 3 3 7v6c0 5 9 9 9 9s9-4 9-9V7zM8 12l3 3 5-6',
   mail: 'M3 5h18v14H3zM3 5l9 7 9-7',
   audit: 'M5 3h14v18H5zM8 8h8m-8 4h8m-8 4h5',
@@ -478,7 +481,7 @@ function render() {
   const nav = el(
     'nav',
     { 'aria-label': 'Administración' },
-    views.map(([key, label]) =>
+    views.filter(([key]) => key !== 'feedback' || user.productFeedbackEnabled).map(([key, label]) =>
       el(
         'button',
         {
@@ -1009,6 +1012,51 @@ function renderView(main: HTMLElement) {
           date(r.createdAt),
           statusLabel(requestStatus(r)),
           button('Revisar ' + r.groupName, () => openRequest(r.id), true),
+        ]),
+      ),
+    );
+    paging(main);
+  } else if (view === 'feedback') {
+    const statuses = [
+      ['new','Nueva'], ['reviewing','En revisión'], ['in_progress','En proceso'],
+      ['resolved','Resuelta'], ['archived','Archivada'],
+    ];
+    const categories: Record<string, string> = {
+      bug: 'Error', idea: 'Sugerencia', help: 'Solicitud de ayuda', general: 'Comentario general',
+    };
+    const options = (selected: string) => statuses.map(([key, label]) =>
+      el('option', { value: key, selected: key === selected }, label),
+    );
+    main.append(
+      heading('Feedback de Bandarlog'),
+      el('label', null, 'Estado', el('select', {
+        'aria-label': 'Filtrar por estado',
+        onchange: (event: Event) => {
+          filter = (event.currentTarget as HTMLSelectElement).value;
+          cursor = '';
+          void loadView();
+        },
+      }, [el('option', { value: '', selected: filter === '' }, 'Todos los estados'), ...options(filter)])),
+      table('Aportaciones', ['Fecha','Categoría','Aportación','Contactar','Estado'],
+        data.items.map((item: any) => [
+          date(item.createdAt),
+          categories[item.category] ?? item.category,
+          el('p', { class: 'feedback-message' }, item.body),
+          item.replyEmail || '—',
+          el('select', {
+            'aria-label': 'Cambiar estado de aportación',
+            onchange: async (event: Event) => {
+              const input = event.currentTarget as HTMLSelectElement;
+              const status = input.value;
+              input.disabled = true;
+              try {
+                await api('feedback/' + encodeURIComponent(item.id), 'POST', { status, revision: item.revision });
+                await loadView();
+              } catch (error) {
+                failure(error);
+              } finally { input.disabled = false; }
+            },
+          }, options(item.status)),
         ]),
       ),
     );

@@ -1489,6 +1489,24 @@ if (evaluationTemplatesEnabled)
   app.use('/api/evaluation-templates', evaluationTemplateRoutes(db));
 const groupEvaluationsEnabled = process.env.GROUP_EVALUATIONS_ENABLED === 'true';
 if (groupEvaluationsEnabled) app.use('/api/group-evaluations', groupEvaluationRoutes(db));
+const productFeedbackEnabled = process.env.PRODUCT_FEEDBACK_ENABLED === 'true';
+if (productFeedbackEnabled) app.post('/api/product-feedback',
+  rateLimit({ windowMs: 3600_000, limit: 5, keyGenerator: (_q, r) => r.locals.user.id }),
+  async (q, r) => {
+    const input = z.strictObject({
+      category: z.enum(['bug', 'idea', 'help', 'general']),
+      body: z.string().trim().min(1).max(3000),
+      replyEmail: z.email().max(254).optional(),
+    }).parse(q.body);
+    const result = await withReceipt(q, r, async (tx) => {
+      const result = await tx.execute(sql`select bandarlog_api.product_feedback_submit(
+        ${input.category}, ${input.body}, ${input.replyEmail ?? null}
+      ) as id`);
+      return { id: result.rows[0].id };
+    });
+    r.status(201).json(result);
+  },
+);
 app.get('/api/tutorial', async (_q, r) => r.json(await readTutorial(db, r.locals.user.id)));
 app.get('/api/tutorial/stats', async (_q, r) => {
   if (r.locals.user.role !== 'admin')
@@ -1879,6 +1897,7 @@ app.get('/api/me', (_q, r) => {
     ),
     development: !prod,
     groupEvaluationsEnabled,
+    productFeedbackEnabled,
     evaluationTemplatesEnabled: evaluationTemplatesEnabled && globalManage(r.locals.user),
     googleEnabled: Boolean(process.env.GOOGLE_LOGIN_CLIENT_ID),
   });

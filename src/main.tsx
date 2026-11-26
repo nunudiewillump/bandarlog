@@ -118,6 +118,7 @@ const initial: Data = {
   activity: [],
   invitations: [],
 };
+const ProductFeedback = lazy(() => import('./ProductFeedback').then(({ ProductFeedback }) => ({ default: ProductFeedback })));
 const GroupEvaluations = lazy(() => import('./GroupEvaluations'));
 const EvaluationTemplates = lazy(() => import('./EvaluationTemplates'));
 const ProjectMap = lazy(() => import('./ProjectMap'));
@@ -195,6 +196,7 @@ function App() {
     [toast, setToast] = useState(''),
     [busy, setBusy] = useState(false),
     [groupEvaluationsOpen, setGroupEvaluationsOpen] = useState(false),
+    [productFeedbackEnabled, setProductFeedbackEnabled] = useState(false),
     [groupEvaluationsEnabled, setGroupEvaluationsEnabled] = useState(false),
     [evaluationAction, setEvaluationAction] = useState<{ id: string; revision: number; title: string } | null>(null),
     [evaluationClosingProject, setEvaluationClosingProject] = useState<string | null>(null),
@@ -474,6 +476,7 @@ function App() {
       const visible = dataResult.value.users.find((user) => user.id === session.user.id);
       setMe({ ...session.user, ...visible });
       setDevelopment(session.development);
+      setProductFeedbackEnabled(session.productFeedbackEnabled === true);
       setGroupEvaluationsEnabled(session.groupEvaluationsEnabled === true);
       setEvaluationTemplatesEnabled(session.evaluationTemplatesEnabled === true);
       const route = readNavigation(location.search);
@@ -2431,6 +2434,11 @@ function App() {
                     setData(initial);
                   }}
                 />
+                {productFeedbackEnabled && view === 'profile' && (
+                  <Suspense fallback={<p role="status">Cargando…</p>}>
+                    <ProductFeedback key={me.id} />
+                  </Suspense>
+                )}
                 {development && (
                   <section className="panel development-panel">
                     <h2>Entorno de desarrollo</h2>
