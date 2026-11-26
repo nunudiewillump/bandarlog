@@ -11,3 +11,9 @@ Con ambos flags de P2 activos, Coordinación y Administración pueden abrir **Pr
 El formulario ofrece **Volver** y **Publicar**. Permite elegir una versión publicada, indicar un título y seleccionar hasta 100 personas activas. El plazo termina el último día elegido a las 23:59 en Madrid. Las evaluaciones publicadas aparecen en **Mis evaluaciones** de las personas asignadas.
 
 Ambas interfaces usan el contrato de la migración 0044. Las modalidades anónima y colectiva, el cierre desde Proyectos y la consulta de resultados por Coordinación quedan pendientes.
+
+## Revisión del formulario
+
+El formulario mantiene **Volver** y **Enviar** como acciones directas. El menú **Opciones** contiene el guardado de borrador y se abre con teclado. El formulario muestra progreso y separa las instrucciones del enunciado. Si falta una respuesta obligatoria, cambia a la sección correspondiente y enfoca el primer campo que requiere atención.
+
+Revisión visual a 390 y 1440 px con datos ficticios. [Móvil](../../artifacts/feedback-for-all/respuesta-movil.png) · [Escritorio](../../artifacts/feedback-for-all/respuesta-escritorio.png)

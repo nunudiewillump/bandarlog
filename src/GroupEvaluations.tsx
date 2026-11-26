@@ -4,6 +4,7 @@ import { evaluationAnswers } from '../shared/evaluation-answers';
 import { api } from './api';
 import { Select } from './Select';
 import './evaluation-templates.css';
+import './group-evaluations.css';
 
 type Question = EvaluationStructure['sections'][number]['questions'][number];
 type Answer = string | number | boolean | string[];
@@ -31,18 +32,30 @@ const statusOf = (item: Omit<Entry, 'id'>) =>
 
 function AnswerField({
   question,
+  id,
+  describedBy,
+  invalid,
   value,
   onChange,
 }: {
   question: Question;
+  id: string;
+  describedBy?: string;
+  invalid: boolean;
   value: Answer | undefined;
   onChange: (value: Answer | undefined) => void;
 }) {
+  const accessibility = {
+    id,
+    'aria-describedby': describedBy,
+    'aria-invalid': invalid || undefined,
+  };
   const setText = (text: string) => onChange(text || undefined);
   switch (question.type) {
     case 'shortText':
       return (
         <input
+          {...accessibility}
           value={String(value ?? '')}
           maxLength={280}
           onChange={(e) => setText(e.target.value)}
@@ -51,6 +64,7 @@ function AnswerField({
     case 'longText':
       return (
         <textarea
+          {...accessibility}
           value={String(value ?? '')}
           maxLength={4000}
           onChange={(e) => setText(e.target.value)}
@@ -58,12 +72,18 @@ function AnswerField({
       );
     case 'date':
       return (
-        <input type="date" value={String(value ?? '')} onChange={(e) => setText(e.target.value)} />
+        <input
+          {...accessibility}
+          type="date"
+          value={String(value ?? '')}
+          onChange={(e) => setText(e.target.value)}
+        />
       );
     case 'numberScale':
     case 'nps':
       return (
         <input
+          {...accessibility}
           type="number"
           step={1}
           min={'min' in question ? question.min : 0}
@@ -79,6 +99,7 @@ function AnswerField({
       const selection = typeof value === 'boolean' ? (value ? 'Sí' : 'No') : String(value ?? '');
       return (
         <select
+          {...accessibility}
           value={selection}
           onChange={(e) => {
             const next = e.target.value;
@@ -97,7 +118,7 @@ function AnswerField({
     case 'tags':
       return (
         <textarea
-          aria-label={question.label + ' (una etiqueta por línea)'}
+          {...accessibility}
           value={Array.isArray(value) ? value.join('\n') : ''}
           onChange={(e) => onChange(e.target.value ? e.target.value.split('\n') : undefined)}
         />
@@ -105,7 +126,7 @@ function AnswerField({
     case 'multipleChoice': {
       const selected = Array.isArray(value) ? value : [];
       return (
-        <fieldset aria-label={question.label}>
+        <fieldset {...accessibility} aria-labelledby={id + '-label'} tabIndex={-1}>
           {question.options.map((option) => (
             <label key={option} className="evaluation-checkbox">
               <input
@@ -136,6 +157,7 @@ export default function GroupEvaluations({ onBack }: { onBack: () => void }) {
   const [busy, setBusy] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [invalidQuestion, setInvalidQuestion] = useState<string | null>(null);
 
   async function run(work: () => Promise<void>) {
     setBusy(true);
@@ -160,17 +182,23 @@ export default function GroupEvaluations({ onBack }: { onBack: () => void }) {
     void run(() => load());
   }, []);
 
+  useEffect(() => {
+    if (invalidQuestion && !busy) document.getElementById('response-' + invalidQuestion)?.focus();
+  }, [invalidQuestion, busy, sectionIndex]);
+
   function open(id: string) {
     void run(async () => {
       const detail: Detail = await api(endpoint + '/' + id);
       setSelected({ id, detail });
       setAnswers(detail.answers);
       setSectionIndex(0);
+      setInvalidQuestion(null);
     });
   }
 
   function save(action: 'draft' | 'submission') {
     if (!selected || busy || !selected.detail.open || selected.detail.submittedAt) return;
+    setInvalidQuestion(null);
     void run(async () => {
       const { id, detail } = selected;
       const normalized = Object.fromEntries(
@@ -187,7 +215,10 @@ export default function GroupEvaluations({ onBack }: { onBack: () => void }) {
         const index = detail.structure.sections.findIndex((section) =>
           section.questions.some((question) => question.id === first),
         );
-        if (index >= 0) setSectionIndex(index);
+        if (index >= 0 && typeof first === 'string') {
+          setSectionIndex(index);
+          setInvalidQuestion(first);
+        }
         throw Error(
           action === 'submission'
             ? 'Revisa las respuestas obligatorias y su formato.'
@@ -219,20 +250,31 @@ export default function GroupEvaluations({ onBack }: { onBack: () => void }) {
   const detail = selected?.detail;
   const section = detail?.structure.sections[sectionIndex];
   const editable = detail?.open && !detail.submittedAt;
+  const questions = detail?.structure.sections.flatMap((part) => part.questions) ?? [];
+  const answered = questions.filter(({ id }) => {
+    const value = answers[id];
+    if (Array.isArray(value)) return value.some((entry) => entry.trim());
+    if (typeof value === 'string') return Boolean(value.trim());
+    if (typeof value === 'number') return Number.isFinite(value);
+    return typeof value === 'boolean';
+  }).length;
 
   return (
-    <section className="panel evaluation-templates" aria-busy={busy}>
+    <section className="panel evaluation-templates group-evaluations" aria-busy={busy}>
       <h1>{detail?.title ?? 'Mis evaluaciones'}</h1>
       {error && <p role="alert">{error}</p>}
       <p role="status">{busy ? 'Cargando…' : message}</p>
       {detail && section ? (
         <>
-          <p>
-            {statusOf(detail)} · Plazo {deadline.format(new Date(detail.dueAt))}
-          </p>
-          <p>Respuesta identificada. Solo tú puedes consultar tu borrador.</p>
-          {detail.structure.description && <p>{detail.structure.description}</p>}
-          <div className="evaluation-controls">
+          <div className="evaluation-context">
+            <p>
+              <strong>{statusOf(detail)}</strong>{' '}
+              <span>Plazo {deadline.format(new Date(detail.dueAt))}</span>
+            </p>
+            <p>Respuesta identificada. Solo tú puedes consultar tu borrador.</p>
+            {detail.structure.description && <p>{detail.structure.description}</p>}
+          </div>
+          <div className="evaluation-controls response-controls">
             <button
               type="button"
               className="secondary"
@@ -244,6 +286,7 @@ export default function GroupEvaluations({ onBack }: { onBack: () => void }) {
                 )
                   return;
                 setSelected(null);
+                setInvalidQuestion(null);
                 setError('');
                 setMessage('');
               }}
@@ -274,6 +317,16 @@ export default function GroupEvaluations({ onBack }: { onBack: () => void }) {
               </Select>
             )}
           </div>
+          <div className="evaluation-progress">
+            <p id="evaluation-progress-label">
+              {answered} de {questions.length} preguntas respondidas
+            </p>
+            <progress
+              aria-labelledby="evaluation-progress-label"
+              value={answered}
+              max={questions.length}
+            />
+          </div>
           <label>
             Sección {sectionIndex + 1} de {detail.structure.sections.length}
             <select
@@ -298,9 +351,20 @@ export default function GroupEvaluations({ onBack }: { onBack: () => void }) {
               );
               const field = (
                 <AnswerField
+                  id={'response-' + question.id}
+                  describedBy={
+                    question.description || question.type === 'tags'
+                      ? 'response-' + question.id + '-hint'
+                      : undefined
+                  }
+                  invalid={invalidQuestion === question.id}
                   question={question}
                   value={answers[question.id]}
                   onChange={(value) => {
+                    if (invalidQuestion === question.id) {
+                      setInvalidQuestion(null);
+                      setError('');
+                    }
                     setAnswers((previous) => {
                       const nextAnswers = { ...previous };
                       if (value === undefined) delete nextAnswers[question.id];
@@ -313,17 +377,18 @@ export default function GroupEvaluations({ onBack }: { onBack: () => void }) {
               return (
                 <div key={question.id} className="evaluation-question">
                   {question.type === 'multipleChoice' ? (
-                    <>
-                      {label}
-                      {field}
-                    </>
+                    <strong id={'response-' + question.id + '-label'}>{label}</strong>
                   ) : (
-                    <label>
-                      {label}
-                      {field}
-                    </label>
+                    <label htmlFor={'response-' + question.id}>{label}</label>
                   )}
-                  {question.description && <p>{question.description}</p>}
+                  {(question.description || question.type === 'tags') && (
+                    <p id={'response-' + question.id + '-hint'} className="evaluation-hint">
+                      {question.description}
+                      {question.description && question.type === 'tags' ? ' ' : ''}
+                      {question.type === 'tags' && 'Escribe una etiqueta por línea.'}
+                    </p>
+                  )}
+                  {field}
                 </div>
               );
             })}
@@ -338,8 +403,11 @@ export default function GroupEvaluations({ onBack }: { onBack: () => void }) {
           <ul className="evaluation-template-list">
             {items.map((item) => (
               <li key={item.id}>
-                <span>
-                  {item.title} · {statusOf(item)}
+                <span className="evaluation-list-context">
+                  <strong>{item.title}</strong>
+                  <small>
+                    {statusOf(item)} · {deadline.format(new Date(item.dueAt))}
+                  </small>
                 </span>
                 <Select
                   aria-label={'Acciones de ' + item.title}

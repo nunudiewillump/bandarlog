@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { mkdir } from 'node:fs/promises';
 import { mobileFixture } from '../fixtures/mobile';
 
 test('participant opens an evaluation from Inicio, resumes a draft and sends it once', async ({
@@ -81,8 +82,12 @@ test('participant opens an evaluation from Inicio, resumes a draft and sends it 
   };
   await open();
   await expect(panel.getByRole('button')).toHaveCount(2);
+  await expect(panel.getByRole('progressbar')).toHaveAttribute('value', '0');
   await panel.getByLabel('¿Repetimos? (obligatoria)').selectOption('No');
-  await panel.getByRole('combobox', { name: 'Opciones de respuesta' }).click();
+  await expect(panel.getByRole('progressbar')).toHaveAttribute('value', '1');
+  const responseMenu = panel.getByRole('combobox', { name: 'Opciones de respuesta' });
+  await responseMenu.focus();
+  await responseMenu.press('Enter');
   await page.getByRole('option', { name: 'Guardar borrador' }).click();
   await expect(panel.getByRole('status')).toHaveText('Borrador guardado.');
   await panel.getByRole('button', { name: 'Volver' }).click();
@@ -90,7 +95,24 @@ test('participant opens an evaluation from Inicio, resumes a draft and sends it 
   await expect(panel.getByLabel('¿Repetimos? (obligatoria)')).toHaveValue('No');
   await panel.getByRole('button', { name: 'Enviar' }).click();
   await expect(panel.getByRole('alert')).toContainText('obligatorias');
+  await expect(panel.getByLabel('Puntuación (obligatoria)')).toBeFocused();
+  await expect(panel.getByLabel('Puntuación (obligatoria)')).toHaveAttribute(
+    'aria-invalid',
+    'true',
+  );
+
   await panel.getByLabel('Puntuación (obligatoria)').fill('0');
+  await expect(panel.getByRole('alert')).toHaveCount(0);
+  const output = process.env.EVALUATION_SCREENSHOT_DIR;
+  if (output) {
+    await mkdir(output, { recursive: true });
+    await panel.getByRole('heading').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: output + '/respuesta-movil.png' });
+    await page.setViewportSize({ width: 1440, height: 940 });
+    await panel.screenshot({ path: output + '/respuesta-escritorio.png' });
+    await page.setViewportSize({ width: 390, height: 850 });
+  }
+
   page.once('dialog', (dialog) => dialog.accept());
   await panel.getByRole('button', { name: 'Enviar' }).click();
   await expect(panel.getByRole('status')).toHaveText('Evaluación enviada.');
