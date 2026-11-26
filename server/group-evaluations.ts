@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { and, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
 import { Router } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
@@ -138,6 +138,17 @@ export function groupEvaluationRoutes(db: Database) {
       .orderBy(evaluations.id)
       .limit(31);
     r.json({ items: rows.slice(0, 30), next: rows.length > 30 ? rows[29].id : null });
+  });
+
+  router.get('/pending', async (_q, r) => {
+    const [item] = await db
+      .select({ id: evaluations.id })
+      .from(assignments)
+      .innerJoin(evaluations, matchEvaluation)
+      .where(and(eq(assignments.userId, r.locals.user.id), isNull(assignments.submittedAt), active))
+      .orderBy(sql`${evaluations.publishedAt} desc nulls last`, desc(evaluations.dueAt), evaluations.id)
+      .limit(1);
+    r.json({ id: item?.id ?? null });
   });
 
   router.post('/', async (q, r) => {

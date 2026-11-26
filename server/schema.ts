@@ -519,6 +519,7 @@ export const groupEvaluations = pgTable('group_evaluations', {
   templateRevision: integer('template_revision').notNull(),
   responseMode: text('response_mode').$type<'identified' | 'anonymous' | 'collective'>().notNull().default('identified'),
   commissionId: text('commission_id'),
+  publishedAt: timestamp('published_at', { withTimezone: true, mode: 'string' }).default(sql`clock_timestamp()`),
   title: text().notNull(),
   dueAt: timestamp('due_at', { withTimezone: true, mode: 'string' }).notNull(),
 }, (t) => [primaryKey({ columns: [t.groupId, t.id] })]);

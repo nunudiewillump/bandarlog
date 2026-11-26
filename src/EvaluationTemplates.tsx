@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Trash2 } from 'lucide-react';
 import { api } from './api';
+import { QuestionHandle, QuestionOptions } from './EvaluationQuestionControls';
 import { Select } from './Select';
 import PublishEvaluation from './PublishEvaluation';
 import EvaluationResults from './EvaluationResults';
@@ -40,7 +41,7 @@ function questionOf(type: Question['type'], previous?: Question): Question {
   };
   if (type === 'numberScale') return { ...base, type, min: 1, max: 5 };
   if (type === 'singleChoice' || type === 'multipleChoice' || type === 'likert')
-    return { ...base, type, options: ['', ''] };
+    return { ...base, type, options: [''] };
   return { ...base, type };
 }
 
@@ -288,7 +289,7 @@ export default function EvaluationTemplates({
         />
       ) : !draft ? (
         <>
-          <div className="evaluation-controls">
+          <div className="evaluation-controls evaluation-template-list-actions">
             <button
               type="button"
               className="secondary"
@@ -385,7 +386,24 @@ export default function EvaluationTemplates({
             });
           }}
         >
-          <h1>{selected ? 'Editar plantilla' : 'Nueva plantilla'}</h1>
+          <div className="evaluation-editor-heading">
+            <h1>{selected ? 'Editar plantilla' : 'Nueva plantilla'}</h1>
+            <button
+              type="button"
+              className="secondary evaluation-save"
+              title="Guardar borrador"
+              disabled={busy || !dirty || selected?.archived}
+              onClick={() =>
+                void run(async () => {
+                  await save();
+                  setStatus('Plantilla guardada.');
+                })
+              }
+            >
+              <Save size={18} aria-hidden="true" />
+              <span className="evaluation-save-label">Guardar borrador</span>
+            </button>
+          </div>
           <div className="evaluation-controls">
             <button
               type="button"
@@ -404,41 +422,6 @@ export default function EvaluationTemplates({
               Publicar
             </button>
           </div>
-          <Actions
-            label="Opciones del editor"
-            disabled={busy}
-            onAction={(action) => {
-              if (action === 'add')
-                setDraft({ ...draft, sections: [...draft.sections, newSection()] });
-              if (action === 'save')
-                void run(async () => {
-                  await save();
-                  setStatus('Plantilla guardada.');
-                });
-              if (action === 'more' && selected && older)
-                void run(() => loadVersions(selected.id, older));
-              if (action.startsWith('version:') && selected)
-                void run(async () => {
-                  const { structure } = await api(
-                    root + '/' + selected.id + '/versions/' + action.slice(8),
-                  );
-                  exportStructure(structure);
-                });
-            }}
-          >
-            <option value="save" disabled={!dirty || selected?.archived}>
-              Guardar borrador
-            </option>
-            <option value="add" disabled={draft.sections.length >= 12 || selected?.archived}>
-              Añadir sección
-            </option>
-            {versions.map((version) => (
-              <option key={version.revision} value={'version:' + version.revision}>
-                Exportar versión {version.revision}
-              </option>
-            ))}
-            {older && <option value="more">Más versiones</option>}
-          </Actions>
           <fieldset disabled={busy || selected?.archived}>
             <label>
               Nombre de la plantilla
@@ -466,6 +449,21 @@ export default function EvaluationTemplates({
               return (
                 <fieldset className="evaluation-section" key={section.id}>
                   <legend>Sección {sectionIndex + 1}</legend>
+                  <button
+                    type="button"
+                    className="secondary evaluation-icon evaluation-delete evaluation-section-delete"
+                    aria-label={'Eliminar sección ' + (sectionIndex + 1)}
+                    title="Eliminar sección"
+                    disabled={draft.sections.length < 2}
+                    onClick={() =>
+                      setDraft({
+                        ...draft,
+                        sections: draft.sections.filter((row) => row.id !== section.id),
+                      })
+                    }
+                  >
+                    <Trash2 size={18} aria-hidden="true" />
+                  </button>
                   <label>
                     Título de sección
                     <input
@@ -485,165 +483,213 @@ export default function EvaluationTemplates({
                       }
                     />
                   </label>
-                  {section.questions.map((question, index) => {
-                    const update = (next: Question) =>
-                      updateSection({
-                        ...section,
-                        questions: section.questions.map((row) =>
-                          row.id === next.id ? next : row,
-                        ),
-                      });
-                    const move = (offset: number) => {
-                      const questions = [...section.questions];
-                      [questions[index], questions[index + offset]] = [
-                        questions[index + offset],
-                        questions[index],
-                      ];
-                      updateSection({ ...section, questions });
-                    };
-                    return (
-                      <fieldset className="evaluation-question" key={question.id}>
-                        <legend>Pregunta {index + 1}</legend>
-                        <label>
-                          Enunciado
-                          <input
-                            required
-                            maxLength={160}
-                            value={question.label}
-                            onChange={(event) => update({ ...question, label: event.target.value })}
-                          />
-                        </label>
-                        <label>
-                          Descripción de la pregunta
-                          <textarea
-                            maxLength={1000}
-                            value={question.description}
-                            onChange={(event) =>
-                              update({ ...question, description: event.target.value })
-                            }
-                          />
-                        </label>
-                        <label>
-                          Tipo de pregunta
-                          <select
-                            value={question.type}
-                            onChange={(event) =>
-                              update(questionOf(event.target.value as Question['type'], question))
-                            }
-                          >
-                            {questionTypes.map((type) => (
-                              <option key={type} value={type}>
-                                {names[type]}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        {'options' in question && (
+                  <div data-question-list className="evaluation-question-list">
+                    {section.questions.map((question, index) => {
+                      const update = (next: Question) =>
+                        updateSection({
+                          ...section,
+                          questions: section.questions.map((row) =>
+                            row.id === next.id ? next : row,
+                          ),
+                        });
+                      const move = (position: number) => {
+                        if (
+                          position === index ||
+                          position < 0 ||
+                          position >= section.questions.length
+                        )
+                          return;
+                        const questions = [...section.questions];
+                        questions.splice(index, 1);
+                        questions.splice(position, 0, question);
+                        updateSection({ ...section, questions });
+                        setStatus('Pregunta movida a la posición ' + (position + 1) + '.');
+                      };
+                      return (
+                        <fieldset
+                          className="evaluation-question"
+                          key={question.id}
+                          data-question-position={index}
+                        >
+                          <legend>Pregunta {index + 1}</legend>
+                          <div className="evaluation-question-actions">
+                            <QuestionHandle
+                              position={index}
+                              count={section.questions.length}
+                              onMove={move}
+                            />
+                            <button
+                              type="button"
+                              className="secondary evaluation-icon evaluation-delete"
+                              aria-label={'Eliminar pregunta ' + (index + 1)}
+                              title="Eliminar pregunta"
+                              disabled={section.questions.length < 2}
+                              onClick={() =>
+                                updateSection({
+                                  ...section,
+                                  questions: section.questions.filter(
+                                    (row) => row.id !== question.id,
+                                  ),
+                                })
+                              }
+                            >
+                              <Trash2 size={17} aria-hidden="true" />
+                            </button>
+                          </div>
                           <label>
-                            Opciones, una por línea
-                            <textarea
+                            Enunciado
+                            <input
                               required
-                              rows={4}
-                              value={question.options.join('\n')}
+                              maxLength={160}
+                              value={question.label}
                               onChange={(event) =>
-                                update({ ...question, options: event.target.value.split('\n') })
+                                update({ ...question, label: event.target.value })
                               }
                             />
                           </label>
-                        )}
-                        {'min' in question && (
-                          <div className="evaluation-controls">
-                            <label>
-                              Mínimo
-                              <input
-                                type="number"
-                                required
-                                min={-100}
-                                max={100}
-                                value={Number.isNaN(question.min) ? '' : question.min}
-                                onChange={(event) =>
-                                  update({ ...question, min: event.target.valueAsNumber })
-                                }
-                              />
-                            </label>
-                            <label>
-                              Máximo
-                              <input
-                                type="number"
-                                required
-                                min={-100}
-                                max={100}
-                                value={Number.isNaN(question.max) ? '' : question.max}
-                                onChange={(event) =>
-                                  update({ ...question, max: event.target.valueAsNumber })
-                                }
-                              />
-                            </label>
-                          </div>
-                        )}
-                        <label className="evaluation-checkbox">
-                          <input
-                            type="checkbox"
-                            checked={question.required}
-                            onChange={(event) =>
-                              update({ ...question, required: event.target.checked })
-                            }
-                          />{' '}
-                          Obligatoria
-                        </label>
-                        <Actions
-                          label={'Opciones de pregunta ' + (index + 1)}
-                          onAction={(action) => {
-                            if (action === 'up') move(-1);
-                            if (action === 'down') move(1);
-                            if (action === 'remove')
-                              updateSection({
-                                ...section,
-                                questions: section.questions.filter(
-                                  (row) => row.id !== question.id,
-                                ),
-                              });
-                          }}
-                        >
-                          <option value="up" disabled={!index}>
-                            Subir pregunta
-                          </option>
-                          <option value="down" disabled={index === section.questions.length - 1}>
-                            Bajar pregunta
-                          </option>
-                          <option value="remove" disabled={section.questions.length < 2}>
-                            Quitar pregunta
-                          </option>
-                        </Actions>
-                      </fieldset>
-                    );
-                  })}
-                  <Actions
-                    label={'Opciones de sección ' + (sectionIndex + 1)}
-                    onAction={(action) => {
-                      if (action === 'add')
-                        updateSection({
-                          ...section,
-                          questions: [...section.questions, questionOf('shortText')],
-                        });
-                      if (action === 'remove')
-                        setDraft({
-                          ...draft,
-                          sections: draft.sections.filter((row) => row.id !== section.id),
-                        });
-                    }}
+                          <label>
+                            Descripción de la pregunta
+                            <textarea
+                              maxLength={1000}
+                              value={question.description}
+                              onChange={(event) =>
+                                update({ ...question, description: event.target.value })
+                              }
+                            />
+                          </label>
+                          <label>
+                            Tipo de pregunta
+                            <select
+                              value={question.type}
+                              onChange={(event) =>
+                                update(questionOf(event.target.value as Question['type'], question))
+                              }
+                            >
+                              {questionTypes.map((type) => (
+                                <option key={type} value={type}>
+                                  {names[type]}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          {'options' in question && (
+                            <QuestionOptions
+                              options={question.options}
+                              onChange={(options) => update({ ...question, options })}
+                            />
+                          )}
+                          {'min' in question && (
+                            <div className="evaluation-controls">
+                              <label>
+                                Mínimo
+                                <input
+                                  type="number"
+                                  required
+                                  min={-100}
+                                  max={100}
+                                  value={Number.isNaN(question.min) ? '' : question.min}
+                                  onChange={(event) =>
+                                    update({ ...question, min: event.target.valueAsNumber })
+                                  }
+                                />
+                              </label>
+                              <label>
+                                Máximo
+                                <input
+                                  type="number"
+                                  required
+                                  min={-100}
+                                  max={100}
+                                  value={Number.isNaN(question.max) ? '' : question.max}
+                                  onChange={(event) =>
+                                    update({ ...question, max: event.target.valueAsNumber })
+                                  }
+                                />
+                              </label>
+                            </div>
+                          )}
+                          <label className="evaluation-checkbox">
+                            <input
+                              type="checkbox"
+                              checked={question.required}
+                              onChange={(event) =>
+                                update({ ...question, required: event.target.checked })
+                              }
+                            />{' '}
+                            Obligatoria
+                          </label>
+                        </fieldset>
+                      );
+                    })}
+                  </div>
+                  <button
+                    type="button"
+                    className="secondary evaluation-inline-action"
+                    disabled={
+                      section.questions.length >= 40 ||
+                      draft.sections.reduce((total, row) => total + row.questions.length, 0) >= 80
+                    }
+                    onClick={() =>
+                      updateSection({
+                        ...section,
+                        questions: [...section.questions, questionOf('shortText')],
+                      })
+                    }
                   >
-                    <option value="add" disabled={section.questions.length >= 40}>
-                      Añadir pregunta
-                    </option>
-                    <option value="remove" disabled={draft.sections.length < 2}>
-                      Quitar sección
-                    </option>
-                  </Actions>
+                    <Plus size={16} aria-hidden="true" /> Añadir pregunta
+                  </button>
                 </fieldset>
               );
             })}
+            <button
+              type="button"
+              className="primary evaluation-icon evaluation-add-section"
+              aria-label="Añadir sección"
+              title="Añadir sección"
+              disabled={
+                draft.sections.length >= 12 ||
+                draft.sections.reduce((total, row) => total + row.questions.length, 0) >= 80
+              }
+              onClick={() => setDraft({ ...draft, sections: [...draft.sections, newSection()] })}
+            >
+              <Plus size={22} aria-hidden="true" />
+            </button>
           </fieldset>
+          {selected && (versions.length > 0 || older !== null) && (
+            <details>
+              <summary>Versiones publicadas</summary>
+              <div className="evaluation-controls">
+                {versions.map((version) => (
+                  <button
+                    type="button"
+                    className="secondary"
+                    key={version.revision}
+                    disabled={busy}
+                    onClick={() =>
+                      void run(async () => {
+                        const { structure } = await api(
+                          root + '/' + selected.id + '/versions/' + version.revision,
+                        );
+                        exportStructure(structure);
+                      })
+                    }
+                  >
+                    Exportar versión {version.revision}
+                  </button>
+                ))}
+                {older !== null && (
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => void run(() => loadVersions(selected.id, older))}
+                  >
+                    Más versiones
+                  </button>
+                )}
+              </div>
+            </details>
+          )}
         </form>
       )}
     </section>

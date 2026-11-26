@@ -7,6 +7,14 @@ test('participant opens an evaluation from Inicio, resumes a draft and sends it 
 }) => {
   const fixture = mobileFixture(1);
   fixture.user.onboardingCompletedAt = '2026-01-01T00:00:00Z';
+  fixture.data.group = {
+    id: 'mascot-group',
+    privateId: 'mascot-group',
+    name: 'Pañoleta de prueba',
+    colorPrimary: '#276cae',
+    colorSecondary: '#f7c948',
+    plan: 'free',
+  };
   const dueAt = '2027-01-01T12:00:00.000Z';
   const record = {
     id: 'evaluation-id',
@@ -41,6 +49,7 @@ test('participant opens an evaluation from Inicio, resumes a draft and sends it 
   let answers: Record<string, unknown> = {};
   let listRequests = 0;
   let sends = 0;
+  let remaining = true;
   await page.route('**/api/**', (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path === '/api/me')
@@ -51,6 +60,21 @@ test('participant opens an evaluation from Inicio, resumes a draft and sends it 
     if (path === '/api/data') return route.fulfill({ json: fixture.summary() });
     if (path === '/api/tutorial')
       return route.fulfill({ json: { events: { tutorial_skipped: '2026-01-01T00:00:00Z' } } });
+    if (path === '/api/group-evaluations/pending')
+      return route.fulfill({
+        json: { id: !record.submittedAt ? record.id : remaining ? 'next-evaluation' : null },
+      });
+    if (path.endsWith('/next-evaluation'))
+      return route.fulfill({
+        json: {
+          ...record,
+          title: 'Balance siguiente',
+          submittedAt: null,
+          structure,
+          revision: 0,
+          answers: {},
+        },
+      });
     if (path === '/api/group-evaluations') {
       listRequests++;
       return route.fulfill({ json: { items: [record], next: null } });
@@ -74,13 +98,41 @@ test('participant opens an evaluation from Inicio, resumes a draft and sends it 
   const entry = page.getByRole('button', { name: 'Mis evaluaciones' });
   await expect(entry).toBeVisible();
   expect(listRequests).toBe(0);
-  await entry.click();
+  const pending = page.getByRole('button', { name: 'Evaluación pendiente' });
+  await expect(pending).toBeVisible();
+  const scarf = pending.locator('.neckerchief-mascot');
+  expect(
+    await scarf.evaluate((node) =>
+      ['::before', '::after'].map((pseudo) => getComputedStyle(node, pseudo).backgroundColor),
+    ),
+  ).toEqual(['rgb(39, 108, 174)', 'rgb(247, 201, 72)']);
+
+  await expect
+    .poll(() => pending.locator('img').evaluate((image: HTMLImageElement) => image.naturalWidth))
+    .toBeGreaterThan(0);
+  if (process.env.EVALUATION_SCREENSHOT_DIR) {
+    await pending.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: process.env.EVALUATION_SCREENSHOT_DIR + '/pendiente-movil.png' });
+  }
+  await page.setViewportSize({ width: 1440, height: 940 });
+  const header = page.locator('.topbar');
+  await expect(header.getByRole('button', { name: 'Evaluación pendiente' })).toBeVisible();
+  await expect(header.locator('.botanical-decoration')).toHaveCSS('z-index', '2');
+  await expect(header.locator('.desktop-evaluation-sign')).toHaveCSS('z-index', '1');
+  if (process.env.EVALUATION_SCREENSHOT_DIR) {
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({
+      path: process.env.EVALUATION_SCREENSHOT_DIR + '/pendiente-escritorio.png',
+    });
+  }
+  await page.setViewportSize({ width: 390, height: 850 });
+  await pending.click();
   const panel = page.locator('.evaluation-templates');
   const open = async () => {
     await panel.getByRole('combobox', { name: 'Acciones de Balance del campamento' }).click();
     await page.getByRole('option', { name: 'Abrir evaluación' }).click();
   };
-  await open();
+  await expect(panel.getByRole('heading', { name: record.title })).toBeVisible();
   await expect(panel.getByRole('button')).toHaveCount(2);
   await expect(panel.getByRole('progressbar')).toHaveAttribute('value', '0');
   await panel.getByLabel('¿Repetimos? (obligatoria)').selectOption('No');
@@ -119,5 +171,19 @@ test('participant opens an evaluation from Inicio, resumes a draft and sends it 
   await expect(panel.getByRole('button', { name: 'Enviar' })).toHaveCount(0);
   expect(answers).toEqual({ a1: false, b1: 0 });
   expect(sends).toBe(1);
+  await panel.getByRole('button', { name: 'Volver', exact: true }).click();
+  await panel.getByRole('button', { name: 'Volver a Inicio' }).click();
+  await expect(pending).toBeVisible();
+  await pending.click();
+  await expect(panel.getByRole('heading', { name: 'Balance siguiente' })).toBeVisible();
+  remaining = false;
+  await panel.getByRole('button', { name: 'Volver', exact: true }).click();
+  await panel.getByRole('button', { name: 'Volver a Inicio' }).click();
+  await expect(entry).toBeVisible();
+  await expect(pending).toHaveCount(0);
+  await page.setViewportSize({ width: 1440, height: 940 });
+  const desktop = page.locator('.desktop-priority + .desktop-priority');
+  await expect(desktop.getByRole('button', { name: 'Mis evaluaciones' })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 850 });
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
 });

@@ -1040,7 +1040,8 @@ test('close and evaluate assigns atomically and pauses the same draft on reopeni
     title: 'Cierre con evaluación', commissionId: commission.body.id, templateId: template.body.id, templateRevision: 1,
     userIds: [a.userId], dueAt: new Date(Date.now() + 86_400_000).toISOString(),
   };
-  const general = { ...evaluation, commissionId: undefined, title: 'Balance general' };
+  const general = { ...evaluation, commissionId: undefined, title: 'Balance general',
+    dueAt: new Date(Date.now() + 43_200_000).toISOString() };
   const invalid = await call(route, 'POST', {
     action: 'close-and-evaluate-many',
     evaluations: [general, { ...evaluation, userIds: [b.userId] }],
@@ -1051,6 +1052,9 @@ test('close and evaluate assigns atomically and pauses the same draft on reopeni
   assert.equal(result.status, 200, JSON.stringify(result.body));
   assert.equal(new Set(result.body.evaluationIds).size, 2);
   const [evaluationId, generalId] = result.body.evaluationIds;
+  const pendingPath = '/api/group-evaluations/pending';
+  assert.deepEqual((await call(pendingPath, 'GET', undefined, a)).body, { id: generalId });
+  assert.deepEqual((await call(pendingPath, 'GET', undefined, b)).body, { id: null });
   const history = (await call(route, 'GET', undefined, a)).body.lifecycle;
   assert.equal(history[0].kind, 'closed');
   assert.deepEqual(history[0].evaluations, ['Balance general', 'Cierre con evaluación']);
@@ -1072,6 +1076,7 @@ test('close and evaluate assigns atomically and pauses the same draft on reopeni
   const draft = { action: 'draft', revision: 0, answers: { [questionId]: false } };
   assert.equal((await call(path + '/response', 'PUT', draft, a)).status, 200);
   assert.equal((await call(route, 'POST', { action: 'reopen' }, a)).status, 200);
+  assert.deepEqual((await call(pendingPath, 'GET', undefined, a)).body, { id: null });
   const paused = (await call(path, 'GET', undefined, a)).body;
   assert.equal(paused.paused, true);
   assert.equal(paused.open, false);

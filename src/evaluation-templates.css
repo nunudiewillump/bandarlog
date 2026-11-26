@@ -84,6 +84,9 @@
   padding: 16px;
 }
 
+.evaluation-template-list-actions {
+  padding-block: 20px;
+}
 .evaluation-templates .evaluation-controls > .select-control {
   width: auto;
 }
@@ -128,4 +131,98 @@
   border-bottom: 1px solid currentColor;
   text-align: left;
   vertical-align: top;
+}
+
+.evaluation-editor-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+.evaluation-editor-heading h1 {
+  min-width: 0;
+}
+.evaluation-editor-heading > button {
+  flex-shrink: 0;
+}
+.evaluation-templates button.evaluation-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+}
+.evaluation-templates button.evaluation-delete {
+  color: #bd352f;
+  background: #fff;
+}
+.evaluation-templates button.evaluation-delete:hover:not(:disabled) {
+  background: #fff2f1;
+}
+.evaluation-templates form .evaluation-section {
+  position: relative;
+}
+.evaluation-section-delete {
+  position: absolute;
+  inset-block-start: -14px;
+  inset-inline-end: 0;
+}
+.evaluation-section-delete + label {
+  padding-inline-end: 52px;
+}
+.evaluation-question-list,
+.evaluation-choice-list {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.evaluation-question-actions {
+  display: flex;
+  justify-content: space-between;
+}
+.evaluation-templates .evaluation-grip,
+.evaluation-templates .evaluation-green-icon {
+  color: #124d38;
+  background: transparent;
+}
+.evaluation-templates .evaluation-grip {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.evaluation-templates .evaluation-grip:active:not(:disabled) {
+  cursor: grabbing;
+}
+.evaluation-templates [data-drop-target] {
+  outline: 2px solid #21865c;
+  outline-offset: 3px;
+}
+.evaluation-choice-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+.evaluation-inline-action,
+.evaluation-green-icon {
+  justify-self: start;
+}
+.evaluation-templates button.evaluation-add-section {
+  border-radius: 50%;
+  justify-self: center;
+}
+@media (max-width: 480px) {
+  .evaluation-templates button.evaluation-save {
+    width: 44px;
+    padding: 0;
+  }
+  .evaluation-save-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }

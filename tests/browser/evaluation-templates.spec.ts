@@ -76,11 +76,50 @@ test('coordination opens the lazy editor, saves and publishes a template on mobi
   await page.getByLabel('Tipo de pregunta').selectOption('longText');
   await page.getByLabel('Obligatoria').check();
   const panel = page.locator('.evaluation-templates');
-  await expect(page.getByRole('main').getByRole('button')).toHaveCount(2);
-  await panel.getByRole('combobox', { name: 'Opciones del editor' }).click();
-  await page.getByRole('option', { name: 'Guardar borrador' }).click();
+  await expect(
+    panel.getByRole('combobox', {
+      name: /Opciones del editor|Opciones de pregunta|Opciones de sección/,
+    }),
+  ).toHaveCount(0);
+  await panel.getByRole('button', { name: 'Añadir sección', exact: true }).click();
+  await expect(panel.getByLabel('Título de sección')).toHaveCount(2);
+  await panel.getByRole('button', { name: 'Eliminar sección 2' }).click();
+  await expect(panel.getByLabel('Título de sección')).toHaveCount(1);
+  await panel.getByRole('button', { name: 'Añadir pregunta' }).click();
+  const questions = panel.locator('[data-question-position]');
+  await questions.nth(1).getByLabel('Enunciado').fill('¿Cómo fue la convivencia?');
+  await questions.nth(1).getByLabel('Tipo de pregunta').selectOption('singleChoice');
+  await questions.nth(1).getByLabel('Opción 1', { exact: true }).fill('Buena');
+  await questions.nth(1).getByLabel('Opción 1', { exact: true }).press('Enter');
+  await expect(questions.nth(1).getByLabel('Opción 2', { exact: true })).toBeFocused();
+  await questions.nth(1).getByLabel('Opción 2', { exact: true }).fill('Mejorable');
+  await questions.nth(1).getByRole('button', { name: 'Añadir opción' }).click();
+  await expect(questions.nth(1).getByLabel('Opción 3', { exact: true })).toBeFocused();
+  await questions.nth(1).getByRole('button', { name: 'Eliminar opción 3' }).click();
+  await questions
+    .nth(1)
+    .getByRole('button', { name: /Mover pregunta/ })
+    .press('ArrowUp');
+  await expect(questions.nth(0).getByLabel('Enunciado')).toHaveValue('¿Cómo fue la convivencia?');
+  await page.setViewportSize({ width: 1440, height: 1800 });
+  const grip = questions.first().getByRole('button', { name: /Mover pregunta/ });
+  await grip.scrollIntoViewIfNeeded();
+  const from = (await grip.boundingBox())!;
+  const target = (await questions.nth(1).boundingBox())!;
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(target.x + 30, target.y + 28, { steps: 8 });
+  await expect(questions.nth(1)).toHaveAttribute('data-drop-target', '');
+  await page.mouse.up();
+  await expect(questions.nth(0).getByLabel('Enunciado')).toHaveValue('¿Qué debemos mantener?');
+  await page.setViewportSize({ width: 390, height: 850 });
+  await panel.getByRole('button', { name: 'Guardar borrador' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Plantilla guardada.' })).toBeVisible();
   expect(structure.sections[0].questions[0]).toMatchObject({ type: 'longText', required: true });
+  expect(structure.sections[0].questions[1]).toMatchObject({
+    type: 'singleChoice',
+    options: ['Buena', 'Mejorable'],
+  });
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   const output = process.env.EVALUATION_SCREENSHOT_DIR;
   if (output) {
@@ -91,9 +130,8 @@ test('coordination opens the lazy editor, saves and publishes a template on mobi
   await page.setViewportSize({ width: 1440, height: 1050 });
   await page.getByRole('button', { name: 'Publicar', exact: true }).click();
   await expect(panel.getByRole('status')).toHaveText('Versión publicada.');
-  await panel.getByRole('combobox', { name: 'Opciones del editor' }).click();
-  await expect(page.getByRole('option', { name: 'Exportar versión 1' })).toBeVisible();
-  await page.keyboard.press('Escape');
+  await panel.getByText('Versiones publicadas', { exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Exportar versión 1' })).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(1440);
   if (output) await panel.screenshot({ path: output + '/plantillas-escritorio.png' });
 
@@ -130,5 +168,5 @@ test('coordination opens the lazy editor, saves and publishes a template on mobi
   await expect(panel.getByLabel('Nombre de la plantilla')).toHaveValue(
     'Copia de Evaluación del campamento',
   );
-  await expect(panel.getByRole('button')).toHaveCount(2);
+  await expect(panel.getByRole('button', { name: 'Guardar borrador' })).toBeEnabled();
 });

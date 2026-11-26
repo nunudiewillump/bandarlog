@@ -71,7 +71,7 @@ export async function connect() {
         const evaluationsEnabled = process.env.GROUP_EVALUATIONS_ENABLED === 'true';
         const feedbackEnabled = process.env.PRODUCT_FEEDBACK_ENABLED === 'true';
         const campaignsEnabled = process.env.PRODUCT_CAMPAIGNS_ENABLED === 'true';
-        const requiredVersion = campaignsEnabled || evaluationsEnabled ? 52 : feedbackEnabled ? 50 : 43;
+        const requiredVersion = evaluationsEnabled ? 53 : campaignsEnabled ? 52 : feedbackEnabled ? 50 : 43;
         if (typeof version !== 'number' || version < requiredVersion)
           throw Error(
             `El contrato SQL requiere completar las migraciones de mantenimiento hasta ${String(requiredVersion).padStart(4, '0')} antes del arranque.`,
