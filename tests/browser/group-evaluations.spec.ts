@@ -50,6 +50,7 @@ test('participant opens an evaluation from Inicio, resumes a draft and sends it 
   let listRequests = 0;
   let sends = 0;
   let remaining = true;
+  let noAssignments = false;
   await page.route('**/api/**', (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path === '/api/me')
@@ -77,7 +78,7 @@ test('participant opens an evaluation from Inicio, resumes a draft and sends it 
       });
     if (path === '/api/group-evaluations') {
       listRequests++;
-      return route.fulfill({ json: { items: [record], next: null } });
+      return route.fulfill({ json: { items: noAssignments ? [] : [record], next: null } });
     }
     if (path.endsWith('/response')) {
       const command = route.request().postDataJSON();
@@ -184,6 +185,20 @@ test('participant opens an evaluation from Inicio, resumes a draft and sends it 
   await page.setViewportSize({ width: 1440, height: 940 });
   const desktop = page.locator('.desktop-priority + .desktop-priority');
   await expect(desktop.getByRole('button', { name: 'Mis evaluaciones' })).toBeVisible();
+  noAssignments = true;
+  await desktop.getByRole('button', { name: 'Mis evaluaciones' }).click();
+  const empty = panel.getByText('No tienes evaluaciones asignadas.');
+  const back = panel.getByRole('button', { name: 'Volver a Inicio' });
+  const title = panel.getByRole('heading', { name: 'Mis evaluaciones' });
+  await expect(empty).toBeVisible();
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 940 });
+    const headingBox = (await title.boundingBox())!;
+    const buttonBox = (await back.boundingBox())!;
+    const emptyBox = (await empty.boundingBox())!;
+    expect(buttonBox.y - headingBox.y - headingBox.height).toBeGreaterThanOrEqual(20);
+    expect(emptyBox.y - buttonBox.y - buttonBox.height).toBeGreaterThanOrEqual(20);
+  }
   await page.setViewportSize({ width: 390, height: 850 });
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
 });

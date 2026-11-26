@@ -16,6 +16,18 @@
   min-width: 0;
 }
 
+.evaluation-templates.evaluation-flow,
+.evaluation-templates .evaluation-flow {
+  display: grid;
+  row-gap: 20px;
+}
+.evaluation-flow > :is(h1, p, ul, dl) {
+  margin-block: 0;
+}
+.evaluation-flow > button {
+  justify-self: start;
+}
+
 .evaluation-templates label {
   margin: 0;
 }

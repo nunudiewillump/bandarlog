@@ -66,6 +66,7 @@ export default function PublishEvaluation({
 
   return (
     <form
+      className="evaluation-flow"
       onSubmit={async (event) => {
         event.preventDefault();
         if (saving || published || !revision || !scopeIds.length) return;
