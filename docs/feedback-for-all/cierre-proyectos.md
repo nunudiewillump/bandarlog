@@ -13,3 +13,5 @@ Si los dos flags de P2 están activos, **Cerrar y evaluar** abre el selector de 
 La migración 0048 agrega un vínculo opcional al proyecto. Al reabrir, las evaluaciones vinculadas y todavía dentro de plazo se muestran como pausadas y PostgreSQL rechaza sus escrituras. Cerrar otra vez reactiva las que aún están dentro del plazo original y conserva los borradores y envíos existentes. El tiempo de pausa no prorroga el plazo. Las evaluaciones independientes mantienen su comportamiento anterior.
 
 Con este cambio el flag requiere contrato 48. Quedan pendientes el cierre por comisión o mixto, la actualización de asignaciones y plazos al cerrar de nuevo y las revisiones consolidadas.
+
+El selector de ámbito conserva una lista propia de participantes para el proyecto completo y para cada comisión. Si se seleccionan varios ámbitos, se publica una evaluación por ámbito en la misma transacción que el cierre. El formulario usa la misma plantilla, modalidad y plazo para toda la operación. El servidor vuelve a validar cada lista y revierte la operación completa si alguna falla. La API anterior de un solo ámbito sigue disponible.

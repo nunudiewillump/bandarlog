@@ -563,6 +563,14 @@ El enlace caduca en 10 minutos. La invitación está disponible durante 7 días;
           m.body = sealed.body;
           m.html = '';
         }
+        if (m.body === 'product-survey-reminder-v1:') {
+          const { rows } = await db.execute(sql`select bandarlog_api.product_survey_mail_allowed(${m.id}) as allowed`);
+          if (!rows[0]?.allowed || !productCampaignsEnabled) {
+            await db.update(s.notifications).set({ status: 'cancelled', leaseId: null, leaseUntil: null, nextAttemptAt: null })
+              .where(and(eq(s.notifications.id, m.id), eq(s.notifications.leaseId, lease)));
+            continue;
+          }
+        }
         const content = m.body.startsWith('task-event-v1:')
           ? (() => {
               const v = JSON.parse(m.body.slice('task-event-v1:'.length));
@@ -574,7 +582,13 @@ El enlace caduca en 10 minutos. La invitación está disponible durante 7 días;
                 body: 'Tienes una evaluación pendiente. Entra en Mis evaluaciones desde Inicio.\n\n' + groupUrl(appUrl),
                 html: '',
               }
-            : deliveryContent(m);
+            : m.body === 'product-survey-reminder-v1:'
+              ? {
+                  subject: 'Encuesta de Bandarlog',
+                  body: 'Si te apetece, aún puedes dar tu opinión desde Inicio.\n\n' + groupUrl(appUrl),
+                  html: '',
+                }
+              : deliveryContent(m);
         const snapshot =
           content.html || renderMail({ title: content.subject, body: content.body, appUrl });
         if (!m.html && !m.body.startsWith('bandarlog-sealed-v1:'))
@@ -1496,6 +1510,36 @@ if (evaluationTemplatesEnabled)
 const groupEvaluationsEnabled = process.env.GROUP_EVALUATIONS_ENABLED === 'true';
 if (groupEvaluationsEnabled) app.use('/api/group-evaluations', groupEvaluationRoutes(db));
 const productFeedbackEnabled = process.env.PRODUCT_FEEDBACK_ENABLED === 'true';
+const productCampaignsEnabled = process.env.PRODUCT_CAMPAIGNS_ENABLED === 'true';
+if (productCampaignsEnabled) app.post('/api/product-survey',
+  rateLimit({ windowMs: 60_000, limit: 25, keyGenerator: (_q, r) => r.locals.user.id }),
+  async (q, r) => {
+    const scale = (length: number) => z.array(z.int().min(1).max(5)).length(length);
+    const note = z.string().trim().max(1200).optional();
+    const input = z.discriminatedUnion('action', [
+      z.strictObject({ action: z.literal('offer') }),
+      z.strictObject({ action: z.enum(['postpone', 'dismiss']), id: z.uuid() }),
+      z.strictObject({ action: z.literal('submit'), id: z.uuid(), answers: z.union([
+        z.strictObject({ easy: z.boolean(), questions: z.boolean(), help: z.boolean(), blocked: z.boolean(), detail: note }),
+        z.strictObject({ sus: scale(10), useful: note, difficult: note, missing: note }),
+        z.strictObject({ scores: scale(6), nps: z.int().min(0).max(10), change: note }),
+      ]), replyEmail: z.email().max(254).optional() }),
+    ]).parse(q.body);
+    const run = async (tx: Pick<Database, 'execute'>) => {
+      if (mode === 'development')
+        await tx.execute(sql`select set_config('bandarlog.survey_actor',${r.locals.user.id},true)`);
+      const rows = await tx.execute(sql`select bandarlog_api.product_survey(
+        ${'id' in input ? input.id : null}::uuid,${input.action},
+        ${input.action === 'submit' ? JSON.stringify(input.answers) : null}::jsonb,
+        ${input.action === 'submit' && 'help' in input.answers && input.answers.help ? input.replyEmail ?? null : null}
+      ) as value`);
+      return rows.rows[0]?.value;
+    };
+    const result = input.action === 'offer' ? await db.transaction(run) : await withReceipt(q, r, run);
+    if (result === null && input.action !== 'offer') fail(409, 'La encuesta ya no está disponible.');
+    r.json(result);
+  },
+);
 if (productFeedbackEnabled) app.post('/api/product-feedback',
   rateLimit({ windowMs: 3600_000, limit: 5, keyGenerator: (_q, r) => r.locals.user.id }),
   async (q, r) => {
@@ -1913,6 +1957,7 @@ app.get('/api/me', (_q, r) => {
     development: !prod,
     groupEvaluationsEnabled,
     productFeedbackEnabled,
+    productCampaignsEnabled,
     evaluationTemplatesEnabled: evaluationTemplatesEnabled && globalManage(r.locals.user),
     googleEnabled: Boolean(process.env.GOOGLE_LOGIN_CLIENT_ID),
   });
@@ -2580,9 +2625,16 @@ if (groupEvaluationsEnabled) {
     const command = parse(z.discriminatedUnion('action', [
       z.strictObject({ action: z.enum(['close', 'reopen']) }),
       z.strictObject({ action: z.literal('close-and-evaluate'), evaluation: evaluationPublication }),
+      z.strictObject({
+        action: z.literal('close-and-evaluate-many'),
+        evaluations: z.array(evaluationPublication).min(2).max(20)
+          .refine((items) => new Set(items.map(({ commissionId }) => commissionId)).size === items.length),
+      }),
     ]), q.body);
     const { action } = command;
-    if (command.action === 'close-and-evaluate' && +new Date(command.evaluation.dueAt) <= Date.now())
+    const publications = command.action === 'close-and-evaluate-many' ? command.evaluations
+      : command.action === 'close-and-evaluate' ? [command.evaluation] : [];
+    if (publications.some(({ dueAt }) => Date.parse(dueAt) <= Date.now()))
       fail(400, 'Selecciona una fecha límite futura.');
     const result = await withReceipt(q, r, async (tx) => {
       const [current] = await tx.select({ archived: s.projects.archived }).from(s.projects)
@@ -2599,12 +2651,16 @@ if (groupEvaluationsEnabled) {
         fail(409, 'El proyecto ya no está dentro del plazo de reapertura.');
       await tx.execute(sql`insert into project_lifecycle_events (project_id,actor_id,kind)
         values (${projectId}, ${r.locals.user.id}, ${action === 'reopen' ? 'reopened' : 'closed'})`);
-      const evaluationId = command.action === 'close-and-evaluate'
-        ? await createGroupEvaluation(tx as unknown as Database, command.evaluation, projectId)
-        : undefined;
-      if (command.action === 'close-and-evaluate' && !evaluationId)
-        fail(400, 'Selecciona una versión publicada y participantes activos del grupo.');
-      return { archived: action !== 'reopen', evaluationId };
+      const evaluationIds: string[] = [];
+      for (const publication of publications) {
+        const id = await createGroupEvaluation(tx as unknown as Database, publication, projectId);
+        if (!id) return fail(400, 'Comprueba la plantilla publicada y los participantes de cada ámbito.');
+        evaluationIds.push(id);
+      }
+      return {
+        archived: action !== 'reopen',
+        ...(action === 'close-and-evaluate-many' ? { evaluationIds } : { evaluationId: evaluationIds[0] }),
+      };
     });
     r.json(result);
   });
@@ -3838,6 +3894,8 @@ const calendarJobs = new IdleJobs<void>(
 const recoveryJobs = new IdleJobs<void>(
   async () =>
     measureJob('outbox-recovery', async () => {
+      if (productCampaignsEnabled && mailTransport && mode === 'delivery')
+        await platform.queueProductSurveyFollowups();
       // Metadata only: no idle per-group SELECTs, no message bodies or images.
       for (const group of await platform.jobGroups(true, Boolean(mailTransport)))
         await groupContext.run(group, deliver);

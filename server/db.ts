@@ -70,7 +70,8 @@ export async function connect() {
         ).rows[0]?.version;
         const evaluationsEnabled = process.env.GROUP_EVALUATIONS_ENABLED === 'true';
         const feedbackEnabled = process.env.PRODUCT_FEEDBACK_ENABLED === 'true';
-        const requiredVersion = evaluationsEnabled || feedbackEnabled ? 50 : 43;
+        const campaignsEnabled = process.env.PRODUCT_CAMPAIGNS_ENABLED === 'true';
+        const requiredVersion = campaignsEnabled ? 51 : evaluationsEnabled || feedbackEnabled ? 50 : 43;
         if (typeof version !== 'number' || version < requiredVersion)
           throw Error(
             `El contrato SQL requiere completar las migraciones de mantenimiento hasta ${String(requiredVersion).padStart(4, '0')} antes del arranque.`,

@@ -143,6 +143,14 @@ export function globalOperations(connection: any, scoped: any) {
       ),
     productFeedbackList: (token: string, after: string | null, limit: number, status: string) =>
       one(sql`select bandarlog_api.product_feedback_list(${token},${after}::uuid,${limit},${status}) as value`),
+    queueProductSurveyFollowups: () =>
+      one(sql`select bandarlog_api.queue_product_survey_followups() as value`),
+    productCampaignStatus: (token: string) =>
+      one(sql`select bandarlog_api.product_campaign_status(${token}) as value`),
+    setProductCampaignPaused: (token: string, csrf: string, campaign: string, paused: boolean) =>
+      one(sql`select bandarlog_api.product_campaign_set_paused(${token},${csrf},${campaign},${paused}) as value`),
+    productSurveyInsights: (token: string, period: number) =>
+      one(sql`select bandarlog_api.product_survey_insights(${token},${period}) as value`),
     productFeedbackInsights: (token: string, period: number) =>
       one(sql`select bandarlog_api.product_feedback_insights(${token},${period}) as value`),
     productFeedbackReview: (token: string, csrf: string, id: string, status: string, revision: number) =>

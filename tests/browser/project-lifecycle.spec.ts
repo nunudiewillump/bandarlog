@@ -35,8 +35,8 @@ test('coordination closes and reopens a project from its settings', async ({ pag
       return route.fulfill({ json: { items: [{ revision: 1 }], next: null } });
     if (path === '/api/projects/camp-v2/lifecycle') {
       if (route.request().method() === 'POST') {
-        const { action, evaluation } = route.request().postDataJSON();
-        if (evaluation) publication = evaluation;
+        const { action, evaluations } = route.request().postDataJSON();
+        if (evaluations) publication = evaluations;
         commands.push(action);
         project.archived = String(action !== 'reopen');
         last = {
@@ -64,8 +64,14 @@ test('coordination closes and reopens a project from its settings', async ({ pag
   await page.getByRole('option', { name: 'Usar para cerrar y evaluar' }).click();
   await page.getByLabel('Último día para responder').fill('2099-07-15');
   await page.getByRole('checkbox', { name: new RegExp(fixture.user.name) }).check();
+  await page.getByLabel('Ámbito de evaluación').selectOption('commission-v2-5');
+  await page.getByRole('checkbox', { name: new RegExp(fixture.user.name) }).check();
+  await expect(page.getByRole('option', { name: 'Proyecto completo (1)' })).toHaveCount(1);
   await page.getByRole('button', { name: 'Cerrar y evaluar', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Proyecto cerrado.' })).toBeVisible();
-  expect(commands).toEqual(['close', 'reopen', 'close-and-evaluate']);
-  expect(publication).toMatchObject({ templateId: 'template', userIds: [fixture.user.id] });
+  expect(commands).toEqual(['close', 'reopen', 'close-and-evaluate-many']);
+  expect(publication).toMatchObject([
+    { templateId: 'template', userIds: [fixture.user.id] },
+    { templateId: 'template', userIds: [fixture.user.id], commissionId: 'commission-v2-5' },
+  ]);
 });

@@ -1220,6 +1220,46 @@ test('PostgreSQL scopes assigned evaluations and protects draft and submission s
     [{ name: 'Manager', answers: { yes: false, note: 'Texto privado' } }]);
   assert.equal((await ownerPool.query("select count(*) from bandarlog_api.evaluation_annex_audit where actor_id='p2-local-admin'")).rows[0].count, '1');
 
+  await ownerPool.query("update scout_groups set created_at=now()-interval '8 days' where id='p2-qa'");
+  const offer = "select bandarlog_api.product_survey(null,'offer',null,null) as survey";
+  assert.equal((await as(actors[0], offer)).rows[0].survey, null);
+  const firstWeek = (await as(actors[1], offer)).rows[0].survey;
+  assert.equal(firstWeek.campaign, 'F01');
+  const command = (id: string, action: string, answers?: object) =>
+    `select bandarlog_api.product_survey('${id}','${action}',${answers ? "'" + JSON.stringify(answers) + "'" : 'null'},null) as survey`;
+  assert.equal((await as(actors[3], command(firstWeek.id, 'dismiss'))).rows[0].survey, null);
+  assert.deepEqual((await as(actors[1], command(firstWeek.id, 'postpone'))).rows[0].survey, { ok: true });
+  assert.equal((await as(actors[1], offer)).rows[0].survey, null);
+  await ownerPool.query("update scout_groups set created_at=now()-interval '33 days' where id='p2-qa'");
+  const firstMonth = (await as(actors[0], offer)).rows[0].survey;
+  assert.equal(firstMonth.campaign, 'F02');
+  await assert.rejects(as(actors[0], command(firstMonth.id, 'submit', { sus: [3] })), /Incomplete SUS/);
+  assert.deepEqual((await as(actors[0], command(firstMonth.id, 'submit', {
+    sus: [5,1,5,1,5,1,5,1,5,1],
+  }))).rows[0].survey, { ok: true });
+  assert.equal((await as(actors[0], offer)).rows[0].survey, null);
+  assert.equal((await ownerPool.query("select sus from bandarlog_api.product_survey_response where campaign='F02'")).rows[0].sus, '100.0');
+  await assert.rejects(as(actors[0], 'select * from bandarlog_api.product_survey_response'), /permission denied/);
+  await ownerPool.query("update scout_groups set created_at=now()-interval '62 days' where id='p2-qa'");
+  const general = (await as(actors[0], offer)).rows[0].survey;
+  assert.equal(general.campaign, 'F03');
+  await ownerPool.query("update bandarlog_api.product_survey_delivery set offered_at=now()-interval '4 days' where id=$1", [general.id]);
+  const delivery = await ownerPool.connect();
+  try {
+    await delivery.query('begin');
+    await delivery.query('set local session authorization bandarlog_delivery');
+    const queue = 'select bandarlog_api.queue_product_survey_followups() as queued';
+    assert.equal((await delivery.query(queue)).rows[0].queued, 1);
+    assert.equal((await delivery.query(queue)).rows[0].queued, 0);
+    await delivery.query('commit');
+  } finally { delivery.release(); }
+  await as(actors[0], command(general.id, 'submit', { scores: [1,2,3,4,5,5], nps: 9 }));
+  assert.equal((await as(actors[0], command(general.id, 'submit', { scores: [1,2,3,4,5,5], nps: 9 }))).rows[0].survey, null);
+  assert.deepEqual((await ownerPool.query("select nps,satisfaction from bandarlog_api.product_survey_response where campaign='F03'")).rows[0], { nps: 9, satisfaction: 5 });
+  await ownerPool.query("update scout_groups set created_at=now()-interval '123 days' where id='p2-qa'");
+  assert.notEqual((await as(actors[0], offer)).rows[0].survey.id, general.id);
+  await ownerPool.query("insert into bandarlog_api.product_survey_response(campaign,version,nps,satisfaction,answers) select 'F03',1,nps,4,'{}'::jsonb from unnest(array[10,8,6,0]) as nps");
+
   const payload = "select bandarlog_api.product_feedback_submit('help','Texto ficticio',null) as id";
   const feedbackId = (await as(actors[0], payload)).rows[0].id;
   await assert.rejects(as(actors[0], 'select * from bandarlog_api.product_feedback'), /permission denied/);
@@ -1254,6 +1294,20 @@ test('PostgreSQL scopes assigned evaluations and protects draft and submission s
     assert.equal(summary.category, 'help');
     assert.equal(summary.total, 1);
     assert.equal(summary.pending, 1);
+    const surveyInsights = (token: string) => platformClient.query(
+      'select bandarlog_api.product_survey_insights($1,7) as metrics', [token],
+    );
+    await assert.rejects(surveyInsights(actors[0].token), /platform session expired/);
+    const surveyRows = (await surveyInsights(feedbackToken)).rows[0].metrics;
+    assert.equal(surveyRows.find((row: any) => row.campaign === 'F02').sus, null);
+    const generalMetrics = surveyRows.find((row: any) => row.campaign === 'F03');
+    assert.equal(generalMetrics.nps, 0);
+    assert.equal(generalMetrics.sample, 5);
+    assert.equal(generalMetrics.completed, 1);
+    assert.equal(generalMetrics.invited, 2);
+    await platformClient.query('select bandarlog_api.product_campaign_set_paused($1,$2,\'F03\',true)', [feedbackToken, csrf]);
+    assert.equal((await as(actors[0], offer)).rows[0].survey, null);
+
     const review = (key: string, revision: number) => platformClient.query(
       "select bandarlog_api.product_feedback_review($1,$2,$3,'resolved',$4) as changed",
       [feedbackToken,key,feedbackId,revision],

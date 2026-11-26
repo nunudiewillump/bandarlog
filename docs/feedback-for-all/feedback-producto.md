@@ -6,6 +6,14 @@ Con `PRODUCT_FEEDBACK_ENABLED=true`, **Mi perfil → Ayúdanos a mejorar** permi
 
 La migración 0049 crea la tabla interna y tres capacidades SQL separadas. Los roles de aplicaciones de grupo pueden enviar con un contexto válido. El servicio de identidad puede listar y actualizar previa validación de la sesión administrativa. Ambos carecen de acceso directo a la tabla. Aplicar la migración antes de activar el flag en HTTP e identidad. Desactivar el flag conserva las aportaciones y retira ambas superficies.
 
-Quedan pendientes las campañas automáticas, los correos de seguimiento y las métricas de Product Insights asociadas a las campañas.
-
 Con la migración 0050, **Product Insights** muestra el recuento diario real de aportaciones de los últimos 7 o 30 días, desglosado por categoría. Pendientes incluye los estados Nueva, En revisión y En proceso. Estas cifras proceden de la bandeja voluntaria y requieren sesión de administración de plataforma.
+
+## Encuestas de producto
+
+La migración 0051 incorpora campañas voluntarias en Inicio con `PRODUCT_CAMPAIGNS_ENABLED=true` en HTTP, identidad y entrega. Usa la fecha de alta del grupo como fecha de activación. F01 abre los días 7–20 para Coordinación y Administración. F02 abre los días 30–50. F03 abre durante 21 días a partir del día 60 y de cada múltiplo de 60 días. Se registra la invitación cuando la persona abre Inicio dentro de su ventana. Las ventanas vencidas no se recuperan y nunca se ofrecen dos campañas a la vez.
+
+Se puede posponer 72 horas o descartar. El servicio de entrega encola como máximo un correo tras 72 horas, si quedan más de 24 horas de plazo, y vuelve a comprobar estado y preferencias antes de enviar. La administración de plataforma puede pausar o reanudar las tres campañas predefinidas. F01 puede crear una solicitud de ayuda con un correo aportado de forma expresa.
+
+Product Insights calcula la tasa como encuestas completadas entre invitaciones emitidas en el periodo. Las puntuaciones usan respuestas del periodo y se muestran desde cinco respuestas válidas por campaña y versión. SUS va de 0 a 100 y NPS de −100 a +100. La satisfacción usa la escala de 1 a 5 de F03. El calendario y las preguntas se versionan en el código. Las tres campañas predefinidas no tienen editor de plantillas, segmentación ni exportación.
+
+F02 reproduce las preguntas de la versión española validada por Sevilla-Gonzalez et al., 2020, [anexo 2](https://humanfactors.jmir.org/2020/4/e21161/#app2), bajo licencia CC BY 4.0.

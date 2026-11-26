@@ -1040,17 +1040,24 @@ test('close and evaluate assigns atomically and pauses the same draft on reopeni
     title: 'Cierre con evaluación', commissionId: commission.body.id, templateId: template.body.id, templateRevision: 1,
     userIds: [a.userId], dueAt: new Date(Date.now() + 86_400_000).toISOString(),
   };
-  const invalid = await call(route, 'POST', { action: 'close-and-evaluate', evaluation: { ...evaluation, userIds: [b.userId] } }, a);
+  const general = { ...evaluation, commissionId: undefined, title: 'Balance general' };
+  const invalid = await call(route, 'POST', {
+    action: 'close-and-evaluate-many',
+    evaluations: [general, { ...evaluation, userIds: [b.userId] }],
+  }, a);
   assert.equal(invalid.status, 400);
   assert.deepEqual((await call(route, 'GET', undefined, a)).body, { archived: false, last: null });
-  const result = await call(route, 'POST', { action: 'close-and-evaluate', evaluation }, a);
+  const result = await call(route, 'POST', { action: 'close-and-evaluate-many', evaluations: [evaluation, general] }, a);
   assert.equal(result.status, 200, JSON.stringify(result.body));
-  const reminder = '/api/group-evaluations/manage/' + result.body.evaluationId + '/reminder';
+  assert.equal(new Set(result.body.evaluationIds).size, 2);
+  const [evaluationId, generalId] = result.body.evaluationIds;
+  assert.equal((await call('/api/group-evaluations/' + generalId, 'GET', undefined, a)).status, 200);
+  const reminder = '/api/group-evaluations/manage/' + evaluationId + '/reminder';
   assert.equal((await call(reminder, 'POST', {}, b)).status, 409);
   assert.equal((await call(reminder, 'POST', {}, a)).body.queued, 1);
   assert.equal((await call(reminder, 'POST', {}, a)).body.queued, 0);
 
-  const path = '/api/group-evaluations/' + result.body.evaluationId;
+  const path = '/api/group-evaluations/' + evaluationId;
   const draft = { action: 'draft', revision: 0, answers: { [questionId]: false } };
   assert.equal((await call(path + '/response', 'PUT', draft, a)).status, 200);
   assert.equal((await call(route, 'POST', { action: 'reopen' }, a)).status, 200);
@@ -1062,7 +1069,7 @@ test('close and evaluate assigns atomically and pauses the same draft on reopeni
   assert.equal((await call(route, 'POST', { action: 'close' }, a)).status, 200);
   const filter = '/api/group-evaluations/manage?projectId=' + encodeURIComponent(project.body.id);
   assert.deepEqual((await call(filter + '&status=closed', 'GET', undefined, a)).body.items, []);
-  assert.equal((await call(filter + '&status=open', 'GET', undefined, a)).body.items[0].id, result.body.evaluationId);
+  assert.deepEqual(new Set((await call(filter + '&status=open', 'GET', undefined, a)).body.items.map((item: {id:string}) => item.id)), new Set([evaluationId, generalId]));
   assert.deepEqual((await call(filter + '&status=open', 'GET', undefined, b)).body.items, []);
   const resumed = (await call(path, 'GET', undefined, a)).body;
   assert.equal(resumed.open, true);

@@ -119,6 +119,7 @@ const initial: Data = {
   invitations: [],
 };
 const ProductFeedback = lazy(() => import('./ProductFeedback').then(({ ProductFeedback }) => ({ default: ProductFeedback })));
+const ProductSurvey = lazy(() => import('./ProductSurvey'));
 const GroupEvaluations = lazy(() => import('./GroupEvaluations'));
 const EvaluationTemplates = lazy(() => import('./EvaluationTemplates'));
 const ProjectMap = lazy(() => import('./ProjectMap'));
@@ -197,6 +198,7 @@ function App() {
     [busy, setBusy] = useState(false),
     [groupEvaluationsOpen, setGroupEvaluationsOpen] = useState(false),
     [productFeedbackEnabled, setProductFeedbackEnabled] = useState(false),
+    [productCampaignsEnabled, setProductCampaignsEnabled] = useState(false),
     [groupEvaluationsEnabled, setGroupEvaluationsEnabled] = useState(false),
     [evaluationAction, setEvaluationAction] = useState<{ id: string; revision: number; title: string } | null>(null),
     [evaluationClosingProject, setEvaluationClosingProject] = useState<string | null>(null),
@@ -477,6 +479,7 @@ function App() {
       setMe({ ...session.user, ...visible });
       setDevelopment(session.development);
       setProductFeedbackEnabled(session.productFeedbackEnabled === true);
+      setProductCampaignsEnabled(session.productCampaignsEnabled === true);
       setGroupEvaluationsEnabled(session.groupEvaluationsEnabled === true);
       setEvaluationTemplatesEnabled(session.evaluationTemplatesEnabled === true);
       const route = readNavigation(location.search);
@@ -1769,6 +1772,7 @@ function App() {
                     Mis evaluaciones
                   </button>
                 )}
+                {productCampaignsEnabled && <Suspense fallback={null}><ProductSurvey key={me.id} /></Suspense>}
                 <div className="desktop-home">{desktopHome()}</div>
                 <div className="mobile-only">
                   <MobileHome
