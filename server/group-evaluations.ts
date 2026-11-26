@@ -3,6 +3,7 @@ import { and, desc, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
 import { Router } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
+import type { EvaluationStructure } from '../shared/evaluations.js';
 import { evaluationAnswers } from '../shared/evaluation-answers.js';
 import type { Database } from './db.js';
 import {
@@ -31,6 +32,17 @@ export const evaluationPublication = z
     dueAt: z.iso.datetime({ offset: true }),
     responseMode: z.enum(['identified', 'anonymous', 'collective']).default('identified'),
     commissionId: z.string().min(1).max(200).optional(),
+    sectionScopes: z
+      .array(
+        z.strictObject({
+          sectionId: z.uuid(),
+          commissionId: z.string().min(1).max(200),
+        }),
+      )
+      .min(1)
+      .max(12)
+      .refine((scopes) => new Set(scopes.map((scope) => scope.sectionId)).size === scopes.length)
+      .optional(),
   })
   .refine((input) => input.responseMode !== 'collective' || input.userIds.length === 1);
 const response = z.strictObject({
@@ -56,7 +68,7 @@ export async function createGroupEvaluation(
 ) {
   const id = randomUUID();
   const [version] = await tx
-    .select({ revision: versions.revision })
+    .select({ structure: versions.structure })
     .from(versions)
     .innerJoin(
       templates,
@@ -94,6 +106,52 @@ export async function createGroupEvaluation(
       );
     if (new Set(eligible.map(({ id }) => id)).size !== input.userIds.length) return null;
   }
+  const sectionsByUser = new Map<string, string[]>();
+  if (input.sectionScopes) {
+    if (!projectId || input.commissionId) return null;
+    const sections = (version.structure as EvaluationStructure).sections;
+    const scopes = new Map(
+      input.sectionScopes.map((scope) => [scope.sectionId, scope.commissionId]),
+    );
+    if (
+      input.sectionScopes.some(
+        (scope) => !sections.some((section) => section.id === scope.sectionId),
+      )
+    )
+      return null;
+    const memberships = await tx
+      .select({ userId: members.userId, commissionId: members.commissionId })
+      .from(members)
+      .innerJoin(
+        commissions,
+        and(eq(commissions.id, members.commissionId), eq(commissions.groupId, members.groupId)),
+      )
+      .where(
+        and(
+          eq(commissions.projectId, projectId),
+          isNull(commissions.deletedAt),
+          inArray(members.commissionId, [...new Set(scopes.values())]),
+          inArray(members.userId, input.userIds),
+        ),
+      );
+    const byCommission = new Map<string, Set<string>>();
+    for (const membership of memberships) {
+      const users = byCommission.get(membership.commissionId) ?? new Set<string>();
+      users.add(membership.userId);
+      byCommission.set(membership.commissionId, users);
+    }
+    if ([...scopes.values()].some((commissionId) => !byCommission.has(commissionId))) return null;
+    for (const userId of input.userIds) {
+      const visible = sections
+        .filter(({ id }) => {
+          const scope = scopes.get(id);
+          return !scope || byCommission.get(scope)?.has(userId);
+        })
+        .map(({ id }) => id);
+      if (!visible.length) return null;
+      sectionsByUser.set(userId, visible);
+    }
+  }
   await tx.insert(evaluations).values({
     id,
     title: input.title,
@@ -107,7 +165,13 @@ export async function createGroupEvaluation(
   });
   await tx
     .insert(assignments)
-    .values(recipients.map(({ id: userId }) => ({ evaluationId: id, userId })));
+    .values(
+      recipients.map(({ id: userId }) => ({
+        evaluationId: id,
+        userId,
+        sectionIds: sectionsByUser.get(userId),
+      })),
+    );
   return id;
 }
 
@@ -169,8 +233,8 @@ export function groupEvaluationRoutes(db: Database) {
     r.status(201).json({ id });
   });
 
-  const details = (id: string, userId: string) =>
-    db
+  const details = async (id: string, userId: string) => {
+    const [row] = await db
       .select({
         title: evaluations.title,
         responseMode: evaluations.responseMode,
@@ -179,6 +243,7 @@ export function groupEvaluationRoutes(db: Database) {
         paused,
         structure: versions.structure,
         answers: assignments.answers,
+        sectionIds: assignments.sectionIds,
         revision: assignments.revision,
         submittedAt: assignments.submittedAt,
       })
@@ -193,6 +258,16 @@ export function groupEvaluationRoutes(db: Database) {
         ),
       )
       .where(and(eq(evaluations.id, id), eq(assignments.userId, userId)));
+    if (!row) return undefined;
+    const { sectionIds, structure, ...detail } = row;
+    const template = structure as EvaluationStructure;
+    return {
+      ...detail,
+      structure: sectionIds
+        ? { ...template, sections: template.sections.filter(({ id }) => sectionIds.includes(id)) }
+        : template,
+    };
+  };
 
   router.use('/manage', (_q, r, next) => {
     if (!['admin', 'coordination'].includes(r.locals.user.role))
@@ -412,7 +487,7 @@ export function groupEvaluationRoutes(db: Database) {
   });
 
   router.get('/:id', async (q, r) => {
-    const [item] = await details(z.uuid().parse(q.params.id), r.locals.user.id);
+    const item = await details(z.uuid().parse(q.params.id), r.locals.user.id);
     if (!item) return r.status(404).json({ error: 'Evaluación no encontrada.' });
     r.json(item);
   });
@@ -421,7 +496,7 @@ export function groupEvaluationRoutes(db: Database) {
     const id = z.uuid().parse(q.params.id);
     const command = response.parse(q.body);
     const userId: string = r.locals.user.id;
-    const [item] = await details(id, userId);
+    const item = await details(id, userId);
     if (!item) return r.status(404).json({ error: 'Evaluación no encontrada.' });
     if (!item.open || item.submittedAt || item.revision !== command.revision)
       return r

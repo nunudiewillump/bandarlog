@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { api } from './api';
 import { deadlineDay, deadlineISO } from './deadline';
+import type { EvaluationStructure } from '../shared/evaluations';
 import type { Commission, Data, User } from './types';
 
 export default function PublishEvaluation({
@@ -39,6 +40,30 @@ export default function PublishEvaluation({
     const today = deadlineDay(new Date().toISOString());
     return new Date(Date.parse(today + 'T00:00:00Z') + 7 * 86_400_000).toISOString().slice(0, 10);
   });
+  const [sectionMode, setSectionMode] = useState(false);
+  const [sectionScopes, setSectionScopes] = useState<Record<string, string>>({});
+  const [versionStructure, setVersionStructure] = useState<{
+    revision: number;
+    sections: EvaluationStructure['sections'];
+  }>();
+  const [versionError, setVersionError] = useState('');
+  const [versionRetry, setVersionRetry] = useState(0);
+  const projectCommissions = commissions.filter((commission) => commission.projectId === projectId);
+  useEffect(() => {
+    if (!sectionMode || !revision) return;
+    let current = true;
+    void api('/evaluation-templates/' + encodeURIComponent(template.id) + '/versions/' + revision)
+      .then(({ structure }: { structure: EvaluationStructure }) => {
+        if (current) setVersionStructure({ revision, sections: structure.sections });
+      })
+      .catch((cause: unknown) => {
+        if (current)
+          setVersionError(cause instanceof Error ? cause.message : 'No se pudo cargar la versión.');
+      });
+    return () => {
+      current = false;
+    };
+  }, [sectionMode, revision, template.id, versionRetry]);
   const [query, setQuery] = useState('');
   const [selections, setSelections] = useState<Record<string, string[]>>({});
   const recipients = selections[commissionId] ?? [];
@@ -48,6 +73,26 @@ export default function PublishEvaluation({
       ...previous,
       [commissionId]: update(previous[commissionId] ?? []),
     }));
+  const sections = versionStructure?.revision === revision ? versionStructure.sections : undefined;
+  const scopedSections =
+    sections?.flatMap(({ id }) =>
+      sectionScopes[id] ? [{ sectionId: id, commissionId: sectionScopes[id] }] : [],
+    ) ?? [];
+  const canReceiveSection = (userId: string, sectionId: string) =>
+    !sectionScopes[sectionId] ||
+    memberships.some(
+      (membership) =>
+        membership.commissionId === sectionScopes[sectionId] && membership.userId === userId,
+    );
+  const sectionSelectionValid =
+    !sectionMode ||
+    Boolean(
+      sections &&
+      recipients.every((userId) => sections.some(({ id }) => canReceiveSection(userId, id))) &&
+      scopedSections.every(({ sectionId }) =>
+        recipients.some((userId) => canReceiveSection(userId, sectionId)),
+      ),
+    );
   const [saving, setSaving] = useState(false);
   const [published, setPublished] = useState(false);
   const [error, setError] = useState('');
@@ -69,7 +114,7 @@ export default function PublishEvaluation({
       className="evaluation-flow"
       onSubmit={async (event) => {
         event.preventDefault();
-        if (saving || published || !revision || !scopeIds.length) return;
+        if (saving || published || !revision || !scopeIds.length || !sectionSelectionValid) return;
         setSaving(true);
         setError('');
         try {
@@ -81,6 +126,7 @@ export default function PublishEvaluation({
             dueAt: deadlineISO(day),
             ...(responseMode !== 'identified' ? { responseMode } : {}),
             ...(commissionId ? { commissionId } : {}),
+            ...(sectionMode && scopedSections.length ? { sectionScopes: scopedSections } : {}),
           };
           if (projectId) {
             const evaluations = scopeIds.map((scope) => ({
@@ -129,7 +175,15 @@ export default function PublishEvaluation({
           <button
             type="submit"
             className="primary"
-            disabled={saving || busy || !title.trim() || !revision || !scopeIds.length || !day}
+            disabled={
+              saving ||
+              busy ||
+              !title.trim() ||
+              !revision ||
+              !scopeIds.length ||
+              !day ||
+              !sectionSelectionValid
+            }
           >
             {saving ? 'Publicando…' : projectId ? 'Cerrar y evaluar' : 'Publicar'}
           </button>
@@ -157,7 +211,11 @@ export default function PublishEvaluation({
                   value={revision}
                   onChange={(event) => {
                     if (event.target.value === 'more') loadMore();
-                    else setRevision(Number(event.target.value));
+                    else {
+                      setRevision(Number(event.target.value));
+                      setVersionError('');
+                      setSectionScopes({});
+                    }
                   }}
                 >
                   {versions.map((version) => (
@@ -192,7 +250,75 @@ export default function PublishEvaluation({
                   <option value="collective">Colectiva</option>
                 </select>
               </label>
-              {projectId && (
+              {projectId && projectCommissions.length > 0 && (
+                <label className="evaluation-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={sectionMode}
+                    onChange={(event) => {
+                      setCommissionId('');
+                      setSelections({});
+                      setSectionScopes({});
+                      setVersionError('');
+                      setSectionMode(event.target.checked);
+                    }}
+                  />
+                  Un cuestionario con secciones por comisión
+                </label>
+              )}
+              {sectionMode && (
+                <fieldset className="evaluation-section">
+                  <legend>Quién responde a cada sección</legend>
+                  <p>
+                    Las preguntas generales se muestran a todos los participantes seleccionados. Las
+                    de comisión, solo a sus miembros.
+                  </p>
+                  {versionError ? (
+                    <>
+                      <p role="alert">{versionError}</p>
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() => {
+                          setVersionError('');
+                          setVersionRetry((value) => value + 1);
+                        }}
+                      >
+                        Reintentar carga
+                      </button>
+                    </>
+                  ) : !sections ? (
+                    <p role="status">Cargando secciones…</p>
+                  ) : (
+                    sections.map((section) => (
+                      <label key={section.id}>
+                        {section.title}
+                        <select
+                          value={sectionScopes[section.id] ?? ''}
+                          onChange={(event) => {
+                            const scope = event.target.value;
+                            setSectionScopes((current) => ({ ...current, [section.id]: scope }));
+                          }}
+                        >
+                          <option value="">Proyecto completo</option>
+                          {projectCommissions.map(({ id, name }) => (
+                            <option key={id} value={id}>
+                              {name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ))
+                  )}
+                  {sections && recipients.length > 0 && !sectionSelectionValid && (
+                    <p role="status">
+                      Selecciona al menos un miembro para cada sección de comisión y comprueba que
+                      cada participante tenga alguna sección.
+                    </p>
+                  )}
+                </fieldset>
+              )}
+              {projectId && !sectionMode && (
                 <label>
                   Ámbito de evaluación
                   <select
@@ -200,17 +326,15 @@ export default function PublishEvaluation({
                     onChange={(event) => setCommissionId(event.target.value)}
                   >
                     <option value="">Proyecto completo ({selections['']?.length ?? 0})</option>
-                    {commissions
-                      .filter((commission) => commission.projectId === projectId)
-                      .map((commission) => (
-                        <option key={commission.id} value={commission.id}>
-                          {commission.name} ({selections[commission.id]?.length ?? 0})
-                        </option>
-                      ))}
+                    {projectCommissions.map((commission) => (
+                      <option key={commission.id} value={commission.id}>
+                        {commission.name} ({selections[commission.id]?.length ?? 0})
+                      </option>
+                    ))}
                   </select>
                 </label>
               )}
-              {projectId && (
+              {projectId && !sectionMode && (
                 <p>
                   Selecciona participantes en cada ámbito que quieras incluir. Se conservan al
                   cambiar de ámbito.

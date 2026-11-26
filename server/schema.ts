@@ -453,6 +453,7 @@ export const groupEvaluationAssignments = pgTable('group_evaluation_assignments'
   groupId: text('group_id').notNull().default(sql`nullif(current_setting('bandarlog.group_id', true), '')`),
   evaluationId: text('evaluation_id').notNull(),
   userId: text('user_id').notNull(),
+  sectionIds: text('section_ids').array(),
   answers: jsonb().notNull().default({}),
   revision: integer().notNull().default(0),
   submittedAt: timestamp('submitted_at', { withTimezone: true, mode: 'string' }),

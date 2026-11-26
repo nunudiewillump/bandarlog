@@ -988,3 +988,69 @@ test('anonymous submission removes identified answers and collective mode requir
   assert.ok(saved.body.submittedAt);
   assert.equal((await call(path + '/response', 'PUT', { ...draft, revision: 2, action: 'submission' }, a)).status, 409);
 });
+
+test('one project questionnaire exposes only the assigned commission sections', async () => {
+  const [a, b] = await evaluationGroupFixtures();
+  const created = await call('/api/projects', 'POST', {
+    name: 'Cuestionario único', starts: '2026-11-01', ends: '2026-11-23',
+  }, a);
+  assert.equal(created.status, 201);
+  const projectId = created.body.id;
+  async function commission(name: string) {
+    const result = await call('/api/commissions', 'POST', {
+      name, projectId, members: [{ userId: a.userId, role: 'responsible' }],
+    }, a);
+    assert.equal(result.status, 201);
+    return result.body.id as string;
+  }
+  const kitchen = await commission('Cocina');
+  const materials = await commission('Material');
+  const email = 'scoped-questionnaire@example.test';
+  assert.equal((await call('/api/invitations', 'POST', { commissionId: materials, email, role: 'scouter' }, a)).status, 201);
+  const mail = (await call('/api/dev/mail', 'GET', undefined, a)).body.find((row: { email: string }) => row.email === email);
+  const token = new URL(mail.body.match(/^https?:\/\/\S+$/m)[0]).searchParams.get('token');
+  const accepted = await call('/api/auth/verify', 'POST', { token }, { ...a, cookie: '', csrf: '' });
+  assert.equal(accepted.status, 200);
+  const member = { ...a, cookie: accepted.headers.get('set-cookie')!.split(';')[0], csrf: '', userId: '' };
+  const me = (await call('/api/me', 'GET', undefined, member)).body;
+  member.csrf = me.csrf;
+  member.userId = me.user.id;
+
+  const makeSection = (title: string) => ({
+    id: randomUUID(), title, description: '',
+    questions: [{ id: randomUUID(), label: '¿Lo repetirías?', description: '', required: true, type: 'yesNo' }],
+  });
+  const general = makeSection('Proyecto completo');
+  const kitchenSection = makeSection('Cocina');
+  const materialSection = makeSection('Material');
+  const structure = { title: 'Balance por secciones', description: '', sections: [general, kitchenSection, materialSection] };
+  const saved = await call('/api/evaluation-templates', 'POST', structure, a);
+  assert.equal(saved.status, 201);
+  assert.equal((await call('/api/evaluation-templates/' + saved.body.id, 'PATCH', { action: 'publish', revision: 1 }, a)).status, 200);
+  const route = '/api/projects/' + projectId + '/lifecycle';
+  const evaluation = {
+    title: structure.title, templateId: saved.body.id, templateRevision: 1,
+    userIds: [a.userId, member.userId], dueAt: new Date(Date.now() + 86_400_000).toISOString(),
+    sectionScopes: [
+      { sectionId: kitchenSection.id, commissionId: kitchen },
+      { sectionId: materialSection.id, commissionId: materials },
+    ],
+  };
+  assert.equal((await call('/api/group-evaluations', 'POST', evaluation, a)).status, 400);
+  assert.equal((await call(route, 'POST', { action: 'close-and-evaluate', evaluation: {
+    ...evaluation, sectionScopes: [{ sectionId: kitchenSection.id, commissionId: 'foreign-commission' }],
+  } }, a)).status, 400);
+  const published = await call(route, 'POST', { action: 'close-and-evaluate', evaluation }, a);
+  assert.equal(published.status, 200, JSON.stringify(published.body));
+  const path = '/api/group-evaluations/' + published.body.evaluationId;
+  assert.deepEqual((await call(path, 'GET', undefined, a)).body.structure.sections, structure.sections);
+  assert.deepEqual((await call(path, 'GET', undefined, member)).body.structure.sections, [general, materialSection]);
+  assert.equal((await call(path, 'GET', undefined, b)).status, 404);
+  const response = { action: 'submission', revision: 0, answers: {
+    [general.questions[0].id]: true, [materialSection.questions[0].id]: true,
+  } };
+  assert.equal((await call(path + '/response', 'PUT', {
+    ...response, answers: { ...response.answers, [kitchenSection.questions[0].id]: true },
+  }, member)).status, 400);
+  assert.equal((await call(path + '/response', 'PUT', response, member)).status, 200);
+});
