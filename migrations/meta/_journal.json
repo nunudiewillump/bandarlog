@@ -386,6 +386,13 @@
       "when": 1794848000000,
       "tag": "0054_remove_project_meetings",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1794848100000,
+      "tag": "0055_evaluation_assignment_sections",
+      "breakpoints": true
     }
   ]
 }
