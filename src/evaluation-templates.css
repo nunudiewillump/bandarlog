@@ -112,6 +112,15 @@
   border-top: 1px solid #dfe5da;
 }
 
+.evaluation-template-list .evaluation-base-template {
+  padding-inline: 10px;
+  background: #eff4ec;
+}
+.evaluation-base-template small {
+  display: block;
+  color: #426050;
+}
+
 .evaluation-recipients {
   max-height: 18rem;
   overflow: auto;

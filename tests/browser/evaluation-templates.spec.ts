@@ -69,6 +69,19 @@ test('coordination opens the lazy editor, saves and publishes a template on mobi
   expect(modules).toHaveLength(0);
   await opener.focus();
   await opener.press('Enter');
+  const useBase = page.getByRole('button', { name: 'Usar plantilla base', exact: true });
+  await expect(useBase).toBeVisible();
+  await useBase.click();
+  await expect(page.getByLabel('Nombre de la plantilla')).toHaveValue('Evaluación de proyecto');
+  await expect(page.getByLabel('Enunciado')).toHaveCount(4);
+  await page.getByLabel('Nombre de la plantilla').fill('Copia de prueba');
+  page.once('dialog', (dialog) => void dialog.accept());
+  await page.getByRole('button', { name: 'Volver a plantillas' }).click();
+  await useBase.click();
+  await expect(page.getByLabel('Nombre de la plantilla')).toHaveValue('Evaluación de proyecto');
+  expect(structure).toBeUndefined();
+  page.once('dialog', (dialog) => void dialog.accept());
+  await page.getByRole('button', { name: 'Volver a plantillas' }).click();
   await page.getByRole('button', { name: 'Nueva plantilla' }).click();
   await page.getByLabel('Nombre de la plantilla').fill('Evaluación del campamento');
   await page.getByLabel('Título de sección').fill('Organización y convivencia');
@@ -136,7 +149,7 @@ test('coordination opens the lazy editor, saves and publishes a template on mobi
   if (output) await panel.screenshot({ path: output + '/plantillas-escritorio.png' });
 
   await panel.getByRole('button', { name: 'Volver a plantillas' }).click();
-  await expect(panel.getByRole('button')).toHaveCount(2);
+  await expect(useBase).toBeVisible();
   const actions = panel.getByRole('combobox', { name: 'Acciones de Evaluación del campamento' });
   await actions.focus();
   await page.keyboard.press('ArrowDown');
@@ -169,4 +182,15 @@ test('coordination opens the lazy editor, saves and publishes a template on mobi
     'Copia de Evaluación del campamento',
   );
   await expect(panel.getByRole('button', { name: 'Guardar borrador' })).toBeEnabled();
+  page.once('dialog', (dialog) => void dialog.accept());
+  await panel.getByRole('button', { name: 'Volver a plantillas' }).click();
+  await useBase.click();
+  await panel.getByLabel('Nombre de la plantilla').fill('Evaluación adaptada');
+  await panel.getByRole('button', { name: 'Guardar borrador' }).click();
+  await expect(panel.getByRole('status')).toHaveText('Plantilla guardada.');
+  expect(structure.title).toBe('Evaluación adaptada');
+  expect(structure.sections).toHaveLength(2);
+  await panel.getByRole('button', { name: 'Volver a plantillas' }).click();
+  await expect(useBase).toBeVisible();
+  await expect(panel.getByText('Evaluación adaptada', { exact: true })).toBeVisible();
 });

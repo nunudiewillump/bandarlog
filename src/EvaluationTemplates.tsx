@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Plus, Save, Trash2 } from 'lucide-react';
 import { api } from './api';
+import { baseEvaluationTemplate } from './base-evaluation-template';
 import { QuestionHandle, QuestionOptions } from './EvaluationQuestionControls';
 import { Select } from './Select';
 import PublishEvaluation from './PublishEvaluation';
@@ -341,8 +342,21 @@ export default function EvaluationTemplates({
               }}
             />
           </div>
-          {!busy && !items.length && <p>No hay plantillas guardadas.</p>}
           <ul className="evaluation-template-list">
+            <li className="evaluation-base-template">
+              <div>
+                <strong>Plantilla base</strong>
+                <small>Evaluación de proyecto</small>
+              </div>
+              <button
+                type="button"
+                className="secondary"
+                disabled={busy}
+                onClick={() => start(baseEvaluationTemplate())}
+              >
+                Usar plantilla base
+              </button>
+            </li>
             {items.map((item) => (
               <li key={item.id}>
                 <strong>
