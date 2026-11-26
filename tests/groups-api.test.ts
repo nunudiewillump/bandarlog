@@ -1048,6 +1048,10 @@ test('close and evaluate assigns atomically and pauses the same draft on reopeni
   assert.deepEqual(paused.answers, draft.answers);
   assert.equal((await call(path + '/response', 'PUT', { ...draft, revision: 1 }, a)).status, 409);
   assert.equal((await call(route, 'POST', { action: 'close' }, a)).status, 200);
+  const filter = '/api/group-evaluations/manage?projectId=' + encodeURIComponent(project.body.id);
+  assert.deepEqual((await call(filter + '&status=closed', 'GET', undefined, a)).body.items, []);
+  assert.equal((await call(filter + '&status=open', 'GET', undefined, a)).body.items[0].id, result.body.evaluationId);
+  assert.deepEqual((await call(filter + '&status=open', 'GET', undefined, b)).body.items, []);
   const resumed = (await call(path, 'GET', undefined, a)).body;
   assert.equal(resumed.open, true);
   assert.equal(resumed.revision, 1);

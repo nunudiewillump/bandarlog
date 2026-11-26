@@ -161,7 +161,13 @@ export function groupEvaluationRoutes(db: Database) {
   });
 
   router.get('/manage', async (q, r) => {
-    const after = z.uuid().optional().parse(q.query.after);
+    const { after, projectId, status } = z
+      .strictObject({
+        after: z.uuid().optional(),
+        projectId: z.string().min(1).max(200).optional(),
+        status: z.enum(['open', 'paused', 'closed']).optional(),
+      })
+      .parse(q.query);
     const rows = await db
       .select({
         id: evaluations.id,
@@ -172,7 +178,19 @@ export function groupEvaluationRoutes(db: Database) {
         templateRevision: evaluations.templateRevision,
       })
       .from(evaluations)
-      .where(after ? gt(evaluations.id, after) : undefined)
+      .where(
+        and(
+          after ? gt(evaluations.id, after) : undefined,
+          projectId ? eq(evaluations.projectId, projectId) : undefined,
+          status === 'open'
+            ? active
+            : status === 'paused'
+              ? paused
+              : status === 'closed'
+                ? sql`not (${beforeDeadline})`
+                : undefined,
+        ),
+      )
       .orderBy(evaluations.id)
       .limit(31);
     r.json({ items: rows.slice(0, 30), next: rows.length > 30 ? rows[29].id : null });

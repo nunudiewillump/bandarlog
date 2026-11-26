@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { SessionSettings } from './SessionSettings';
 import { useRef, useState } from 'react';
 import { ChevronRight, LogOut, Pencil } from 'lucide-react';
@@ -19,12 +20,13 @@ type Props = {
   onSaved: (user: User) => void;
   onLogout: () => void | Promise<void>;
 };
-function Neckerchief({ group }: { group?: ScoutGroup }) {
+export function Neckerchief({ group }: { group?: ScoutGroup }) {
+  const patternId = useId();
   return (
     <svg className="profile-neckerchief" viewBox="0 0 52 60" aria-hidden="true" focusable="false">
       <defs>
         <pattern
-          id="scout-stripes"
+          id={patternId}
           patternUnits="userSpaceOnUse"
           width="12"
           height="12"
@@ -37,14 +39,14 @@ function Neckerchief({ group }: { group?: ScoutGroup }) {
       <path
         d="M4 8Q26-2 48 8L34 34 31 38 38 54 26 49 14 54 21 38 18 34Z M13 9Q26 16 39 9L26 30Z"
         fillRule="evenodd"
-        fill="url(#scout-stripes)"
+        fill={`url(#${patternId})`}
         stroke="#633174"
         strokeWidth="1.5"
         strokeLinejoin="round"
       />
       <path
         d="M21 30 31 30 32 39 20 39Z"
-        fill="url(#scout-stripes)"
+        fill={`url(#${patternId})`}
         stroke="#633174"
         strokeWidth="1.5"
         strokeLinejoin="round"

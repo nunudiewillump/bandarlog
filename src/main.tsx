@@ -1834,6 +1834,8 @@ function App() {
                   closingProjectId={evaluationClosingProject}
                   canPublish={groupEvaluationsEnabled}
                   people={data.users}
+                  group={data.group}
+                  projects={data.projects}
                   onOpenTask={setSelected}
                   onCreateAction={(action) => { setEvaluationAction(action); setModal('evaluation-action'); }}
                   onClosed={() => { void load().catch(() => {}); }}

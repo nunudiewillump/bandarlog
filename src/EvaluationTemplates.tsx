@@ -4,7 +4,8 @@ import { api } from './api';
 import { Select } from './Select';
 import PublishEvaluation from './PublishEvaluation';
 import EvaluationResults from './EvaluationResults';
-import type { User } from './types';
+import { BlankEvaluationDocument } from './EvaluationDocument';
+import type { Project, ScoutGroup, User } from './types';
 import {
   evaluationStructure,
   questionTypes,
@@ -85,6 +86,8 @@ export default function EvaluationTemplates({
   onClosed,
   canPublish,
   people,
+  group,
+  projects,
   onCreateAction,
   onOpenTask,
 }: {
@@ -94,9 +97,12 @@ export default function EvaluationTemplates({
   onClosed: () => void;
   canPublish: boolean;
   people: User[];
+  group?: ScoutGroup;
+  projects: Project[];
   onCreateAction: (action: { id: string; revision: number; title: string }) => void;
   onOpenTask: (id: string) => void;
 }) {
+  const [blankDocument, setBlankDocument] = useState<EvaluationStructure | null>(null);
   const [showResults, setShowResults] = useState(Boolean(initialResultId));
   const [publication, setPublication] = useState<Entry | null>(null);
   const [items, setItems] = useState<Entry[]>([]);
@@ -213,6 +219,7 @@ export default function EvaluationTemplates({
     }
     const template: Template = await api(root + '/' + item.id);
     if (action === 'export') exportStructure(template.structure);
+    if (action === 'print') setBlankDocument(template.structure);
     if (action === 'duplicate') {
       start({
         ...template.structure,
@@ -221,10 +228,23 @@ export default function EvaluationTemplates({
     }
   }
 
+  if (blankDocument)
+    return (
+      <section className="panel evaluation-templates">
+        <BlankEvaluationDocument
+          structure={blankDocument}
+          group={group}
+          onBack={() => setBlankDocument(null)}
+        />
+      </section>
+    );
+
   if (showResults)
     return (
       <section className="panel evaluation-templates">
         <EvaluationResults
+          group={group}
+          projects={projects}
           initialResultId={initialResultId}
           onBack={() => setShowResults(false)}
           onCreateAction={onCreateAction}
@@ -334,6 +354,7 @@ export default function EvaluationTemplates({
                   <option value="duplicate">Duplicar</option>
                   <option value="archive">{item.archived ? 'Restaurar' : 'Archivar'}</option>
                   <option value="export">Exportar estructura</option>
+                  <option value="print">Imprimir plantilla en blanco</option>
                 </Actions>
               </li>
             ))}

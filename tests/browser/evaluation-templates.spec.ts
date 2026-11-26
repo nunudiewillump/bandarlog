@@ -110,6 +110,22 @@ test('coordination opens the lazy editor, saves and publishes a template on mobi
   await expect(panel.getByRole('status')).toHaveText('Plantilla restaurada.');
   await actions.click();
   if (output) await page.screenshot({ path: output + '/menu-plantillas.png' });
+  await page.getByRole('option', { name: 'Imprimir plantilla en blanco' }).click();
+  await expect(
+    panel.getByRole('heading', { name: '¿Qué debemos mantener? (obligatoria)' }),
+  ).toBeVisible();
+  await expect(panel.getByRole('button')).toHaveCount(2);
+  const printDir = process.env.EVALUATION_PDF_DIR;
+  if (printDir) {
+    await mkdir(printDir, { recursive: true });
+    await page.pdf({
+      path: printDir + '/plantilla-en-blanco-ejemplo.pdf',
+      preferCSSPageSize: true,
+      printBackground: true,
+    });
+  }
+  await panel.getByRole('button', { name: 'Volver', exact: true }).click();
+  await actions.click();
   await page.getByRole('option', { name: 'Duplicar', exact: true }).click();
   await expect(panel.getByLabel('Nombre de la plantilla')).toHaveValue(
     'Copia de Evaluación del campamento',

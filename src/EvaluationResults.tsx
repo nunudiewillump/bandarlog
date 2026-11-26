@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { api } from './api';
 import { Select } from './Select';
+import {
+  EvaluationDocument,
+  EvaluationStatistics,
+  type EvaluationSummary,
+} from './EvaluationDocument';
+import type { Project, ScoutGroup } from './types';
 import type { EvaluationStructure } from '../shared/evaluations';
 
 type Evaluation = {
@@ -11,17 +17,12 @@ type Evaluation = {
   paused?: boolean;
   templateRevision: number;
 };
-type Distribution = { value: string | number | boolean; count: number };
 type Result = Omit<Evaluation, 'id'> & {
   structure: EvaluationStructure;
   body: string | null;
   actions?: { id: string; title: string }[];
   conclusionRevision: number | null;
-  summary: {
-    assigned: number;
-    submitted: number;
-    questions: Record<string, { answered: number; distribution: Distribution[] }>;
-  } | null;
+  summary: EvaluationSummary | null;
 };
 
 const endpoint = '/group-evaluations/manage';
@@ -30,19 +31,24 @@ const date = new Intl.DateTimeFormat('es-ES', {
   timeStyle: 'short',
   timeZone: 'Europe/Madrid',
 });
-const number = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2 });
 
 export default function EvaluationResults({
   onBack,
+  group,
+  projects,
   initialResultId,
   onCreateAction,
   onOpenTask,
 }: {
   onBack: () => void;
+  group?: ScoutGroup;
+  projects: Project[];
   initialResultId: string | null;
   onCreateAction: (action: { id: string; revision: number; title: string }) => void;
   onOpenTask: (id: string) => void;
 }) {
+  const [preview, setPreview] = useState(false);
+  const [filters, setFilters] = useState({ projectId: '', status: '' });
   const [items, setItems] = useState<Evaluation[]>([]);
   const [next, setNext] = useState<string | null>(null);
   const [selected, setSelected] = useState<{ id: string; result: Result } | null>(null);
@@ -64,10 +70,22 @@ export default function EvaluationResults({
     }
   }
 
-  async function list(cursor?: string) {
-    const result = await api(endpoint + (cursor ? '?after=' + encodeURIComponent(cursor) : ''));
+  async function list(cursor?: string, selectedFilters = filters) {
+    const params = new URLSearchParams();
+    if (cursor) params.set('after', cursor);
+    if (selectedFilters.projectId) params.set('projectId', selectedFilters.projectId);
+    if (selectedFilters.status) params.set('status', selectedFilters.status);
+    const result = await api(endpoint + (params.size ? '?' + params.toString() : ''));
     setItems((previous) => (cursor ? [...previous, ...result.items] : result.items));
     setNext(result.next);
+  }
+
+  function filter(key: 'projectId' | 'status', value: string) {
+    const selectedFilters = { ...filters, [key]: value };
+    setFilters(selectedFilters);
+    setItems([]);
+    setNext(null);
+    void run(() => list(undefined, selectedFilters));
   }
 
   async function openResult(id: string) {
@@ -82,6 +100,15 @@ export default function EvaluationResults({
 
   const result = selected?.result;
   const summary = result?.summary;
+  if (preview && result && summary)
+    return (
+      <EvaluationDocument
+        report={result}
+        summary={summary}
+        group={group}
+        onBack={() => setPreview(false)}
+      />
+    );
   if (!selected || !result)
     return (
       <section aria-busy={busy}>
@@ -102,7 +129,45 @@ export default function EvaluationResults({
             </button>
           )}
         </div>
-        {!busy && !items.length && !error && <p>Todavía no hay evaluaciones publicadas.</p>}
+        <div className="evaluation-controls">
+          <label>
+            <span id="history-project-label">Proyecto</span>
+            <select
+              aria-labelledby="history-project-label"
+              disabled={busy}
+              value={filters.projectId}
+              onChange={(event) => filter('projectId', event.target.value)}
+            >
+              <option value="">Todos los proyectos</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span id="history-status-label">Estado</span>
+            <select
+              aria-labelledby="history-status-label"
+              disabled={busy}
+              value={filters.status}
+              onChange={(event) => filter('status', event.target.value)}
+            >
+              <option value="">Todos los estados</option>
+              <option value="open">Abiertas</option>
+              <option value="paused">Pausadas</option>
+              <option value="closed">Cerradas</option>
+            </select>
+          </label>
+        </div>
+        {!busy && !items.length && !error && (
+          <p>
+            {filters.projectId || filters.status
+              ? 'No hay evaluaciones con estos filtros.'
+              : 'Todavía no hay evaluaciones publicadas.'}
+          </p>
+        )}
         <ul className="evaluation-template-list">
           {items.map((item) => (
             <li key={item.id}>
@@ -179,6 +244,19 @@ export default function EvaluationResults({
           </button>
         )}
       </div>
+      {summary && (
+        <Select
+          aria-label="Opciones del informe"
+          value=""
+          disabled={busy}
+          onChange={() => setPreview(true)}
+        >
+          <option value="" disabled>
+            Opciones del informe
+          </option>
+          <option value="print">Vista previa y PDF</option>
+        </Select>
+      )}
       {result.conclusionRevision && (
         <Select
           aria-label="Acciones de mejora"
@@ -232,42 +310,7 @@ export default function EvaluationResults({
               disabled={busy}
             />
           </label>
-          {result.structure.sections.map((section) => (
-            <section key={section.id} className="evaluation-section">
-              <h2>{section.title}</h2>
-              {section.questions.map((question) => {
-                const stats = summary.questions[question.id];
-                if (!stats) return null;
-                const numeric = question.type === 'numberScale' || question.type === 'nps';
-                const sum = numeric
-                  ? stats.distribution.reduce(
-                      (total, entry) => total + Number(entry.value) * entry.count,
-                      0,
-                    )
-                  : 0;
-                return (
-                  <div key={question.id} className="evaluation-question">
-                    <h3>{question.label}</h3>
-                    <p>
-                      {stats.answered} respuestas · {summary.submitted - stats.answered} omitidas
-                      {numeric &&
-                        stats.answered > 0 &&
-                        ' · Media ' + number.format(sum / stats.answered)}
-                    </p>
-                    {stats.distribution.length > 0 && (
-                      <ul>
-                        {stats.distribution.map(({ value, count }) => (
-                          <li key={String(value)}>
-                            {typeof value === 'boolean' ? (value ? 'Sí' : 'No') : value} · {count}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                );
-              })}
-            </section>
-          ))}
+          <EvaluationStatistics structure={result.structure} summary={summary} />
         </>
       )}
     </form>

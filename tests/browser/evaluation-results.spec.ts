@@ -1,9 +1,18 @@
 import { expect, test } from '@playwright/test';
+import { mkdir } from 'node:fs/promises';
 import { mobileFixture } from '../fixtures/mobile';
 
 test('coordination consults closed results and saves a conclusion', async ({ page }) => {
   const fixture = mobileFixture(1);
   fixture.user.role = 'coordination';
+  fixture.data.group = {
+    id: 'synthetic',
+    privateId: 'synthetic',
+    name: 'Grupo Scout Ejemplo',
+    colorPrimary: '#276cae',
+    colorSecondary: '#f7c948',
+    plan: 'free',
+  };
   fixture.user.onboardingCompletedAt = '2026-01-01T00:00:00Z';
   const item = {
     id: 'example',
@@ -18,6 +27,7 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
     title: 'Preparar la lista de material',
   };
   let conclusion: unknown;
+  let historyStatus: string | null = null;
   let action: unknown;
   await page.route('**/api/**', (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -34,7 +44,10 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
     if (path === '/api/data') return route.fulfill({ json: fixture.summary() });
     if (path === '/api/tutorial')
       return route.fulfill({ json: { events: { tutorial_skipped: '2026-01-01T00:00:00Z' } } });
-    if (path.endsWith('/manage')) return route.fulfill({ json: { items: [item], next: null } });
+    if (path.endsWith('/manage')) {
+      historyStatus = new URL(route.request().url()).searchParams.get('status');
+      return route.fulfill({ json: { items: [item], next: null } });
+    }
     if (path.endsWith('/conclusion')) {
       conclusion = route.request().postDataJSON();
       return route.fulfill({
@@ -85,6 +98,9 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
   await page.getByRole('button', { name: 'Plantillas de evaluación' }).click();
   await page.getByRole('combobox', { name: 'Opciones de plantillas' }).click();
   await page.getByRole('option', { name: 'Histórico y resultados' }).click();
+  await page.getByLabel('Estado', { exact: true }).selectOption('closed');
+  await expect.poll(() => historyStatus).toBe('closed');
+
   await page.getByRole('combobox', { name: 'Opciones de Balance del campamento' }).click();
   await page.getByRole('option', { name: 'Ver resultados' }).click();
   const panel = page.locator('.evaluation-templates');
@@ -97,6 +113,26 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
   await panel.getByRole('button', { name: 'Guardar conclusiones' }).click();
   await expect(panel.getByRole('status')).toHaveText('Conclusiones guardadas.');
   expect(conclusion).toEqual({ body: 'Confirmar el material antes de salir.', revision: 0 });
+  await panel.getByRole('combobox', { name: 'Opciones del informe' }).click();
+  await page.getByRole('option', { name: 'Vista previa y PDF' }).click();
+  await expect(panel.getByText('Grupo Scout Ejemplo')).toBeVisible();
+  await expect(panel.getByText('Confirmar el material antes de salir.')).toBeVisible();
+  await expect(panel.getByRole('button')).toHaveCount(2);
+  await page.emulateMedia({ media: 'print' });
+  await expect(page.locator('.evaluation-print')).toBeVisible();
+  await expect(page.locator('.app-shell')).toBeHidden();
+  const output = process.env.EVALUATION_PDF_DIR;
+  if (output) {
+    await mkdir(output, { recursive: true });
+    await page.pdf({
+      path: output + '/evaluacion-ejemplo.pdf',
+      preferCSSPageSize: true,
+      printBackground: true,
+    });
+  }
+  await page.emulateMedia({ media: 'screen' });
+  await panel.getByRole('button', { name: 'Volver', exact: true }).click();
+
   await panel.getByRole('combobox', { name: 'Acciones de mejora' }).click();
   await page.getByRole('option', { name: 'Crear tarea' }).click();
   const dialog = page.getByRole('dialog', { name: 'Crear tarea desde conclusiones' });
