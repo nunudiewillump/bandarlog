@@ -104,3 +104,158 @@
     margin-top: 24px;
   }
 }
+
+.desktop-evaluations {
+  margin-block-start: 20px;
+}
+.mobile-evaluation-entry {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  margin-block: 20px;
+}
+button.pending-evaluation-sign {
+  position: relative;
+  display: block;
+  width: min(210px, 100%);
+  padding: 0;
+  background: transparent;
+  color: #103b2d;
+}
+.pending-evaluation-sign img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.pending-evaluation-sign > span:last-child {
+  position: absolute;
+  inset-inline: 15%;
+  top: 80%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 750;
+  text-align: center;
+}
+
+.topbar:has(.task-celebration, .desktop-evaluation-sign button) {
+  z-index: 3;
+}
+.topbar .botanical-decoration,
+.app-forest-header .botanical-decoration {
+  z-index: 2;
+}
+.topbar .topbar-content,
+.app-forest-header .forest-canopy-inner {
+  z-index: 3;
+}
+.topbar .task-celebration,
+.app-forest-header .task-celebration {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 1;
+  height: 255px;
+}
+.topbar .vine-swing,
+.app-forest-header .vine-swing {
+  top: 52px;
+  width: 155px;
+  height: auto;
+}
+.app-forest-header .vine-swing {
+  top: 45px;
+  width: 136px;
+}
+.topbar .vine-swing img,
+.app-forest-header .vine-swing img {
+  display: block;
+  height: auto;
+}
+.vine-swing::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% - 2px);
+  left: 49%;
+  width: 4%;
+  height: 66px;
+  transform: skewX(-8deg);
+  background: #427727;
+  border-radius: 999px;
+}
+.desktop-evaluation-sign {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: 48px;
+  inset-inline-end: clamp(48px, 12vw, 235px);
+  width: 184px;
+}
+button.pending-evaluation-sign::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% - 2px);
+  left: 54.1%;
+  width: 2.7%;
+  height: 58px;
+  transform: skewX(-7deg);
+  background: #427727;
+  border-radius: 999px;
+  pointer-events: none;
+}
+.pending-evaluation-sign img {
+  position: relative;
+}
+.desktop-evaluation-sign .pending-evaluation-sign > span:last-child {
+  font-size: 11px;
+}
+.mobile-evaluation-entry:has(.pending-evaluation-sign) {
+  padding-top: 54px;
+}
+
+.neckerchief-mascot {
+  position: relative;
+  display: block;
+}
+.neckerchief-mascot-task {
+  --mascot-mask-primary: url('/mascot-masks/task-primary.png');
+  --mascot-mask-secondary: url('/mascot-masks/task-secondary.png');
+}
+.neckerchief-mascot-evaluation {
+  --mascot-mask-primary: url('/mascot-masks/evaluation-primary.png');
+  --mascot-mask-secondary: url('/mascot-masks/evaluation-secondary.png');
+}
+.neckerchief-mascot::before,
+.neckerchief-mascot::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+}
+.neckerchief-mascot::before {
+  background-color: var(--mascot-primary, transparent);
+  mask-image: var(--mascot-mask-primary);
+}
+.neckerchief-mascot::after {
+  background-color: var(--mascot-secondary, transparent);
+  mask-image: var(--mascot-mask-secondary);
+}
+.pending-evaluation-leaves {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: -64px;
+  inset-inline-start: calc(55% - 37px);
+  width: 74px;
+  height: 56px;
+  pointer-events: none;
+}
+.pending-evaluation-leaves .botanical-brand-fill {
+  display: block;
+  mask-image: none;
+  position: static;
+  width: 100%;
+  height: 100%;
+  opacity: 1;
+  transform: none;
+}

@@ -149,7 +149,7 @@ function AnswerField({
   }
 }
 
-export default function GroupEvaluations({ onBack }: { onBack: () => void }) {
+export default function GroupEvaluations({ onBack, initialId }: { onBack: () => void; initialId?: string }) {
   const [items, setItems] = useState<Entry[]>([]);
   const [next, setNext] = useState<string | null>(null);
   const [selected, setSelected] = useState<{ id: string; detail: Detail } | null>(null);
@@ -180,7 +180,16 @@ export default function GroupEvaluations({ onBack }: { onBack: () => void }) {
   }
 
   useEffect(() => {
-    void run(() => load());
+    void run(async () => {
+      await load();
+      if (initialId) {
+        const detail: Detail = await api(endpoint + '/' + encodeURIComponent(initialId));
+        if (detail.open && !detail.submittedAt) {
+          setSelected({ id: initialId, detail });
+          setAnswers(detail.answers);
+        }
+      }
+    });
   }, []);
 
   useEffect(() => {

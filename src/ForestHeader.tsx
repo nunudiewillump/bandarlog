@@ -6,12 +6,14 @@ export function ForestHeader({
   onProfile,
   className = '',
   effectsEnabled = true,
+  underCanopy,
 }: {
   avatar?: ReactNode;
   onHome?: () => void;
   onProfile?: () => void;
   className?: string;
   effectsEnabled?: boolean;
+  underCanopy?: ReactNode;
 }) {
   return (
     <div className="forest-header-slot">
@@ -19,6 +21,7 @@ export function ForestHeader({
         className={`forest-canopy botanical-header ${effectsEnabled ? 'has-foliage' : ''} ${className}`}
       >
         <BotanicalCanopy enabled={effectsEnabled} />
+        {underCanopy}
         <div className="forest-canopy-inner">
           <button
             className="forest-brand"

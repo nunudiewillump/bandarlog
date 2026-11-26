@@ -106,6 +106,8 @@ import { TaskChecklist } from './TaskChecklist';
 import { ProfilePanel } from './ProfilePanel';
 import { BananaLoader } from './BananaLoader';
 import { Select } from './Select';
+import { NeckerchiefMascot } from './NeckerchiefMascot';
+
 const initial: Data = {
   artworkEnabled: false,
   users: [],
@@ -120,19 +122,20 @@ const initial: Data = {
 };
 const ProductFeedback = lazy(() => import('./ProductFeedback').then(({ ProductFeedback }) => ({ default: ProductFeedback })));
 const ProductSurvey = lazy(() => import('./ProductSurvey'));
+const HomeEvaluationsEntry = lazy(() => import('./HomeEvaluationsEntry'));
 const GroupEvaluations = lazy(() => import('./GroupEvaluations'));
 const EvaluationTemplates = lazy(() => import('./EvaluationTemplates'));
 const ProjectMap = lazy(() => import('./ProjectMap'));
 const desktopMapQuery = '(min-width: 1024px)';
-function useDesktopProjectMap() {
-  const [desktop, setDesktop] = useState(() => matchMedia(desktopMapQuery).matches);
+function useMediaMatch(query: string) {
+  const [desktop, setDesktop] = useState(() => matchMedia(query).matches);
   useEffect(() => {
-    const media = matchMedia(desktopMapQuery);
+    const media = matchMedia(query);
     const update = () => setDesktop(media.matches);
     media.addEventListener('change', update);
     update();
     return () => media.removeEventListener('change', update);
-  }, []);
+  }, [query]);
   return desktop;
 }
 const icons: Record<string, typeof Tent> = {
@@ -197,6 +200,7 @@ function App() {
     [toast, setToast] = useState(''),
     [busy, setBusy] = useState(false),
     [groupEvaluationsOpen, setGroupEvaluationsOpen] = useState(false),
+    [initialEvaluationId, setInitialEvaluationId] = useState<string>(),
     [productFeedbackEnabled, setProductFeedbackEnabled] = useState(false),
     [productCampaignsEnabled, setProductCampaignsEnabled] = useState(false),
     [groupEvaluationsEnabled, setGroupEvaluationsEnabled] = useState(false),
@@ -237,6 +241,11 @@ function App() {
   const lastAnnounced = useRef(false);
   const celebrationSequence = useRef(0);
   const celebrationId = celebrations[0];
+  const celebration = celebrationId !== undefined && (
+    <div key={celebrationId} className="task-celebration" aria-hidden="true" data-completion-event={celebrationId}>
+      <div className="vine-swing"><NeckerchiefMascot kind="task" /></div>
+    </div>
+  );
   const celebrateWithVine = () => {
     const event = ++celebrationSequence.current;
     setCelebrations((queue) => [...queue, event]);
@@ -284,6 +293,10 @@ function App() {
   const invitationAccess = loginToken.startsWith('invite.');
   const manage = me?.role === 'admin' || me?.role === 'coordination';
   const showGroupEvaluations = view === 'home' && groupEvaluationsEnabled && groupEvaluationsOpen;
+  function openEvaluations(id?: string) {
+    setInitialEvaluationId(id);
+    setGroupEvaluationsOpen(true);
+  }
   const showEvaluationTemplates =
     view === 'projects' && manage && evaluationTemplatesEnabled && evaluationTemplatesOpen;
   const foundingAdmin = isFoundingAdministrator(me);
@@ -628,7 +641,8 @@ function App() {
         Number(a.status === 'done') - Number(b.status === 'done') ||
         new Date(a.due).getTime() - new Date(b.due).getTime(),
     );
-  const desktopProjectMap = useDesktopProjectMap();
+  const desktopProjectMap = useMediaMatch(desktopMapQuery);
+  const desktopCanopy = useMediaMatch('(min-width: 1024px), (min-width: 768px) and (min-height: 600px)');
   const activeProject = data.projects.find((p) => p.id === project),
     activeCommission = data.commissions.find((c) => c.id === commission),
     detail = data.tasks.find((t) => t.id === selected);
@@ -1201,6 +1215,7 @@ function App() {
           </div>
         </div>
         <div className="desktop-home-columns">
+          <div>
           <section className="desktop-priority">
             <div className="section-heading">
               <h2>
@@ -1357,6 +1372,14 @@ function App() {
               </div>
             )}
           </section>
+          {groupEvaluationsEnabled && (
+            <section className="desktop-priority desktop-evaluations" aria-label="Evaluaciones">
+              <button type="button" className="primary" onClick={() => openEvaluations()}>
+                Mis evaluaciones
+              </button>
+            </section>
+          )}
+          </div>
           <aside className="desktop-home-context">
             <div className="section-heading">
               <h2>{manage ? 'Proyectos' : 'Mis comisiones'}</h2>
@@ -1521,7 +1544,10 @@ function App() {
         pOf,
       }}
     >
-      <div className="app-shell">
+      <div className="app-shell" style={{
+        '--mascot-primary': data.group?.colorPrimary,
+        '--mascot-secondary': data.group?.colorSecondary,
+      } as React.CSSProperties}>
         <SyncStatus
           onSynced={syncHome}
           onPendingTasks={(tasks, count) => {
@@ -1598,6 +1624,7 @@ function App() {
           <ForestHeader
             className="app-forest-header"
             effectsEnabled={forestEffects}
+            underCanopy={!desktopCanopy && celebration}
             avatar={<Avatar user={me} small />}
             onHome={() => navigate('home')}
             onProfile={() => navigate('profile')}
@@ -1606,6 +1633,13 @@ function App() {
             className={`topbar ${forestEffects ? 'with-forest-effects' : 'without-forest-effects'}`}
           >
             <BotanicalCanopy enabled={forestEffects} />
+            {desktopCanopy && celebration}
+            {desktopCanopy && view === 'home' && groupEvaluationsEnabled && !showGroupEvaluations &&
+              !showAdminGuide && !showAdminPreview && (
+                <Suspense fallback={null}>
+                  <HomeEvaluationsEntry desktop key={me.id} onOpen={openEvaluations} />
+                </Suspense>
+              )}
             <div className="topbar-content">
               <button
                 className="icon-button menu-toggle"
@@ -1767,11 +1801,6 @@ function App() {
               ))}
             {view === 'home' && !showAdminGuide && !showAdminPreview && !showGroupEvaluations && (
               <>
-                {groupEvaluationsEnabled && (
-                  <button type="button" className="secondary" onClick={() => setGroupEvaluationsOpen(true)}>
-                    Mis evaluaciones
-                  </button>
-                )}
                 {productCampaignsEnabled && <Suspense fallback={null}><ProductSurvey key={me.id} /></Suspense>}
                 <div className="desktop-home">{desktopHome()}</div>
                 <div className="mobile-only">
@@ -1787,12 +1816,17 @@ function App() {
                     canManage={canManage}
                     navigate={navigate}
                   />
+                  {groupEvaluationsEnabled && !desktopCanopy && (
+                    <Suspense fallback={null}>
+                      <HomeEvaluationsEntry key={me.id} onOpen={openEvaluations} />
+                    </Suspense>
+                  )}
                 </div>
               </>
             )}
             {showGroupEvaluations && (
               <Suspense fallback={<p role="status">Cargando evaluaciones…</p>}>
-                <GroupEvaluations key={me.id} onBack={() => setGroupEvaluationsOpen(false)} />
+                <GroupEvaluations key={me.id} initialId={initialEvaluationId} onBack={() => setGroupEvaluationsOpen(false)} />
               </Suspense>
             )}
             {['tasks', 'alerts'].includes(view) && (
@@ -2492,18 +2526,6 @@ function App() {
             );
           })}
         </nav>
-        {celebrationId !== undefined && (
-          <div
-            key={celebrationId}
-            className="task-celebration"
-            aria-hidden="true"
-            data-completion-event={celebrationId}
-          >
-            <div className="vine-swing">
-              <img src="/monkey-vine-2d.webp" alt="" />
-            </div>
-          </div>
-        )}
         {busy && operations.current > homeOperations.current && (
           <div className="operation-loading">
             <BananaLoader compact label="Guardando…" />
