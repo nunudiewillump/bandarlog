@@ -1,9 +1,18 @@
 import { expect, test } from '@playwright/test';
+import { mkdir } from 'node:fs/promises';
 import { mobileFixture } from '../fixtures/mobile';
 
 test('coordination consults closed results and saves a conclusion', async ({ page }) => {
   const fixture = mobileFixture(1);
-  fixture.user.role = 'coordination';
+  fixture.user.role = 'admin';
+  fixture.data.group = {
+    id: 'synthetic',
+    privateId: 'synthetic',
+    name: 'Grupo Scout Ejemplo',
+    colorPrimary: '#276cae',
+    colorSecondary: '#f7c948',
+    plan: 'free',
+  };
   fixture.user.onboardingCompletedAt = '2026-01-01T00:00:00Z';
   const item = {
     id: 'example',
@@ -18,6 +27,31 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
     title: 'Preparar la lista de material',
   };
   let conclusion: unknown;
+  const secondItem = { ...item, id: 'second', title: 'Evaluación de equipo' };
+  const structure = {
+    sections: [
+      {
+        id: 'section',
+        title: 'Equipo',
+        questions: [{ id: 'score', type: 'numberScale', label: 'Coordinación' }],
+      },
+    ],
+  };
+  const summary = {
+    assigned: 4,
+    submitted: 3,
+    questions: {
+      score: {
+        answered: 2,
+        distribution: [
+          { value: 3, count: 1 },
+          { value: 5, count: 1 },
+        ],
+      },
+    },
+  };
+  const report = { ...item, body: null, conclusionRevision: null, structure, summary };
+  let historyStatus: string | null = null;
   let action: unknown;
   await page.route('**/api/**', (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -34,7 +68,10 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
     if (path === '/api/data') return route.fulfill({ json: fixture.summary() });
     if (path === '/api/tutorial')
       return route.fulfill({ json: { events: { tutorial_skipped: '2026-01-01T00:00:00Z' } } });
-    if (path.endsWith('/manage')) return route.fulfill({ json: { items: [item], next: null } });
+    if (path.endsWith('/manage')) {
+      historyStatus = new URL(route.request().url()).searchParams.get('status');
+      return route.fulfill({ json: { items: [item, secondItem], next: null } });
+    }
     if (path.endsWith('/conclusion')) {
       conclusion = route.request().postDataJSON();
       return route.fulfill({
@@ -48,36 +85,13 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
     }
     if (path.endsWith('/manage/task/' + linkedTask.id))
       return route.fulfill({ json: { origin: { id: item.id, title: item.title } } });
-    if (path.endsWith('/manage/example'))
+    if (path.endsWith('/manage/example/annex'))
       return route.fulfill({
-        json: {
-          ...item,
-          body: null,
-          conclusionRevision: null,
-          structure: {
-            sections: [
-              {
-                id: 'section',
-                title: 'Equipo',
-                questions: [{ id: 'score', type: 'numberScale', label: 'Coordinación' }],
-              },
-            ],
-          },
-          summary: {
-            assigned: 4,
-            submitted: 3,
-            questions: {
-              score: {
-                answered: 2,
-                distribution: [
-                  { value: 3, count: 1 },
-                  { value: 5, count: 1 },
-                ],
-              },
-            },
-          },
-        },
+        json: { answers: [{ name: 'Persona de prueba', answers: { score: 5 } }] },
       });
+    if (path.endsWith('/manage/memo'))
+      return route.fulfill({ json: { reports: [report, { ...report, ...secondItem }] } });
+    if (path.endsWith('/manage/example')) return route.fulfill({ json: report });
     return route.fulfill({ json: { items: [], next: null } });
   });
   await page.setViewportSize({ width: 390, height: 850 });
@@ -85,6 +99,15 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
   await page.getByRole('button', { name: 'Plantillas de evaluación' }).click();
   await page.getByRole('combobox', { name: 'Opciones de plantillas' }).click();
   await page.getByRole('option', { name: 'Histórico y resultados' }).click();
+  await page.getByLabel('Estado', { exact: true }).selectOption('closed');
+  await expect.poll(() => historyStatus).toBe('closed');
+  await page.getByRole('checkbox', { name: 'Incluir en memoria: Balance del campamento' }).check();
+  await page.getByRole('checkbox', { name: 'Incluir en memoria: Evaluación de equipo' }).check();
+  await page.getByRole('combobox', { name: 'Opciones del histórico' }).click();
+  await page.getByRole('option', { name: 'Preparar memoria conjunta' }).click();
+  await expect(page.getByRole('heading', { name: 'Memoria de evaluaciones' })).toBeVisible();
+  await page.getByRole('button', { name: 'Volver', exact: true }).click();
+
   await page.getByRole('combobox', { name: 'Opciones de Balance del campamento' }).click();
   await page.getByRole('option', { name: 'Ver resultados' }).click();
   const panel = page.locator('.evaluation-templates');
@@ -96,7 +119,33 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
     .fill('Confirmar el material antes de salir.');
   await panel.getByRole('button', { name: 'Guardar conclusiones' }).click();
   await expect(panel.getByRole('status')).toHaveText('Conclusiones guardadas.');
+  await panel.getByRole('combobox', { name: 'Opciones del informe' }).click();
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('option', { name: 'PDF con anexo identificado' }).click();
+  await expect(panel.getByRole('heading', { name: 'Persona de prueba' })).toBeVisible();
+  await panel.getByRole('button', { name: 'Volver', exact: true }).click();
+
   expect(conclusion).toEqual({ body: 'Confirmar el material antes de salir.', revision: 0 });
+  await panel.getByRole('combobox', { name: 'Opciones del informe' }).click();
+  await page.getByRole('option', { name: 'Vista previa y PDF' }).click();
+  await expect(panel.getByText('Grupo Scout Ejemplo')).toBeVisible();
+  await expect(panel.getByText('Confirmar el material antes de salir.')).toBeVisible();
+  await expect(panel.getByRole('button')).toHaveCount(2);
+  await page.emulateMedia({ media: 'print' });
+  await expect(page.locator('.evaluation-print')).toBeVisible();
+  await expect(page.locator('.app-shell')).toBeHidden();
+  const output = process.env.EVALUATION_PDF_DIR;
+  if (output) {
+    await mkdir(output, { recursive: true });
+    await page.pdf({
+      path: output + '/evaluacion-ejemplo.pdf',
+      preferCSSPageSize: true,
+      printBackground: true,
+    });
+  }
+  await page.emulateMedia({ media: 'screen' });
+  await panel.getByRole('button', { name: 'Volver', exact: true }).click();
+
   await panel.getByRole('combobox', { name: 'Acciones de mejora' }).click();
   await page.getByRole('option', { name: 'Crear tarea' }).click();
   const dialog = page.getByRole('dialog', { name: 'Crear tarea desde conclusiones' });

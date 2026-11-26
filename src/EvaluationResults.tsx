@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react';
 import { api } from './api';
 import { Select } from './Select';
+import {
+  EvaluationDocument,
+  EvaluationMemoDocument,
+  type EvaluationReport,
+  EvaluationStatistics,
+  type EvaluationSummary,
+  type EvaluationAnnex,
+} from './EvaluationDocument';
+import type { Project, ScoutGroup } from './types';
 import type { EvaluationStructure } from '../shared/evaluations';
 
 type Evaluation = {
@@ -9,19 +18,15 @@ type Evaluation = {
   dueAt: string;
   open: boolean;
   paused?: boolean;
+  responseMode?: 'identified' | 'anonymous' | 'collective';
   templateRevision: number;
 };
-type Distribution = { value: string | number | boolean; count: number };
 type Result = Omit<Evaluation, 'id'> & {
   structure: EvaluationStructure;
   body: string | null;
   actions?: { id: string; title: string }[];
   conclusionRevision: number | null;
-  summary: {
-    assigned: number;
-    submitted: number;
-    questions: Record<string, { answered: number; distribution: Distribution[] }>;
-  } | null;
+  summary: EvaluationSummary | null;
 };
 
 const endpoint = '/group-evaluations/manage';
@@ -30,19 +35,31 @@ const date = new Intl.DateTimeFormat('es-ES', {
   timeStyle: 'short',
   timeZone: 'Europe/Madrid',
 });
-const number = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2 });
 
 export default function EvaluationResults({
   onBack,
+  group,
+  canExportAnnex,
+  projects,
   initialResultId,
   onCreateAction,
   onOpenTask,
 }: {
   onBack: () => void;
+  group?: ScoutGroup;
+  canExportAnnex: boolean;
+  projects: Project[];
   initialResultId: string | null;
   onCreateAction: (action: { id: string; revision: number; title: string }) => void;
   onOpenTask: (id: string) => void;
 }) {
+  const [memo, setMemo] = useState<
+    (EvaluationReport & { id: string; summary: EvaluationSummary })[]
+  >([]);
+  const [memoSelection, setMemoSelection] = useState<string[]>([]);
+  const [annex, setAnnex] = useState<EvaluationAnnex>();
+  const [preview, setPreview] = useState(false);
+  const [filters, setFilters] = useState({ projectId: '', status: '' });
   const [items, setItems] = useState<Evaluation[]>([]);
   const [next, setNext] = useState<string | null>(null);
   const [selected, setSelected] = useState<{ id: string; result: Result } | null>(null);
@@ -64,10 +81,22 @@ export default function EvaluationResults({
     }
   }
 
-  async function list(cursor?: string) {
-    const result = await api(endpoint + (cursor ? '?after=' + encodeURIComponent(cursor) : ''));
+  async function list(cursor?: string, selectedFilters = filters) {
+    const params = new URLSearchParams();
+    if (cursor) params.set('after', cursor);
+    if (selectedFilters.projectId) params.set('projectId', selectedFilters.projectId);
+    if (selectedFilters.status) params.set('status', selectedFilters.status);
+    const result = await api(endpoint + (params.size ? '?' + params.toString() : ''));
     setItems((previous) => (cursor ? [...previous, ...result.items] : result.items));
     setNext(result.next);
+  }
+
+  function filter(key: 'projectId' | 'status', value: string) {
+    const selectedFilters = { ...filters, [key]: value };
+    setFilters(selectedFilters);
+    setItems([]);
+    setNext(null);
+    void run(() => list(undefined, selectedFilters));
   }
 
   async function openResult(id: string) {
@@ -82,6 +111,21 @@ export default function EvaluationResults({
 
   const result = selected?.result;
   const summary = result?.summary;
+  if (memo.length)
+    return <EvaluationMemoDocument reports={memo} group={group} onBack={() => setMemo([])} />;
+  if (preview && result && summary)
+    return (
+      <EvaluationDocument
+        report={result}
+        annex={annex}
+        summary={summary}
+        group={group}
+        onBack={() => {
+          setPreview(false);
+          setAnnex(undefined);
+        }}
+      />
+    );
   if (!selected || !result)
     return (
       <section aria-busy={busy}>
@@ -92,21 +136,93 @@ export default function EvaluationResults({
           <button className="secondary" disabled={busy} onClick={onBack}>
             Volver
           </button>
-          {(next || error) && (
-            <button
-              className="secondary"
+          {(next || error || memoSelection.length >= 2) && (
+            <Select
+              aria-label="Opciones del histórico"
+              value=""
               disabled={busy}
-              onClick={() => void run(() => list(error ? undefined : (next ?? undefined)))}
+              onChange={(event) => {
+                if (event.target.value === 'memo') {
+                  void run(async () => {
+                    const { reports } = await api(endpoint + '/memo', 'POST', {
+                      ids: memoSelection,
+                    });
+                    setMemo(reports);
+                  });
+                } else void run(() => list(error ? undefined : (next ?? undefined)));
+              }}
             >
-              {error ? 'Recargar' : 'Ver más'}
-            </button>
+              <option value="" disabled>
+                Opciones del histórico
+              </option>
+              {(next || error) && <option value="load">{error ? 'Recargar' : 'Ver más'}</option>}
+              {memoSelection.length >= 2 && <option value="memo">Preparar memoria conjunta</option>}
+            </Select>
           )}
         </div>
-        {!busy && !items.length && !error && <p>Todavía no hay evaluaciones publicadas.</p>}
+        <div className="evaluation-controls">
+          <label>
+            <span id="history-project-label">Proyecto</span>
+            <select
+              aria-labelledby="history-project-label"
+              disabled={busy}
+              value={filters.projectId}
+              onChange={(event) => filter('projectId', event.target.value)}
+            >
+              <option value="">Todos los proyectos</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span id="history-status-label">Estado</span>
+            <select
+              aria-labelledby="history-status-label"
+              disabled={busy}
+              value={filters.status}
+              onChange={(event) => filter('status', event.target.value)}
+            >
+              <option value="">Todos los estados</option>
+              <option value="open">Abiertas</option>
+              <option value="paused">Pausadas</option>
+              <option value="closed">Cerradas</option>
+            </select>
+          </label>
+        </div>
+        {!busy && !items.length && !error && (
+          <p>
+            {filters.projectId || filters.status
+              ? 'No hay evaluaciones con estos filtros.'
+              : 'Todavía no hay evaluaciones publicadas.'}
+          </p>
+        )}
         <ul className="evaluation-template-list">
           {items.map((item) => (
             <li key={item.id}>
               <span>
+                {!item.open && !item.paused && (
+                  <label className="evaluation-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={memoSelection.includes(item.id)}
+                      disabled={
+                        busy || (memoSelection.length >= 8 && !memoSelection.includes(item.id))
+                      }
+                      onChange={(event) => {
+                        const checked = event.currentTarget.checked;
+                        setMemoSelection((previous) =>
+                          checked
+                            ? [...previous, item.id]
+                            : previous.filter((id) => id !== item.id),
+                        );
+                      }}
+                    />
+                    Incluir en memoria: {item.title}
+                  </label>
+                )}
                 <strong>{item.title}</strong>
                 <br />
                 {item.paused ? 'Pausada' : item.open ? 'Abierta' : 'Cerrada'} ·{' '}
@@ -179,6 +295,60 @@ export default function EvaluationResults({
           </button>
         )}
       </div>
+      {result.open && (
+        <Select
+          aria-label="Opciones de seguimiento"
+          value=""
+          disabled={busy}
+          onChange={() => {
+            if (
+              !window.confirm(
+                '¿Enviar un recordatorio a quienes aún no han respondido y tienen los avisos activados?',
+              )
+            )
+              return;
+            void run(async () => {
+              const { queued } = await api(endpoint + '/' + selected.id + '/reminder', 'POST', {});
+              setStatus(
+                queued
+                  ? `Recordatorios en cola: ${queued}.`
+                  : 'No hay recordatorios nuevos para enviar.',
+              );
+            });
+          }}
+        >
+          <option value="" disabled>
+            Opciones de seguimiento
+          </option>
+          <option value="reminder">Recordar por correo</option>
+        </Select>
+      )}
+      {summary && (
+        <Select
+          aria-label="Opciones del informe"
+          value=""
+          disabled={busy}
+          onChange={(event) => {
+            if (event.target.value === 'annex') {
+              if (!window.confirm('¿Incluir nombres y respuestas individuales en el documento?'))
+                return;
+              void run(async () => {
+                const { answers } = await api(endpoint + '/' + selected.id + '/annex', 'POST', {});
+                setAnnex(answers);
+                setPreview(true);
+              });
+            } else setPreview(true);
+          }}
+        >
+          <option value="" disabled>
+            Opciones del informe
+          </option>
+          <option value="print">Vista previa y PDF</option>
+          {canExportAnnex && result.responseMode !== 'anonymous' && (
+            <option value="annex">PDF con anexo identificado</option>
+          )}
+        </Select>
+      )}
       {result.conclusionRevision && (
         <Select
           aria-label="Acciones de mejora"
@@ -217,7 +387,11 @@ export default function EvaluationResults({
         </Select>
       )}
       {!summary ? (
-        <p>Los resultados estarán disponibles cuando termine el plazo.</p>
+        <p>
+          {result.responseMode === 'anonymous' && !result.open && !result.paused
+            ? 'Los resultados anónimos requieren al menos cinco respuestas.'
+            : 'Los resultados estarán disponibles cuando termine el plazo.'}
+        </p>
       ) : (
         <>
           <p>
@@ -232,42 +406,7 @@ export default function EvaluationResults({
               disabled={busy}
             />
           </label>
-          {result.structure.sections.map((section) => (
-            <section key={section.id} className="evaluation-section">
-              <h2>{section.title}</h2>
-              {section.questions.map((question) => {
-                const stats = summary.questions[question.id];
-                if (!stats) return null;
-                const numeric = question.type === 'numberScale' || question.type === 'nps';
-                const sum = numeric
-                  ? stats.distribution.reduce(
-                      (total, entry) => total + Number(entry.value) * entry.count,
-                      0,
-                    )
-                  : 0;
-                return (
-                  <div key={question.id} className="evaluation-question">
-                    <h3>{question.label}</h3>
-                    <p>
-                      {stats.answered} respuestas · {summary.submitted - stats.answered} omitidas
-                      {numeric &&
-                        stats.answered > 0 &&
-                        ' · Media ' + number.format(sum / stats.answered)}
-                    </p>
-                    {stats.distribution.length > 0 && (
-                      <ul>
-                        {stats.distribution.map(({ value, count }) => (
-                          <li key={String(value)}>
-                            {typeof value === 'boolean' ? (value ? 'Sí' : 'No') : value} · {count}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                );
-              })}
-            </section>
-          ))}
+          <EvaluationStatistics structure={result.structure} summary={summary} />
         </>
       )}
     </form>

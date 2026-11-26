@@ -125,6 +125,7 @@ before(async () => {
       MAIL_TRANSPORT: 'preview',
       EVALUATION_TEMPLATES_ENABLED: 'true',
       GROUP_EVALUATIONS_ENABLED: 'true',
+      PRODUCT_FEEDBACK_ENABLED: 'true',
       SMTP_HOST: '',
       GOOGLE_LOGIN_CLIENT_ID: '',
       GOOGLE_LOGIN_CLIENT_SECRET: '',
@@ -1017,6 +1018,12 @@ test('close and evaluate assigns atomically and pauses the same draft on reopeni
   }, a);
   assert.equal(project.status, 201);
   const route = '/api/projects/' + project.body.id + '/lifecycle';
+  const commission = await call('/api/commissions', 'POST', {
+    name: 'Comisión de cierre', projectId: project.body.id,
+    members: [{ userId: a.userId, role: 'responsible' }],
+  }, a);
+  assert.equal(commission.status, 201, JSON.stringify(commission.body));
+
   const questionId = randomUUID();
   const template = await call('/api/evaluation-templates', 'POST', {
     title: 'Revisión de proyecto', description: '', sections: [{
@@ -1030,7 +1037,7 @@ test('close and evaluate assigns atomically and pauses the same draft on reopeni
     action: 'publish', revision: 1,
   }, a)).status, 200);
   const evaluation = {
-    title: 'Cierre con evaluación', templateId: template.body.id, templateRevision: 1,
+    title: 'Cierre con evaluación', commissionId: commission.body.id, templateId: template.body.id, templateRevision: 1,
     userIds: [a.userId], dueAt: new Date(Date.now() + 86_400_000).toISOString(),
   };
   const invalid = await call(route, 'POST', { action: 'close-and-evaluate', evaluation: { ...evaluation, userIds: [b.userId] } }, a);
@@ -1038,6 +1045,11 @@ test('close and evaluate assigns atomically and pauses the same draft on reopeni
   assert.deepEqual((await call(route, 'GET', undefined, a)).body, { archived: false, last: null });
   const result = await call(route, 'POST', { action: 'close-and-evaluate', evaluation }, a);
   assert.equal(result.status, 200, JSON.stringify(result.body));
+  const reminder = '/api/group-evaluations/manage/' + result.body.evaluationId + '/reminder';
+  assert.equal((await call(reminder, 'POST', {}, b)).status, 409);
+  assert.equal((await call(reminder, 'POST', {}, a)).body.queued, 1);
+  assert.equal((await call(reminder, 'POST', {}, a)).body.queued, 0);
+
   const path = '/api/group-evaluations/' + result.body.evaluationId;
   const draft = { action: 'draft', revision: 0, answers: { [questionId]: false } };
   assert.equal((await call(path + '/response', 'PUT', draft, a)).status, 200);
@@ -1048,7 +1060,57 @@ test('close and evaluate assigns atomically and pauses the same draft on reopeni
   assert.deepEqual(paused.answers, draft.answers);
   assert.equal((await call(path + '/response', 'PUT', { ...draft, revision: 1 }, a)).status, 409);
   assert.equal((await call(route, 'POST', { action: 'close' }, a)).status, 200);
+  const filter = '/api/group-evaluations/manage?projectId=' + encodeURIComponent(project.body.id);
+  assert.deepEqual((await call(filter + '&status=closed', 'GET', undefined, a)).body.items, []);
+  assert.equal((await call(filter + '&status=open', 'GET', undefined, a)).body.items[0].id, result.body.evaluationId);
+  assert.deepEqual((await call(filter + '&status=open', 'GET', undefined, b)).body.items, []);
   const resumed = (await call(path, 'GET', undefined, a)).body;
   assert.equal(resumed.open, true);
   assert.equal(resumed.revision, 1);
+});
+
+
+test('product feedback requires a session and accepts only explicit contact and content', async () => {
+  const [a] = await evaluationGroupFixtures();
+  const root = '/api/product-feedback';
+  assert.equal((await call(root, 'POST', { category: 'idea', body: 'Una sugerencia' })).status, 401);
+  assert.equal((await call(root, 'POST', { category: 'idea', body: 'Una sugerencia', groupId: a.userId }, a)).status, 400);
+  assert.equal((await call(root, 'POST', { category: 'idea', body: 'Una sugerencia', replyEmail: 'inválido' }, a)).status, 400);
+  const created = await call(root, 'POST', { category: 'idea', body: 'Una sugerencia' }, a);
+  assert.equal(created.status, 201, JSON.stringify(created.body));
+  assert.match(created.body.id, /^[a-f0-9-]{36}$/);
+});
+
+test('anonymous submission removes identified answers and collective mode requires one representative', async () => {
+  const [a, b] = await evaluationGroupFixtures();
+  const root = '/api/group-evaluations';
+  const questionId = randomUUID();
+  const template = await call('/api/evaluation-templates', 'POST', {
+    title: 'Modalidades', description: '', sections: [{ id: randomUUID(), title: 'Equipo',
+      description: '', questions: [{ id: questionId, type: 'yesNo', label: '¿Repetimos?', required: true, description: '' }],
+    }],
+  }, a);
+  assert.equal(template.status, 201);
+  assert.equal((await call('/api/evaluation-templates/' + template.body.id, 'PATCH', { action: 'publish', revision: 1 }, a)).status, 200);
+  const evaluation = {
+    title: 'Modalidad', templateId: template.body.id, templateRevision: 1,
+    userIds: [a.userId], dueAt: new Date(Date.now() + 86_400_000).toISOString(),
+  };
+  const collective = await call(root, 'POST', { ...evaluation, responseMode: 'collective' }, a);
+  assert.equal(collective.status, 201);
+  assert.equal((await call(root + '/' + collective.body.id, 'GET', undefined, a)).body.responseMode, 'collective');
+  assert.equal((await call(root, 'POST', { ...evaluation, responseMode: 'collective', userIds: [a.userId, b.userId] }, a)).status, 400);
+  const anonymous = await call(root, 'POST', { ...evaluation, responseMode: 'anonymous' }, a);
+  assert.equal(anonymous.status, 201);
+  const path = root + '/' + anonymous.body.id;
+  const draft = { action: 'draft', revision: 0, answers: { [questionId]: false } };
+  assert.equal((await call(path + '/response', 'PUT', draft, a)).status, 200);
+  const submission = await call(path + '/response', 'PUT', { ...draft, revision: 1, action: 'submission' }, a);
+  assert.equal(submission.status, 200);
+  assert.deepEqual(submission.body.answers, {});
+  const saved = await call(path, 'GET', undefined, a);
+  assert.equal(saved.body.responseMode, 'anonymous');
+  assert.deepEqual(saved.body.answers, {});
+  assert.ok(saved.body.submittedAt);
+  assert.equal((await call(path + '/response', 'PUT', { ...draft, revision: 2, action: 'submission' }, a)).status, 409);
 });

@@ -1189,4 +1189,83 @@ test('PostgreSQL scopes assigned evaluations and protects draft and submission s
 
 
 
+
+  await ownerPool.query(`
+    insert into group_evaluations(group_id,id,template_id,template_revision,title,due_at,response_mode)
+      values ('p2-qa','p2-anonymous','p2-template',1,'Anónima',now()+interval '1 day','anonymous');
+    insert into group_evaluation_assignments(group_id,evaluation_id,user_id)
+      values ('p2-qa','p2-anonymous','p2-member');
+    insert into users(group_id,id,name,email,role)
+      values ('p2-qa','p2-local-admin','Admin QA','p2-admin@example.test','admin');
+  `);
+  const anonymous = await as(actors[0], `update group_evaluation_assignments
+    set revision=1,submitted_at=now(),answers='{"yes":false,"note":"Texto anónimo"}'
+    where evaluation_id='p2-anonymous' returning answers`);
+  assert.deepEqual(anonymous.rows[0].answers, {});
+  await assert.rejects(as(actors[1], 'select answers from bandarlog_api.anonymous_evaluation_answers'), /permission denied/);
+  const persistedAnonymous = await ownerPool.query("select answers,to_jsonb(a) as record from bandarlog_api.anonymous_evaluation_answers a where evaluation_id='p2-anonymous'");
+  assert.deepEqual(persistedAnonymous.rows[0].answers, { yes: false, note: 'Texto anónimo' });
+  assert.equal(persistedAnonymous.rows[0].record.user_id, undefined);
+  assert.equal(persistedAnonymous.rows[0].record.submitted_at, undefined);
+  await ownerPool.query("update group_evaluations set due_at=now()-interval '1 minute' where id='p2-anonymous'");
+  assert.equal((await as(actors[1], "select bandarlog_api.group_evaluation_results('p2-anonymous') summary")).rows[0].summary, null);
+  const administrator = { group: 'p2-qa', user: 'p2-local-admin', token: randomBytes(32).toString('hex') };
+  await ownerPool.query(
+    "insert into sessions(group_id,id,user_id,csrf,expires,assurance,primary_verified_at) values ($1,$2,$3,'synthetic',now()+interval '1 day','primary',now())",
+    [administrator.group, hashForTest('sha256').update(administrator.token).digest('hex'), administrator.user],
+  );
+  await assert.rejects(as(actors[1], "select bandarlog_api.group_evaluation_annex('p2-expired','p2-manager')"), /requires group administration/);
+  assert.equal((await as(administrator, "select bandarlog_api.group_evaluation_annex('p2-anonymous','p2-local-admin') annex")).rows[0].annex, null);
+  assert.deepEqual((await as(administrator, "select bandarlog_api.group_evaluation_annex('p2-expired','p2-local-admin') annex")).rows[0].annex,
+    [{ name: 'Manager', answers: { yes: false, note: 'Texto privado' } }]);
+  assert.equal((await ownerPool.query("select count(*) from bandarlog_api.evaluation_annex_audit where actor_id='p2-local-admin'")).rows[0].count, '1');
+
+  const payload = "select bandarlog_api.product_feedback_submit('help','Texto ficticio',null) as id";
+  const feedbackId = (await as(actors[0], payload)).rows[0].id;
+  await assert.rejects(as(actors[0], 'select * from bandarlog_api.product_feedback'), /permission denied/);
+  await assert.rejects(as(actors[0], "select bandarlog_api.product_feedback_list('',null,1,'')"), /permission denied/);
+
+  const feedbackToken = randomBytes(32).toString('hex');
+  const csrf = randomBytes(32).toString('hex');
+  await ownerPool.query("insert into bandarlog_api.platform_admins(id,email,name) values('feedback-admin','feedback-admin@example.test','Feedback QA')");
+  await ownerPool.query(
+    "insert into bandarlog_api.platform_sessions(id,admin_id,csrf) values($1,'feedback-admin',$2)",
+    [hashForTest('sha256').update(feedbackToken).digest('hex'), csrf],
+  );
+  const identity = new URL(testUrl!);
+  identity.username = 'bandarlog_identity';
+  identity.password = '';
+  const platformClient = new pg.Client({ connectionString: identity.toString() });
+  await platformClient.connect();
+  try {
+    const list = (token: string, status = '') => platformClient.query(
+      'select bandarlog_api.product_feedback_list($1,null,10,$2) as items', [token,status],
+    );
+    await assert.rejects(list(actors[0].token), /platform session expired/);
+    const item = (await list(feedbackToken)).rows[0].items.find((entry: { id: string }) => entry.id === feedbackId);
+    assert.equal(item.body, 'Texto ficticio');
+    assert.equal(item.reply_email, null);
+    assert.equal(item.group_id, undefined);
+    const insights = (token: string) => platformClient.query(
+      'select bandarlog_api.product_feedback_insights($1,7) as metrics', [token],
+    );
+    await assert.rejects(insights(actors[0].token), /platform session expired/);
+    const [summary] = (await insights(feedbackToken)).rows[0].metrics;
+    assert.equal(summary.category, 'help');
+    assert.equal(summary.total, 1);
+    assert.equal(summary.pending, 1);
+    const review = (key: string, revision: number) => platformClient.query(
+      "select bandarlog_api.product_feedback_review($1,$2,$3,'resolved',$4) as changed",
+      [feedbackToken,key,feedbackId,revision],
+    );
+    await assert.rejects(review(actors[0].token,1), /invalid csrf/);
+    assert.equal((await review(csrf,1)).rows[0].changed,true);
+    assert.equal((await review(csrf,1)).rows[0].changed,false);
+    assert.equal((await insights(feedbackToken)).rows[0].metrics[0].pending, 0);
+    assert.equal((await list(feedbackToken,'resolved')).rows[0].items[0].id, feedbackId);
+    await assert.rejects(platformClient.query('select * from bandarlog_api.product_feedback'), /permission denied/);
+  } finally {
+    await platformClient.end();
+  }
+
 });

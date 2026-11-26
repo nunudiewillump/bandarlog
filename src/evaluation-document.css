@@ -1,0 +1,105 @@
+.evaluation-document {
+  color: #24352b;
+  overflow-wrap: anywhere;
+}
+
+.evaluation-document > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-block: 16px 12px;
+  padding-block-end: 10px;
+  border-bottom: 2px solid var(--green);
+}
+
+.evaluation-document-brand,
+.evaluation-document-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.evaluation-document-brand {
+  font-family: Bungee, sans-serif;
+  color: var(--green);
+}
+
+.evaluation-document .profile-neckerchief {
+  width: 26px;
+  height: 30px;
+  flex: none;
+}
+
+.evaluation-document-conclusions {
+  white-space: pre-wrap;
+}
+
+.evaluation-print {
+  display: none;
+}
+
+@media print {
+  html:root:has(body > .evaluation-print),
+  body:has(> .evaluation-print) {
+    margin: 0;
+    min-height: 0;
+    height: auto;
+    background: white;
+  }
+
+  body:has(> .evaluation-print) > :not(.evaluation-print) {
+    display: none !important;
+  }
+
+  .evaluation-print {
+    display: block;
+    font:
+      10pt/1.5 Poppins,
+      sans-serif;
+    print-color-adjust: exact;
+  }
+
+  .evaluation-print .evaluation-document > header {
+    margin-block-start: 0;
+  }
+
+  .evaluation-print .evaluation-document > section {
+    margin-block-start: 12pt;
+  }
+
+  .evaluation-print h1,
+  .evaluation-print h2,
+  .evaluation-print h3 {
+    break-after: avoid;
+  }
+
+  .evaluation-print .evaluation-question > p {
+    break-before: avoid;
+  }
+}
+
+.evaluation-document-options {
+  list-style: none;
+  padding-inline-start: 0;
+}
+
+.evaluation-document-options li::before {
+  content: '';
+  display: inline-block;
+  width: 0.75em;
+  height: 0.75em;
+  border: 1px solid currentColor;
+  margin-inline-end: 0.6em;
+}
+
+.evaluation-document-line {
+  min-height: 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+@media print {
+  .evaluation-print .evaluation-memo-report + .evaluation-memo-report {
+    break-before: page;
+  }
+}

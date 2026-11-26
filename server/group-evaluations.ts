@@ -14,19 +14,25 @@ import {
   evaluationTemplates as templates,
   evaluationTemplateVersions as versions,
   users,
+  commissions,
+  members,
 } from './schema.js';
 
-export const evaluationPublication = z.strictObject({
-  title: z.string().trim().min(1).max(160),
-  templateId: z.uuid(),
-  templateRevision: z.int().positive(),
-  userIds: z
-    .array(z.string().min(1).max(200))
-    .min(1)
-    .max(100)
-    .refine((ids) => new Set(ids).size === ids.length),
-  dueAt: z.iso.datetime({ offset: true }),
-});
+export const evaluationPublication = z
+  .strictObject({
+    title: z.string().trim().min(1).max(160),
+    templateId: z.uuid(),
+    templateRevision: z.int().positive(),
+    userIds: z
+      .array(z.string().min(1).max(200))
+      .min(1)
+      .max(100)
+      .refine((ids) => new Set(ids).size === ids.length),
+    dueAt: z.iso.datetime({ offset: true }),
+    responseMode: z.enum(['identified', 'anonymous', 'collective']).default('identified'),
+    commissionId: z.string().min(1).max(200).optional(),
+  })
+  .refine((input) => input.responseMode !== 'collective' || input.userIds.length === 1);
 const response = z.strictObject({
   action: z.enum(['draft', 'submission']),
   revision: z.int().nonnegative(),
@@ -68,6 +74,25 @@ export async function createGroupEvaluation(
     .from(users)
     .where(and(inArray(users.id, input.userIds), isNull(users.disabledAt)));
   if (recipients.length !== input.userIds.length) return null;
+  if (input.commissionId) {
+    if (!projectId) return null;
+    const eligible = await tx
+      .select({ id: members.userId })
+      .from(members)
+      .innerJoin(
+        commissions,
+        and(eq(commissions.id, members.commissionId), eq(commissions.groupId, members.groupId)),
+      )
+      .where(
+        and(
+          eq(commissions.id, input.commissionId),
+          eq(commissions.projectId, projectId),
+          isNull(commissions.deletedAt),
+          inArray(members.userId, input.userIds),
+        ),
+      );
+    if (new Set(eligible.map(({ id }) => id)).size !== input.userIds.length) return null;
+  }
   await tx.insert(evaluations).values({
     id,
     title: input.title,
@@ -75,6 +100,8 @@ export async function createGroupEvaluation(
     templateRevision: input.templateRevision,
     dueAt: input.dueAt,
     projectId,
+    responseMode: input.responseMode,
+    commissionId: input.commissionId,
   });
   await tx
     .insert(assignments)
@@ -92,6 +119,7 @@ export function groupEvaluationRoutes(db: Database) {
       .select({
         id: evaluations.id,
         title: evaluations.title,
+        responseMode: evaluations.responseMode,
         dueAt: evaluations.dueAt,
         open: active,
         paused,
@@ -132,6 +160,7 @@ export function groupEvaluationRoutes(db: Database) {
     db
       .select({
         title: evaluations.title,
+        responseMode: evaluations.responseMode,
         dueAt: evaluations.dueAt,
         open: active,
         paused,
@@ -161,18 +190,37 @@ export function groupEvaluationRoutes(db: Database) {
   });
 
   router.get('/manage', async (q, r) => {
-    const after = z.uuid().optional().parse(q.query.after);
+    const { after, projectId, status } = z
+      .strictObject({
+        after: z.uuid().optional(),
+        projectId: z.string().min(1).max(200).optional(),
+        status: z.enum(['open', 'paused', 'closed']).optional(),
+      })
+      .parse(q.query);
     const rows = await db
       .select({
         id: evaluations.id,
         title: evaluations.title,
+        responseMode: evaluations.responseMode,
         dueAt: evaluations.dueAt,
         open: active,
         paused,
         templateRevision: evaluations.templateRevision,
       })
       .from(evaluations)
-      .where(after ? gt(evaluations.id, after) : undefined)
+      .where(
+        and(
+          after ? gt(evaluations.id, after) : undefined,
+          projectId ? eq(evaluations.projectId, projectId) : undefined,
+          status === 'open'
+            ? active
+            : status === 'paused'
+              ? paused
+              : status === 'closed'
+                ? sql`not (${beforeDeadline})`
+                : undefined,
+        ),
+      )
       .orderBy(evaluations.id)
       .limit(31);
     r.json({ items: rows.slice(0, 30), next: rows.length > 30 ? rows[29].id : null });
@@ -199,10 +247,10 @@ export function groupEvaluationRoutes(db: Database) {
     r.json({ origin: origin ?? null });
   });
 
-  router.get('/manage/:id', async (q, r) => {
-    const id = z.uuid().parse(q.params.id);
-    const [evaluation] = await db
+  const reportRows = (ids: string[]) =>
+    db
       .select({
+        id: evaluations.id,
         title: evaluations.title,
         dueAt: evaluations.dueAt,
         templateRevision: evaluations.templateRevision,
@@ -211,6 +259,7 @@ export function groupEvaluationRoutes(db: Database) {
         structure: versions.structure,
         body: conclusions.body,
         conclusionRevision: conclusions.revision,
+        responseMode: evaluations.responseMode,
         summary: sql`bandarlog_api.group_evaluation_results(${evaluations.id})`,
       })
       .from(evaluations)
@@ -229,7 +278,30 @@ export function groupEvaluationRoutes(db: Database) {
           eq(conclusions.evaluationId, evaluations.id),
         ),
       )
-      .where(eq(evaluations.id, id));
+      .where(inArray(evaluations.id, ids));
+
+  router.post('/manage/memo', async (q, r) => {
+    const { ids } = z
+      .strictObject({
+        ids: z
+          .array(z.uuid())
+          .min(2)
+          .max(8)
+          .refine((values) => new Set(values).size === values.length),
+      })
+      .parse(q.body);
+    const reports = await reportRows(ids);
+    if (reports.length !== ids.length || reports.some(({ summary }) => !summary))
+      return r
+        .status(404)
+        .json({ error: 'Selecciona evaluaciones cerradas con resultados disponibles.' });
+    const byId = new Map(reports.map((report) => [report.id, report]));
+    r.json({ reports: ids.map((id) => byId.get(id)) });
+  });
+
+  router.get('/manage/:id', async (q, r) => {
+    const id = z.uuid().parse(q.params.id);
+    const [evaluation] = await reportRows([id]);
     if (!evaluation) return r.status(404).json({ error: 'Evaluación no encontrada.' });
     const actions = await db
       .select({ id: tasks.id, title: tasks.title })
@@ -242,6 +314,18 @@ export function groupEvaluationRoutes(db: Database) {
       .orderBy(tasks.updatedAt)
       .limit(100);
     r.json({ ...evaluation, actions });
+  });
+
+  router.post('/manage/:id/annex', async (q, r) => {
+    if (r.locals.user.role !== 'admin')
+      return r.status(403).json({ error: 'El anexo requiere Administración de grupo.' });
+    const id = z.uuid().parse(q.params.id);
+    const result = await db.execute(sql`select bandarlog_api.group_evaluation_annex(
+      ${id}, ${r.locals.user.id}) as answers`);
+    const answers = result.rows[0]?.answers;
+    if (!answers)
+      return r.status(404).json({ error: 'El anexo no está disponible para esta evaluación.' });
+    r.json({ answers });
   });
 
   router.put('/manage/:id/conclusion', async (q, r) => {
@@ -314,7 +398,11 @@ export function groupEvaluationRoutes(db: Database) {
       .returning();
     if (!result.length)
       return r.status(409).json({ error: 'La respuesta ha cambiado. Vuelve a abrirla.' });
-    r.json({ revision: result[0].revision, submittedAt: result[0].submittedAt });
+    r.json({
+      revision: result[0].revision,
+      submittedAt: result[0].submittedAt,
+      answers: result[0].answers,
+    });
   });
   return router;
 }
