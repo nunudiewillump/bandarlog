@@ -36,3 +36,13 @@ Con la función de evaluaciones activada, el runtime requiere contrato 46. Para 
 | P2.6–P2.8 | Pendientes campañas, Product Insights, soporte y feedback espontáneo. |
 
 Quedan pendientes la revisión visual en dispositivos físicos y las mediciones de consumo en Neon y Railway.
+
+## Modalidades, recordatorios y documentos (0050)
+
+La respuesta identificada sigue siendo la opción inicial. Una evaluación colectiva asigna un único representante. Al cerrar un proyecto puede seleccionarse una comisión del proyecto, lo que restringe la selección a sus miembros. La interfaz permite una comisión por cierre.
+
+El envío anónimo separa el cuestionario final del registro de participación. La asignación conserva el estado de entrega y el texto libre puede contener información identificativa introducida por la persona. El agregado exige cinco envíos y omite preguntas respondidas por menos de cinco personas. Las distribuciones requieren al menos dos categorías publicables, con cinco respuestas por categoría.
+
+Desde el histórico se pueden seleccionar entre dos y ocho evaluaciones vencidas para preparar una memoria conjunta. Administración del grupo puede solicitar por separado el anexo de respuestas finales identificadas, con registro de acceso. Los anexos quedan excluidos de las evaluaciones anónimas y de las memorias conjuntas.
+
+Durante el plazo, Coordinación y Administración pueden pedir un recordatorio desde las opciones de la evaluación. Se encola como máximo uno por participante pendiente, con preferencias de notificación activas en el momento de encolarlo. Tras aplicar la 0050, el contrato SQL requerido es 50 cuando se activa cualquiera de los flags de evaluaciones o feedback de producto.

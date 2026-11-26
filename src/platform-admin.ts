@@ -1028,7 +1028,19 @@ function renderView(main: HTMLElement) {
       el('option', { value: key, selected: key === selected }, label),
     );
     main.append(
-      heading('Feedback de Bandarlog'),
+      heading('Product Insights'),
+      el('label', null, 'Periodo', el('select', {
+        onchange: (event: Event) => {
+          period = (event.currentTarget as HTMLSelectElement).value;
+          void loadView();
+        },
+      }, ['7', '30'].map((days) => el('option', {
+        value: days, selected: period === days,
+      }, 'Últimos ' + days + ' días')))),
+      table('Aportaciones voluntarias por día (UTC)', ['Fecha', 'Categoría', 'Recibidas', 'Pendientes'],
+        data.insights.map((row: { day: string; category: string; total: number; pending: number }) =>
+          [row.day, categories[row.category], String(row.total), String(row.pending)])),
+      heading('Bandeja de feedback'),
       el('label', null, 'Estado', el('select', {
         'aria-label': 'Filtrar por estado',
         onchange: (event: Event) => {

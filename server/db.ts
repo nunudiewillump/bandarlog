@@ -68,8 +68,9 @@ export async function connect() {
         const version = (
           await connection.execute(sql`select bandarlog_api.runtime_contract_version() as version`)
         ).rows[0]?.version;
-        const requiredVersion = process.env.PRODUCT_FEEDBACK_ENABLED === 'true' ? 49
-          : process.env.GROUP_EVALUATIONS_ENABLED === 'true' ? 48 : 43;
+        const evaluationsEnabled = process.env.GROUP_EVALUATIONS_ENABLED === 'true';
+        const feedbackEnabled = process.env.PRODUCT_FEEDBACK_ENABLED === 'true';
+        const requiredVersion = evaluationsEnabled || feedbackEnabled ? 50 : 43;
         if (typeof version !== 'number' || version < requiredVersion)
           throw Error(
             `El contrato SQL requiere completar las migraciones de mantenimiento hasta ${String(requiredVersion).padStart(4, '0')} antes del arranque.`,

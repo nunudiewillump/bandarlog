@@ -568,7 +568,13 @@ El enlace caduca en 10 minutos. La invitación está disponible durante 7 días;
               const v = JSON.parse(m.body.slice('task-event-v1:'.length));
               return taskMessage(v.t, v.c, v.p, v.user, v.rows, v.subject, v.event);
             })()
-          : deliveryContent(m);
+          : m.body === 'evaluation-reminder-v1:'
+            ? {
+                subject: 'Evaluación pendiente · Bandarlog',
+                body: 'Tienes una evaluación pendiente. Entra en Mis evaluaciones desde Inicio.\n\n' + groupUrl(appUrl),
+                html: '',
+              }
+            : deliveryContent(m);
         const snapshot =
           content.html || renderMail({ title: content.subject, body: content.body, appUrl });
         if (!m.html && !m.body.startsWith('bandarlog-sealed-v1:'))
@@ -1507,6 +1513,15 @@ if (productFeedbackEnabled) app.post('/api/product-feedback',
     r.status(201).json(result);
   },
 );
+if (groupEvaluationsEnabled) app.post('/api/group-evaluations/manage/:id/reminder', async (q,r) => {
+  if (!globalManage(r.locals.user)) fail(403, 'Solo Coordinación y Administración pueden recordar evaluaciones.');
+  const evaluationId = z.uuid().parse(q.params.id);
+  const result = await db.execute(sql`select bandarlog_api.queue_group_evaluation_reminder(${evaluationId}) as count`);
+  const queued = result.rows[0]?.count;
+  if (queued === null) fail(409, 'La evaluación no está disponible para recordatorios.');
+  if (typeof queued === 'number' && queued > 0) void deliver();
+  r.json({ queued });
+});
 app.get('/api/tutorial', async (_q, r) => r.json(await readTutorial(db, r.locals.user.id)));
 app.get('/api/tutorial/stats', async (_q, r) => {
   if (r.locals.user.role !== 'admin')

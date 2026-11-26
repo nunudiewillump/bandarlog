@@ -14,6 +14,7 @@ type Entry = {
   dueAt: string;
   open: boolean;
   paused?: boolean;
+  responseMode?: 'identified' | 'anonymous' | 'collective';
   submittedAt: string | null;
 };
 type Detail = Omit<Entry, 'id'> & {
@@ -235,7 +236,7 @@ export default function GroupEvaluations({ onBack }: { onBack: () => void }) {
         revision: detail.revision,
         answers: parsed.data,
       });
-      const persisted = parsed.data as Record<string, Answer>;
+      const persisted = (saved.answers ?? parsed.data) as Record<string, Answer>;
       setAnswers(persisted);
       setSelected({ id, detail: { ...detail, ...saved, answers: persisted } });
       setItems((previous) =>
@@ -271,7 +272,13 @@ export default function GroupEvaluations({ onBack }: { onBack: () => void }) {
               <strong>{statusOf(detail)}</strong>{' '}
               <span>Plazo {deadline.format(new Date(detail.dueAt))}</span>
             </p>
-            <p>Respuesta identificada. Solo tú puedes consultar tu borrador.</p>
+            <p>
+              {detail.responseMode === 'anonymous'
+                ? 'Al enviar, el contenido se separa de tu cuenta. Evita identificarte en los textos.'
+                : detail.responseMode === 'collective'
+                  ? 'Envía la respuesta consensuada por el equipo. Tu cuenta figura como representante.'
+                  : 'Respuesta identificada. Solo tú puedes consultar tu borrador.'}
+            </p>
             {detail.structure.description && <p>{detail.structure.description}</p>}
           </div>
           <div className="evaluation-controls response-controls">

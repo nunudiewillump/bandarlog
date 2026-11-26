@@ -62,26 +62,73 @@ export function EvaluationStatistics({
   ));
 }
 
+export type EvaluationAnnex = {
+  name: string;
+  answers: Record<string, string | number | boolean | string[]>;
+}[];
+
+export type EvaluationReport = {
+  title: string;
+  dueAt: string;
+  templateRevision: number;
+  structure: EvaluationStructure;
+  body: string | null;
+  actions?: { id: string; title: string }[];
+};
+
 export function EvaluationDocument({
   report,
+  annex,
   summary,
   group,
   onBack,
 }: {
-  report: {
-    title: string;
-    dueAt: string;
-    templateRevision: number;
-    structure: EvaluationStructure;
-    body: string | null;
-    actions?: { id: string; title: string }[];
-  };
+  report: EvaluationReport;
   summary: EvaluationSummary;
+  annex?: EvaluationAnnex;
   group?: ScoutGroup;
   onBack: () => void;
 }) {
   return (
     <EvaluationPrintPreview group={group} onBack={onBack}>
+      <EvaluationReportContent report={report} summary={summary} annex={annex} />
+    </EvaluationPrintPreview>
+  );
+}
+
+export function EvaluationMemoDocument({
+  reports,
+  group,
+  onBack,
+}: {
+  reports: (EvaluationReport & { id: string; summary: EvaluationSummary })[];
+  group?: ScoutGroup;
+  onBack: () => void;
+}) {
+  return (
+    <EvaluationPrintPreview group={group} onBack={onBack}>
+      <h1>Memoria de evaluaciones</h1>
+      <p>{reports.length} evaluaciones cerradas</p>
+      {reports.map((report) => (
+        <section key={report.id} className="evaluation-memo-report">
+          <EvaluationReportContent report={report} summary={report.summary} />
+        </section>
+      ))}
+    </EvaluationPrintPreview>
+  );
+}
+
+function EvaluationReportContent({
+  report,
+  summary,
+  annex,
+}: {
+  report: EvaluationReport;
+  summary: EvaluationSummary;
+  annex?: EvaluationAnnex;
+}) {
+  return (
+    <>
       <h1>{report.title}</h1>
       <p>
         Versión {report.templateRevision} · Plazo {date.format(new Date(report.dueAt))}
@@ -106,7 +153,41 @@ export function EvaluationDocument({
         </section>
       )}
       <EvaluationStatistics structure={report.structure} summary={summary} />
-    </EvaluationPrintPreview>
+      {annex && (
+        <section>
+          <h2>Anexo de respuestas identificadas</h2>
+          {!annex.length && <p>No hay respuestas enviadas.</p>}
+          {annex.map(({ name, answers }, index) => (
+            <section key={index}>
+              <h3>{name}</h3>
+              {report.structure.sections.map((section) => (
+                <dl key={section.id}>
+                  {section.questions.map((question) => {
+                    const answer = answers[question.id];
+                    return (
+                      <div key={question.id} className="evaluation-question">
+                        <dt>{question.label}</dt>
+                        <dd className="evaluation-document-conclusions">
+                          {answer === undefined
+                            ? 'Sin respuesta'
+                            : Array.isArray(answer)
+                              ? answer.join(', ')
+                              : typeof answer === 'boolean'
+                                ? answer
+                                  ? 'Sí'
+                                  : 'No'
+                                : answer}
+                        </dd>
+                      </div>
+                    );
+                  })}
+                </dl>
+              ))}
+            </section>
+          ))}
+        </section>
+      )}
+    </>
   );
 }
 

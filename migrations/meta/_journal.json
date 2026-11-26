@@ -351,6 +351,13 @@
       "when": 1794847500000,
       "tag": "0049_product_feedback",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1794847600000,
+      "tag": "0050_evaluation_modes",
+      "breakpoints": true
     }
   ]
 }

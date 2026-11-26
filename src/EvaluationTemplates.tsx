@@ -5,7 +5,7 @@ import { Select } from './Select';
 import PublishEvaluation from './PublishEvaluation';
 import EvaluationResults from './EvaluationResults';
 import { BlankEvaluationDocument } from './EvaluationDocument';
-import type { Project, ScoutGroup, User } from './types';
+import type { Commission, Data, Project, ScoutGroup, User } from './types';
 import {
   evaluationStructure,
   questionTypes,
@@ -83,8 +83,11 @@ export default function EvaluationTemplates({
   onBack,
   initialResultId,
   closingProjectId,
+  commissions,
+  memberships,
   onClosed,
   canPublish,
+  canExportAnnex,
   people,
   group,
   projects,
@@ -94,8 +97,11 @@ export default function EvaluationTemplates({
   onBack: () => void;
   initialResultId: string | null;
   closingProjectId: string | null;
+  commissions: Commission[];
+  memberships: Data['members'];
   onClosed: () => void;
   canPublish: boolean;
+  canExportAnnex: boolean;
   people: User[];
   group?: ScoutGroup;
   projects: Project[];
@@ -244,6 +250,7 @@ export default function EvaluationTemplates({
       <section className="panel evaluation-templates">
         <EvaluationResults
           group={group}
+          canExportAnnex={canExportAnnex}
           projects={projects}
           initialResultId={initialResultId}
           onBack={() => setShowResults(false)}
@@ -263,6 +270,8 @@ export default function EvaluationTemplates({
       {publication ? (
         <PublishEvaluation
           projectId={closingProjectId}
+          commissions={commissions}
+          memberships={memberships}
           onClosed={onClosed}
           template={publication}
           versions={versions}

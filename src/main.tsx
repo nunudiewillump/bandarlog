@@ -1835,7 +1835,10 @@ function App() {
                   key={me.id + ':' + (evaluationOrigin ?? '')}
                   initialResultId={evaluationOrigin}
                   closingProjectId={evaluationClosingProject}
+                  commissions={data.commissions}
+                  memberships={data.members}
                   canPublish={groupEvaluationsEnabled}
+                  canExportAnnex={me.role === 'admin'}
                   people={data.users}
                   group={data.group}
                   projects={data.projects}

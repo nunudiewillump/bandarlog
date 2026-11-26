@@ -516,6 +516,8 @@ export const groupEvaluations = pgTable('group_evaluations', {
   projectId: text('project_id'),
   templateId: text('template_id').notNull(),
   templateRevision: integer('template_revision').notNull(),
+  responseMode: text('response_mode').$type<'identified' | 'anonymous' | 'collective'>().notNull().default('identified'),
+  commissionId: text('commission_id'),
   title: text().notNull(),
   dueAt: timestamp('due_at', { withTimezone: true, mode: 'string' }).notNull(),
 }, (t) => [primaryKey({ columns: [t.groupId, t.id] })]);

@@ -28,6 +28,7 @@ test('voluntary feedback from Perfil reaches the authorized platform inbox', asy
     if (path === '/api/platform/feedback')
       return route.fulfill({
         json: {
+          insights: [{ day: '2026-11-26', category: 'idea', total: 1, pending: status === 'resolved' ? 0 : 1 }],
           items: [
             {
               id: feedbackId,
@@ -58,6 +59,7 @@ test('voluntary feedback from Perfil reaches the authorized platform inbox', asy
   await page.setViewportSize({ width: 1440, height: 940 });
   await page.goto('/plataforma#feedback');
   await expect(page.getByText('Una mejora para el grupo.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Product Insights' })).toBeVisible();
   await page.getByLabel('Cambiar estado de aportación').selectOption('resolved');
   await expect.poll(() => status).toBe('resolved');
   await expect(page.getByLabel('Cambiar estado de aportación')).toHaveValue('resolved');

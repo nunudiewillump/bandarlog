@@ -339,8 +339,11 @@ export function platformAdminRoutes(
       const p = query.parse(q.query);
       const after = p.cursor ? z.uuid().parse(p.cursor) : null;
       const status = p.filter ? statuses.parse(p.filter) : '';
-      const rows = await ops.productFeedbackList(token(q), after, p.limit + 1, status);
-      r.json({ items: rows.slice(0,p.limit), nextCursor: rows.length > p.limit ? rows[p.limit-1].id : '' });
+      const [rows, insights] = await Promise.all([
+        ops.productFeedbackList(token(q), after, p.limit + 1, status),
+        ops.productFeedbackInsights(token(q), Number(p.period)),
+      ]);
+      r.json({ insights, items: rows.slice(0,p.limit), nextCursor: rows.length > p.limit ? rows[p.limit-1].id : '' });
     });
     router.post('/api/platform/feedback/:id', async (q,r) => {
       const id = z.uuid().parse(q.params.id);

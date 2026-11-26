@@ -7,3 +7,5 @@ Con `PRODUCT_FEEDBACK_ENABLED=true`, **Mi perfil → Ayúdanos a mejorar** permi
 La migración 0049 crea la tabla interna y tres capacidades SQL separadas. Los roles de aplicaciones de grupo pueden enviar con un contexto válido. El servicio de identidad puede listar y actualizar previa validación de la sesión administrativa. Ambos carecen de acceso directo a la tabla. Aplicar la migración antes de activar el flag en HTTP e identidad. Desactivar el flag conserva las aportaciones y retira ambas superficies.
 
 Quedan pendientes las campañas automáticas, los correos de seguimiento y las métricas de Product Insights asociadas a las campañas.
+
+Con la migración 0050, **Product Insights** muestra el recuento diario real de aportaciones de los últimos 7 o 30 días, desglosado por categoría. Pendientes incluye los estados Nueva, En revisión y En proceso. Estas cifras proceden de la bandeja voluntaria y requieren sesión de administración de plataforma.

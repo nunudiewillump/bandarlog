@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { api } from './api';
 import { deadlineDay, deadlineISO } from './deadline';
-import type { User } from './types';
+import type { Commission, Data, User } from './types';
 
 export default function PublishEvaluation({
   projectId,
   onClosed,
+  commissions = [],
+  memberships = [],
   template,
   versions,
   more,
@@ -17,6 +19,8 @@ export default function PublishEvaluation({
 }: {
   projectId?: string | null;
   onClosed?: () => void;
+  commissions?: Commission[];
+  memberships?: Data['members'];
   template: { id: string; title: string };
   versions: { revision: number }[];
   more: boolean;
@@ -25,6 +29,9 @@ export default function PublishEvaluation({
   people: User[];
   onBack: () => void;
 }) {
+  const [responseMode, setResponseMode] = useState('identified');
+  const [commissionId, setCommissionId] = useState('');
+  const limit = responseMode === 'collective' ? 1 : 100;
   const [title, setTitle] = useState(template.title);
   const [revision, setRevision] = useState(versions[0]?.revision ?? 0);
   const [day, setDay] = useState(() => {
@@ -37,7 +44,14 @@ export default function PublishEvaluation({
   const [saving, setSaving] = useState(false);
   const [published, setPublished] = useState(false);
   const [error, setError] = useState('');
-  const active = people.filter((person) => !person.disabledAt);
+  const scoped = new Set(
+    memberships
+      .filter((member) => member.commissionId === commissionId)
+      .map((member) => member.userId),
+  );
+  const active = people.filter(
+    (person) => !person.disabledAt && (!commissionId || scoped.has(person.id)),
+  );
   const search = query.trim().toLocaleLowerCase('es');
   const filtered = active.filter((person) =>
     (person.name + ' ' + person.email).toLocaleLowerCase('es').includes(search),
@@ -57,6 +71,8 @@ export default function PublishEvaluation({
             templateRevision: revision,
             userIds: recipients,
             dueAt: deadlineISO(day),
+            ...(responseMode !== 'identified' ? { responseMode } : {}),
+            ...(commissionId ? { commissionId } : {}),
           };
           if (projectId) {
             await api('/projects/' + encodeURIComponent(projectId) + '/lifecycle', 'POST', {
@@ -138,9 +154,53 @@ export default function PublishEvaluation({
                   onChange={(event) => setDay(event.target.value)}
                 />
               </label>
+              <label>
+                Modalidad de respuesta
+                <select
+                  value={responseMode}
+                  onChange={(event) => {
+                    setResponseMode(event.target.value);
+                    setRecipients([]);
+                  }}
+                >
+                  <option value="identified">Individual identificada</option>
+                  <option value="anonymous">Individual anónima</option>
+                  <option value="collective">Colectiva</option>
+                </select>
+              </label>
+              {projectId && (
+                <label>
+                  Ámbito de evaluación
+                  <select
+                    value={commissionId}
+                    onChange={(event) => {
+                      setCommissionId(event.target.value);
+                      setRecipients([]);
+                    }}
+                  >
+                    <option value="">Proyecto completo</option>
+                    {commissions
+                      .filter((commission) => commission.projectId === projectId)
+                      .map((commission) => (
+                        <option key={commission.id} value={commission.id}>
+                          {commission.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              )}
               <fieldset className="evaluation-section">
-                <legend>Participantes · {recipients.length} de 100</legend>
-                <p>Las respuestas serán identificadas.</p>
+                <legend>
+                  {responseMode === 'collective' ? 'Representante' : 'Participantes'} ·{' '}
+                  {recipients.length} de {limit}
+                </legend>
+                <p>
+                  {responseMode === 'anonymous'
+                    ? 'El envío se separa de la cuenta. Los resultados se ocultan si hay menos de cinco respuestas.'
+                    : responseMode === 'collective'
+                      ? 'Una persona enviará la respuesta consensuada por el equipo.'
+                      : 'Las respuestas serán identificadas.'}
+                </p>
                 <label>
                   Buscar participantes
                   <input
@@ -155,7 +215,7 @@ export default function PublishEvaluation({
                       <input
                         type="checkbox"
                         checked={recipients.includes(person.id)}
-                        disabled={recipients.length === 100 && !recipients.includes(person.id)}
+                        disabled={recipients.length === limit && !recipients.includes(person.id)}
                         onChange={(event) => {
                           const checked = event.currentTarget.checked;
                           setRecipients((previous) =>

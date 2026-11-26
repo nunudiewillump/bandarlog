@@ -4,7 +4,7 @@ import { mobileFixture } from '../fixtures/mobile';
 
 test('coordination consults closed results and saves a conclusion', async ({ page }) => {
   const fixture = mobileFixture(1);
-  fixture.user.role = 'coordination';
+  fixture.user.role = 'admin';
   fixture.data.group = {
     id: 'synthetic',
     privateId: 'synthetic',
@@ -27,6 +27,30 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
     title: 'Preparar la lista de material',
   };
   let conclusion: unknown;
+  const secondItem = { ...item, id: 'second', title: 'Evaluación de equipo' };
+  const structure = {
+    sections: [
+      {
+        id: 'section',
+        title: 'Equipo',
+        questions: [{ id: 'score', type: 'numberScale', label: 'Coordinación' }],
+      },
+    ],
+  };
+  const summary = {
+    assigned: 4,
+    submitted: 3,
+    questions: {
+      score: {
+        answered: 2,
+        distribution: [
+          { value: 3, count: 1 },
+          { value: 5, count: 1 },
+        ],
+      },
+    },
+  };
+  const report = { ...item, body: null, conclusionRevision: null, structure, summary };
   let historyStatus: string | null = null;
   let action: unknown;
   await page.route('**/api/**', (route) => {
@@ -46,7 +70,7 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
       return route.fulfill({ json: { events: { tutorial_skipped: '2026-01-01T00:00:00Z' } } });
     if (path.endsWith('/manage')) {
       historyStatus = new URL(route.request().url()).searchParams.get('status');
-      return route.fulfill({ json: { items: [item], next: null } });
+      return route.fulfill({ json: { items: [item, secondItem], next: null } });
     }
     if (path.endsWith('/conclusion')) {
       conclusion = route.request().postDataJSON();
@@ -61,36 +85,13 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
     }
     if (path.endsWith('/manage/task/' + linkedTask.id))
       return route.fulfill({ json: { origin: { id: item.id, title: item.title } } });
-    if (path.endsWith('/manage/example'))
+    if (path.endsWith('/manage/example/annex'))
       return route.fulfill({
-        json: {
-          ...item,
-          body: null,
-          conclusionRevision: null,
-          structure: {
-            sections: [
-              {
-                id: 'section',
-                title: 'Equipo',
-                questions: [{ id: 'score', type: 'numberScale', label: 'Coordinación' }],
-              },
-            ],
-          },
-          summary: {
-            assigned: 4,
-            submitted: 3,
-            questions: {
-              score: {
-                answered: 2,
-                distribution: [
-                  { value: 3, count: 1 },
-                  { value: 5, count: 1 },
-                ],
-              },
-            },
-          },
-        },
+        json: { answers: [{ name: 'Persona de prueba', answers: { score: 5 } }] },
       });
+    if (path.endsWith('/manage/memo'))
+      return route.fulfill({ json: { reports: [report, { ...report, ...secondItem }] } });
+    if (path.endsWith('/manage/example')) return route.fulfill({ json: report });
     return route.fulfill({ json: { items: [], next: null } });
   });
   await page.setViewportSize({ width: 390, height: 850 });
@@ -100,6 +101,12 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
   await page.getByRole('option', { name: 'Histórico y resultados' }).click();
   await page.getByLabel('Estado', { exact: true }).selectOption('closed');
   await expect.poll(() => historyStatus).toBe('closed');
+  await page.getByRole('checkbox', { name: 'Incluir en memoria: Balance del campamento' }).check();
+  await page.getByRole('checkbox', { name: 'Incluir en memoria: Evaluación de equipo' }).check();
+  await page.getByRole('combobox', { name: 'Opciones del histórico' }).click();
+  await page.getByRole('option', { name: 'Preparar memoria conjunta' }).click();
+  await expect(page.getByRole('heading', { name: 'Memoria de evaluaciones' })).toBeVisible();
+  await page.getByRole('button', { name: 'Volver', exact: true }).click();
 
   await page.getByRole('combobox', { name: 'Opciones de Balance del campamento' }).click();
   await page.getByRole('option', { name: 'Ver resultados' }).click();
@@ -112,6 +119,12 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
     .fill('Confirmar el material antes de salir.');
   await panel.getByRole('button', { name: 'Guardar conclusiones' }).click();
   await expect(panel.getByRole('status')).toHaveText('Conclusiones guardadas.');
+  await panel.getByRole('combobox', { name: 'Opciones del informe' }).click();
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('option', { name: 'PDF con anexo identificado' }).click();
+  await expect(panel.getByRole('heading', { name: 'Persona de prueba' })).toBeVisible();
+  await panel.getByRole('button', { name: 'Volver', exact: true }).click();
+
   expect(conclusion).toEqual({ body: 'Confirmar el material antes de salir.', revision: 0 });
   await panel.getByRole('combobox', { name: 'Opciones del informe' }).click();
   await page.getByRole('option', { name: 'Vista previa y PDF' }).click();
