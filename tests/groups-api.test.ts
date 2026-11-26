@@ -386,157 +386,11 @@ test('independent groups can share an owner email without sharing sessions, role
     },
     b,
   );
-  const planning = '/api/projects/' + project.body.id + '/planning';
-  const meetings = '/api/projects/' + project.body.id + '/meetings';
-  const phase = {
-    kind: 'phase',
-    name: 'Preparación',
-    starts: '2027-01-01',
-    ends: '2027-01-05',
-    position: 0,
-  };
-  const milestone = {
-    kind: 'milestone',
-    name: 'Reserva',
-    planned: '2022-02-01',
-    achieved: null,
-    commissionId: commission.body.id,
-  };
-  const decision = {
-    kind: 'decision',
-    title: 'Elegir menú',
-    description: '',
-    commissionId: commission.body.id,
-    ownerId: a.userId,
-    resolution: null,
-    target: '2027-01-05',
-  };
-  assert.equal((await call(planning, 'GET', undefined, b)).status, 404);
-  assert.equal((await call(meetings, 'GET', undefined, b)).status, 404);
-  assert.equal((await call(planning, 'POST', phase, b)).status, 404);
-  assert.equal((await call(planning, 'POST', { ...phase, ends: '2026-01-01' }, a)).status, 400);
-  assert.equal((await call(planning, 'POST', phase, { ...a, csrf: '' })).status, 403);
-  assert.equal(
-    (await call(planning, 'POST', { ...milestone, commissionId: otherCommission.body.id }, a))
-      .status,
-    400,
-  );
-  assert.equal((await call(planning, 'POST', phase, a)).status, 200);
-  assert.equal((await call(planning, 'POST', milestone, a)).status, 200);
-  const frozen = await call(planning, 'GET', undefined, a);
-  assert.equal(frozen.body.milestones[0].achieved, null, 'past date is still pending');
-  const phaseVersion = frozen.body.phases[0];
-  const edits = await Promise.all(
-    ['Nueva A', 'Nueva B'].map((name) =>
-      call(
-        planning,
-        'POST',
-        { ...phase, name, id: phaseVersion.id, revision: phaseVersion.revision },
-        a,
-      ),
-    ),
-  );
-  assert.deepEqual(edits.map((r) => r.status).sort(), [200, 409]);
-  assert.equal((await call(meetings, 'POST', { ...decision, ownerId: b.userId }, a)).status, 400);
-  assert.equal((await call(meetings, 'POST', decision, a)).status, 200);
-  const [decisionRow] = (await call(meetings, 'GET', undefined, a)).body.decisions;
-  assert.equal(decisionRow.authorId, a.userId);
-  const followup = {
-    kind: 'followup',
-    decisionId: decisionRow.id,
-    task: {
-      title: 'Confirmar menú',
-      commissionId: commission.body.id,
-      due: '2027-01-05T21:59:59Z',
-      responsibleIds: [a.userId],
-    },
-  };
-  assert.equal(
-    (
-      await call(
-        meetings,
-        'POST',
-        { ...followup, task: { ...followup.task, responsibleIds: [] } },
-        a,
-      )
-    ).status,
-    400,
-  );
-  const newTask = await call(meetings, 'POST', followup, a);
-  assert.equal(newTask.status, 200, JSON.stringify(newTask.body));
-  assert.equal(
-    (await call(meetings, 'GET', undefined, a)).body.followups[0].taskId,
-    newTask.body.id,
-  );
-  const dependency = { kind: 'dependency', sourceId: task.body.id, targetId: newTask.body.id };
-  assert.equal((await call(planning, 'POST', dependency, a)).status, 200);
-  assert.equal(
-    (
-      await call(
-        planning,
-        'POST',
-        { ...dependency, sourceId: dependency.targetId, targetId: dependency.sourceId },
-        a,
-      )
-    ).status,
-    409,
-  );
-  const minutes = {
-    kind: 'minutes',
-    title: 'Acta de cocina',
-    heldOn: '2027-01-01',
-    agenda: 'Reserva',
-    notes: 'Comentarios del kraal',
-    decisionIds: [decisionRow.id],
-    taskIds: [newTask.body.id],
-    close: false,
-  };
-  assert.equal((await call(meetings, 'POST', minutes, a)).status, 200);
-  const [draft] = (await call(meetings, 'GET', undefined, a)).body.minutes;
-  assert.equal(
-    (
-      await call(
-        meetings,
-        'POST',
-        { ...minutes, id: draft.id, revision: draft.revision, close: true },
-        a,
-      )
-    ).status,
-    200,
-  );
-  const [closed] = (await call(meetings, 'GET', undefined, a)).body.minutes;
-  assert.equal(closed.closedReferences.tasks[0].title, followup.task.title);
-  const resolved = await call(
-    meetings,
-    'POST',
-    {
-      ...decision,
-      id: decisionRow.id,
-      revision: decisionRow.revision,
-      resolution: 'Menú vegetariano aprobado',
-    },
-    a,
-  );
-  assert.equal(resolved.status, 200);
-  const history = (await call(meetings, 'GET', undefined, a)).body;
-  assert.equal(history.decisions[0].resolution, 'Menú vegetariano aprobado');
-  assert.ok(history.decisions[0].resolvedAt);
-  assert.equal(history.minutes[0].closedReferences.decisions[0].resolution, null);
-  assert.equal(
-    (await call(meetings, 'POST', { ...minutes, id: closed.id, revision: closed.revision }, a))
-      .status,
-    409,
-  );
-  assert.equal(
-    (await call('/api/projects/' + project.body.id, 'PATCH', { archived: true }, a)).status,
-    200,
-  );
-  assert.equal((await call(meetings, 'GET', undefined, a)).body.decisions[0].id, decisionRow.id);
-  assert.equal((await call(meetings, 'POST', decision, a)).status, 409);
-  assert.equal(
-    (await call('/api/projects/' + project.body.id, 'PATCH', { archived: false }, a)).status,
-    200,
-  );
+  for (const path of ['planning', 'meetings']) {
+    const retired = `/api/projects/${project.body.id}/${path}`;
+    assert.equal((await call(retired, 'GET', undefined, a)).status, 404);
+    assert.equal((await call(retired, 'POST', {}, a)).status, 404);
+  }
   for (const [session, cid, role] of [
     [a, commission.body.id, 'scouter'],
     [b, otherCommission.body.id, 'responsible'],
@@ -593,9 +447,6 @@ test('independent groups can share an owner email without sharing sessions, role
     );
     memberSessions.push(member);
   }
-  assert.equal((await call(planning, 'POST', phase, memberSessions[0])).status, 403);
-  assert.equal((await call(meetings, 'POST', decision, memberSessions[0])).status, 403);
-  assert.deepEqual((await call(meetings, 'GET', undefined, memberSessions[0])).body.minutes, []);
   assert.notEqual(memberSessions[0].userId, memberSessions[1].userId);
   assert.equal(
     (
