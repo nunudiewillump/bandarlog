@@ -952,6 +952,11 @@ test('assigned evaluations use a published snapshot and accept only one final re
   };
   assert.equal((await call(managed + '/actions', 'POST', action, a)).status, 404);
   assert.equal((await call(managed + '/actions', 'POST', action, b)).status, 404);
+  const originPath = root + '/manage/task/unlinked-task';
+  const origin = await call(originPath, 'GET', undefined, a);
+  assert.equal(origin.status, 200);
+  assert.deepEqual(origin.body, { origin: null });
+
 
   assert.equal((await call(managed + '/conclusion', 'PUT', { body: 'Lección', revision: 0 }, a)).status, 409);
   assert.deepEqual((await call(root, 'GET', undefined, b)).body.items, []);

@@ -12,6 +12,11 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
     dueAt: '2026-11-20T18:00:00Z',
     open: false,
   };
+  const linkedTask = {
+    ...fixture.data.tasks[0],
+    id: 'linked-task',
+    title: 'Preparar la lista de material',
+  };
   let conclusion: unknown;
   let action: unknown;
   await page.route('**/api/**', (route) => {
@@ -38,8 +43,11 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
     }
     if (path.endsWith('/manage/example/actions')) {
       action = route.request().postDataJSON();
-      return route.fulfill({ status: 201, json: { id: 'linked-task' } });
+      fixture.data.tasks.push(linkedTask);
+      return route.fulfill({ status: 201, json: { id: linkedTask.id } });
     }
+    if (path.endsWith('/manage/task/' + linkedTask.id))
+      return route.fulfill({ json: { origin: { id: item.id, title: item.title } } });
     if (path.endsWith('/manage/example'))
       return route.fulfill({
         json: {
@@ -114,4 +122,8 @@ test('coordination consults closed results and saves a conclusion', async ({ pag
         responsibleIds: [fixture.user.id],
       },
     });
+  const task = page.getByRole('dialog', { name: 'Detalle de tarea' });
+  await task.getByRole('button', { name: 'Evaluación de origen: ' + item.title }).click();
+  await expect(task).toHaveCount(0);
+  await expect(panel.getByRole('heading', { name: item.title })).toBeVisible();
 });

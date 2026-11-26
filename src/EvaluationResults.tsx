@@ -33,10 +33,12 @@ const number = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2 });
 
 export default function EvaluationResults({
   onBack,
+  initialResultId,
   onCreateAction,
   onOpenTask,
 }: {
   onBack: () => void;
+  initialResultId: string | null;
   onCreateAction: (action: { id: string; revision: number; title: string }) => void;
   onOpenTask: (id: string) => void;
 }) {
@@ -67,8 +69,14 @@ export default function EvaluationResults({
     setNext(result.next);
   }
 
+  async function openResult(id: string) {
+    const result: Result = await api(endpoint + '/' + id);
+    setSelected({ id, result });
+    setBody(result.body ?? '');
+  }
+
   useEffect(() => {
-    void run(() => list());
+    void run(() => (initialResultId ? openResult(initialResultId) : list()));
   }, []);
 
   const result = selected?.result;
@@ -106,13 +114,7 @@ export default function EvaluationResults({
                 aria-label={'Opciones de ' + item.title}
                 value=""
                 disabled={busy}
-                onChange={() =>
-                  void run(async () => {
-                    const result: Result = await api(endpoint + '/' + item.id);
-                    setSelected({ id: item.id, result });
-                    setBody(result.body ?? '');
-                  })
-                }
+                onChange={() => void run(() => openResult(item.id))}
               >
                 <option value="" disabled>
                   Opciones
@@ -160,8 +162,7 @@ export default function EvaluationResults({
             if (body !== (result.body ?? '') && !window.confirm('¿Volver sin guardar los cambios?'))
               return;
             setSelected(null);
-            setError('');
-            setStatus('');
+            void run(() => list());
           }}
         >
           Volver
