@@ -138,7 +138,7 @@ export default function EvaluationResults({
         report.templateRevision === comparison[0].templateRevision,
     );
     return (
-      <section>
+      <section className="evaluation-flow">
         <h1>Comparar evaluaciones</h1>
         <button type="button" className="secondary" onClick={() => setComparison([])}>
           Volver
@@ -233,7 +233,7 @@ export default function EvaluationResults({
     );
   if (!selected || !result)
     return (
-      <section aria-busy={busy}>
+      <section className="evaluation-flow" aria-busy={busy}>
         <h1>Histórico de evaluaciones</h1>
         {error && <p role="alert">{error}</p>}
         {busy && <p role="status">Cargando evaluaciones…</p>}
@@ -405,6 +405,7 @@ export default function EvaluationResults({
 
   return (
     <form
+      className="evaluation-flow"
       aria-busy={busy}
       onSubmit={(event) => {
         event.preventDefault();

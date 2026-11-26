@@ -149,7 +149,13 @@ function AnswerField({
   }
 }
 
-export default function GroupEvaluations({ onBack, initialId }: { onBack: () => void; initialId?: string }) {
+export default function GroupEvaluations({
+  onBack,
+  initialId,
+}: {
+  onBack: () => void;
+  initialId?: string;
+}) {
   const [items, setItems] = useState<Entry[]>([]);
   const [next, setNext] = useState<string | null>(null);
   const [selected, setSelected] = useState<{ id: string; detail: Detail } | null>(null);
@@ -270,7 +276,10 @@ export default function GroupEvaluations({ onBack, initialId }: { onBack: () => 
   }).length;
 
   return (
-    <section className="panel evaluation-templates group-evaluations" aria-busy={busy}>
+    <section
+      className="panel evaluation-templates group-evaluations evaluation-flow"
+      aria-busy={busy}
+    >
       <h1>{detail?.title ?? 'Mis evaluaciones'}</h1>
       {error && <p role="alert">{error}</p>}
       <p role="status">{busy ? 'Cargando…' : message}</p>
@@ -416,29 +425,31 @@ export default function GroupEvaluations({ onBack, initialId }: { onBack: () => 
             Volver a Inicio
           </button>
           {!busy && !error && !items.length && <p>No tienes evaluaciones asignadas.</p>}
-          <ul className="evaluation-template-list">
-            {items.map((item) => (
-              <li key={item.id}>
-                <span className="evaluation-list-context">
-                  <strong>{item.title}</strong>
-                  <small>
-                    {statusOf(item)} · {deadline.format(new Date(item.dueAt))}
-                  </small>
-                </span>
-                <Select
-                  aria-label={'Acciones de ' + item.title}
-                  value=""
-                  disabled={busy}
-                  onChange={() => open(item.id)}
-                >
-                  <option value="" disabled>
-                    Acciones
-                  </option>
-                  <option value="open">Abrir evaluación</option>
-                </Select>
-              </li>
-            ))}
-          </ul>
+          {!!items.length && (
+            <ul className="evaluation-template-list">
+              {items.map((item) => (
+                <li key={item.id}>
+                  <span className="evaluation-list-context">
+                    <strong>{item.title}</strong>
+                    <small>
+                      {statusOf(item)} · {deadline.format(new Date(item.dueAt))}
+                    </small>
+                  </span>
+                  <Select
+                    aria-label={'Acciones de ' + item.title}
+                    value=""
+                    disabled={busy}
+                    onChange={() => open(item.id)}
+                  >
+                    <option value="" disabled>
+                      Acciones
+                    </option>
+                    <option value="open">Abrir evaluación</option>
+                  </Select>
+                </li>
+              ))}
+            </ul>
+          )}
           {(next || error) && (
             <button
               type="button"

@@ -4,7 +4,7 @@
 
 .group-evaluations .evaluation-context,
 .group-evaluations .evaluation-progress {
-  margin-block: 12px 16px;
+  margin-block: 0;
   color: var(--evaluation-context);
 }
 
