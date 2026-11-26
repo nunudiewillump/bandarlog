@@ -1,3 +1,4 @@
+import { ProjectLifecycle } from './ProjectLifecycle';
 import { TaskEvaluationOrigin } from './TaskEvaluationOrigin';
 import { HomeTaskAction } from './HomeTaskAction';
 import { taskHaptic } from './haptics';
@@ -2082,21 +2083,25 @@ function App() {
                           </label>
                         </>
                       )}
-                      <button
-                        className="text-link archive"
-                        onClick={() =>
-                          void run(async () => {
-                            await api(`/projects/${project}`, 'PATCH', {
-                              archived: activeProject.archived !== 'true',
-                            });
-                          })
-                        }
-                      >
-                        <Archive size={16} />
-                        {activeProject.archived === 'true'
-                          ? 'Restaurar proyecto'
-                          : 'Archivar proyecto conservando el historial'}
-                      </button>
+                      {groupEvaluationsEnabled ? (
+                        <ProjectLifecycle projectId={activeProject.id} refresh={run} />
+                      ) : (
+                        <button
+                          className="text-link archive"
+                          onClick={() =>
+                            void run(async () => {
+                              await api(`/projects/${project}`, 'PATCH', {
+                                archived: activeProject.archived !== 'true',
+                              });
+                            })
+                          }
+                        >
+                          <Archive size={16} />
+                          {activeProject.archived === 'true'
+                            ? 'Restaurar proyecto'
+                            : 'Archivar proyecto conservando el historial'}
+                        </button>
+                      )}
                     </EntitySettings>
                   )}
                 </div>

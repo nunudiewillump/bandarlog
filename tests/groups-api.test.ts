@@ -909,11 +909,16 @@ test('evaluation templates keep published snapshots and isolate three groups', a
   );
 });
 
-test('assigned evaluations use a published snapshot and accept only one final response', async () => {
-  const [a, b] = await Promise.all([
+let evaluationGroups: Promise<Session[]> | undefined;
+function evaluationGroupFixtures() {
+  return evaluationGroups ??= Promise.all([
     createGroup('Grupo evaluación Uno', 'responses-a@example.test'),
     createGroup('Grupo evaluación Dos', 'responses-b@example.test'),
   ]);
+}
+
+test('assigned evaluations use a published snapshot and accept only one final response', async () => {
+  const [a, b] = await evaluationGroupFixtures();
   const templates = '/api/evaluation-templates';
   const root = '/api/group-evaluations';
   const questionId = randomUUID();
@@ -978,4 +983,29 @@ test('assigned evaluations use a published snapshot and accept only one final re
   ]);
   assert.deepEqual(attempts.map(({ status }) => status).sort(), [200, 409]);
   assert.equal((await write('draft', 2, {})).status, 409);
+});
+
+test('project lifecycle records a close, blocks legacy bypass and permits reopening', async () => {
+  const [a, b] = await evaluationGroupFixtures();
+  const created = await call('/api/projects', 'POST', {
+    name: 'Proyecto de prueba', starts: '2026-11-01', ends: '2026-11-23',
+  }, a);
+  assert.equal(created.status, 201);
+  const path = '/api/projects/' + created.body.id;
+  const lifecycle = path + '/lifecycle';
+  assert.equal((await call(lifecycle, 'GET', undefined, b)).status, 404);
+  assert.equal((await call(lifecycle, 'POST', { action: 'close' }, b)).status, 404);
+  const attempts = await Promise.all([1, 2].map(() => call(lifecycle, 'POST', { action: 'close' }, a)));
+  assert.deepEqual(attempts.map(({ status }) => status).sort(), [200, 409]);
+  const closed = (await call(lifecycle, 'GET', undefined, a)).body;
+  assert.equal(closed.archived, true);
+  assert.equal(closed.last.kind, 'closed');
+  assert.equal(closed.last.canReopen, true);
+  assert.equal((await call(path, 'PATCH', { archived: false }, a)).status, 409);
+  assert.equal((await call(lifecycle, 'POST', { action: 'reopen' }, a)).status, 200);
+  const reopened = (await call(lifecycle, 'GET', undefined, a)).body;
+  assert.equal(reopened.archived, false);
+  assert.equal(reopened.last.kind, 'reopened');
+  assert.equal((await call(lifecycle, 'POST', { action: 'close' }, a)).status, 200);
+  assert.equal((await call(lifecycle, 'GET', undefined, a)).body.last.canReopen, true);
 });

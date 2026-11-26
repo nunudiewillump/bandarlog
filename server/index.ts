@@ -2523,6 +2523,47 @@ app.post('/api/projects', async (q, r) => {
     .returning();
   r.status(201).json(p);
 });
+if (groupEvaluationsEnabled) {
+  app.get('/api/projects/:id/lifecycle', async (q, r) => {
+    if (!globalManage(r.locals.user)) fail(403, 'Solo coordinación puede gestionar el cierre.');
+    const projectId = parse(text, q.params.id);
+    const [current] = await db.select({ archived: s.projects.archived }).from(s.projects)
+      .where(eq(s.projects.id, projectId));
+    if (!current) fail(404, 'Proyecto no encontrado.');
+    const [last] = await db.select({
+      kind: s.projectLifecycleEvents.kind,
+      createdAt: s.projectLifecycleEvents.createdAt,
+      reopenUntil: sql<string>`(${s.projectLifecycleEvents.createdAt} + interval '360 hours')::text`,
+      canReopen: sql<boolean>`clock_timestamp() < ${s.projectLifecycleEvents.createdAt} + interval '360 hours'`,
+    }).from(s.projectLifecycleEvents).where(eq(s.projectLifecycleEvents.projectId, projectId))
+      .orderBy(sql`${s.projectLifecycleEvents.eventNo} desc`).limit(1);
+    r.json({ archived: current.archived === 'true', last: last ?? null });
+  });
+
+  app.post('/api/projects/:id/lifecycle', async (q, r) => {
+    if (!globalManage(r.locals.user)) fail(403, 'Solo coordinación puede gestionar el cierre.');
+    const projectId = parse(text, q.params.id);
+    const { action } = parse(z.strictObject({ action: z.enum(['close', 'reopen']) }), q.body);
+    const result = await withReceipt(q, r, async (tx) => {
+      const [current] = await tx.select({ archived: s.projects.archived }).from(s.projects)
+        .where(eq(s.projects.id, projectId)).for('update');
+      if (!current) fail(404, 'Proyecto no encontrado.');
+      const [last] = await tx.select({
+        kind: s.projectLifecycleEvents.kind,
+        canReopen: sql<boolean>`clock_timestamp() < ${s.projectLifecycleEvents.createdAt} + interval '360 hours'`,
+      }).from(s.projectLifecycleEvents).where(eq(s.projectLifecycleEvents.projectId, projectId))
+        .orderBy(sql`${s.projectLifecycleEvents.eventNo} desc`).limit(1);
+      if (action === 'close' && current.archived === 'true')
+        fail(409, 'El proyecto ya está cerrado o archivado.');
+      if (action === 'reopen' && (current.archived !== 'true' || last?.kind !== 'closed' || !last.canReopen))
+        fail(409, 'El proyecto ya no está dentro del plazo de reapertura.');
+      await tx.execute(sql`insert into project_lifecycle_events (project_id,actor_id,kind)
+        values (${projectId}, ${r.locals.user.id}, ${action === 'close' ? 'closed' : 'reopened'})`);
+      return { archived: action === 'close' };
+    });
+    r.json(result);
+  });
+}
 app.patch('/api/projects/:id', async (q, r) => {
   if (!globalManage(r.locals.user)) fail(403, 'Solo coordinación puede modificar proyectos.');
   const { archived, artworkTheme, type } = parse(
