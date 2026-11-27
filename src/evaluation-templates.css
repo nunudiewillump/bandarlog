@@ -247,3 +247,100 @@
     white-space: nowrap;
   }
 }
+
+.evaluation-templates form .evaluation-section-panel {
+  padding: 16px;
+  border: 1px solid #dfe5da;
+  border-radius: 14px;
+  background: #f2f4ec;
+}
+.evaluation-templates form .evaluation-section-panel .evaluation-section-delete {
+  inset-inline-end: 12px;
+  inset-block-start: 1px;
+}
+.evaluation-templates .evaluation-question-card {
+  border: 1px solid #e0e5dc;
+  border-radius: 10px;
+  background: #fff;
+  padding: 8px;
+}
+.evaluation-question-card .evaluation-question-actions {
+  align-items: center;
+  gap: 4px;
+}
+.evaluation-question-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  gap: 8px;
+  min-width: 0;
+  padding-inline: 6px;
+  color: #24352b;
+  background: transparent;
+  text-align: start;
+}
+.evaluation-question-toggle svg {
+  flex: none;
+  color: #a8afa5;
+}
+.evaluation-question-toggle[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+.evaluation-templates .evaluation-question-settings {
+  padding: 8px;
+}
+.evaluation-templates .evaluation-question-settings[hidden] {
+  display: none;
+}
+.evaluation-templates .evaluation-audience-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.evaluation-audience input[role='switch'] {
+  appearance: none;
+  position: relative;
+  width: 48px;
+  height: 26px;
+  margin: 0;
+  border-radius: 999px;
+  border: 1px solid #8b9d85;
+  background: #e2e8dc;
+  cursor: pointer;
+}
+.evaluation-audience input[role='switch']::after {
+  content: '';
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-start: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #124d38;
+}
+.evaluation-audience input[role='switch']:checked {
+  background: #124d38;
+}
+.evaluation-audience input[role='switch']:checked::after {
+  inset-inline-start: 25px;
+  background: #fff;
+}
+.evaluation-templates [data-drag-source] {
+  opacity: .5;
+}
+.evaluation-drag-ghost {
+  position: fixed;
+  inset: 0 auto auto 0;
+  z-index: 120;
+  pointer-events: none;
+  max-width: min(260px, 55vw);
+  padding: 10px 14px;
+  border: 1px solid #21865c;
+  border-radius: 9px;
+  background: #fffefa;
+  color: #103b2d;
+  box-shadow: 0 4px 12px #103b3d26;
+  overflow-wrap: anywhere;
+}

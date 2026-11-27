@@ -56,6 +56,7 @@ export const evaluationStructure = z
         z.strictObject({
           id: key,
           title: label,
+          audience: z.enum(['project', 'commission']).optional(),
           description,
           questions: z.array(question).min(1).max(40),
         }),

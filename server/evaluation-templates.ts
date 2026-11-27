@@ -70,7 +70,15 @@ export function evaluationTemplateRoutes(db: Database) {
     const id = z.uuid().parse(q.params.id);
     const before = z.coerce.number().int().positive().optional().parse(q.query.before);
     const rows = await db
-      .select({ revision: versions.revision, publishedAt: versions.publishedAt })
+      .select({
+        revision: versions.revision,
+        publishedAt: versions.publishedAt,
+        requiresCommission: sql<boolean>`jsonb_path_exists(${versions.structure}, '$.sections[*] ? (@.audience == "commission")')`,
+        projectOnly: sql<boolean>`not exists (
+          select from jsonb_array_elements(${versions.structure}->'sections') as section
+          where section->>'audience' is distinct from 'project'
+        )`,
+      })
       .from(versions)
       .where(and(eq(versions.templateId, id), before ? lt(versions.revision, before) : undefined))
       .orderBy(desc(versions.revision))

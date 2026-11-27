@@ -88,6 +88,13 @@ test('coordination opens the lazy editor, saves and publishes a template on mobi
   await page.getByLabel('Enunciado').fill('¿Qué debemos mantener?');
   await page.getByLabel('Tipo de pregunta').selectOption('longText');
   await page.getByLabel('Obligatoria').check();
+  const audience = page.getByRole('switch', { name: 'Sección 1 para comisiones' });
+  await expect(audience).not.toBeChecked();
+  await audience.check();
+  const disclosure = page.getByRole('button', { name: '¿Qué debemos mantener?' });
+  await disclosure.click();
+  await expect(page.getByLabel('Enunciado')).toBeHidden();
+  await disclosure.click();
   const panel = page.locator('.evaluation-templates');
   await expect(
     panel.getByRole('combobox', {
@@ -118,9 +125,11 @@ test('coordination opens the lazy editor, saves and publishes a template on mobi
   const grip = questions.first().getByRole('button', { name: /Mover pregunta/ });
   await grip.scrollIntoViewIfNeeded();
   const from = (await grip.boundingBox())!;
-  const target = (await questions.nth(1).boundingBox())!;
   await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
   await page.mouse.down();
+  await expect(panel.locator('.evaluation-question-settings:visible')).toHaveCount(0);
+  await expect(page.locator('.evaluation-drag-ghost')).toHaveText('¿Cómo fue la convivencia?');
+  const target = (await questions.nth(1).boundingBox())!;
   await page.mouse.move(target.x + 30, target.y + 28, { steps: 8 });
   await expect(questions.nth(1)).toHaveAttribute('data-drop-target', '');
   await page.mouse.up();
@@ -128,6 +137,7 @@ test('coordination opens the lazy editor, saves and publishes a template on mobi
   await page.setViewportSize({ width: 390, height: 850 });
   await panel.getByRole('button', { name: 'Guardar borrador' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Plantilla guardada.' })).toBeVisible();
+  expect(structure.sections[0].audience).toBe('commission');
   expect(structure.sections[0].questions[0]).toMatchObject({ type: 'longText', required: true });
   expect(structure.sections[0].questions[1]).toMatchObject({
     type: 'singleChoice',

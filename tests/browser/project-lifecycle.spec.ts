@@ -33,14 +33,16 @@ test('coordination closes and reopens a project from its settings', async ({ pag
         },
       });
     if (path === '/api/evaluation-templates/template/versions')
-      return route.fulfill({ json: { items: [{ revision: 1 }], next: null } });
+      return route.fulfill({
+        json: { items: [{ revision: 1, requiresCommission: true }], next: null },
+      });
     if (path === '/api/evaluation-templates/template/versions/1')
       return route.fulfill({
         json: {
           structure: {
             sections: [
-              { id: 'general', title: 'Balance general' },
-              { id: kitchenSection, title: 'Balance de cocina' },
+              { id: 'general', title: 'Balance general', audience: 'project' },
+              { id: kitchenSection, title: 'Balance de cocina', audience: 'commission' },
             ],
           },
         },
@@ -75,8 +77,8 @@ test('coordination closes and reopens a project from its settings', async ({ pag
   await page.getByRole('combobox', { name: 'Acciones de Balance' }).click();
   await page.getByRole('option', { name: 'Usar para cerrar y evaluar' }).click();
   await page.getByLabel('Último día para responder').fill('2099-07-15');
-  await page.getByRole('checkbox', { name: 'Un cuestionario con secciones por comisión' }).check();
-  await expect(page.getByLabel('Balance general')).toHaveValue('');
+  await expect(page.getByLabel('Balance general')).toBeDisabled();
+  await expect(page.getByLabel('Balance de cocina')).toHaveValue('');
   await page.getByLabel('Balance de cocina').selectOption('commission-v2-5');
   await page.getByRole('checkbox', { name: new RegExp(fixture.user.name) }).check();
   await page.getByRole('button', { name: 'Cerrar y evaluar', exact: true }).click();

@@ -1020,9 +1020,9 @@ test('one project questionnaire exposes only the assigned commission sections', 
     id: randomUUID(), title, description: '',
     questions: [{ id: randomUUID(), label: '¿Lo repetirías?', description: '', required: true, type: 'yesNo' }],
   });
-  const general = makeSection('Proyecto completo');
-  const kitchenSection = makeSection('Cocina');
-  const materialSection = makeSection('Material');
+  const general = { ...makeSection('Proyecto completo'), audience: 'project' };
+  const kitchenSection = { ...makeSection('Cocina'), audience: 'commission' };
+  const materialSection = { ...makeSection('Material'), audience: 'commission' };
   const structure = { title: 'Balance por secciones', description: '', sections: [general, kitchenSection, materialSection] };
   const saved = await call('/api/evaluation-templates', 'POST', structure, a);
   assert.equal(saved.status, 201);
@@ -1037,6 +1037,12 @@ test('one project questionnaire exposes only the assigned commission sections', 
     ],
   };
   assert.equal((await call('/api/group-evaluations', 'POST', evaluation, a)).status, 400);
+  assert.equal((await call('/api/evaluation-templates/' + saved.body.id + '/versions', 'GET', undefined, a)).body.items[0].requiresCommission, true);
+  const close = (value: typeof evaluation) => call(route, 'POST', { action: 'close-and-evaluate', evaluation: value }, a);
+  assert.equal((await close({ ...evaluation, sectionScopes: [{ sectionId: kitchenSection.id, commissionId: kitchen }] })).status, 400);
+  assert.equal((await close({ ...evaluation, sectionScopes: [...evaluation.sectionScopes,
+    { sectionId: general.id, commissionId: kitchen },
+  ] })).status, 400);
   assert.equal((await call(route, 'POST', { action: 'close-and-evaluate', evaluation: {
     ...evaluation, sectionScopes: [{ sectionId: kitchenSection.id, commissionId: 'foreign-commission' }],
   } }, a)).status, 400);

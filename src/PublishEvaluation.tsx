@@ -23,7 +23,7 @@ export default function PublishEvaluation({
   commissions?: Commission[];
   memberships?: Data['members'];
   template: { id: string; title: string };
-  versions: { revision: number }[];
+  versions: { revision: number; requiresCommission?: boolean; projectOnly?: boolean }[];
   more: boolean;
   loadMore: () => void;
   busy: boolean;
@@ -40,7 +40,10 @@ export default function PublishEvaluation({
     const today = deadlineDay(new Date().toISOString());
     return new Date(Date.parse(today + 'T00:00:00Z') + 7 * 86_400_000).toISOString().slice(0, 10);
   });
-  const [sectionMode, setSectionMode] = useState(false);
+  const [manualSectionMode, setSectionMode] = useState(false);
+  const currentVersion = versions.find((item) => item.revision === revision);
+  const requiresCommission = currentVersion?.requiresCommission;
+  const sectionMode = manualSectionMode || Boolean(requiresCommission && projectId);
   const [sectionScopes, setSectionScopes] = useState<Record<string, string>>({});
   const [versionStructure, setVersionStructure] = useState<{
     revision: number;
@@ -85,14 +88,16 @@ export default function PublishEvaluation({
         membership.commissionId === sectionScopes[sectionId] && membership.userId === userId,
     );
   const sectionSelectionValid =
-    !sectionMode ||
-    Boolean(
-      sections &&
-      recipients.every((userId) => sections.some(({ id }) => canReceiveSection(userId, id))) &&
-      scopedSections.every(({ sectionId }) =>
-        recipients.some((userId) => canReceiveSection(userId, sectionId)),
-      ),
-    );
+    (!requiresCommission || Boolean(projectId)) &&
+    (!sectionMode ||
+      Boolean(
+        sections &&
+        sections.every(({ id, audience }) => audience !== 'commission' || sectionScopes[id]) &&
+        recipients.every((userId) => sections.some(({ id }) => canReceiveSection(userId, id))) &&
+        scopedSections.every(({ sectionId }) =>
+          recipients.some((userId) => canReceiveSection(userId, sectionId)),
+        ),
+      ));
   const [saving, setSaving] = useState(false);
   const [published, setPublished] = useState(false);
   const [error, setError] = useState('');
@@ -215,6 +220,8 @@ export default function PublishEvaluation({
                       setRevision(Number(event.target.value));
                       setVersionError('');
                       setSectionScopes({});
+                      setCommissionId('');
+                      setSelections({});
                     }
                   }}
                 >
@@ -250,7 +257,12 @@ export default function PublishEvaluation({
                   <option value="collective">Colectiva</option>
                 </select>
               </label>
-              {projectId && projectCommissions.length > 0 && (
+              {requiresCommission && !projectId && (
+                <p role="status">
+                  Esta versión tiene secciones de comisión. Úsala al cerrar un proyecto.
+                </p>
+              )}
+              {projectId && projectCommissions.length > 0 && !requiresCommission && (
                 <label className="evaluation-checkbox">
                   <input
                     type="checkbox"
@@ -265,6 +277,9 @@ export default function PublishEvaluation({
                   />
                   Un cuestionario con secciones por comisión
                 </label>
+              )}
+              {requiresCommission && projectId && !projectCommissions.length && (
+                <p role="status">Añade una comisión al proyecto para asignar estas secciones.</p>
               )}
               {sectionMode && (
                 <fieldset className="evaluation-section">
@@ -294,18 +309,24 @@ export default function PublishEvaluation({
                       <label key={section.id}>
                         {section.title}
                         <select
+                          disabled={section.audience === 'project'}
                           value={sectionScopes[section.id] ?? ''}
                           onChange={(event) => {
                             const scope = event.target.value;
                             setSectionScopes((current) => ({ ...current, [section.id]: scope }));
                           }}
                         >
-                          <option value="">Proyecto completo</option>
-                          {projectCommissions.map(({ id, name }) => (
-                            <option key={id} value={id}>
-                              {name}
-                            </option>
-                          ))}
+                          <option value="" disabled={section.audience === 'commission'}>
+                            {section.audience === 'commission'
+                              ? 'Selecciona una comisión'
+                              : 'Proyecto completo'}
+                          </option>
+                          {section.audience !== 'project' &&
+                            projectCommissions.map(({ id, name }) => (
+                              <option key={id} value={id}>
+                                {name}
+                              </option>
+                            ))}
                         </select>
                       </label>
                     ))
@@ -326,11 +347,12 @@ export default function PublishEvaluation({
                     onChange={(event) => setCommissionId(event.target.value)}
                   >
                     <option value="">Proyecto completo ({selections['']?.length ?? 0})</option>
-                    {projectCommissions.map((commission) => (
-                      <option key={commission.id} value={commission.id}>
-                        {commission.name} ({selections[commission.id]?.length ?? 0})
-                      </option>
-                    ))}
+                    {!currentVersion?.projectOnly &&
+                      projectCommissions.map((commission) => (
+                        <option key={commission.id} value={commission.id}>
+                          {commission.name} ({selections[commission.id]?.length ?? 0})
+                        </option>
+                      ))}
                   </select>
                 </label>
               )}

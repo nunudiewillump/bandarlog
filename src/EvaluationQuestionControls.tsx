@@ -5,10 +5,14 @@ export function QuestionHandle({
   position,
   count,
   onMove,
+  onDragChange,
+  title,
 }: {
   position: number;
   count: number;
   onMove: (position: number) => void;
+  onDragChange: (active: boolean) => void;
+  title: string;
 }) {
   const drag = useRef<{
     pointer: number;
@@ -18,13 +22,18 @@ export function QuestionHandle({
     target: HTMLElement | null;
     scroll: HTMLElement;
     frame: number;
+    ghost: HTMLDivElement;
+    source: HTMLElement;
   } | null>(null);
 
   function stop() {
     if (!drag.current) return;
     cancelAnimationFrame(drag.current.frame);
     drag.current.target?.removeAttribute('data-drop-target');
+    drag.current.ghost.remove();
+    drag.current.source.removeAttribute('data-drag-source');
     drag.current = null;
+    onDragChange(false);
   }
   useEffect(() => stop, []);
 
@@ -46,6 +55,15 @@ export function QuestionHandle({
         : Math.min(window.innerHeight, active.scroll.getBoundingClientRect().bottom);
     if (active.y < top + 48) active.scroll.scrollTop -= 14;
     else if (active.y > bottom - 48) active.scroll.scrollTop += 14;
+    const x = Math.max(
+      8,
+      Math.min(active.x + 12, window.innerWidth - active.ghost.offsetWidth - 8),
+    );
+    const y = Math.max(
+      8,
+      Math.min(active.y + 12, window.innerHeight - active.ghost.offsetHeight - 8),
+    );
+    active.ghost.style.transform = `translate(${x}px, ${y}px)`;
     const target = targetAt(active.list, active.x, active.y);
     if (target !== active.target) {
       active.target?.removeAttribute('data-drop-target');
@@ -58,13 +76,23 @@ export function QuestionHandle({
   function start(event: PointerEvent<HTMLButtonElement>) {
     if (event.button !== 0 || count < 2 || drag.current) return;
     const list = event.currentTarget.closest<HTMLElement>('[data-question-list]');
-    if (!list || !(document.scrollingElement instanceof HTMLElement)) return;
+    const source = event.currentTarget.closest<HTMLElement>('[data-question-position]');
+    if (!list || !source || !(document.scrollingElement instanceof HTMLElement)) return;
+    const ghost = document.createElement('div');
+    ghost.className = 'evaluation-drag-ghost';
+    ghost.textContent = title;
+    ghost.setAttribute('aria-hidden', 'true');
+    document.body.append(ghost);
+    source.setAttribute('data-drag-source', '');
+    onDragChange(true);
     let scroll = list.parentElement;
     while (scroll && !/auto|scroll/.test(getComputedStyle(scroll).overflowY))
       scroll = scroll.parentElement;
     event.currentTarget.setPointerCapture(event.pointerId);
     drag.current = {
       pointer: event.pointerId,
+      ghost,
+      source,
       x: event.clientX,
       y: event.clientY,
       list,
