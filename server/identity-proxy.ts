@@ -6,6 +6,9 @@ export function identityPath(path: string) {
     /^\/api\/platform\/(?:auth\/(?:config|code\/(?:request|verify)|google\/start)|me|logout|overview|metrics|groups(?:\/[a-zA-Z0-9-]{1,100})?|requests(?:\/[a-f0-9]{64}(?:\/review)?)?|access|mail|audit|preview|test-mail)$/.test(
       path,
     ) ||
+    /^\/api\/platform\/(?:feedback(?:\/[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12})?|campaigns\/(?:F0[1-3]|C-[a-f0-9]{32})|campaign-library(?:\/C-[a-f0-9]{32}\/[1-9]\d*(?:\/results)?)?|insights\/segments)$/.test(
+      path,
+    ) ||
     /^(?:\/g\/[a-f0-9]{32})?\/api\/auth\/(?:request|verify|config|code\/(?:request|verify)|google\/(?:start|callback|return|resume))$/.test(
       path,
     ) ||
