@@ -1,3 +1,4 @@
+import { HomeNotice } from './HomeNotice';
 import { HomeTaskAction } from './HomeTaskAction';
 import { taskHaptic } from './haptics';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -153,12 +154,10 @@ export function TutorialInvitation({
   }, [eligible, shown, tutorial.perform]);
   if (!eligible) return null;
   return (
-    <section ref={element} className="panel tutorial-invite" aria-label="Tu primera misión">
-      <div>
-        <h2>Tu primera misión</h2>
-        <p>Descubre Bandarlog practicando · 2–3 minutos</p>
-      </div>
-      <div className="tutorial-invite-actions">
+    <HomeNotice ref={element} className="tutorial-invite" aria-label="Tu primera misión">
+      <h2>Tu primera misión</h2>
+      <p>Descubre Bandarlog practicando · 2–3 minutos</p>
+      <div className="home-notice-actions">
         <button className="primary" disabled={tutorial.busy} onClick={onStart}>
           Empezar
         </button>
@@ -175,7 +174,7 @@ export function TutorialInvitation({
           {tutorial.error}
         </p>
       )}
-    </section>
+    </HomeNotice>
   );
 }
 function TutorialCelebration({

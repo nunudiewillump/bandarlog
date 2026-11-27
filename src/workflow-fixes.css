@@ -101,10 +101,6 @@ body,
   flex-wrap: wrap;
   gap: 12px;
 }
-.notification-prompt {
-  width: 100%;
-  margin: 0 0 24px;
-}
 .sync-status {
   position: sticky;
   top: 0;

@@ -1,0 +1,57 @@
+.home-notices {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding-bottom: 8px;
+}
+
+.home-notices:not(:has(> *)) {
+  display: none;
+}
+
+.home-notices > .home-notice {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 16px 20px 24px;
+  border: 1px solid #dfe5da;
+  border-radius: 12px;
+  background: #fffefa;
+  color: #24352b;
+}
+
+.home-notices > .welcome-invitation {
+  padding: 22px clamp(18px, 4vw, 30px) 30px;
+}
+
+.home-notice h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.welcome-invitation h2 {
+  margin-bottom: 14px;
+  font-size: 26px;
+  line-height: 1.22;
+}
+
+.home-notice > p {
+  max-width: 65ch;
+  margin: 0 0 12px;
+}
+
+.home-notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px 12px;
+  margin-top: 12px;
+}
+
+.home-notice-actions button {
+  min-height: 44px;
+}
+
+.home-notice > [role='alert'] {
+  margin: 12px 0 0;
+}

@@ -128,6 +128,9 @@ test('an optional follow-up survey opens from Inicio and sends explicit ratings'
   });
   await page.setViewportSize({ width: 390, height: 850 });
   await page.goto('/acceso');
+  await expect(page.locator('.home-notices > .home-notice').filter({
+    has: page.getByRole('button', { name: 'Dar mi opinión' }),
+  })).toBeVisible();
   await page.getByRole('button', { name: 'Dar mi opinión' }).click();
   const survey = page.getByRole('region', { name: '¿Cómo te está funcionando Bandarlog?' });
   const scales = survey.getByRole('combobox');
