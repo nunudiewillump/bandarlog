@@ -1065,8 +1065,9 @@ test('one project questionnaire exposes only the assigned commission sections', 
 async function assertWelcomeIsolation(a: Session, b: Session) {
   const path = '/api/welcome-presentation';
   const empty = { viewedAt: null, completedAt: null, skippedAt: null, reopenedAt: null };
+  const history = ({ adoption: _adoption, ...progress }: any) => progress;
   assert.equal((await call(path)).status, 401);
-  assert.deepEqual((await call(path, 'GET', undefined, a)).body, empty);
+  assert.deepEqual(history((await call(path, 'GET', undefined, a)).body), empty);
   assert.equal((await call(path, 'POST', { action: 'view' }, { ...a, csrf: '' })).status, 403);
   assert.equal((await call(path, 'POST', { action: 'view' }, b)).status, 409);
   assert.equal((await call('/api/onboarding', 'POST', { name: 'Alex' }, b)).status, 200);
@@ -1078,7 +1079,18 @@ async function assertWelcomeIsolation(a: Session, b: Session) {
   assert.ok(reopened.body.reopenedAt);
   assert.equal(reopened.body.completedAt, complete.body.completedAt);
   assert.deepEqual((await call(path, 'POST', { action: 'complete' }, a)).body, reopened.body);
-  assert.deepEqual((await call(path, 'GET', undefined, b)).body, empty);
+  assert.deepEqual(history((await call(path, 'GET', undefined, b)).body), empty);
+  const explored = await call(path, 'POST', { action: 'choice_explore' }, a);
+  assert.equal(explored.status, 200);
+  assert.equal(explored.body.adoption.founder, true);
+  assert.ok(explored.body.adoption.events.first_choice);
+  assert.equal(explored.body.adoption.events.guide_started, undefined);
+  const prepared = await call(path, 'POST', { action: 'choice_prepare' }, a);
+  assert.equal(prepared.status, 200);
+  assert.ok(prepared.body.adoption.events.guide_started);
+  assert.equal(prepared.body.adoption.events.first_choice, explored.body.adoption.events.first_choice);
+  assert.equal(prepared.body.completedAt, complete.body.completedAt);
+  assert.equal((await call(path, 'GET', undefined, b)).body.adoption.events.first_choice, undefined);
   const skipped = await call(path, 'POST', { action: 'skip' }, b);
   assert.ok(skipped.body.skippedAt);
   assert.equal(skipped.body.completedAt, null);

@@ -306,7 +306,7 @@ export function platformAdminRoutes(
   });
   router.get('/api/platform/me', async (q, r) => {
     const actor = await ops.adminMe(token(q));
-    r.json({ ...actor, productFeedbackEnabled: process.env.PRODUCT_FEEDBACK_ENABLED === 'true' || process.env.PRODUCT_CAMPAIGNS_ENABLED === 'true' });
+    r.json({ ...actor, adoptionInsightsEnabled: true, productFeedbackEnabled: process.env.PRODUCT_FEEDBACK_ENABLED === 'true' || process.env.PRODUCT_CAMPAIGNS_ENABLED === 'true' });
   });
   router.post('/api/platform/logout', async (q, r) => {
     await ops.adminClose(token(q), csrf(q));
@@ -333,6 +333,14 @@ export function platformAdminRoutes(
       );
       r.json(view === 'mail' ? { ...result, preview: platformPreview(origin) } : result);
     });
+  router.get('/api/platform/insights/adoption', async (q, r) => {
+    const input = z.strictObject({
+      days: z.enum(['0','7','30','90']).default('30'),
+      role: z.enum(['','member','coordination','admin']).default(''),
+      version: z.enum(['1']).default('1'),
+    }).parse(q.query);
+    r.json(await ops.adoptionInsights(token(q), Number(input.days), input.role, Number(input.version)));
+  });
   const campaignsEnabled = process.env.PRODUCT_CAMPAIGNS_ENABLED === 'true';
   if (campaignsEnabled) router.post('/api/platform/campaigns/:campaign', async (q,r) => {
     const campaign = z.string().regex(/^(?:F0[1-3]|C-[a-f0-9]{32})$/).parse(q.params.campaign);

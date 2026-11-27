@@ -828,3 +828,13 @@ input[type='checkbox'] {
 .feedback-toolbar input[type='search'] {
   width: 100%;
 }
+
+.adoption-funnel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.adoption-funnel progress {
+  width: clamp(50px, 12vw, 150px);
+  accent-color: #124d38;
+}

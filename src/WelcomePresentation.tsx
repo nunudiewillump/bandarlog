@@ -205,7 +205,8 @@ export default function WelcomePresentation({
   pending,
   error,
   onClose,
-  onComplete,
+  onChoice,
+  canPrepare,
 }: {
   origin: 'home' | 'profile';
   group?: ScoutGroup;
@@ -213,7 +214,8 @@ export default function WelcomePresentation({
   pending: boolean;
   error: string;
   onClose: () => void;
-  onComplete: () => void;
+  onChoice: (choice: 'choice_prepare' | 'choice_explore' | 'choice_replay') => Promise<boolean>;
+  canPrepare: boolean;
 }) {
   const [step, setStep] = useState(0);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -263,7 +265,7 @@ export default function WelcomePresentation({
       <div className="welcome-spread">
         <section className="welcome-copy" key={step}>
           <h1 id="welcome-heading" ref={heading} tabIndex={-1}>
-            {titles[step]}
+            {step === 6 ? '¡Esto solo acaba de empezar!' : titles[step]}
           </h1>
           {copy[step].map((paragraph) => (
             <p key={paragraph}>{paragraph}</p>
@@ -310,20 +312,26 @@ export default function WelcomePresentation({
               Anterior
             </button>
           )}
-          {step === 6 && origin === 'profile' && (
-            <button type="button" className="secondary" disabled={pending} onClick={onClose}>
-              Volver a Perfil
-            </button>
-          )}
         </div>
-        <button
-          type="button"
-          className="primary"
-          disabled={step === 6 && pending}
-          onClick={step === 6 ? onComplete : () => setStep(step + 1)}
-        >
-          {step === 6 ? '¡Vamos allá!' : 'Siguiente'}
-        </button>
+        {step < 6 ? (
+          <button type="button" className="primary" onClick={() => setStep(step + 1)}>Siguiente</button>
+        ) : (
+          <div className="welcome-choices">
+            <p>Cada grupo tiene su ritmo. ¿Qué te apetece hacer ahora?</p>
+            {canPrepare && (
+              <div><button type="button" className="primary" disabled={pending}
+                onClick={() => void onChoice('choice_prepare')}>Preparar mi grupo</button>
+                <p>Vamos a organizar vuestro espacio de trabajo.</p></div>
+            )}
+            <div><button type="button" className="secondary" disabled={pending}
+              onClick={() => void onChoice('choice_explore')}>Explorar la herramienta</button>
+              <p>Descubre Bandarlog a tu ritmo.</p></div>
+            <div><button type="button" className="secondary" disabled={pending}
+              onClick={async () => { if (await onChoice('choice_replay')) setStep(0); }}>
+              Volver a ver la bienvenida
+            </button><p>¿Se lo enseñamos al resto del Kraal?</p></div>
+          </div>
+        )}
       </footer>
     </dialog>
   );

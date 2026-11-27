@@ -35,16 +35,10 @@ test('existing account can finish the seven steps, reload and replay from profil
   const before = await page.request.get('/api/tutorial').then((response) => response.json());
   expect(before.events.tutorial_completed).toBeTruthy();
   await page.goto('/');
-  const invitation = page.locator('.home-notices > .home-notice.welcome-invitation');
-  for (const width of [390, 1440]) {
-    await page.setViewportSize({ width, height: 900 });
-    await expect(invitation).toHaveCSS('padding-bottom', '30px');
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth))
-      .toBeLessThanOrEqual(width);
-  }
-  await expect(page.locator('.home-heading + .home-notices + .desktop-home')).toBeVisible();
-  await page.setViewportSize({ width: 390, height: 900 });
-  await page.getByRole('button', { name: 'Ver presentación', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Ver presentación', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Mi perfil', exact: true }).first().click();
+  await page.locator('.profile-help > summary').click();
+  await page.getByRole('button', { name: 'Ver presentación de Bandarlog' }).click();
   const dialog = page.getByRole('dialog');
   const captures = process.env.WELCOME_SCREENSHOTS || info.outputPath('welcome');
   await mkdir(captures, { recursive: true });
@@ -68,7 +62,7 @@ test('existing account can finish the seven steps, reload and replay from profil
       await dialog.getByRole('button', { name: 'Completar', exact: true }).click();
       await expect(dialog.locator('.mobile-task-row.done')).toBeVisible();
     }
-    await dialog.getByRole('button', { name: step === 7 ? '¡Vamos allá!' : 'Siguiente' }).click();
+    await dialog.getByRole('button', { name: step === 7 ? 'Explorar la herramienta' : 'Siguiente' }).click();
   }
   await expect(dialog).toHaveCount(0);
   await page.reload();
@@ -88,8 +82,8 @@ test('existing account can finish the seven steps, reload and replay from profil
   );
 });
 
-test('the new administrator is offered the presentation only after the setup guide', async ({
-  page,
+test('the founder can explore, replay, dismiss preparation and start it from profile', async ({
+  page, browser,
 }, info) => {
   const name = 'Grupo Ribera';
   const email = 'welcome-founder-' + Date.now() + '@example.test';
@@ -132,18 +126,8 @@ test('the new administrator is offered the presentation only after the setup gui
   await expect(page.getByRole('heading', { name: '¿Cómo te llamamos?' })).toBeVisible();
   await expect(page.getByText('¡Descubre Bandarlog en 2 minutos!')).toHaveCount(0);
   await page.getByRole('button', { name: 'Continuar', exact: true }).click();
-  await expect(page.getByRole('region', { name: 'Puesta en marcha del grupo' })).toBeVisible();
-  await expect(page.getByText('¡Descubre Bandarlog en 2 minutos!')).toHaveCount(0);
-  const { csrf } = await page.request.get(base + '/api/me').then((reply) => reply.json());
-  expect(
-    (
-      await page.request.patch(base + '/api/profile', {
-        headers: { ...headers, 'X-CSRF-Token': csrf },
-        data: { adminGuideCompleted: true },
-      })
-    ).ok(),
-  ).toBeTruthy();
-  await page.reload();
+  await expect(page.getByRole('region', { name: 'Puesta en marcha del grupo' })).toHaveCount(0);
+  await expect(page.locator('.home-notices > .welcome-invitation')).toHaveCSS('padding-bottom', '30px');
   await page.getByRole('button', { name: 'Ver presentación', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByText(name)).toBeVisible();
@@ -171,8 +155,47 @@ test('the new administrator is offered the presentation only after the setup gui
     path: join(captures, 'pañoleta-grupo-nuevo.png'),
     animations: 'disabled',
   });
-  await dialog.getByRole('button', { name: 'Omitir' }).click();
+  for (let i = 1; i < 6; i++) await dialog.getByRole('button', { name: 'Siguiente' }).click();
+  await expect(dialog.getByRole('heading', { name: '¡Esto solo acaba de empezar!' })).toBeVisible();
+  await dialog.screenshot({ path: join(captures, 'bienvenida-elecciones-escritorio.png') });
+  await page.setViewportSize({ width: 390, height: 900 });
+  await dialog.screenshot({ path: join(captures, 'bienvenida-elecciones-movil.png') });
+  await dialog.getByRole('button', { name: 'Volver a ver la bienvenida' }).click();
+  await expect(dialog.getByText('Paso 1 de 7')).toBeVisible();
+  for (let i = 0; i < 6; i++) await dialog.getByRole('button', { name: 'Siguiente' }).click();
+  await dialog.getByRole('button', { name: 'Explorar la herramienta' }).click();
   await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: '¿Empezamos la aventura?' })).toBeVisible();
   await page.reload();
-  await expect(page.getByRole('button', { name: 'Ver presentación', exact: true })).toHaveCount(0);
+  const preparation = page.getByRole('region', { name: '¿Empezamos la aventura?' });
+  await expect(preparation).toBeVisible();
+  await preparation.screenshot({ path: join(captures, 'invitacion-preparar-grupo.png') });
+  await preparation.getByRole('button', { name: 'Ahora no' }).click();
+  await expect(preparation).toHaveCount(0);
+  await page.reload();
+  await expect(preparation).toHaveCount(0);
+  const anotherDevice = await browser.newContext({ baseURL: 'http://127.0.0.1:5174' });
+  try {
+    await anotherDevice.addCookies(await page.context().cookies());
+    const fresh = await anotherDevice.newPage();
+    await fresh.goto(base + '/');
+    await expect(fresh.locator('.desktop-home')).toBeVisible();
+    await expect(fresh.getByRole('heading', { name: '¿Empezamos la aventura?' })).toHaveCount(0);
+    await expect(fresh.getByRole('button', { name: 'Ver presentación', exact: true })).toHaveCount(0);
+    await expect(fresh.locator('.admin-setup-guide')).toHaveCount(0);
+  } finally {
+    await anotherDevice.close();
+  }
+  await page.getByRole('button', { name: 'Mi perfil', exact: true }).first().click();
+  await page.locator('.profile-help > summary').click();
+  await page.getByRole('button', { name: 'Ver presentación de Bandarlog' }).click();
+  for (let i = 0; i < 6; i++) await dialog.getByRole('button', { name: 'Siguiente' }).click();
+  await dialog.getByRole('button', { name: 'Preparar mi grupo' }).click();
+  await expect(page.locator('.admin-setup-guide')).toBeVisible();
+  await expect(page.locator('.mobile-focus')).toBeVisible();
+  const history = await page.request.get(base + '/api/welcome-presentation').then((result) => result.json());
+  expect(history.adoption.events).toMatchObject({
+    choice_replay: expect.any(String), choice_explore: expect.any(String),
+    choice_prepare: expect.any(String), guide_started: expect.any(String),
+  });
 });

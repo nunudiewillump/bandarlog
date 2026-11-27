@@ -23,6 +23,8 @@ async function fixture(page: Page, { role = 'member', onboarded = true } = {}) {
   const state = mobileFixture();
   state.user.role = role;
   state.user.onboardingCompletedAt = onboarded ? '2026-10-28T00:00:00Z' : null;
+  const group = { id: 'tutorial-fixture', privateId: '', name: 'Grupo de prueba',
+    colorPrimary: '#124d38', colorSecondary: '#c8b58a', plan: 'free' };
   let progress = emptyTutorial();
   const calls: { path: string; body: any }[] = [];
   await page.route('**/api/**', async (route) => {
@@ -34,7 +36,11 @@ async function fixture(page: Page, { role = 'member', onboarded = true } = {}) {
       return route.fulfill({
         json: { user: state.user, csrf: 'tutorial-fixture', development: false },
       });
-    if (path === '/api/data') return route.fulfill({ json: state.summary() });
+    if (path === '/api/data') return route.fulfill({ json: { ...state.summary(), group } });
+    if (path === '/api/welcome-presentation') return route.fulfill({ json: {
+      adoption: { founder: false, management: role !== 'member', legacyGuideDone: false,
+        events: { mission_eligible: '2026-11-01T00:00:00Z' } },
+    } });
     if (path === '/api/tutorial' && request.method() === 'GET')
       return route.fulfill({ json: progress });
     if (path === '/api/tutorial') {
@@ -97,6 +103,10 @@ test('existing user discovers the real persisted tutorial at 320px, with no real
   page.on('request', (r) => {
     if (!['GET', 'HEAD'].includes(r.method()) && new URL(r.url()).pathname.startsWith('/api/'))
       mutations.push({ path: new URL(r.url()).pathname, body: r.postDataJSON() });
+  });
+  const session = await page.request.get('/api/me').then((r) => r.json());
+  await page.request.post('/api/tutorial', {
+    headers: { 'X-CSRF-Token': session.csrf }, data: { action: 'shown' },
   });
   const before = await page.request.get('/api/data').then((r) => r.json());
   await page.goto('/acceso');

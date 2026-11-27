@@ -475,3 +475,15 @@
     animation: none !important;
   }
 }
+
+.welcome-actions > .welcome-choices {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 12px;
+}
+
+.welcome-choices > div {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+}

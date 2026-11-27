@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import type { WelcomeAction, WelcomeProgress } from '../shared/welcome-presentation';
 import { api } from './api';
+import type { AdoptionAction, AdoptionState } from '../shared/adoption';
+type Progress = WelcomeProgress & { adoption?: AdoptionState };
 
 type Origin = 'home' | 'profile';
 
 export function useWelcomePresentation(scope: string) {
-  const [progress, setProgress] = useState<{ scope: string; value: WelcomeProgress }>();
+  const [progress, setProgress] = useState<{ scope: string; value: Progress }>();
   const [opened, setOpened] = useState<{ scope: string; origin: Origin }>();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
@@ -27,7 +29,7 @@ export function useWelcomePresentation(scope: string) {
       if (writing.current || !navigator.onLine) return;
       const current = operation.current;
       void api('/welcome-presentation')
-        .then((value: WelcomeProgress) => {
+        .then((value: Progress) => {
           if (active && latestScope.current === scope && operation.current === current)
             setProgress({ scope, value });
         })
@@ -47,14 +49,14 @@ export function useWelcomePresentation(scope: string) {
   const origin = opened?.scope === scope ? opened.origin : undefined;
   const history = progress?.scope === scope ? progress.value : undefined;
 
-  async function save(action: WelcomeAction) {
+  async function save(action: WelcomeAction | AdoptionAction) {
     if (writing.current) return false;
     writing.current = true;
     const current = ++operation.current;
     setError('');
     setPending(true);
     try {
-      const value: WelcomeProgress = await api('/welcome-presentation', 'POST', { action });
+      const value: Progress = await api('/welcome-presentation', 'POST', { action });
       if (latestScope.current !== scope || operation.current !== current) return false;
       setProgress({ scope, value });
       return true;
@@ -109,5 +111,8 @@ export function useWelcomePresentation(scope: string) {
     finish,
     dismiss,
     skip: () => void save('skip'),
+    adoption: history?.adoption,
+    record: save,
+    close,
   };
 }
