@@ -1,3 +1,4 @@
+import { HomeNotice } from './HomeNotice';
 import { useWelcomePresentation } from './useWelcomePresentation';
 import { ProjectLifecycle } from './ProjectLifecycle';
 import { TaskEvaluationOrigin } from './TaskEvaluationOrigin';
@@ -1171,6 +1172,35 @@ function App() {
       </section>
     );
   };
+  const desktopHomeHeading = () => {
+    const canCreate = data.commissions.some((c) =>
+      (!project || c.projectId === project) && canManage(c.id) && pOf(c)?.archived !== 'true',
+    );
+    return (
+      <div className="page-heading home-heading desktop-only">
+        <h1>Inicio</h1>
+        <div className="heading-filters">
+          <Select
+            aria-label="Filtrar proyecto"
+            value={project}
+            onChange={(e) => setProject(e.target.value)}
+          >
+            <option value="">Todos los proyectos</option>
+            {data.projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </Select>
+          {canCreate && (
+            <button className="primary" onClick={() => setModal('task')}>
+              <Plus size={18} /> Nueva tarea
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
   const desktopHome = () => {
     const commissions = data.commissions.filter((c) => !project || c.projectId === project);
     const ids = new Set(commissions.map((c) => c.id));
@@ -1191,7 +1221,6 @@ function App() {
       me!,
     );
     const personal = focus.level === 'personal';
-    const canCreate = commissions.some((c) => canManage(c.id) && pOf(c)?.archived !== 'true');
     const ownCommissions = commissions.filter((c) => focus.ownCommissions.has(c.id));
     const context =
       focusData.tasks.length > 0 || commissions.length > 0 || data.projects.length > 0;
@@ -1202,28 +1231,6 @@ function App() {
     );
     return (
       <section className="desktop-focus" data-focus-level={focus.level} data-holding={satisfaction}>
-        <div className="page-heading home-heading">
-          <h1>Inicio</h1>
-          <div className="heading-filters">
-            <Select
-              aria-label="Filtrar proyecto"
-              value={project}
-              onChange={(e) => setProject(e.target.value)}
-            >
-              <option value="">Todos los proyectos</option>
-              {data.projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </Select>
-            {canCreate && (
-              <button className="primary" onClick={() => setModal('task')}>
-                <Plus size={18} /> Nueva tarea
-              </button>
-            )}
-          </div>
-        </div>
         <div className="desktop-home-columns">
           <div>
           <section className="desktop-priority">
@@ -1727,9 +1734,6 @@ function App() {
             </div>
           </header>
           <main className="main">
-            {!['profile', 'settings', 'tutorial'].includes(view) &&
-              !showAdminGuide &&
-              !showAdminPreview && !showEvaluationTemplates && !showGroupEvaluations && <DeviceNotifications userId={me.id} firstVisit />}
             <div className="mobile-page-title">
               {
                 (
@@ -1795,25 +1799,6 @@ function App() {
                 }}
               />
             )}
-            {welcomeEligible && welcome.visible && (
-              <section className="panel welcome-invitation" aria-labelledby="welcome-invitation-title">
-                <h2 id="welcome-invitation-title">¡Descubre Bandarlog en 2 minutos!</h2>
-                <div className="action-pair">
-                  <button type="button" className="primary" disabled={welcome.pending} onClick={(event) => welcome.open('home', event)}>Ver presentación</button>
-                  <button type="button" className="secondary" disabled={welcome.pending} onClick={welcome.skip}>Ahora no</button>
-                </div>
-                {welcome.error && !welcome.origin && <p role="alert">{welcome.error}</p>}
-              </section>
-            )}
-            {view === 'home' && !showAdminGuide && !showAdminPreview && !showGroupEvaluations && (
-              <TutorialInvitation
-                tutorial={tutorial}
-                onStart={() => {
-                  setRestartTutorial(false);
-                  navigate('tutorial');
-                }}
-              />
-            )}
             {view === 'tutorial' &&
               (tutorial.progress ? (
                 <TutorialMission
@@ -1835,7 +1820,44 @@ function App() {
               ))}
             {view === 'home' && !showAdminGuide && !showAdminPreview && !showGroupEvaluations && (
               <>
-                {productCampaignsEnabled && <Suspense fallback={null}><ProductSurvey key={me.id} /></Suspense>}
+                {desktopHomeHeading()}
+                <div className="home-notices">
+                  {welcomeEligible && welcome.visible && (
+                    <HomeNotice
+                      className="welcome-invitation"
+                      aria-labelledby="welcome-invitation-title"
+                    >
+                      <h2 id="welcome-invitation-title">¡Descubre Bandarlog en 2 minutos!</h2>
+                      <div className="home-notice-actions">
+                        <button
+                          type="button"
+                          className="primary"
+                          disabled={welcome.pending}
+                          onClick={(event) => welcome.open('home', event)}
+                        >
+                          Ver presentación
+                        </button>
+                        <button type="button" className="secondary" disabled={welcome.pending} onClick={welcome.skip}>
+                          Ahora no
+                        </button>
+                      </div>
+                      {welcome.error && !welcome.origin && <p role="alert">{welcome.error}</p>}
+                    </HomeNotice>
+                  )}
+                  <TutorialInvitation
+                    tutorial={tutorial}
+                    onStart={() => {
+                      setRestartTutorial(false);
+                      navigate('tutorial');
+                    }}
+                  />
+                  <DeviceNotifications userId={me.id} firstVisit />
+                  {productCampaignsEnabled && (
+                    <Suspense fallback={null}>
+                      <ProductSurvey key={me.id} />
+                    </Suspense>
+                  )}
+                </div>
                 <div className="desktop-home">{desktopHome()}</div>
                 <div className="mobile-only">
                   <MobileHome

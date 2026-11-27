@@ -1,3 +1,4 @@
+import { HomeNotice } from './HomeNotice';
 import { useEffect, useState, type FormEvent } from 'react';
 import { api } from './api';
 import './evaluation-templates.css';
@@ -88,7 +89,7 @@ export default function ProductSurvey() {
       current = false;
     };
   }, []);
-  if (!offer) return message ? <p role="status">{message}</p> : null;
+  if (!offer) return message ? <HomeNotice role="status">{message}</HomeNotice> : null;
   const { id, campaign, configuration } = offer;
   async function send(body: Record<string, unknown>, confirmation: string) {
     if (busy) return;
@@ -131,12 +132,12 @@ export default function ProductSurvey() {
     );
   }
   return (
-    <section className="panel evaluation-templates" aria-labelledby="product-survey-title">
+    <HomeNotice className="evaluation-templates" aria-labelledby="product-survey-title">
       <h2 id="product-survey-title">{configuration?.title ?? titles[campaign]}</h2>
       {!expanded ? (
         <>
           <p>Dar tu opinión es voluntario. {!configuration && durations[campaign] + '.'}</p>
-          <div className="evaluation-controls">
+          <div className="home-notice-actions evaluation-controls">
             <button type="button" className="primary" onClick={() => setExpanded(true)}>
               Dar mi opinión
             </button>
@@ -259,6 +260,6 @@ export default function ProductSurvey() {
         </form>
       )}
       {error && <p role="alert">{error}</p>}
-    </section>
+    </HomeNotice>
   );
 }

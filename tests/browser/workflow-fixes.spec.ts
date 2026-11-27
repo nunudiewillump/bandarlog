@@ -22,11 +22,9 @@ async function login(page: Page, origin = 'http://127.0.0.1:5174') {
   await expect(
     page.getByRole('heading', { name: /^(Todas las tareas|Mis tareas)$/ }),
   ).toBeVisible();
-  const prompt = page.getByRole('button', { name: 'Ahora no', exact: true });
-  await prompt.click();
   await expect(
-    page.getByRole('heading', { name: /^(Todas las tareas|Mis tareas)$/ }),
-  ).toBeVisible();
+    page.getByRole('region', { name: 'Notificaciones en este dispositivo', exact: true }),
+  ).toHaveCount(0);
 }
 async function choose(page: Page, label: string, option: RegExp) {
   await page.getByLabel(label, { exact: true }).click();
@@ -223,6 +221,8 @@ test('native notification permission follows a click and a device can be enabled
       registration as unknown as ServiceWorkerRegistration;
   });
   await login(page);
+  await page.goto('/');
+  await expect(page.locator('.home-notices > .home-notice.notification-prompt')).toBeVisible();
   expect(await page.evaluate(() => (window as any).permissionRequests)).toBe(0);
   await page.goto('/?view=profile');
   await page.getByText('Preferencias', { exact: true }).click();

@@ -1,3 +1,4 @@
+import { HomeNotice } from './HomeNotice';
 import { useEffect, useState } from 'react';
 import { api } from './api';
 export function DeviceNotifications({
@@ -111,9 +112,10 @@ export function DeviceNotifications({
     }
   }
   if (firstVisit && !show) return null;
+  const Surface = firstVisit ? HomeNotice : 'section';
   return (
-    <section
-      className={`device-notifications ${firstVisit ? 'notification-prompt' : ''}`}
+    <Surface
+      className={firstVisit ? 'notification-prompt' : 'device-notifications'}
       aria-label="Notificaciones en este dispositivo"
     >
       <h2>
@@ -129,7 +131,7 @@ export function DeviceNotifications({
       )}
       {!supported && <p>Este navegador no admite notificaciones push.</p>}
       {error && <p role="alert">{error}</p>}
-      <div className="notice-actions">
+      <div className={firstVisit ? 'home-notice-actions' : 'notice-actions'}>
         <button
           className="primary"
           disabled={busy || !supported}
@@ -143,6 +145,6 @@ export function DeviceNotifications({
           </button>
         )}
       </div>
-    </section>
+    </Surface>
   );
 }

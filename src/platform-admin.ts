@@ -57,6 +57,10 @@ let user: any = null,
   wait = 0,
   working = false,
   google = false;
+let feedbackPanel: 'inbox' | 'insights' = 'inbox';
+let feedbackCategory = '';
+let feedbackSearch = '';
+const feedbackPageHistory: string[] = [];
 let codeValue = '';
 let loadFailed = false,
   booting = true;
@@ -96,6 +100,10 @@ async function api(path: string, method = 'GET', body?: unknown, signal?: AbortS
 function clearPrivate() {
   controller?.abort();
   user = null;
+  feedbackPanel = 'inbox';
+  feedbackCategory = '';
+  feedbackSearch = '';
+  feedbackPageHistory.length = 0;
   data = null;
   detail = null;
   challenge = '';
@@ -230,11 +238,11 @@ function campaignEditor(rows: Campaign[]) {
   const body = el('div');
   const wrap = el('details', null, el('summary', null, 'Gestionar campañas'), host) as HTMLDetailsElement;
   host.append(el('label', null, 'Campaña', select), body);
-  const render = (row?: Campaign) => {
-    const initial = row?.configuration;
+  const render = (row?: Campaign, draft?: CampaignConfig) => {
+    const initial = row?.configuration ?? draft;
     const title = el('input', { required: true, maxlength: 120, value: initial?.title ?? '' }) as HTMLInputElement;
-    const start = el('input', { type: 'date', required: true, value: initial ? deadlineDay(initial.start) : '' }) as HTMLInputElement;
-    const end = el('input', { type: 'date', required: true, value: initial ? deadlineDay(initial.end) : '' }) as HTMLInputElement;
+    const start = el('input', { type: 'date', required: true, value: row ? deadlineDay(row.configuration.start) : '' }) as HTMLInputElement;
+    const end = el('input', { type: 'date', required: true, value: row ? deadlineDay(row.configuration.end) : '' }) as HTMLInputElement;
     const audience = el('select', null, [
       el('option', { value: 'all', selected: initial?.audience === 'all' }, 'Todas las cuentas activas'),
       el('option', { value: 'management', selected: initial?.audience === 'management' }, 'Coordinación y Administración'),
@@ -253,6 +261,13 @@ function campaignEditor(rows: Campaign[]) {
         if (action === 'preview') {
           previewOutput.append(el('h3', null, title.value), el('p', null, 'Escala de 1 a 5'),
             el('ol', null, questionLabels().map((label) => el('li', null, label))));
+        } else if (row && action === 'duplicate') {
+          select.value = '';
+          render(undefined, {
+            ...row.configuration,
+            title: row.configuration.title.slice(0, 112) + ' (copia)',
+          });
+          body.querySelector('input')?.focus();
         } else if (row && action === 'pause') {
           await api('campaigns/' + row.campaign, 'POST', { paused: !row.paused });
           row.paused = !row.paused;
@@ -284,7 +299,10 @@ function campaignEditor(rows: Campaign[]) {
     } }, [
       el('option', { value: '', disabled: true, selected: true }, 'Opciones de campaña'),
       el('option', { value: 'preview' }, 'Previsualizar borrador'),
-      ...(row ? [el('option', { value: 'pause' }, row.paused ? 'Reanudar campaña' : 'Pausar campaña')] : []),
+      ...(row ? [
+        el('option', { value: 'duplicate' }, 'Duplicar como borrador'),
+        el('option', { value: 'pause' }, row.paused ? 'Reanudar campaña' : 'Pausar campaña'),
+      ] : []),
       ...(row?.versions.flatMap((version) => [
         el('option', { value: 'open:' + version }, 'Consultar versión ' + version),
         el('option', { value: 'export:' + version }, 'Exportar resultados de versión ' + version),
@@ -532,6 +550,7 @@ window.addEventListener('visibilitychange', () => {
 function selectView(key: string) {
   if (view === key && !detail) return;
   view = key;
+  feedbackPageHistory.length = 0;
   detail = null;
   cursor = '';
   filter = '';
@@ -1182,113 +1201,174 @@ function renderView(main: HTMLElement) {
     const options = (selected: string) => statuses.map(([key, label]) =>
       el('option', { value: key, selected: key === selected }, label),
     );
+    const sections = [['inbox', 'Bandeja'], ['insights', 'Métricas y campañas']] as const;
     main.append(
-      heading('Product Insights'),
-      ...(Array.isArray(data.campaigns) ? [
-        el('details', { ontoggle: async (event: Event) => {
-          const node = event.currentTarget as HTMLDetailsElement;
-          if (node.open && node.childElementCount === 1) {
-            try {
-              const editor = campaignEditor(await api('campaign-library'));
-              editor.open = true;
-              if (node.isConnected) node.replaceWith(editor);
-            } catch (error) { node.open = false; failure(error); }
-          }
-        } }, el('summary', null, 'Gestionar campañas')),
-        insightSegments(),
-      ] : []),
-      el('label', null, 'Periodo', el('select', {
-        onchange: (event: Event) => {
-          period = (event.currentTarget as HTMLSelectElement).value;
-          void loadView();
-        },
-      }, ['7', '30'].map((days) => el('option', {
-        value: days, selected: period === days,
-      }, 'Últimos ' + days + ' días')))),
-      ...(Array.isArray(data.campaigns) ? [
-        table('Campañas programadas', ['Campaña', 'Estado'],
-          data.campaigns.filter((row: { campaign: string }) => /^F0[1-3]$/.test(row.campaign)).map((row: { campaign: string; paused: boolean }) => [
-            ({ F01: 'F01 · Primera semana', F02: 'F02 · Primer mes', F03: 'F03 · Seguimiento' } as Record<string, string>)[row.campaign] ?? row.campaign,
-            el('select', {
-              'aria-label': 'Estado de ' + row.campaign,
-              onchange: async (event: Event) => {
-                const input = event.currentTarget as HTMLSelectElement;
-                input.disabled = true;
-                try {
-                  await api('campaigns/' + row.campaign, 'POST', { paused: input.value === 'paused' });
-                  await loadView();
-                } catch (error) {
-                  input.value = row.paused ? 'paused' : 'active';
-                  failure(error);
-                } finally { input.disabled = false; }
-              },
-            }, [
-              el('option', { value: 'active', selected: !row.paused }, 'Activa'),
-              el('option', { value: 'paused', selected: row.paused }, 'Pausada'),
-            ]),
+      heading('Feedback'),
+      el('div', { class: 'feedback-sections', role: 'group', 'aria-label': 'Herramientas de feedback' },
+        sections.map(([key, label]) => el('button', {
+          type: 'button', class: key === feedbackPanel ? '' : 'secondary',
+          'aria-pressed': String(key === feedbackPanel),
+          onclick: () => {
+            if (feedbackPanel === key) return;
+            feedbackPanel = key;
+            render();
+            root.querySelector<HTMLButtonElement>('.feedback-sections [aria-pressed="true"]')?.focus();
+          },
+        }, label))),
+    );
+    if (feedbackPanel === 'insights') {
+      main.append(
+        el('h2', null, 'Métricas y campañas'),
+        ...(Array.isArray(data.campaigns) ? [
+          el('details', { ontoggle: async (event: Event) => {
+            const node = event.currentTarget as HTMLDetailsElement;
+            if (node.open && node.childElementCount === 1) {
+              try {
+                const editor = campaignEditor(await api('campaign-library'));
+                editor.open = true;
+                if (node.isConnected) node.replaceWith(editor);
+              } catch (error) { node.open = false; failure(error); }
+            }
+          } }, el('summary', null, 'Gestionar campañas')),
+          insightSegments(),
+        ] : []),
+        el('label', null, 'Periodo', el('select', {
+          onchange: (event: Event) => {
+            period = (event.currentTarget as HTMLSelectElement).value;
+            void loadView();
+          },
+        }, ['7', '30'].map((days) => el('option', {
+          value: days, selected: period === days,
+        }, 'Últimos ' + days + ' días')))),
+        ...(Array.isArray(data.campaigns) ? [
+          table('Campañas programadas', ['Campaña', 'Estado'],
+            data.campaigns.filter((row: { campaign: string }) => /^F0[1-3]$/.test(row.campaign)).map((row: { campaign: string; paused: boolean }) => [
+              ({ F01: 'F01 · Primera semana', F02: 'F02 · Primer mes', F03: 'F03 · Seguimiento' } as Record<string, string>)[row.campaign] ?? row.campaign,
+              el('select', {
+                'aria-label': 'Estado de ' + row.campaign,
+                onchange: async (event: Event) => {
+                  const input = event.currentTarget as HTMLSelectElement;
+                  input.disabled = true;
+                  try {
+                    await api('campaigns/' + row.campaign, 'POST', { paused: input.value === 'paused' });
+                    await loadView();
+                  } catch (error) {
+                    input.value = row.paused ? 'paused' : 'active';
+                    failure(error);
+                  } finally { input.disabled = false; }
+                },
+              }, [
+                el('option', { value: 'active', selected: !row.paused }, 'Activa'),
+                el('option', { value: 'paused', selected: row.paused }, 'Pausada'),
+              ]),
+            ])),
+        ] : []),
+        ...(Array.isArray(data.surveys) ? [
+          table('Encuestas de producto', ['Campaña', 'Versión', 'Invitaciones', 'Grupos invitados',
+            'Completadas', 'Grupos participantes', 'Descartadas', 'Participación', 'Muestra', 'SUS (0–100)',
+            'NPS (−100 a +100)', 'Satisfacción (1–5)'],
+          data.surveys.map((row: {
+            campaign: string; version: number; invited: number; invitedGroups: number;
+            completed: number; participatingGroups: number; dismissed: number; sample: number;
+            sus: number | null; nps: number | null; satisfaction: number | null;
+          }) => [
+            row.campaign, String(row.version), String(row.invited), String(row.invitedGroups),
+            String(row.completed), String(row.participatingGroups), String(row.dismissed),
+            row.invited ? new Intl.NumberFormat('es', { style: 'percent', maximumFractionDigits: 1 })
+              .format(row.completed / row.invited) : '—',
+            String(row.sample), String(row.sus ?? '—'), String(row.nps ?? '—'), String(row.satisfaction ?? '—'),
           ])),
-      ] : []),
-      ...(Array.isArray(data.surveys) ? [
-        table('Encuestas de producto', ['Campaña', 'Versión', 'Invitaciones', 'Grupos invitados',
-          'Completadas', 'Grupos participantes', 'Descartadas', 'Participación', 'Muestra', 'SUS (0–100)',
-          'NPS (−100 a +100)', 'Satisfacción (1–5)'],
-        data.surveys.map((row: {
-          campaign: string; version: number; invited: number; invitedGroups: number;
-          completed: number; participatingGroups: number; dismissed: number; sample: number;
-          sus: number | null; nps: number | null; satisfaction: number | null;
-        }) => [
-          row.campaign, String(row.version), String(row.invited), String(row.invitedGroups),
-          String(row.completed), String(row.participatingGroups), String(row.dismissed),
-          row.invited ? new Intl.NumberFormat('es', { style: 'percent', maximumFractionDigits: 1 })
-            .format(row.completed / row.invited) : '—',
-          String(row.sample), String(row.sus ?? '—'), String(row.nps ?? '—'), String(row.satisfaction ?? '—'),
-        ])),
-        ...(data.surveys.length ? [el('button', { type: 'button', onclick: () =>
-          downloadSurveyCsv('encuestas-' + period + '-días.csv', [
-            ['Campaña', 'Versión', 'Invitaciones', 'Completadas', 'Descartadas', 'SUS', 'NPS', 'Satisfacción'],
-            ...data.surveys.map((row: { campaign: string; version: number; invited: number; completed: number;
-              dismissed: number; sus: number | null; nps: number | null; satisfaction: number | null }) =>
-              [row.campaign, row.version, row.invited, row.completed, row.dismissed, row.sus, row.nps, row.satisfaction]),
-          ]),
-        }, 'Exportar resumen de encuestas')] : []),
-        el('p', null, 'La participación corresponde a las invitaciones del periodo. La muestra de puntuaciones corresponde a las respuestas recibidas en el periodo y se publica desde cinco respuestas.'),
-      ] : []),
-      table('Aportaciones voluntarias por día (UTC)', ['Fecha', 'Categoría', 'Recibidas', 'Pendientes'],
-        data.insights.map((row: { day: string; category: string; total: number; pending: number }) =>
-          [row.day, categories[row.category], String(row.total), String(row.pending)])),
-      heading('Bandeja de feedback'),
-      el('label', null, 'Estado', el('select', {
-        'aria-label': 'Filtrar por estado',
-        onchange: (event: Event) => {
-          filter = (event.currentTarget as HTMLSelectElement).value;
-          cursor = '';
-          void loadView();
-        },
-      }, [el('option', { value: '', selected: filter === '' }, 'Todos los estados'), ...options(filter)])),
-      table('Aportaciones', ['Fecha','Categoría','Aportación','Contactar','Estado'],
-        data.items.map((item: any) => [
+          ...(data.surveys.length ? [el('button', { type: 'button', onclick: () =>
+            downloadSurveyCsv('encuestas-' + period + '-días.csv', [
+              ['Campaña', 'Versión', 'Invitaciones', 'Completadas', 'Descartadas', 'SUS', 'NPS', 'Satisfacción'],
+              ...data.surveys.map((row: { campaign: string; version: number; invited: number; completed: number;
+                dismissed: number; sus: number | null; nps: number | null; satisfaction: number | null }) =>
+                [row.campaign, row.version, row.invited, row.completed, row.dismissed, row.sus, row.nps, row.satisfaction]),
+            ]),
+          }, 'Exportar resumen de encuestas')] : []),
+          el('p', null, 'La participación corresponde a las invitaciones del periodo. La muestra de puntuaciones corresponde a las respuestas recibidas en el periodo y se publica desde cinco respuestas.'),
+        ] : []),
+        table('Aportaciones voluntarias por día (UTC)', ['Fecha', 'Categoría', 'Recibidas', 'Pendientes'],
+          data.insights.map((row: { day: string; category: string; total: number; pending: number }) =>
+            [row.day, categories[row.category], String(row.total), String(row.pending)])),
+      );
+      return;
+    }
+
+    type FeedbackItem = {
+      id: string; createdAt: string; category: string; body: string;
+      replyEmail: string | null; status: string; revision: number;
+    };
+    const items: FeedbackItem[] = data.items;
+    const category = el('select', { onchange: (event: Event) => {
+      feedbackCategory = (event.currentTarget as HTMLSelectElement).value;
+      renderItems();
+    } }, [el('option', { value: '', selected: !feedbackCategory }, 'Todas las categorías'),
+      ...Object.entries(categories).map(([key, label]) =>
+        el('option', { value: key, selected: feedbackCategory === key }, label))]);
+    const searchInput = el('input', { type: 'search', value: feedbackSearch, oninput: (event: Event) => {
+      feedbackSearch = (event.currentTarget as HTMLInputElement).value;
+      renderItems();
+    } });
+    const results = el('div');
+    const resultCount = el('p', { role: 'status', class: 'coverage' });
+    function renderItems() {
+      const phrase = feedbackSearch.trim().toLocaleLowerCase('es');
+      const shown = items.filter((item) => (!feedbackCategory || item.category === feedbackCategory)
+        && (!phrase || item.body.toLocaleLowerCase('es').includes(phrase)
+          || item.replyEmail?.toLocaleLowerCase('es').includes(phrase)));
+      resultCount.textContent = shown.length + ' de ' + items.length + ' aportaciones en esta página';
+      results.replaceChildren(table('Aportaciones', ['Fecha', 'Categoría', 'Aportación', 'Contacto', 'Estado'],
+        shown.map((item) => [
           date(item.createdAt),
           categories[item.category] ?? item.category,
           el('p', { class: 'feedback-message' }, item.body),
-          item.replyEmail || '—',
+          item.replyEmail ? el('a', { href: 'mailto:' + encodeURIComponent(item.replyEmail).replace('%40', '@') }, item.replyEmail) : '—',
           el('select', {
             'aria-label': 'Cambiar estado de aportación',
             onchange: async (event: Event) => {
               const input = event.currentTarget as HTMLSelectElement;
-              const status = input.value;
               input.disabled = true;
               try {
-                await api('feedback/' + encodeURIComponent(item.id), 'POST', { status, revision: item.revision });
+                await api('feedback/' + encodeURIComponent(item.id), 'POST', { status: input.value, revision: item.revision });
                 await loadView();
               } catch (error) {
+                input.value = item.status;
                 failure(error);
-              } finally { input.disabled = false; }
+              } finally {
+                input.disabled = false;
+              }
             },
           }, options(item.status)),
-        ]),
-      ),
+        ])));
+    }
+    const statusFilter = el('select', {
+      'aria-label': 'Filtrar por estado',
+      onchange: (event: Event) => {
+        filter = (event.currentTarget as HTMLSelectElement).value;
+        cursor = '';
+        feedbackPageHistory.length = 0;
+        void loadView();
+      },
+    }, [el('option', { value: '', selected: filter === '' }, 'Todos los estados'), ...options(filter)]);
+    main.append(
+      el('h2', null, 'Bandeja de feedback'),
+      el('div', { class: 'toolbar feedback-toolbar' }, field('Estado', statusFilter),
+        field('Categoría en esta página', category), field('Buscar texto o correo en esta página', searchInput)),
+      resultCount,
+      results,
+      el('div', { class: 'paging' },
+        feedbackPageHistory.length ? button('Anterior', () => {
+          cursor = feedbackPageHistory.pop() ?? '';
+          void loadView();
+        }, true) : null,
+        nextCursor ? button('Siguiente', () => {
+          feedbackPageHistory.push(cursor);
+          cursor = nextCursor;
+          void loadView();
+        }, true) : null),
     );
-    paging(main);
+    renderItems();
   } else if (view === 'access') {
     main.append(
       heading('Accesos', 'Sesiones primarias de grupos'),

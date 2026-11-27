@@ -35,6 +35,15 @@ test('existing account can finish the seven steps, reload and replay from profil
   const before = await page.request.get('/api/tutorial').then((response) => response.json());
   expect(before.events.tutorial_completed).toBeTruthy();
   await page.goto('/');
+  const invitation = page.locator('.home-notices > .home-notice.welcome-invitation');
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(invitation).toHaveCSS('padding-bottom', '30px');
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBeLessThanOrEqual(width);
+  }
+  await expect(page.locator('.home-heading + .home-notices + .desktop-home')).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 900 });
   await page.getByRole('button', { name: 'Ver presentación', exact: true }).click();
   const dialog = page.getByRole('dialog');
   const captures = process.env.WELCOME_SCREENSHOTS || info.outputPath('welcome');

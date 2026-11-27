@@ -812,3 +812,19 @@ input[type='checkbox'] {
 .campaign-editor button {
   justify-self: start;
 }
+
+.feedback-sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.feedback-toolbar .field:last-child {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.feedback-toolbar input[type='search'] {
+  width: 100%;
+}
