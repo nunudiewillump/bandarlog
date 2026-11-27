@@ -1,3 +1,5 @@
+import { readWelcome, recordWelcome } from './welcome-presentation.js';
+import { welcomeActions, welcomeVersion } from '../shared/welcome-presentation.js';
 import { createGroupEvaluation, evaluationPublication, groupEvaluationRoutes } from './group-evaluations.js';
 import { evaluationTemplateRoutes } from './evaluation-templates.js';
 import { platformAdminRoutes } from './platform-admin.js';
@@ -235,7 +237,7 @@ const dataRevision = () => {
   return `${r.epoch}:${r.value}`;
 };
 app.use('/api', (q, r, next) => {
-  if (q.path === '/tutorial' || q.path.startsWith('/tutorial/')) return next();
+  if (/^\/(tutorial|welcome-presentation)(\/|$)/.test(q.path)) return next();
   const changedGroupId = groupContext.getStore()!?.id;
   if (!['GET', 'HEAD'].includes(q.method) || q.path === '/auth/google/callback')
     r.on('finish', () => {
@@ -1567,6 +1569,24 @@ if (groupEvaluationsEnabled) app.post('/api/group-evaluations/manage/:id/reminde
   if (queued === null) fail(409, 'La evaluación no está disponible para recordatorios.');
   if (typeof queued === 'number' && queued > 0) void deliver();
   r.json({ queued });
+});
+app.get('/api/welcome-presentation', async (_q, r) => {
+  r.set('Cache-Control', 'no-store');
+  r.json(await readWelcome(db, groupContext.getStore()!.id, r.locals.user.id));
+});
+app.post('/api/welcome-presentation', async (q, r) => {
+  if (r.locals.user.onboardingCompletedAt === null)
+    fail(409, 'Completa primero tu nombre y foto opcional.');
+  const { action } = parse(z.object({ action: z.enum(welcomeActions) }).strict(), q.body);
+  r.set('Cache-Control', 'no-store');
+  r.json(await recordWelcome(db, groupContext.getStore()!.id, r.locals.user.id, action));
+});
+app.get('/api/welcome-presentation/stats', async (_q, r) => {
+  if (r.locals.user.role !== 'admin')
+    fail(403, 'Solo Administración puede consultar estas estadísticas.');
+  const result = await db.execute(sql`select bandarlog_api.welcome_presentation_stats(${welcomeVersion}) as counts`);
+  r.set('Cache-Control', 'no-store');
+  r.json(result.rows[0].counts);
 });
 app.get('/api/tutorial', async (_q, r) => r.json(await readTutorial(db, r.locals.user.id)));
 app.get('/api/tutorial/stats', async (_q, r) => {

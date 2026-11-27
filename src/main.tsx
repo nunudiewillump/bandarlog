@@ -1,3 +1,4 @@
+import { useWelcomePresentation } from './useWelcomePresentation';
 import { ProjectLifecycle } from './ProjectLifecycle';
 import { TaskEvaluationOrigin } from './TaskEvaluationOrigin';
 import { HomeTaskAction } from './HomeTaskAction';
@@ -180,6 +181,8 @@ function Avatar({ user, small = false }: { user?: User; small?: boolean }) {
 function Badge({ task }: { task: Task }) {
   return <span className={`badge ${task.status}`}>{labels[task.status]}</span>;
 }
+const WelcomePresentation = lazy(() => import('./WelcomePresentation'));
+
 function App() {
   const [me, setMe] = useState<User | null>(null),
     [boot, setBoot] = useState(true),
@@ -216,6 +219,7 @@ function App() {
     [satisfaction, setSatisfaction] = useState(false),
     [pendingTasks, setPendingTasks] = useState(new Set<string>()),
     [queuedTasks, setQueuedTasks] = useState<PendingTask[]>([]),
+    [offlinePending, setOfflinePending] = useState<number | null>(null),
     [undo, setUndo] = useState<{
       task: Task;
       expected: string;
@@ -224,6 +228,8 @@ function App() {
     } | null>(null),
     [outbox, setOutbox] = useState<any[]>([]);
   const [reauthNotice, setReauthNotice] = useState('');
+  const welcome = useWelcomePresentation(me && me.onboardingCompletedAt !== null && data.group
+    ? JSON.stringify([data.group.id, me.id]) : '');
   const tutorial = useTutorial(me);
   const [restartTutorial, setRestartTutorial] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -303,6 +309,10 @@ function App() {
   const showAdminGuide = foundingAdmin && !hasFinishedAdminGuide(me);
   const previewAvailable = canPreviewAdminGuide(me);
   const showAdminPreview = previewAvailable && previewOpen && !showAdminGuide;
+  const welcomeEligible = view === 'home' && !showAdminGuide && !showAdminPreview
+    && !showGroupEvaluations && !selected && !modal && !pendingAction && !busy
+    && offlinePending === 0 && !queuedTasks.length && !pendingTasks.size && navigator.onLine;
+
   const previewStorageKey = `bandarlog-admin-preview-dismissed:${me?.id || ''}`;
   useEffect(() => {
     if (!previewAvailable || !me) return;
@@ -1548,9 +1558,23 @@ function App() {
         '--mascot-primary': data.group?.colorPrimary,
         '--mascot-secondary': data.group?.colorSecondary,
       } as React.CSSProperties}>
+        {welcome.origin && (
+          <Suspense fallback={<div className="welcome-loading" role="status">Cargando presentación…</div>}>
+            <WelcomePresentation
+              origin={welcome.origin}
+              group={data.group}
+              evaluationsEnabled={groupEvaluationsEnabled}
+              pending={welcome.pending}
+              error={welcome.error}
+              onClose={welcome.dismiss}
+              onComplete={() => void welcome.finish('complete')}
+            />
+          </Suspense>
+        )}
         <SyncStatus
           onSynced={syncHome}
           onPendingTasks={(tasks, count) => {
+            setOfflinePending(count);
             const next =
               count && !tasks.length
                 ? dataRef.current.tasks.map((t) => ({
@@ -1770,6 +1794,16 @@ function App() {
                   return success;
                 }}
               />
+            )}
+            {welcomeEligible && welcome.visible && (
+              <section className="panel welcome-invitation" aria-labelledby="welcome-invitation-title">
+                <h2 id="welcome-invitation-title">¡Descubre Bandarlog en 2 minutos!</h2>
+                <div className="action-pair">
+                  <button type="button" className="primary" disabled={welcome.pending} onClick={(event) => welcome.open('home', event)}>Ver presentación</button>
+                  <button type="button" className="secondary" disabled={welcome.pending} onClick={welcome.skip}>Ahora no</button>
+                </div>
+                {welcome.error && !welcome.origin && <p role="alert">{welcome.error}</p>}
+              </section>
             )}
             {view === 'home' && !showAdminGuide && !showAdminPreview && !showGroupEvaluations && (
               <TutorialInvitation
@@ -2431,6 +2465,7 @@ function App() {
                 <ProfilePanel
                   group={data.group}
                   user={me}
+                  onViewPresentation={(event) => welcome.open('profile', event)}
                   onReplayTutorial={() => {
                     setRestartTutorial(true);
                     navigate('tutorial');
