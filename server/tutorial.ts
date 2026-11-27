@@ -129,21 +129,28 @@ export async function expireTutorials(db: any, now = new Date().toISOString(), u
     })
     .where(userId ? and(eq(tutorialProgress.userId, userId), conditions) : conditions);
 }
+const tutorialFields = {
+  events: tutorialProgress.events,
+  taskStatus: tutorialProgress.taskStatus,
+  previousStatus: tutorialProgress.previousStatus,
+  steps: tutorialProgress.steps,
+  version: tutorialProgress.version,
+  lastActivityAt: tutorialProgress.lastActivityAt,
+};
+
 export async function readTutorial(db: any, userId: string) {
   await expireTutorials(db, new Date().toISOString(), userId);
-  const [row] = await db.select().from(tutorialProgress).where(eq(tutorialProgress.userId, userId));
+  const [row] = await db.select(tutorialFields).from(tutorialProgress).where(eq(tutorialProgress.userId, userId));
   if (!row) return emptyTutorial();
-  const { userId: _, ...progress } = row;
-  return progress as TutorialProgress;
+  return row as TutorialProgress;
 }
 export async function writeTutorial(tx: any, userId: string, command: TutorialCommand) {
   await tx.insert(tutorialProgress).values({ userId }).onConflictDoNothing();
-  const [row] = await tx
-    .select()
+  const [previous] = await tx
+    .select(tutorialFields)
     .from(tutorialProgress)
     .where(eq(tutorialProgress.userId, userId))
     .for('update');
-  const { userId: _, ...previous } = row;
   const result = advanceTutorial(previous, command);
   await tx.update(tutorialProgress).set(result.progress).where(eq(tutorialProgress.userId, userId));
   return result;
