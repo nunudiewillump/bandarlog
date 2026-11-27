@@ -151,6 +151,8 @@ export function globalOperations(connection: any, scoped: any) {
       one(sql`select bandarlog_api.product_campaign_version(${token},${campaign},${version}) as value`),
     saveProductCampaign: (token: string, csrf: string, campaign: string, version: number, config: unknown) =>
       one(sql`select bandarlog_api.product_campaign_save(${token},${csrf},${campaign},${version},${JSON.stringify(config)}::jsonb) as value`),
+    adoptionInsights: (token: string, days: number, role: string, version: number) =>
+      one(sql`select bandarlog_api.adoption_insights(${token},${days},${role},${version}) as value`),
     productInsightsSegments: (token: string, dimension: string) =>
       one(sql`select bandarlog_api.product_insights_segments(${token},${dimension}) as value`),
     productCampaignResults: (token: string, campaign: string, version: number) =>

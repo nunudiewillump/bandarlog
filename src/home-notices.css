@@ -55,3 +55,9 @@
 .home-notice > [role='alert'] {
   margin: 12px 0 0;
 }
+
+.adoption-preparation-mascot {
+  float: inline-end;
+  margin-inline-start: 12px;
+  object-fit: contain;
+}

@@ -18,6 +18,7 @@ test('platform product routes cross the closed identity proxy', () => {
     'campaign-library/' + campaign + '/1',
     'campaign-library/' + campaign + '/12/results',
     'insights/segments',
+    'insights/adoption',
   ])
     assert.equal(identityPath('/api/platform/' + path), true, path);
   for (const path of [

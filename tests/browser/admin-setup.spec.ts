@@ -23,6 +23,10 @@ test('founding administrator guide persists dismissal and reopening in the Fores
   await page.goto(base + '/');
   await expect(page.getByRole('heading', { name: '¿Cómo te llamamos?' })).toBeVisible();
   await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+  await page.getByRole('button', { name: 'Ver presentación', exact: true }).click();
+  const welcome = page.getByRole('dialog');
+  for (let i = 0; i < 6; i++) await welcome.getByRole('button', { name: 'Siguiente' }).click();
+  await welcome.getByRole('button', { name: 'Preparar mi grupo' }).click();
   const guide = page.getByRole('region', { name: 'Puesta en marcha del grupo' });
   await mkdir('artifacts/admin-setup', { recursive: true });
   async function capture(stage: string, progress: string) {
@@ -40,7 +44,7 @@ test('founding administrator guide persists dismissal and reopening in the Fores
   }
   await expect(guide).toBeVisible();
   await expect(page.getByRole('region', { name: 'Notificaciones en este dispositivo' })).toHaveCount(0);
-  await expect(page.getByText('Sin tareas asignadas')).toHaveCount(0);
+  await expect(page.locator('.desktop-home, .mobile-focus').filter({ visible: true })).toHaveCount(1);
   await expect(guide.locator('.admin-guide-steps li.is-current')).toHaveCount(1);
   await expect(guide.locator('.admin-guide-steps li.is-upcoming')).toHaveCount(3);
   await capture('01-bienvenida', '0');
@@ -55,6 +59,7 @@ test('founding administrator guide persists dismissal and reopening in the Fores
   expect(projectResponse.status()).toBe(201);
   const project = await projectResponse.json();
   await page.reload();
+  await page.getByRole('button', { name: 'Continuar la guía' }).click();
   await expect(guide.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '1');
   await expect(guide.getByRole('button', { name: 'Crear comisión', exact: true })).toBeEnabled();
   for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }, { width: 320, height: 740 }]) {
@@ -70,12 +75,15 @@ test('founding administrator guide persists dismissal and reopening in the Fores
   await expect(page.locator('.task-celebration')).toHaveCount(0);
   await page.reload();
   await expect(guide).toHaveCount(0);
-  await page.goto(base + '/?view=profile');
-  await page.locator('summary').filter({ hasText: 'Ayuda' }).click();
-  await page.getByRole('button', { name: 'Repetir guía de administración', exact: true }).click();
-  await expect(guide).toBeVisible();
+  async function replayGuide() {
+    await page.goto(base + '/?view=profile');
+    await page.locator('summary').filter({ hasText: 'Ayuda' }).click();
+    await page.getByRole('button', { name: 'Repetir guía de administración', exact: true }).click();
+    await expect(guide).toBeVisible();
+  }
+  await replayGuide();
   await page.reload();
-  await expect(guide).toBeVisible();
+  await expect(guide.getByRole('progressbar')).toHaveCount(0);
 
   // Complete the real milestones in the isolated test database for visual evidence.
   const commissionResponse = await page.request.post(base + '/api/commissions', {
@@ -103,8 +111,7 @@ test('founding administrator guide persists dismissal and reopening in the Fores
     },
   });
   expect(taskResponse.status()).toBe(201);
-  await page.goto(base + '/?view=home');
-  await expect(guide).toBeVisible();
+  await replayGuide();
   await expect(guide.locator('.admin-guide-steps li.is-done')).toHaveCount(4);
   for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 844 });

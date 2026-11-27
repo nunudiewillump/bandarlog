@@ -57,7 +57,7 @@ let user: any = null,
   wait = 0,
   working = false,
   google = false;
-let feedbackPanel: 'inbox' | 'insights' = 'inbox';
+let feedbackPanel: 'inbox' | 'insights' | 'adoption' = 'inbox';
 let feedbackCategory = '';
 let feedbackSearch = '';
 const feedbackPageHistory: string[] = [];
@@ -344,6 +344,103 @@ function campaignEditor(rows: Campaign[]) {
   return wrap;
 }
 
+function adoptionInsightsPanel() {
+  const section = el('section', { 'aria-labelledby': 'adoption-insights-title' });
+  const controls = el('div', { class: 'toolbar' });
+  const output = el('div', { 'aria-live': 'polite' });
+  const days = el('select', null, [['7','Últimos 7 días'],['30','Últimos 30 días'],
+    ['90','Últimos 90 días'],['0','Histórico completo']].map(([key, label]) =>
+      el('option', { value: key, selected: key === '30' }, label))) as HTMLSelectElement;
+  const role = el('select', null, [['','Todos los roles'],['member','Scouter'],
+    ['coordination','Coordinación'],['admin','Administración']].map(([key, label]) =>
+      el('option', { value: key }, label))) as HTMLSelectElement;
+  const version = el('select', null, el('option', { value: '1' }, 'Versión 1')) as HTMLSelectElement;
+  const stages = ['Grupo creado','Bienvenida completada','Guía iniciada','Primer proyecto',
+    'Primer miembro adicional','Primera tarea completada','Grupo activado'];
+  const names = { welcome: 'Conoce Bandarlog', guide: 'Tutorial de administración', mission: 'Tu primera misión' };
+  let pending: AbortController | undefined;
+  async function load() {
+    pending?.abort();
+    const request = new AbortController();
+    pending = request;
+    output.replaceChildren(el('p', { role: 'status' }, 'Cargando datos de incorporación…'));
+    try {
+      const response = await api('insights/adoption?' + new URLSearchParams({
+        days: days.value, role: role.value, version: version.value,
+      }), 'GET', undefined, request.signal);
+      if (request.signal.aborted || !section.isConnected) return;
+      const { summary, funnel, intent, cohorts, experiences, eligibilitySources, milestones } = response;
+      if (!summary.groups) {
+        output.replaceChildren(el('p', null, 'No hay grupos creados en el periodo seleccionado.'));
+        return;
+      }
+      const summaryRows: [string, unknown, string][] = [
+        ['Grupos creados', value(summary.groups), 'Cohorte seleccionada'],
+        ['Bienvenidas completadas', value(summary.welcomeCompleted), 'Fundadores'],
+        ['Han elegido preparar', value(summary.prepared), 'Fundadores'],
+        ['Han elegido explorar', value(summary.explored), 'Fundadores'],
+        ['Han repetido la bienvenida', value(summary.replayed), 'Fundadores'],
+        ['Guías iniciadas', value(summary.guideStarted), 'Grupos únicos'],
+        ['Grupos activados', value(summary.activated), percent(summary.activated, summary.groups) + ' de la cohorte'],
+        ['Activados sin fecha histórica', value(summary.historicalActivated), 'Cumplen los criterios con datos actuales'],
+        ['Mediana hasta la activación', value(summary.medianDays), 'Días con fecha registrada'],
+      ];
+      output.replaceChildren(
+        metrics(summaryRows),
+        table('Embudo guiado · grupos únicos', ['Etapa', 'Grupos', 'Conversión previa', 'Pérdida'],
+          (funnel as number[]).map((count, i) => [
+            stages[i], el('div', { class: 'adoption-funnel' }, el('progress', {
+              max: Math.max(1, funnel[0]), value: count, 'aria-label': stages[i],
+            }), value(count)), i ? percent(count, funnel[i-1]) : '—',
+            i ? value(funnel[i-1] - count) : '—',
+          ])),
+        el('p', { class: 'coverage' }, 'El embudo guiado exige las etapas en orden. La tasa general incluye activación sin tutoriales.'),
+        table('Primera elección y evolución', ['Elección', 'Grupos o decisiones'],
+          [
+            ['Preparar mi grupo', intent.prepare], ['Explorar la herramienta', intent.explore],
+            ['Volver a ver la bienvenida', intent.replay], ['Sin elección registrada', intent.unknown],
+            ['Total de elecciones posteriores', intent.later],
+            ['Preparar · elección posterior', intent.laterPrepare],
+            ['Explorar · elección posterior', intent.laterExplore],
+            ['Repetir · elección posterior', intent.laterReplay],
+            ['Exploraron primero y prepararon', intent.explorersPrepared],
+            ['Exploraron primero y se activaron', intent.explorersActivated],
+          ].map(([label, count]) => [String(label), value(count)])),
+        table('Rendimiento · personas únicas', ['Experiencia','Elegibles','Expuestas','Inicios','Finalizaciones',
+          'Omisiones','Abandonos','Repeticiones','Inicio / exposición','Finalización / inicio','Mediana (min)','Guía previa sin fecha'],
+          Object.entries(experiences).map(([key, row]: [string, any]) => [
+            names[key as keyof typeof names] ?? key, value(row.eligible), value(row.shown), value(row.started),
+            value(row.completed), value(row.skipped), value(row.abandoned), value(row.reopened),
+            percent(row.startedAmongShown, row.shown), percent(row.completedAmongStarted, row.started),
+            value(row.medianMinutes), value(row.historical),
+          ])),
+        table('Origen de la elegibilidad de gestión', ['Origen','Personas'],
+          [['founder','Cuenta fundadora'],['coordination','Coordinación'],['admin','Administración']]
+            .map(([key,label]) => [label, value(eligibilitySources[key] ?? 0)])),
+        table('Cohortes de activación', ['Ventana', 'Grupos instrumentados con tiempo suficiente', 'Activados', 'Tasa'],
+          cohorts.map(({ days, eligible, activated }: { days: number; eligible: number; activated: number }) =>
+            [days + ' días', value(eligible), value(activated), percent(activated, eligible)])),
+        table('Primeros hitos de uso efectivo', ['Hito','Grupos'],
+          [['project','Proyecto'],['commission','Comisión'],['invitation','Invitación enviada'],
+            ['member_added','Miembro adicional'],['task','Tarea'],['assignment','Asignación'],
+            ['task_completed','Tarea completada']].map(([key,label]) => [label, value(milestones[key] ?? 0)])),
+        el('p', { class: 'coverage' }, 'La activación requiere un proyecto, una comisión, dos cuentas activas y una tarea real completada. Las fechas de los hitos se registran desde la incorporación de esta medición.'),
+      );
+    } catch (error) {
+      if (request.signal.aborted || !section.isConnected) return;
+      if (error instanceof ApiError && [401,403,428].includes(error.status)) return failure(error);
+      output.replaceChildren(el('p', { role: 'alert' }, 'No se pudieron cargar los datos de incorporación.'),
+        button('Reintentar', load, true));
+    }
+  }
+  for (const input of [days, role, version]) input.addEventListener('change', () => void load());
+  controls.append(field('Alta del grupo', days), field('Rol actual en rendimiento de tutoriales', role),
+    field('Versión de la experiencia', version));
+  section.append(el('h2', { id: 'adoption-insights-title' }, 'Incorporación y adopción'), controls, output);
+  void load();
+  return section;
+}
+
 function insightSegments() {
   const output = el('div', { 'aria-live': 'polite' });
   return el('details', null, el('summary', null, 'Evolución y segmentos'),
@@ -561,7 +658,14 @@ function selectView(key: string) {
 }
 async function loadView() {
   if (!user) return;
-  if (view === 'feedback' && !user.productFeedbackEnabled) view = 'overview';
+  if (view === 'feedback' && !user.productFeedbackEnabled && !user.adoptionInsightsEnabled) view = 'overview';
+  if (view === 'feedback' && !user.productFeedbackEnabled && user.adoptionInsightsEnabled) {
+    feedbackPanel = 'adoption';
+    data = {};
+    detail = null;
+    render();
+    return;
+  }
   controller?.abort();
   controller = new AbortController();
   detail = null;
@@ -655,7 +759,7 @@ function render() {
   const nav = el(
     'nav',
     { 'aria-label': 'Administración' },
-    views.filter(([key]) => key !== 'feedback' || user.productFeedbackEnabled).map(([key, label]) =>
+    views.filter(([key]) => key !== 'feedback' || user.productFeedbackEnabled || user.adoptionInsightsEnabled).map(([key, label]) =>
       el(
         'button',
         {
@@ -1201,7 +1305,9 @@ function renderView(main: HTMLElement) {
     const options = (selected: string) => statuses.map(([key, label]) =>
       el('option', { value: key, selected: key === selected }, label),
     );
-    const sections = [['inbox', 'Bandeja'], ['insights', 'Métricas y campañas']] as const;
+    const sections: [typeof feedbackPanel, string][] = [];
+    if (user.productFeedbackEnabled) sections.push(['inbox', 'Bandeja'], ['insights', 'Métricas y campañas']);
+    if (user.adoptionInsightsEnabled) sections.push(['adoption', 'Incorporación y adopción']);
     main.append(
       heading('Feedback'),
       el('div', { class: 'feedback-sections', role: 'group', 'aria-label': 'Herramientas de feedback' },
@@ -1216,6 +1322,10 @@ function renderView(main: HTMLElement) {
           },
         }, label))),
     );
+    if (feedbackPanel === 'adoption') {
+      main.append(adoptionInsightsPanel());
+      return;
+    }
     if (feedbackPanel === 'insights') {
       main.append(
         el('h2', null, 'Métricas y campañas'),

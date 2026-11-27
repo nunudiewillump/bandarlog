@@ -1,3 +1,4 @@
+import { adoptionActions, type AdoptionState } from '../shared/adoption.js';
 import { readWelcome, recordWelcome } from './welcome-presentation.js';
 import { welcomeActions, welcomeVersion } from '../shared/welcome-presentation.js';
 import { createGroupEvaluation, evaluationPublication, groupEvaluationRoutes } from './group-evaluations.js';
@@ -1570,16 +1571,39 @@ if (groupEvaluationsEnabled) app.post('/api/group-evaluations/manage/:id/reminde
   if (typeof queued === 'number' && queued > 0) void deliver();
   r.json({ queued });
 });
+async function adoptionState(userId: string): Promise<AdoptionState> {
+  const result = await db.execute(sql`select bandarlog_api.adoption_state(${userId}) as value`);
+  return result.rows[0].value as AdoptionState;
+}
 app.get('/api/welcome-presentation', async (_q, r) => {
+  const userId = r.locals.user.id;
   r.set('Cache-Control', 'no-store');
-  r.json(await readWelcome(db, groupContext.getStore()!.id, r.locals.user.id));
+  const history = await readWelcome(db, groupContext.getStore()!.id, userId);
+  r.json({ ...history, adoption: await adoptionState(userId) });
 });
 app.post('/api/welcome-presentation', async (q, r) => {
   if (r.locals.user.onboardingCompletedAt === null)
     fail(409, 'Completa primero tu nombre y foto opcional.');
-  const { action } = parse(z.object({ action: z.enum(welcomeActions) }).strict(), q.body);
+  const { action } = parse(z.object({ action: z.enum([...welcomeActions, ...adoptionActions]) }).strict(), q.body);
+  const userId = r.locals.user.id;
+  const groupId = groupContext.getStore()!.id;
   r.set('Cache-Control', 'no-store');
-  r.json(await recordWelcome(db, groupContext.getStore()!.id, r.locals.user.id, action));
+  const value = await db.transaction(async (tx) => {
+    if (action === 'view' || action === 'reopen' || action === 'skip' || action === 'complete') {
+      const history = await recordWelcome(tx, groupId, userId, action);
+      const result = await tx.execute(sql`select bandarlog_api.adoption_state(${userId}) as value`);
+      return { ...history, adoption: result.rows[0].value };
+    }
+    const receipt = parse(z.uuid(), q.get('X-Mutation-ID') ?? randomUUID());
+    const result = await tx.execute(sql`select bandarlog_api.adoption_record(${userId},${action},${receipt}::uuid) as value`);
+    const history = ['choice_prepare', 'choice_explore', 'choice_replay'].includes(action)
+      ? await recordWelcome(tx, groupId, userId, 'complete')
+      : await readWelcome(tx, groupId, userId);
+    if (action === 'choice_replay')
+      return { ...(await recordWelcome(tx, groupId, userId, 'reopen')), adoption: result.rows[0].value };
+    return { ...history, adoption: result.rows[0].value };
+  });
+  r.json(value);
 });
 app.get('/api/welcome-presentation/stats', async (_q, r) => {
   if (r.locals.user.role !== 'admin')

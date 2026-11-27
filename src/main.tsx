@@ -1,3 +1,4 @@
+import { adoptionInvitation, type AdoptionAction } from '../shared/adoption';
 import { HomeNotice } from './HomeNotice';
 import { useWelcomePresentation } from './useWelcomePresentation';
 import { ProjectLifecycle } from './ProjectLifecycle';
@@ -31,8 +32,6 @@ import { taskPeople } from './task-people';
 import { Onboarding } from './Onboarding';
 import { AdminSetupGuide } from './AdminSetupGuide';
 import {
-  isFoundingAdministrator,
-  hasFinishedAdminGuide,
   canPreviewAdminGuide,
 } from './admin-setup';
 import { AdminGuidePreview } from './AdminGuidePreview';
@@ -230,7 +229,7 @@ function App() {
     [outbox, setOutbox] = useState<any[]>([]);
   const [reauthNotice, setReauthNotice] = useState('');
   const welcome = useWelcomePresentation(me && me.onboardingCompletedAt !== null && data.group
-    ? JSON.stringify([data.group.id, me.id]) : '');
+    ? JSON.stringify([data.group.id, me.id, me.role]) : '');
   const tutorial = useTutorial(me);
   const [restartTutorial, setRestartTutorial] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -306,13 +305,55 @@ function App() {
   }
   const showEvaluationTemplates =
     view === 'projects' && manage && evaluationTemplatesEnabled && evaluationTemplatesOpen;
-  const foundingAdmin = isFoundingAdministrator(me);
-  const showAdminGuide = foundingAdmin && !hasFinishedAdminGuide(me);
+  const [openGuideFor, setOpenGuideFor] = useState('');
+  const guideScope = me && data.group ? JSON.stringify([data.group.id, me.id, me.role]) : '';
+  const showAdminGuide = Boolean(manage && guideScope && openGuideFor === guideScope);
+  const missionEvents = tutorial.progress?.events;
+  const invitation = adoptionInvitation(welcome.adoption, welcome.visible,
+    Boolean(missionEvents?.tutorial_shown || missionEvents?.tutorial_started));
+  const missionNotice = invitation === 'mission' && Boolean(missionEvents
+    && !missionEvents.tutorial_completed && !missionEvents.tutorial_skipped);
+  const noticeEvent = useRef('');
+  const adoptionNoticeRef = useRef<HTMLElement>(null);
+  const recordedNotice = invitation === 'welcome' ? 'welcome_shown'
+    : invitation === 'prepare' ? 'preparation_shown'
+    : invitation === 'guide' ? 'guide_offered' : undefined;
+
+  async function startAdoptionGuide(action: AdoptionAction) {
+    if (!manage || !(await welcome.record(action))) return false;
+    setOpenGuideFor(guideScope);
+    navigate('home');
+    return true;
+  }
   const previewAvailable = canPreviewAdminGuide(me);
   const showAdminPreview = previewAvailable && previewOpen && !showAdminGuide;
   const welcomeEligible = view === 'home' && !showAdminGuide && !showAdminPreview
     && !showGroupEvaluations && !selected && !modal && !pendingAction && !busy
     && offlinePending === 0 && !queuedTasks.length && !pendingTasks.size && navigator.onLine;
+
+  useEffect(() => {
+    const notice = adoptionNoticeRef.current;
+    if (!notice || !welcomeEligible || !recordedNotice || welcome.pending
+      || welcome.adoption?.events[recordedNotice]) return;
+    const key = guideScope + recordedNotice;
+    if (noticeEvent.current === key) return;
+    let visible = false;
+    const report = () => {
+      if (!visible || document.visibilityState !== 'visible' || noticeEvent.current === key) return;
+      noticeEvent.current = key;
+      void welcome.record(recordedNotice);
+    };
+    const observer = new IntersectionObserver((entries) => {
+      visible = entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5);
+      report();
+    }, { threshold: 0.5 });
+    observer.observe(notice);
+    document.addEventListener('visibilitychange', report);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', report);
+    };
+  }, [guideScope, welcomeEligible, recordedNotice, welcome.adoption, welcome.pending]);
 
   const previewStorageKey = `bandarlog-admin-preview-dismissed:${me?.id || ''}`;
   useEffect(() => {
@@ -1574,7 +1615,15 @@ function App() {
               pending={welcome.pending}
               error={welcome.error}
               onClose={welcome.dismiss}
-              onComplete={() => void welcome.finish('complete')}
+              canPrepare={Boolean(manage)}
+              onChoice={async (choice) => {
+                if (!(await welcome.record(choice))) return false;
+                if (choice === 'choice_replay') return true;
+                welcome.close();
+                if (choice === 'choice_prepare') setOpenGuideFor(guideScope);
+                navigate('home');
+                return true;
+              }}
             />
           </Suspense>
         )}
@@ -1789,13 +1838,10 @@ function App() {
                   navigate('tutorial');
                 }}
                 onFinish={async (completed) => {
-                  const success = await run(async () => {
-                    await api('/profile', 'PATCH', { adminGuideCompleted: true });
-                    const session = await api('/me');
-                    setMe(session.user);
-                  }, 'Guía de administración guardada');
-                  if (success && completed) celebrateWithVine();
-                  return success;
+                  if (!(await welcome.record(completed ? 'guide_completed' : 'guide_skipped'))) return false;
+                  setOpenGuideFor('');
+                  if (completed) celebrateWithVine();
+                  return true;
                 }}
               />
             )}
@@ -1818,12 +1864,13 @@ function App() {
                   )}
                 </section>
               ))}
-            {view === 'home' && !showAdminGuide && !showAdminPreview && !showGroupEvaluations && (
+            {view === 'home' && !showAdminPreview && !showGroupEvaluations && (
               <>
                 {desktopHomeHeading()}
                 <div className="home-notices">
-                  {welcomeEligible && welcome.visible && (
+                  {welcomeEligible && invitation === 'welcome' && (
                     <HomeNotice
+                      ref={adoptionNoticeRef}
                       className="welcome-invitation"
                       aria-labelledby="welcome-invitation-title"
                     >
@@ -1844,15 +1891,42 @@ function App() {
                       {welcome.error && !welcome.origin && <p role="alert">{welcome.error}</p>}
                     </HomeNotice>
                   )}
-                  <TutorialInvitation
+                  {welcomeEligible && ['guide', 'prepare', 'resume'].includes(invitation ?? '') && (
+                    <HomeNotice ref={adoptionNoticeRef} aria-labelledby="adoption-prepare-title">
+                      {invitation === 'prepare' && <img className="adoption-preparation-mascot"
+                        src="/monkey-wave-2d.png" alt="" width="48" height="55" />}
+                      <h2 id="adoption-prepare-title">
+                        {invitation === 'prepare' ? '¿Empezamos la aventura?' : 'Puesta en marcha del grupo'}
+                      </h2>
+                      <p>Cuando estéis preparadxs, os ayudamos a poner en marcha vuestro grupo.</p>
+                      <div className="home-notice-actions">
+                        <button type="button" className="primary" disabled={welcome.pending}
+                          onClick={() => void startAdoptionGuide(invitation === 'resume' ? 'guide_resumed' : 'guide_started')}>
+                          {invitation === 'resume' ? 'Continuar la guía' : 'Preparar mi grupo'}
+                        </button>
+                        {invitation === 'prepare' && <button type="button" className="secondary"
+                          disabled={welcome.pending} onClick={(event) => welcome.open('profile', event)}>
+                          Volver a ver la bienvenida
+                        </button>}
+                        <button type="button" className="secondary" disabled={welcome.pending}
+                          onClick={() => void welcome.record(invitation === 'prepare' ? 'preparation_dismissed' : 'guide_skipped')}>
+                          Ahora no
+                        </button>
+                      </div>
+                      {welcome.error && <p role="alert">{welcome.error}</p>}
+                    </HomeNotice>
+                  )}
+                  {welcomeEligible && !manage && missionNotice && <TutorialInvitation
                     tutorial={tutorial}
                     onStart={() => {
                       setRestartTutorial(false);
                       navigate('tutorial');
                     }}
-                  />
-                  <DeviceNotifications userId={me.id} firstVisit />
-                  {productCampaignsEnabled && (
+                  />}
+                  {!showAdminGuide && !missionNotice && !['welcome', 'guide', 'prepare', 'resume'].includes(invitation ?? '') && (
+                    <DeviceNotifications userId={me.id} firstVisit />
+                  )}
+                  {!showAdminGuide && productCampaignsEnabled && (
                     <Suspense fallback={null}>
                       <ProductSurvey key={me.id} />
                     </Suspense>
@@ -2493,18 +2567,9 @@ function App() {
                     navigate('tutorial');
                   }}
                   onPreviewAdminGuide={previewAvailable ? reopenAdminPreview : undefined}
-                  onReplayAdminGuide={
-                    foundingAdmin
-                      ? () => {
-                          void run(async () => {
-                            await api('/profile', 'PATCH', { adminGuideCompleted: false });
-                            const session = await api('/me');
-                            setMe(session.user);
-                            navigate('home');
-                          }, 'Guía de administración recuperada');
-                        }
-                      : undefined
-                  }
+                  onReplayAdminGuide={manage ? () => {
+                    void startAdoptionGuide(welcome.adoption?.events.guide_started ? 'guide_repeated' : 'guide_started');
+                  } : undefined}
                   busy={busy}
                   run={run}
                   onSaved={setMe}

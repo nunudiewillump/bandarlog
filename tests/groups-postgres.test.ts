@@ -1314,6 +1314,41 @@ test('PostgreSQL scopes assigned evaluations and protects draft and submission s
   const platformClient = new pg.Client({ connectionString: identity.toString() });
   await platformClient.connect();
   try {
+    const adoption = () => platformClient.query(
+      "select bandarlog_api.adoption_insights($1,0,'',1) as metrics", [feedbackToken],
+    );
+    const baselineAdoption = (await adoption()).rows[0].metrics;
+    await assert.rejects(
+      platformClient.query("select bandarlog_api.adoption_insights('',0,'',1)"),
+      /platform session required/,
+    );
+    await assert.rejects(as(actors[0], "select bandarlog_api.adoption_insights('',0,'',1)"), /permission denied/);
+    await ownerPool.query(`
+      INSERT INTO scout_groups(id,name,created_at) VALUES('adoption-metrics-qa','Adoption QA',now()-interval '15 days');
+      INSERT INTO users(group_id,id,name,email,role) VALUES
+        ('adoption-metrics-qa','adoption-qa-admin','Admin','adoption-qa-admin@example.test','admin'),
+        ('adoption-metrics-qa','adoption-qa-member','Member','adoption-qa-member@example.test','member');
+      UPDATE users SET role='coordination' WHERE id='adoption-qa-member';
+      UPDATE users SET role='admin' WHERE id='adoption-qa-member';
+      INSERT INTO projects(group_id,id,name) VALUES('adoption-metrics-qa','adoption-project','Proyecto');
+      INSERT INTO commissions(group_id,id,project_id,name,description,icon)
+        VALUES('adoption-metrics-qa','adoption-commission','adoption-project','Comisión','','');
+      INSERT INTO tasks(group_id,id,commission_id,title,description,due,status,updated_at)
+        VALUES('adoption-metrics-qa','adoption-task','adoption-commission','Tarea','',now(),'pending',now());
+    `);
+    assert.equal((await adoption()).rows[0].metrics.summary.activated, baselineAdoption.summary.activated);
+    await ownerPool.query(`
+      UPDATE tasks SET status='done',completed_at=now(),completed_by='adoption-qa-admin' WHERE id='adoption-task';
+      UPDATE tasks SET status='pending',completed_at=NULL,completed_by=NULL WHERE id='adoption-task';
+      UPDATE tasks SET status='done',completed_at=now(),completed_by='adoption-qa-admin' WHERE id='adoption-task';
+    `);
+    const currentAdoption = (await adoption()).rows[0].metrics;
+    assert.equal(currentAdoption.summary.groups, baselineAdoption.summary.groups + 1);
+    assert.equal(currentAdoption.summary.activated, baselineAdoption.summary.activated + 1);
+    assert.equal(currentAdoption.funnel[6], baselineAdoption.funnel[6]);
+    assert.equal(currentAdoption.eligibilitySources.coordination, (baselineAdoption.eligibilitySources.coordination ?? 0) + 1);
+    assert.equal(currentAdoption.cohorts.find((row: { days: number }) => row.days === 14).eligible,
+      baselineAdoption.cohorts.find((row: { days: number }) => row.days === 14).eligible + 1);
     const list = (token: string, status = '') => platformClient.query(
       'select bandarlog_api.product_feedback_list($1,null,10,$2) as items', [token,status],
     );

@@ -132,7 +132,7 @@ test('the actor SQL role sees only its project and commission records after appl
              bandarlog_api.runtime_contract_version() as contract
     `)
       ).rows,
-      [{ minutes: null, decisions: null, followups: null, contract: 56 }],
+      [{ minutes: null, decisions: null, followups: null, contract: 57 }],
     );
     await client.transaction(async (tx) => {
       await tx.query(
