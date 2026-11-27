@@ -308,10 +308,11 @@ function App() {
   const [openGuideFor, setOpenGuideFor] = useState('');
   const guideScope = me && data.group ? JSON.stringify([data.group.id, me.id, me.role]) : '';
   const showAdminGuide = Boolean(manage && guideScope && openGuideFor === guideScope);
+  const missionEvents = tutorial.progress?.events;
   const invitation = adoptionInvitation(welcome.adoption, welcome.visible,
-    Boolean(tutorial.progress?.events.tutorial_shown || tutorial.progress?.events.tutorial_started));
-  const missionNotice = invitation === 'mission' && Boolean(tutorial.progress
-    && !tutorial.progress.events.tutorial_completed && !tutorial.progress.events.tutorial_skipped);
+    Boolean(missionEvents?.tutorial_shown || missionEvents?.tutorial_started));
+  const missionNotice = invitation === 'mission' && Boolean(missionEvents
+    && !missionEvents.tutorial_completed && !missionEvents.tutorial_skipped);
   const noticeEvent = useRef('');
   const adoptionNoticeRef = useRef<HTMLElement>(null);
   const recordedNotice = invitation === 'welcome' ? 'welcome_shown'
