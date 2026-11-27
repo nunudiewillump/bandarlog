@@ -25,6 +25,12 @@ test('voluntary feedback from Perfil reaches the authorized platform inbox', asy
       return route.fulfill({
         json: { name: 'Administración', csrf, productFeedbackEnabled: true },
       });
+    if (path === '/api/platform/feedback' && new URL(request.url()).searchParams.get('cursor'))
+      return route.fulfill({ json: {
+        insights: [], nextCursor: '',
+        items: [{ id: 'older', category: 'idea', body: 'Mejora anterior', status: 'new',
+          revision: 1, replyEmail: 'contacto@example.test', createdAt: '2026-11-20T10:00:00Z' }],
+      } });
     if (path === '/api/platform/feedback')
       return route.fulfill({
         json: {
@@ -45,7 +51,7 @@ test('voluntary feedback from Perfil reaches the authorized platform inbox', asy
               createdAt: '2026-11-26T10:00:00Z',
             },
           ],
-          nextCursor: '',
+          nextCursor: feedbackId,
         },
       });
     if (path === '/api/platform/feedback/' + feedbackId) {
@@ -66,10 +72,31 @@ test('voluntary feedback from Perfil reaches the authorized platform inbox', asy
   await page.setViewportSize({ width: 1440, height: 940 });
   await page.goto('/plataforma#feedback');
   await expect(page.getByText('Una mejora para el grupo.')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Product Insights' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Bandeja de feedback' })).toBeVisible();
+  const search = page.getByLabel('Buscar texto o correo en esta página');
+  await search.fill('texto inexistente');
+  await expect(page.getByText('0 de 1 aportaciones en esta página')).toBeVisible();
+  await search.fill('MEJORA');
+  await expect(page.getByText('Una mejora para el grupo.')).toBeVisible();
+  await page.getByLabel('Categoría en esta página').selectOption('bug');
+  await expect(page.getByText('Sin resultados')).toBeVisible();
+  await page.getByLabel('Categoría en esta página').selectOption('idea');
+  await page.getByRole('button', { name: 'Métricas y campañas' }).click();
+  await expect(page.getByRole('heading', { name: 'Métricas y campañas' })).toBeVisible();
+  await page.getByRole('button', { name: 'Bandeja', exact: true }).click();
+  await expect(search).toHaveValue('MEJORA');
   await page.getByLabel('Cambiar estado de aportación').selectOption('resolved');
   await expect.poll(() => status).toBe('resolved');
   await expect(page.getByLabel('Cambiar estado de aportación')).toHaveValue('resolved');
+  await page.setViewportSize({ width: 390, height: 850 });
+  await page.getByRole('button', { name: 'Siguiente', exact: true }).click();
+  await expect(page.getByText('Mejora anterior')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'contacto@example.test' }))
+    .toHaveAttribute('href', 'mailto:contacto@example.test');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await page.getByRole('button', { name: 'Anterior', exact: true }).click();
+  await expect(search).toHaveValue('MEJORA');
+  await expect(page.getByText('Una mejora para el grupo.')).toBeVisible();
 });
 
 test('an optional follow-up survey opens from Inicio and sends explicit ratings', async ({
@@ -172,6 +199,7 @@ test('platform administration previews and versions a campaign and reads privacy
   });
   await page.setViewportSize({ width: 390, height: 850 });
   await page.goto('/plataforma#feedback');
+  await page.getByRole('button', { name: 'Métricas y campañas' }).click();
   await page.getByText('Gestionar campañas').click();
   await page.getByLabel('Título', { exact: true }).fill('Experiencia de noviembre');
   await page.getByLabel('Primer día (hora de Madrid)').fill('2030-11-20');
@@ -186,6 +214,13 @@ test('platform administration previews and versions a campaign and reads privacy
     audience: 'management',
     questions: ['¿Cómo valoras el flujo?'],
   });
+  await page.getByLabel('Opciones de campaña').selectOption('duplicate');
+  await expect(page.getByLabel('Título', { exact: true })).toHaveValue('Experiencia de noviembre (copia)');
+  await expect(page.getByLabel('Primer día (hora de Madrid)')).toHaveValue('');
+  await expect(page.getByLabel('Último día (hora de Madrid)')).toHaveValue('');
+  await expect(page.getByLabel('Destinatarios')).toHaveValue('management');
+  await expect(page.getByLabel('Preguntas (una por línea)')).toHaveValue('¿Cómo valoras el flujo?');
+  expect(published.configuration.title).toBe('Experiencia de noviembre');
   await page.setViewportSize({ width: 1440, height: 940 });
   await page.getByText('Evolución y segmentos').click();
   await page.getByLabel('Dimensión').selectOption('week');
