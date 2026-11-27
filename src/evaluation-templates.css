@@ -275,14 +275,12 @@
   flex: 1;
   gap: 8px;
   min-width: 0;
-  padding-inline: 6px;
-  color: #24352b;
-  background: transparent;
+  padding-inline: 12px;
   text-align: start;
 }
 .evaluation-question-toggle svg {
   flex: none;
-  color: #a8afa5;
+  color: #dce9df;
 }
 .evaluation-question-toggle[aria-expanded='true'] svg {
   transform: rotate(180deg);
@@ -294,38 +292,60 @@
   display: none;
 }
 .evaluation-templates .evaluation-audience-controls {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: inline-flex;
+  justify-self: start;
+  max-width: 100%;
+  padding: 3px;
+  gap: 3px;
+  border: 1px solid #dfe5da;
+  border-radius: 10px;
+  background: #e8ede2;
 }
-.evaluation-audience input[role='switch'] {
-  appearance: none;
+.evaluation-audience-controls label {
   position: relative;
-  width: 48px;
-  height: 26px;
-  margin: 0;
-  border-radius: 999px;
-  border: 1px solid #8b9d85;
-  background: #e2e8dc;
   cursor: pointer;
 }
-.evaluation-audience input[role='switch']::after {
-  content: '';
+.evaluation-audience-controls input[type='radio'] {
   position: absolute;
-  inset-block-start: 3px;
-  inset-inline-start: 3px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #124d38;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: inherit;
 }
-.evaluation-audience input[role='switch']:checked {
-  background: #124d38;
+.evaluation-audience-controls label > span {
+  display: grid;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 7px;
+  text-align: center;
+  color: #24352b;
 }
-.evaluation-audience input[role='switch']:checked::after {
-  inset-inline-start: 25px;
-  background: #fff;
+.evaluation-audience-controls input:checked + span {
+  background: #124d38;
+  color: #fff;
+}
+.evaluation-audience-controls input:focus-visible + span {
+  outline: 2px solid #21865c;
+  outline-offset: 2px;
+}
+.evaluation-description-add,
+.evaluation-description-remove {
+  justify-self: end;
+  padding: 0 4px;
+  background: transparent;
+}
+.evaluation-description-add {
+  color: #124d38;
+  font-weight: 400;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.evaluation-description-remove {
+  min-width: 44px;
+  color: #bd352f;
 }
 .evaluation-templates [data-drag-source] {
   opacity: .5;
