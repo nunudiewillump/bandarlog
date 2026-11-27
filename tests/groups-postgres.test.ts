@@ -799,6 +799,24 @@ test('production public pages and legacy-domain redirects preserve safe links wi
       a,
     );
     assert.equal(task.status, 201);
+    // Use the same least-privilege HTTP role as production, with real onboarding and replay.
+    assert.equal((await api('/api/onboarding', 'POST', { name: 'Admin A' }, a)).status, 200);
+    const firstMission = await api('/api/tutorial', 'POST', { action: 'open' }, a);
+    assert.equal(firstMission.status, 200);
+    assert.equal(firstMission.data.progress.taskStatus, 'pending');
+    assert.equal('groupId' in firstMission.data.progress, false);
+    const completedMission = await api('/api/tutorial', 'POST', {
+      action: 'status', status: 'done', expectedVersion: firstMission.data.progress.version,
+    }, a);
+    assert.equal(completedMission.status, 200);
+    const replayedMission = await api('/api/tutorial', 'POST', { action: 'open', restart: true }, a);
+    assert.equal(replayedMission.status, 200);
+    assert.equal(replayedMission.data.progress.taskStatus, 'pending');
+    assert.equal(replayedMission.data.progress.events.tutorial_completed,
+      completedMission.data.progress.events.tutorial_completed);
+    const otherMission = await api('/api/tutorial', 'GET', undefined, b);
+    assert.equal(otherMission.status, 200);
+    assert.deepEqual(otherMission.data.events, {});
     assert.equal((await api('/api/data', 'GET', undefined, b)).data.tasks.length, 0);
     assert.equal(
       (await api('/api/tasks/' + task.data.id, 'PATCH', { title: 'Forbidden' }, b)).status,
