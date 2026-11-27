@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import { SessionSettings } from './SessionSettings';
-import { useRef, useState } from 'react';
+import { useRef, useState, type MouseEvent } from 'react';
 import { ChevronRight, LogOut, Pencil } from 'lucide-react';
 import type { User, ScoutGroup } from './types';
 import { api } from './api';
@@ -11,6 +11,7 @@ import { DeviceNotifications } from './DeviceNotifications';
 
 type Props = {
   group?: ScoutGroup;
+  onViewPresentation?: (event: MouseEvent<HTMLButtonElement>) => void;
   onReplayTutorial?: () => void;
   onReplayAdminGuide?: () => void;
   onPreviewAdminGuide?: () => void;
@@ -63,6 +64,7 @@ export function ProfilePanel({
   onSaved,
   onLogout,
   onReplayTutorial,
+  onViewPresentation,
   onReplayAdminGuide,
   onPreviewAdminGuide,
 }: Props) {
@@ -256,14 +258,17 @@ export function ProfilePanel({
           </section>
         </div>
       </details>
-      {onReplayTutorial && (
+      {(onReplayTutorial || onViewPresentation) && (
         <details className="profile-help">
           <summary>
             Ayuda <ChevronRight size={18} />
           </summary>
-          <button type="button" className="secondary" onClick={onReplayTutorial}>
+          {onReplayTutorial && <button type="button" className="secondary" onClick={onReplayTutorial}>
             Repetir tutorial
-          </button>
+          </button>}
+          {onViewPresentation && <button type="button" className="secondary" onClick={onViewPresentation}>
+            Ver presentación de Bandarlog
+          </button>}
           {onPreviewAdminGuide && (
             <button type="button" className="secondary" onClick={onPreviewAdminGuide}>
               Probar bienvenida del administrador

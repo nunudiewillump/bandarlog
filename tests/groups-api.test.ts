@@ -359,6 +359,7 @@ test('independent groups can share an owner email without sharing sessions, role
   await call('/api/tutorial', 'POST', { action: 'shown' }, a);
   assert.equal((await call('/api/tutorial/stats', 'GET', undefined, a)).body.shown, 1);
   assert.equal((await call('/api/tutorial/stats', 'GET', undefined, b)).body.shown, 0);
+  await assertWelcomeIsolation(a, b);
   assert.equal(
     (
       await call(
@@ -1060,3 +1061,27 @@ test('one project questionnaire exposes only the assigned commission sections', 
   }, member)).status, 400);
   assert.equal((await call(path + '/response', 'PUT', response, member)).status, 200);
 });
+
+async function assertWelcomeIsolation(a: Session, b: Session) {
+  const path = '/api/welcome-presentation';
+  const empty = { viewedAt: null, completedAt: null, skippedAt: null, reopenedAt: null };
+  assert.equal((await call(path)).status, 401);
+  assert.deepEqual((await call(path, 'GET', undefined, a)).body, empty);
+  assert.equal((await call(path, 'POST', { action: 'view' }, { ...a, csrf: '' })).status, 403);
+  assert.equal((await call(path, 'POST', { action: 'view' }, b)).status, 409);
+  assert.equal((await call('/api/onboarding', 'POST', { name: 'Alex' }, b)).status, 200);
+  assert.equal((await call(path, 'POST', { action: 'view', groupId: 'untrusted' }, a)).status, 400);
+  const complete = await call(path, 'POST', { action: 'complete' }, a);
+  assert.equal(complete.status, 200);
+  assert.ok(complete.body.viewedAt && complete.body.completedAt);
+  const reopened = await call(path, 'POST', { action: 'reopen' }, a);
+  assert.ok(reopened.body.reopenedAt);
+  assert.equal(reopened.body.completedAt, complete.body.completedAt);
+  assert.deepEqual((await call(path, 'POST', { action: 'complete' }, a)).body, reopened.body);
+  assert.deepEqual((await call(path, 'GET', undefined, b)).body, empty);
+  const skipped = await call(path, 'POST', { action: 'skip' }, b);
+  assert.ok(skipped.body.skippedAt);
+  assert.equal(skipped.body.completedAt, null);
+  assert.deepEqual((await call(path + '/stats', 'GET', undefined, a)).body,
+    { viewed: 1, completed: 1, skipped: 0, reopened: 1 });
+}

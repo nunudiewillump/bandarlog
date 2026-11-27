@@ -483,3 +483,13 @@ export const projectLifecycleEvents = pgTable('project_lifecycle_events', {
   kind: text().$type<'closed' | 'reopened'>().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
 }, (t) => [primaryKey({ columns: [t.groupId, t.projectId, t.eventNo] })]);
+
+export const welcomePresentation = pgTable('welcome_presentation', {
+  groupId: text('group_id').notNull(),
+  userId: text('user_id').notNull(),
+  version: integer().notNull(),
+  viewedAt: timestamp('viewed_at', { withTimezone: true, mode: 'string' }),
+  completedAt: timestamp('completed_at', { withTimezone: true, mode: 'string' }),
+  skippedAt: timestamp('skipped_at', { withTimezone: true, mode: 'string' }),
+  reopenedAt: timestamp('reopened_at', { withTimezone: true, mode: 'string' }),
+}, (table) => [primaryKey({ columns: [table.groupId, table.userId, table.version] })]);
