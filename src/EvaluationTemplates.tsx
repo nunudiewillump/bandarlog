@@ -18,7 +18,12 @@ import './evaluation-templates.css';
 type Question = EvaluationStructure['sections'][number]['questions'][number];
 type Entry = { id: string; title: string; revision: number; archived: boolean };
 type Template = Omit<Entry, 'title'> & { structure: EvaluationStructure };
-type Version = { revision: number; publishedAt: string };
+type Version = {
+  revision: number;
+  publishedAt: string;
+  requiresCommission?: boolean;
+  projectOnly?: boolean;
+};
 const root = '/evaluation-templates';
 const names = {
   shortText: 'Texto corto',
@@ -50,6 +55,7 @@ const newSection = () => ({
   id: crypto.randomUUID(),
   title: '',
   description: '',
+  audience: 'project' as const,
   questions: [questionOf('shortText')],
 });
 
@@ -116,6 +122,8 @@ export default function EvaluationTemplates({
   const [items, setItems] = useState<Entry[]>([]);
   const [next, setNext] = useState<string | null>(null);
   const [selected, setSelected] = useState<Template | null>(null);
+  const [folded, setFolded] = useState<Set<string>>(new Set());
+  const [dragging, setDragging] = useState(false);
   const [draft, setDraft] = useState<EvaluationStructure | null>(null);
   const [versions, setVersions] = useState<Version[]>([]);
   const [older, setOlder] = useState<number | null>(null);
@@ -156,6 +164,11 @@ export default function EvaluationTemplates({
   async function open(id: string) {
     const template: Template = await api(root + '/' + id);
     setSelected(template);
+    setFolded(
+      new Set(
+        template.structure.sections.flatMap(({ questions }) => questions.map(({ id }) => id)),
+      ),
+    );
     setDraft(template.structure);
     setVersions([]);
     setOlder(null);
@@ -163,6 +176,7 @@ export default function EvaluationTemplates({
   }
 
   function start(structure: EvaluationStructure) {
+    setFolded(new Set());
     setSelected(null);
     setDraft(structure);
     setVersions([]);
@@ -386,6 +400,7 @@ export default function EvaluationTemplates({
         </>
       ) : (
         <form
+          noValidate
           onSubmit={(event) => {
             event.preventDefault();
             if (busy || selected?.archived) return;
@@ -461,7 +476,7 @@ export default function EvaluationTemplates({
                   sections: draft.sections.map((row) => (row.id === next.id ? next : row)),
                 });
               return (
-                <fieldset className="evaluation-section" key={section.id}>
+                <fieldset className="evaluation-section evaluation-section-panel" key={section.id}>
                   <legend>Sección {sectionIndex + 1}</legend>
                   <button
                     type="button"
@@ -497,6 +512,25 @@ export default function EvaluationTemplates({
                       }
                     />
                   </label>
+                  <label className="evaluation-audience">
+                    <span>Ámbito de la sección</span>
+                    <span className="evaluation-audience-controls">
+                      <span>Proyecto</span>
+                      <input
+                        type="checkbox"
+                        role="switch"
+                        aria-label={'Sección ' + (sectionIndex + 1) + ' para comisiones'}
+                        checked={section.audience === 'commission'}
+                        onChange={(event) =>
+                          updateSection({
+                            ...section,
+                            audience: event.target.checked ? 'commission' : 'project',
+                          })
+                        }
+                      />
+                      <span>Comisiones</span>
+                    </span>
+                  </label>
                   <div data-question-list className="evaluation-question-list">
                     {section.questions.map((question, index) => {
                       const update = (next: Question) =>
@@ -521,17 +555,44 @@ export default function EvaluationTemplates({
                       };
                       return (
                         <fieldset
-                          className="evaluation-question"
+                          className="evaluation-question evaluation-question-card"
                           key={question.id}
                           data-question-position={index}
                         >
-                          <legend>Pregunta {index + 1}</legend>
                           <div className="evaluation-question-actions">
                             <QuestionHandle
                               position={index}
                               count={section.questions.length}
                               onMove={move}
+                              onDragChange={setDragging}
+                              title={question.label || 'Pregunta ' + (index + 1)}
                             />
+                            <button
+                              type="button"
+                              className="evaluation-question-toggle"
+                              aria-expanded={!dragging && !folded.has(question.id)}
+                              aria-controls={'settings-' + question.id}
+                              onClick={() =>
+                                setFolded((previous) => {
+                                  const next = new Set(previous);
+                                  if (next.has(question.id)) next.delete(question.id);
+                                  else next.add(question.id);
+                                  return next;
+                                })
+                              }
+                            >
+                              <span>{question.label || 'Pregunta ' + (index + 1)}</span>
+                              <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+                                <path
+                                  d="M4 8q5 1 8 8 3-7 8-8M12 16v3"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
                             <button
                               type="button"
                               className="secondary evaluation-icon evaluation-delete"
@@ -550,88 +611,96 @@ export default function EvaluationTemplates({
                               <Trash2 size={17} aria-hidden="true" />
                             </button>
                           </div>
-                          <label>
-                            Enunciado
-                            <input
-                              required
-                              maxLength={160}
-                              value={question.label}
-                              onChange={(event) =>
-                                update({ ...question, label: event.target.value })
-                              }
-                            />
-                          </label>
-                          <label>
-                            Descripción de la pregunta
-                            <textarea
-                              maxLength={1000}
-                              value={question.description}
-                              onChange={(event) =>
-                                update({ ...question, description: event.target.value })
-                              }
-                            />
-                          </label>
-                          <label>
-                            Tipo de pregunta
-                            <select
-                              value={question.type}
-                              onChange={(event) =>
-                                update(questionOf(event.target.value as Question['type'], question))
-                              }
-                            >
-                              {questionTypes.map((type) => (
-                                <option key={type} value={type}>
-                                  {names[type]}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          {'options' in question && (
-                            <QuestionOptions
-                              options={question.options}
-                              onChange={(options) => update({ ...question, options })}
-                            />
-                          )}
-                          {'min' in question && (
-                            <div className="evaluation-controls">
-                              <label>
-                                Mínimo
-                                <input
-                                  type="number"
-                                  required
-                                  min={-100}
-                                  max={100}
-                                  value={Number.isNaN(question.min) ? '' : question.min}
-                                  onChange={(event) =>
-                                    update({ ...question, min: event.target.valueAsNumber })
-                                  }
-                                />
-                              </label>
-                              <label>
-                                Máximo
-                                <input
-                                  type="number"
-                                  required
-                                  min={-100}
-                                  max={100}
-                                  value={Number.isNaN(question.max) ? '' : question.max}
-                                  onChange={(event) =>
-                                    update({ ...question, max: event.target.valueAsNumber })
-                                  }
-                                />
-                              </label>
-                            </div>
-                          )}
-                          <label className="evaluation-checkbox">
-                            <input
-                              type="checkbox"
-                              checked={question.required}
-                              onChange={(event) =>
-                                update({ ...question, required: event.target.checked })
-                              }
-                            />{' '}
-                            Obligatoria
-                          </label>
+                          <fieldset
+                            id={'settings-' + question.id}
+                            className="evaluation-question-settings"
+                            hidden={dragging || folded.has(question.id)}
+                          >
+                            <label>
+                              Enunciado
+                              <input
+                                required
+                                maxLength={160}
+                                value={question.label}
+                                onChange={(event) =>
+                                  update({ ...question, label: event.target.value })
+                                }
+                              />
+                            </label>
+                            <label>
+                              Descripción de la pregunta
+                              <textarea
+                                maxLength={1000}
+                                value={question.description}
+                                onChange={(event) =>
+                                  update({ ...question, description: event.target.value })
+                                }
+                              />
+                            </label>
+                            <label>
+                              Tipo de pregunta
+                              <select
+                                value={question.type}
+                                onChange={(event) =>
+                                  update(
+                                    questionOf(event.target.value as Question['type'], question),
+                                  )
+                                }
+                              >
+                                {questionTypes.map((type) => (
+                                  <option key={type} value={type}>
+                                    {names[type]}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            {'options' in question && (
+                              <QuestionOptions
+                                options={question.options}
+                                onChange={(options) => update({ ...question, options })}
+                              />
+                            )}
+                            {'min' in question && (
+                              <div className="evaluation-controls">
+                                <label>
+                                  Mínimo
+                                  <input
+                                    type="number"
+                                    required
+                                    min={-100}
+                                    max={100}
+                                    value={Number.isNaN(question.min) ? '' : question.min}
+                                    onChange={(event) =>
+                                      update({ ...question, min: event.target.valueAsNumber })
+                                    }
+                                  />
+                                </label>
+                                <label>
+                                  Máximo
+                                  <input
+                                    type="number"
+                                    required
+                                    min={-100}
+                                    max={100}
+                                    value={Number.isNaN(question.max) ? '' : question.max}
+                                    onChange={(event) =>
+                                      update({ ...question, max: event.target.valueAsNumber })
+                                    }
+                                  />
+                                </label>
+                              </div>
+                            )}
+                            <label className="evaluation-checkbox">
+                              <input
+                                type="checkbox"
+                                checked={question.required}
+                                onChange={(event) =>
+                                  update({ ...question, required: event.target.checked })
+                                }
+                              />{' '}
+                              Obligatoria
+                            </label>
+                          </fieldset>
                         </fieldset>
                       );
                     })}

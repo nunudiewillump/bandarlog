@@ -82,11 +82,18 @@ export async function createGroupEvaluation(
       ),
     );
   if (!version) return null;
+  const templateSections = (version.structure as EvaluationStructure).sections;
+  const selectedScopes = new Set(input.sectionScopes?.map(({ sectionId }) => sectionId));
+  if (templateSections.some(({ id, audience }) =>
+    (audience === 'commission' && !selectedScopes.has(id)) ||
+    (audience === 'project' && selectedScopes.has(id))
+  )) return null;
   const recipients = await tx
     .select({ id: users.id })
     .from(users)
     .where(and(inArray(users.id, input.userIds), isNull(users.disabledAt)));
   if (recipients.length !== input.userIds.length) return null;
+  const sectionsByUser = new Map<string, string[]>();
   if (input.commissionId) {
     if (!projectId) return null;
     const eligible = await tx
@@ -105,11 +112,15 @@ export async function createGroupEvaluation(
         ),
       );
     if (new Set(eligible.map(({ id }) => id)).size !== input.userIds.length) return null;
+    if (templateSections.some(({ audience }) => audience === 'project')) {
+      const ids = templateSections.filter(({ audience }) => audience !== 'project').map(({ id }) => id);
+      if (!ids.length) return null;
+      for (const { id } of recipients) sectionsByUser.set(id, ids);
+    }
   }
-  const sectionsByUser = new Map<string, string[]>();
   if (input.sectionScopes) {
     if (!projectId || input.commissionId) return null;
-    const sections = (version.structure as EvaluationStructure).sections;
+    const sections = templateSections;
     const scopes = new Map(
       input.sectionScopes.map((scope) => [scope.sectionId, scope.commissionId]),
     );
