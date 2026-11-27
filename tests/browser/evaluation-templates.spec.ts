@@ -73,7 +73,7 @@ test('coordination opens the lazy editor, saves and publishes a template on mobi
   await expect(useBase).toBeVisible();
   await useBase.click();
   await expect(page.getByLabel('Nombre de la plantilla')).toHaveValue('Evaluación de proyecto');
-  await expect(page.getByLabel('Enunciado')).toHaveCount(4);
+  await expect(page.locator('.evaluation-question-settings:visible')).toHaveCount(0);
   await page.getByLabel('Nombre de la plantilla').fill('Copia de prueba');
   page.once('dialog', (dialog) => void dialog.accept());
   await page.getByRole('button', { name: 'Volver a plantillas' }).click();
@@ -85,12 +85,26 @@ test('coordination opens the lazy editor, saves and publishes a template on mobi
   await page.getByRole('button', { name: 'Nueva plantilla' }).click();
   await page.getByLabel('Nombre de la plantilla').fill('Evaluación del campamento');
   await page.getByLabel('Título de sección').fill('Organización y convivencia');
+  const firstQuestion = page.getByRole('button', { name: 'Pregunta 1', exact: true });
+  await expect(firstQuestion).toHaveAttribute('aria-expanded', 'false');
+  await firstQuestion.click();
   await page.getByLabel('Enunciado').fill('¿Qué debemos mantener?');
+  const addDescription = page.getByRole('button', { name: 'Añadir descripción' });
+  await expect(page.getByLabel('Descripción de la pregunta')).toHaveCount(0);
+  await addDescription.click();
+  await expect(page.getByLabel('Descripción de la pregunta')).toBeFocused();
+  await page.getByLabel('Descripción de la pregunta').fill('Borrar este contenido');
+  await page.getByRole('button', { name: 'Eliminar descripción' }).click();
+  await expect(addDescription).toBeFocused();
+  await expect(page.getByLabel('Descripción de la pregunta')).toHaveCount(0);
+  await addDescription.click();
+  await page.getByLabel('Descripción de la pregunta').fill('Piensa en el próximo campamento.');
   await page.getByLabel('Tipo de pregunta').selectOption('longText');
   await page.getByLabel('Obligatoria').check();
-  const audience = page.getByRole('switch', { name: 'Sección 1 para comisiones' });
-  await expect(audience).not.toBeChecked();
-  await audience.check();
+  const audience = page.getByRole('group', { name: 'Ámbito de la sección' });
+  await expect(audience.getByRole('radio', { name: 'Proyecto' })).toBeChecked();
+  await audience.getByRole('radio', { name: 'Proyecto' }).press('ArrowRight');
+  await expect(audience.getByRole('radio', { name: 'Comisiones' })).toBeChecked();
   const disclosure = page.getByRole('button', { name: '¿Qué debemos mantener?' });
   await disclosure.click();
   await expect(page.getByLabel('Enunciado')).toBeHidden();
@@ -107,6 +121,9 @@ test('coordination opens the lazy editor, saves and publishes a template on mobi
   await expect(panel.getByLabel('Título de sección')).toHaveCount(1);
   await panel.getByRole('button', { name: 'Añadir pregunta' }).click();
   const questions = panel.locator('[data-question-position]');
+  const secondQuestion = questions.nth(1).getByRole('button', { name: 'Pregunta 2', exact: true });
+  await expect(secondQuestion).toHaveAttribute('aria-expanded', 'false');
+  await secondQuestion.click();
   await questions.nth(1).getByLabel('Enunciado').fill('¿Cómo fue la convivencia?');
   await questions.nth(1).getByLabel('Tipo de pregunta').selectOption('singleChoice');
   await questions.nth(1).getByLabel('Opción 1', { exact: true }).fill('Buena');
@@ -138,7 +155,11 @@ test('coordination opens the lazy editor, saves and publishes a template on mobi
   await panel.getByRole('button', { name: 'Guardar borrador' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Plantilla guardada.' })).toBeVisible();
   expect(structure.sections[0].audience).toBe('commission');
-  expect(structure.sections[0].questions[0]).toMatchObject({ type: 'longText', required: true });
+  expect(structure.sections[0].questions[0]).toMatchObject({
+    type: 'longText',
+    required: true,
+    description: 'Piensa en el próximo campamento.',
+  });
   expect(structure.sections[0].questions[1]).toMatchObject({
     type: 'singleChoice',
     options: ['Buena', 'Mejorable'],

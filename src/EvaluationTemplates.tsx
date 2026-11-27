@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Plus, Save, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Trash2, X } from 'lucide-react';
 import { api } from './api';
 import { baseEvaluationTemplate } from './base-evaluation-template';
 import { QuestionHandle, QuestionOptions } from './EvaluationQuestionControls';
@@ -58,6 +58,57 @@ const newSection = () => ({
   audience: 'project' as const,
   questions: [questionOf('shortText')],
 });
+
+function OptionalQuestionDescription({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (description: string) => void;
+}) {
+  const [visible, setVisible] = useState(false);
+  const field = useRef<HTMLTextAreaElement>(null);
+  const add = useRef<HTMLButtonElement>(null);
+  if (!visible && !value)
+    return (
+      <button
+        ref={add}
+        type="button"
+        className="evaluation-description-add"
+        onClick={() => {
+          setVisible(true);
+          requestAnimationFrame(() => field.current?.focus());
+        }}
+      >
+        Añadir descripción
+      </button>
+    );
+  return (
+    <>
+      <label>
+        Descripción de la pregunta
+        <textarea
+          ref={field}
+          maxLength={1000}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      </label>
+      <button
+        type="button"
+        className="evaluation-description-remove"
+        aria-label="Eliminar descripción"
+        onClick={() => {
+          onChange('');
+          setVisible(false);
+          requestAnimationFrame(() => add.current?.focus());
+        }}
+      >
+        <X size={18} strokeWidth={1.5} aria-hidden="true" />
+      </button>
+    </>
+  );
+}
 
 function Actions({
   label,
@@ -122,7 +173,7 @@ export default function EvaluationTemplates({
   const [items, setItems] = useState<Entry[]>([]);
   const [next, setNext] = useState<string | null>(null);
   const [selected, setSelected] = useState<Template | null>(null);
-  const [folded, setFolded] = useState<Set<string>>(new Set());
+  const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
   const [dragging, setDragging] = useState(false);
   const [draft, setDraft] = useState<EvaluationStructure | null>(null);
   const [versions, setVersions] = useState<Version[]>([]);
@@ -164,11 +215,7 @@ export default function EvaluationTemplates({
   async function open(id: string) {
     const template: Template = await api(root + '/' + id);
     setSelected(template);
-    setFolded(
-      new Set(
-        template.structure.sections.flatMap(({ questions }) => questions.map(({ id }) => id)),
-      ),
-    );
+    setExpandedQuestions(new Set());
     setDraft(template.structure);
     setVersions([]);
     setOlder(null);
@@ -176,7 +223,7 @@ export default function EvaluationTemplates({
   }
 
   function start(structure: EvaluationStructure) {
-    setFolded(new Set());
+    setExpandedQuestions(new Set());
     setSelected(null);
     setDraft(structure);
     setVersions([]);
@@ -512,25 +559,23 @@ export default function EvaluationTemplates({
                       }
                     />
                   </label>
-                  <label className="evaluation-audience">
-                    <span>Ámbito de la sección</span>
-                    <span className="evaluation-audience-controls">
-                      <span>Proyecto</span>
-                      <input
-                        type="checkbox"
-                        role="switch"
-                        aria-label={'Sección ' + (sectionIndex + 1) + ' para comisiones'}
-                        checked={section.audience === 'commission'}
-                        onChange={(event) =>
-                          updateSection({
-                            ...section,
-                            audience: event.target.checked ? 'commission' : 'project',
-                          })
-                        }
-                      />
-                      <span>Comisiones</span>
-                    </span>
-                  </label>
+                  <fieldset className="evaluation-audience">
+                    <legend>Ámbito de la sección</legend>
+                    <div className="evaluation-audience-controls">
+                      {(['project', 'commission'] as const).map((audience) => (
+                        <label key={audience}>
+                          <input
+                            type="radio"
+                            name={'audience-' + section.id}
+                            value={audience}
+                            checked={(section.audience ?? 'project') === audience}
+                            onChange={() => updateSection({ ...section, audience })}
+                          />
+                          <span>{audience === 'project' ? 'Proyecto' : 'Comisiones'}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
                   <div data-question-list className="evaluation-question-list">
                     {section.questions.map((question, index) => {
                       const update = (next: Question) =>
@@ -569,11 +614,11 @@ export default function EvaluationTemplates({
                             />
                             <button
                               type="button"
-                              className="evaluation-question-toggle"
-                              aria-expanded={!dragging && !folded.has(question.id)}
+                              className="primary evaluation-question-toggle"
+                              aria-expanded={!dragging && expandedQuestions.has(question.id)}
                               aria-controls={'settings-' + question.id}
                               onClick={() =>
-                                setFolded((previous) => {
+                                setExpandedQuestions((previous) => {
                                   const next = new Set(previous);
                                   if (next.has(question.id)) next.delete(question.id);
                                   else next.add(question.id);
@@ -614,7 +659,7 @@ export default function EvaluationTemplates({
                           <fieldset
                             id={'settings-' + question.id}
                             className="evaluation-question-settings"
-                            hidden={dragging || folded.has(question.id)}
+                            hidden={dragging || !expandedQuestions.has(question.id)}
                           >
                             <label>
                               Enunciado
@@ -627,16 +672,10 @@ export default function EvaluationTemplates({
                                 }
                               />
                             </label>
-                            <label>
-                              Descripción de la pregunta
-                              <textarea
-                                maxLength={1000}
-                                value={question.description}
-                                onChange={(event) =>
-                                  update({ ...question, description: event.target.value })
-                                }
-                              />
-                            </label>
+                            <OptionalQuestionDescription
+                              value={question.description}
+                              onChange={(description) => update({ ...question, description })}
+                            />
                             <label>
                               Tipo de pregunta
                               <select
